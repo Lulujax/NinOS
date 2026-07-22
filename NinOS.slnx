@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NinOS.Domain/NinOS.Domain.csproj" />
+    <Project Path="src/NinOS.Infrastructure/NinOS.Infrastructure.csproj" />
+    <Project Path="src/NinOS.UI/NinOS.UI.csproj" />
+  </Folder>
+</Solution>
