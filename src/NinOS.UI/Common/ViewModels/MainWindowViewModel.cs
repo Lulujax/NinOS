@@ -1,6 +1,5 @@
 using System;
 using NinOS.UI.Common;
-using NinOS.UI.ViewModels;
 
 namespace NinOS.UI.Common.ViewModels
 {

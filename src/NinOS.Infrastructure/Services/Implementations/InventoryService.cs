@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
@@ -17,24 +18,29 @@ namespace NinOS.Infrastructure.Services.Implementations
             _db_context = db_context;
         }
 
-        public async Task<product[]> get_all_products_async()
+        public async Task<IEnumerable<product>> get_all_products_async()
         {
-            return await _db_context.products.ToArrayAsync();
+            return await _db_context.products.ToListAsync();
         }
 
         public async Task add_product_async(product new_product)
         {
             if (new_product == null) throw new ArgumentNullException(nameof(new_product));
-            
             await _db_context.products.AddAsync(new_product);
             await _db_context.SaveChangesAsync();
         }
 
-        public async Task update_product_async(product target_product)
+        public async Task update_product_async(product product_to_update)
         {
-            if (target_product == null) throw new ArgumentNullException(nameof(target_product));
-            
-            _db_context.products.Update(target_product);
+            if (product_to_update == null) throw new ArgumentNullException(nameof(product_to_update));
+            _db_context.products.Update(product_to_update);
+            await _db_context.SaveChangesAsync();
+        }
+
+        public async Task delete_product_async(product product_to_delete)
+        {
+            if (product_to_delete == null) throw new ArgumentNullException(nameof(product_to_delete));
+            _db_context.products.Remove(product_to_delete);
             await _db_context.SaveChangesAsync();
         }
     }

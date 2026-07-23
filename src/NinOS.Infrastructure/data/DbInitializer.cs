@@ -14,76 +14,44 @@ namespace NinOS.Infrastructure.Data
 
             if (!db_context.sellers.Any())
             {
-                seller seller_1 = (seller)Activator.CreateInstance(typeof(seller), nonPublic: true);
-                typeof(seller).GetProperty("full_name")?.SetValue(seller_1, "Sandra");
-                typeof(seller).GetProperty("seller_code")?.SetValue(seller_1, "S-001");
-
-                seller seller_2 = (seller)Activator.CreateInstance(typeof(seller), nonPublic: true);
-                typeof(seller).GetProperty("full_name")?.SetValue(seller_2, "Anais");
-                typeof(seller).GetProperty("seller_code")?.SetValue(seller_2, "A-001");
-
-                seller seller_3 = (seller)Activator.CreateInstance(typeof(seller), nonPublic: true);
-                typeof(seller).GetProperty("full_name")?.SetValue(seller_3, "Alejandra");
-                typeof(seller).GetProperty("seller_code")?.SetValue(seller_3, "A-002");
+                seller seller_1 = new seller("Sandra", "S-001");
+                seller seller_2 = new seller("Anais", "A-001");
+                seller seller_3 = new seller("Alejandra", "A-002");
 
                 db_context.sellers.AddRange(seller_1, seller_2, seller_3);
             }
 
             if (!db_context.customers.Any())
             {
-                customer customer_1 = (customer)Activator.CreateInstance(typeof(customer), nonPublic: true);
-                typeof(customer).GetProperty("customer_code")?.SetValue(customer_1, "C-001");
-                typeof(customer).GetProperty("full_name")?.SetValue(customer_1, "Carlos Perez");
-                typeof(customer).GetProperty("phone_number")?.SetValue(customer_1, "0414-1234567");
-                typeof(customer).GetProperty("address")?.SetValue(customer_1, "Valencia");
-
-                customer customer_2 = (customer)Activator.CreateInstance(typeof(customer), nonPublic: true);
-                typeof(customer).GetProperty("customer_code")?.SetValue(customer_2, "C-002");
-                typeof(customer).GetProperty("full_name")?.SetValue(customer_2, "Maria Gomez");
-                typeof(customer).GetProperty("phone_number")?.SetValue(customer_2, "0412-7654321");
-                typeof(customer).GetProperty("address")?.SetValue(customer_2, "Naguanagua");
+                customer customer_1 = new customer("C-001", "Carlos Perez", "0414-1234567", "Valencia");
+                customer customer_2 = new customer("C-002", "Maria Gomez", "0412-7654321", "Naguanagua");
 
                 db_context.customers.AddRange(customer_1, customer_2);
             }
 
             if (!db_context.products.Any())
             {
-                product product_1 = (product)Activator.CreateInstance(typeof(product), nonPublic: true);
-                typeof(product).GetProperty("product_code")?.SetValue(product_1, "CH-A");
-                typeof(product).GetProperty("name")?.SetValue(product_1, "Cadena con Inicial A");
-                typeof(product).GetProperty("category")?.SetValue(product_1, "cadenas_con_iniciales");
-                typeof(product).GetProperty("unit_price_usd")?.SetValue(product_1, 15.50m);
-                typeof(product).GetProperty("stock_quantity")?.SetValue(product_1, 20);
+                // 3 Productos Defile (Cuidado Capilar)
+                product product_1 = new product("DEF-001", "Defile Shampoo Protector", "Defile", 15.00m, 20);
+                product product_2 = new product("DEF-002", "Defile Mascarilla Capilar", "Defile", 18.50m, 15);
+                product product_3 = new product("DEF-003", "Defile Tratamiento Intensivo", "Defile", 22.00m, 10);
 
-                product product_2 = (product)Activator.CreateInstance(typeof(product), nonPublic: true);
-                typeof(product).GetProperty("product_code")?.SetValue(product_2, "CH-B");
-                typeof(product).GetProperty("name")?.SetValue(product_2, "Cadena con Inicial B");
-                typeof(product).GetProperty("category")?.SetValue(product_2, "cadenas_con_iniciales");
-                typeof(product).GetProperty("unit_price_usd")?.SetValue(product_2, 15.50m);
-                typeof(product).GetProperty("stock_quantity")?.SetValue(product_2, 15);
+                // 3 Productos Óleos
+                product product_4 = new product("OLE-001", "Óleo de Argán Puro", "Óleos", 25.00m, 12);
+                product product_5 = new product("OLE-002", "Óleo de Coco Hidratante", "Óleos", 20.00m, 25);
+                product product_6 = new product("OLE-003", "Óleo Reparador Puntas", "Óleos", 28.00m, 8);
 
-                product product_3 = (product)Activator.CreateInstance(typeof(product), nonPublic: true);
-                typeof(product).GetProperty("product_code")?.SetValue(product_3, "CH-C");
-                typeof(product).GetProperty("name")?.SetValue(product_3, "Cadena con Inicial C");
-                typeof(product).GetProperty("category")?.SetValue(product_3, "cadenas_con_iniciales");
-                typeof(product).GetProperty("unit_price_usd")?.SetValue(product_3, 15.50m);
-                typeof(product).GetProperty("stock_quantity")?.SetValue(product_3, 10);
+                // 3 Productos Rembrandt
+                product product_7 = new product("REM-001", "Rembrandt Pasta 50ml", "Rembrandt", 30.00m, 30);
+                product product_8 = new product("REM-002", "Rembrandt Pasta 100ml", "Rembrandt", 50.00m, 15);
+                product product_9 = new product("REM-003", "Rembrandt Kit Blanqueador", "Rembrandt", 45.00m, 10);
 
-                product product_4 = (product)Activator.CreateInstance(typeof(product), nonPublic: true);
-                typeof(product).GetProperty("product_code")?.SetValue(product_4, "CH-M");
-                typeof(product).GetProperty("name")?.SetValue(product_4, "Cadena con Inicial M");
-                typeof(product).GetProperty("category")?.SetValue(product_4, "cadenas_con_iniciales");
-                typeof(product).GetProperty("unit_price_usd")?.SetValue(product_4, 15.50m);
-                typeof(product).GetProperty("stock_quantity")?.SetValue(product_4, 25);
+                // 3 Productos Otros (Solicitados explícitamente)
+                product product_10 = new product("OTR-001", "Resma de Hojas Carta", "Otros", 5.00m, 50);
+                product product_11 = new product("OTR-002", "Cinta de Embalaje Transparente", "Otros", 2.00m, 100);
+                product product_12 = new product("OTR-003", "Canecalon Castaño Oscuro", "Otros", 12.00m, 35);
 
-                product product_5 = (product)Activator.CreateInstance(typeof(product), nonPublic: true);
-                typeof(product).GetProperty("product_code")?.SetValue(product_5, "CH-S");
-                typeof(product).GetProperty("name")?.SetValue(product_5, "Cadena con Inicial S");
-                typeof(product).GetProperty("category")?.SetValue(product_5, "cadenas_con_iniciales");
-                typeof(product).GetProperty("unit_price_usd")?.SetValue(product_5, 15.50m);
-                typeof(product).GetProperty("stock_quantity")?.SetValue(product_5, 30);
-
-                db_context.products.AddRange(product_1, product_2, product_3, product_4, product_5);
+                db_context.products.AddRange(product_1, product_2, product_3, product_4, product_5, product_6, product_7, product_8, product_9, product_10, product_11, product_12);
             }
 
             db_context.SaveChanges();

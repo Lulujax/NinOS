@@ -1,0 +1,45 @@
+<Window x:Class="NinOS.UI.Views.AddProductWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Añadir Nuevo Producto" Height="420" Width="380" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F9F9F9">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Registro de Producto" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+        <StackPanel Grid.Row="1" Orientation="Vertical">
+            <TextBlock Text="Código:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding new_code, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
+
+            <TextBlock Text="Nombre de Producto:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding new_name, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
+
+            <TextBlock Text="Categoría:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox ItemsSource="{Binding category_options}" SelectedItem="{Binding new_category, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Cantidad:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding new_quantity, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Precio ($):" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+        <Button Grid.Row="2" Content="Guardar Producto" Command="{Binding save_product_command}" Background="#0078D7" Foreground="White" FontWeight="Bold" Padding="0,10" Cursor="Hand" Margin="0,20,0,0"/>
+    </Grid>
+</Window>

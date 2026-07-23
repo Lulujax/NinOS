@@ -2,7 +2,7 @@ using System;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
-namespace NinOS.UI.ViewModels
+namespace NinOS.UI.Common.ViewModels
 {
     public class CommissionsViewModel : ViewModelBase
     {
