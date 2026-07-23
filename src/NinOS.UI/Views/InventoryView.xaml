@@ -1,7 +1,43 @@
 <UserControl x:Class="NinOS.UI.Views.InventoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid>
-        <TextBlock Text="Módulo: Inventario (Cadenas con Iniciales)" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20"/>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Margin="0,0,20,0">
+            <TextBlock Text="Gestión de Inventario" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+
+            <TextBlock Text="Código del Producto:" FontWeight="SemiBold" />
+            <TextBox Text="{Binding product_code, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,15" Padding="4" />
+
+            <TextBlock Text="Nombre / Descripción:" FontWeight="SemiBold" />
+            <TextBox Text="{Binding name, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,15" Padding="4" />
+
+            <TextBlock Text="Categoría:" FontWeight="SemiBold" />
+            <TextBox Text="{Binding category, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,15" Padding="4" />
+
+            <TextBlock Text="Precio Unitario (USD):" FontWeight="SemiBold" />
+            <TextBox Text="{Binding unit_price_usd, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,15" Padding="4" />
+
+            <TextBlock Text="Cantidad en Stock:" FontWeight="SemiBold" />
+            <TextBox Text="{Binding stock_quantity, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,25" Padding="4" />
+
+            <Button Content="Guardar Producto" Command="{Binding save_product_command}" Padding="8" Background="#0078D7" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+            
+            <TextBlock Text="{Binding status_message}" Foreground="Green" Margin="0,15,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <DataGrid Grid.Column="1" 
+                  ItemsSource="{Binding products_list}" 
+                  AutoGenerateColumns="True" 
+                  IsReadOnly="True" 
+                  AlternatingRowBackground="#F0F0F0"
+                  HeadersVisibility="Column"
+                  RowHeight="30">
+        </DataGrid>
     </Grid>
 </UserControl>
