@@ -21,6 +21,9 @@
         <DataTemplate DataType="{x:Type common_viewmodels:CommissionsViewModel}">
             <views:CommissionsView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type common_viewmodels:CustomerViewModel}">
+            <views:CustomerView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type common_viewmodels:InventoryViewModel}">
             <views:InventoryView />
         </DataTemplate>
@@ -33,6 +36,7 @@
             <TabItem Header="Ventas" Content="{Binding sales_vm}" />
             <TabItem Header="Pagos" Content="{Binding payments_vm}" />
             <TabItem Header="Comisiones" Content="{Binding commissions_vm}" />
+            <TabItem Header="Clientes" Content="{Binding customer_vm}" />
             <TabItem Header="Inventario" Content="{Binding inventory_vm}" />
         </TabControl>
     </Grid>
