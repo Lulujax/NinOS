@@ -9,10 +9,25 @@ using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
+    // Este DTO unificado nos permite meter Productos y Promociones en la misma tabla "Todos"
+    public class inventory_item_dto
+    {
+        public string id_display { get; set; } = string.Empty;
+        public string item_code { get; set; } = string.Empty;
+        public string item_name { get; set; } = string.Empty;
+        public string item_category { get; set; } = string.Empty;
+        public string item_quantity { get; set; } = string.Empty;
+        public decimal item_price { get; set; }
+        public bool is_promotion { get; set; }
+        public product? product_ref { get; set; }
+        public promotion? promo_ref { get; set; }
+    }
+
     public class InventoryViewModel : ViewModelBase
     {
         private readonly IInventoryService _inventory_service;
         private List<product> _all_products_source;
+        private List<promotion> _all_promotions_source;
         private product? _product_being_edited;
 
         private string _search_query = string.Empty;
@@ -24,16 +39,17 @@ namespace NinOS.UI.Common.ViewModels
         private string _new_price = string.Empty;
 
         public ObservableCollection<string> category_options { get; }
-        public ObservableCollection<product> products_list { get; }
-        public ObservableCollection<product> defile_list { get; }
-        public ObservableCollection<product> oleos_list { get; }
-        public ObservableCollection<product> rembrandt_list { get; }
-        public ObservableCollection<product> bioline_list { get; }
-        public ObservableCollection<product> amazonia_list { get; }
-        public ObservableCollection<product> kedam_list { get; }
-        public ObservableCollection<product> depil_list { get; }
-        public ObservableCollection<product> estilista_list { get; }
-        public ObservableCollection<product> otros_list { get; }
+        public ObservableCollection<inventory_item_dto> todos_list { get; }
+        public ObservableCollection<inventory_item_dto> defile_list { get; }
+        public ObservableCollection<inventory_item_dto> oleos_list { get; }
+        public ObservableCollection<inventory_item_dto> rembrandt_list { get; }
+        public ObservableCollection<inventory_item_dto> bioline_list { get; }
+        public ObservableCollection<inventory_item_dto> amazonia_list { get; }
+        public ObservableCollection<inventory_item_dto> kedam_list { get; }
+        public ObservableCollection<inventory_item_dto> depil_list { get; }
+        public ObservableCollection<inventory_item_dto> estilista_list { get; }
+        public ObservableCollection<inventory_item_dto> otros_list { get; }
+        public ObservableCollection<inventory_item_dto> promociones_list { get; }
 
         public ICommand open_add_window_command { get; }
         public ICommand save_product_command { get; }
@@ -50,7 +66,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 _search_query = value;
                 on_property_changed();
-                filter_products();
+                filter_data(); // Ahora el buscador filtra TODO
             }
         }
 
@@ -101,19 +117,21 @@ namespace NinOS.UI.Common.ViewModels
             _inventory_service = inventory_service;
 
             _all_products_source = new List<product>();
+            _all_promotions_source = new List<promotion>();
             
             category_options = new ObservableCollection<string> { "Defile", "Óleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Otros" };
             
-            products_list = new ObservableCollection<product>();
-            defile_list = new ObservableCollection<product>();
-            oleos_list = new ObservableCollection<product>();
-            rembrandt_list = new ObservableCollection<product>();
-            bioline_list = new ObservableCollection<product>();
-            amazonia_list = new ObservableCollection<product>();
-            kedam_list = new ObservableCollection<product>();
-            depil_list = new ObservableCollection<product>();
-            estilista_list = new ObservableCollection<product>();
-            otros_list = new ObservableCollection<product>();
+            todos_list = new ObservableCollection<inventory_item_dto>();
+            defile_list = new ObservableCollection<inventory_item_dto>();
+            oleos_list = new ObservableCollection<inventory_item_dto>();
+            rembrandt_list = new ObservableCollection<inventory_item_dto>();
+            bioline_list = new ObservableCollection<inventory_item_dto>();
+            amazonia_list = new ObservableCollection<inventory_item_dto>();
+            kedam_list = new ObservableCollection<inventory_item_dto>();
+            depil_list = new ObservableCollection<inventory_item_dto>();
+            estilista_list = new ObservableCollection<inventory_item_dto>();
+            otros_list = new ObservableCollection<inventory_item_dto>();
+            promociones_list = new ObservableCollection<inventory_item_dto>();
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
             save_product_command = new RelayCommand(execute_save_product);
@@ -129,9 +147,13 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                IEnumerable<product> data = await _inventory_service.get_all_products_async();
-                _all_products_source = data.ToList();
-                filter_products();
+                IEnumerable<product> products_data = await _inventory_service.get_all_products_async();
+                _all_products_source = products_data.ToList();
+
+                IEnumerable<promotion> promos_data = await _inventory_service.get_all_promotions_async();
+                _all_promotions_source = promos_data.ToList();
+
+                filter_data();
             }
             catch { }
         }
@@ -153,14 +175,21 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void filter_products()
+        private void filter_data()
         {
-            List<product> filtered = _all_products_source.Where(p =>
+            // Filtrar productos
+            List<product> filtered_products = _all_products_source.Where(p =>
                 string.IsNullOrWhiteSpace(_search_query) ||
                 p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
                 p.product_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            products_list.Clear();
+            // Filtrar promociones
+            List<promotion> filtered_promos = _all_promotions_source.Where(p =>
+                string.IsNullOrWhiteSpace(_search_query) ||
+                p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
+                p.promotion_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            todos_list.Clear();
             defile_list.Clear();
             oleos_list.Clear();
             rembrandt_list.Clear();
@@ -170,19 +199,58 @@ namespace NinOS.UI.Common.ViewModels
             depil_list.Clear();
             estilista_list.Clear();
             otros_list.Clear();
+            promociones_list.Clear();
 
-            foreach (product p in filtered)
+            // Llenar listas con productos físicos
+            foreach (product p in filtered_products)
             {
-                products_list.Add(p);
-                if (p.category == "Defile") defile_list.Add(p);
-                else if (p.category == "Óleos") oleos_list.Add(p);
-                else if (p.category == "Rembrandt") rembrandt_list.Add(p);
-                else if (p.category == "Bioline") bioline_list.Add(p);
-                else if (p.category == "Amazonia Secret") amazonia_list.Add(p);
-                else if (p.category == "Kedam") kedam_list.Add(p);
-                else if (p.category == "Depil Clear") depil_list.Add(p);
-                else if (p.category == "Estilista") estilista_list.Add(p);
-                else if (p.category == "Otros") otros_list.Add(p);
+                inventory_item_dto dto = new inventory_item_dto {
+                    id_display = p.id_product.ToString(),
+                    item_code = p.product_code,
+                    item_name = p.name,
+                    item_category = p.category,
+                    item_quantity = p.stock_quantity.ToString(),
+                    item_price = p.unit_price_usd,
+                    is_promotion = false,
+                    product_ref = p
+                };
+
+                todos_list.Add(dto);
+                
+                if (p.category == "Defile") defile_list.Add(dto);
+                else if (p.category == "Óleos") oleos_list.Add(dto);
+                else if (p.category == "Rembrandt") rembrandt_list.Add(dto);
+                else if (p.category == "Bioline") bioline_list.Add(dto);
+                else if (p.category == "Amazonia Secret") amazonia_list.Add(dto);
+                else if (p.category == "Kedam") kedam_list.Add(dto);
+                else if (p.category == "Depil Clear") depil_list.Add(dto);
+                else if (p.category == "Estilista") estilista_list.Add(dto);
+                else if (p.category == "Otros") otros_list.Add(dto);
+            }
+
+            // Llenar listas con promociones calculadas
+            foreach (promotion p in filtered_promos)
+            {
+                int calculated_available = 0;
+                if (p.items != null && p.items.Count > 0)
+                {
+                    calculated_available = p.items.Min(i => i.product.stock_quantity / i.quantity_required);
+                }
+
+                inventory_item_dto dto = new inventory_item_dto {
+                    id_display = p.id_promotion.ToString(),
+                    item_code = p.promotion_code,
+                    item_name = p.name,
+                    item_category = p.category,
+                    item_quantity = calculated_available.ToString(),
+                    item_price = p.unit_price_usd,
+                    is_promotion = true,
+                    promo_ref = p
+                };
+
+                // ¡AQUÍ ESTÁ LA MAGIA! Las promos van tanto a la pestaña Todos como a su propia pestaña
+                todos_list.Add(dto);
+                promociones_list.Add(dto);
             }
         }
 
@@ -199,25 +267,29 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_edit_product(object? parameter)
         {
-            if (parameter is product prod)
+            if (parameter is inventory_item_dto dto)
             {
-                _product_being_edited = prod;
-                new_code = prod.product_code;
-                new_name = prod.name;
-                new_category = prod.category;
-                new_quantity = prod.stock_quantity.ToString();
-                new_price = prod.unit_price_usd.ToString();
+                // Protegemos el código: No se editan promociones desde esta ventana
+                if (dto.is_promotion || dto.product_ref == null) return; 
+
+                _product_being_edited = dto.product_ref;
+                new_code = dto.product_ref.product_code;
+                new_name = dto.product_ref.name;
+                new_category = dto.product_ref.category;
+                new_quantity = dto.product_ref.stock_quantity.ToString();
+                new_price = dto.product_ref.unit_price_usd.ToString();
                 on_request_add_window?.Invoke();
             }
         }
 
         private async void execute_delete_product(object? parameter)
         {
-            if (parameter is product prod)
+            if (parameter is inventory_item_dto dto)
             {
-                await _inventory_service.delete_product_async(prod);
-                _all_products_source.Remove(prod);
-                filter_products();
+                if (dto.is_promotion || dto.product_ref == null) return;
+
+                await _inventory_service.delete_product_async(dto.product_ref);
+                load_initial_data(); 
             }
         }
 
@@ -242,11 +314,10 @@ namespace NinOS.UI.Common.ViewModels
             {
                 product new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
                 await _inventory_service.add_product_async(new_prod);
-                _all_products_source.Add(new_prod);
             }
             
             _product_being_edited = null;
-            filter_products();
+            load_initial_data(); // Esto refresca todo, incluyendo el recálculo matemático de las promociones
             on_close_add_window?.Invoke();
         }
     }

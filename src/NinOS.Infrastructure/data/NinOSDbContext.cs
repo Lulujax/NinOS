@@ -12,6 +12,10 @@ namespace NinOS.Infrastructure.Data
         public DbSet<note_detail> note_details { get; set; }
         public DbSet<payment> payments { get; set; }
         public DbSet<commission> commissions { get; set; }
+        
+        // Nuevas tablas de promociones
+        public DbSet<promotion> promotions { get; set; }
+        public DbSet<promotion_item> promotion_items { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -111,6 +115,20 @@ namespace NinOS.Infrastructure.Data
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Configuración de las nuevas tablas de promociones
+            model_builder.Entity<promotion>().HasKey(p => p.id_promotion);
+            model_builder.Entity<promotion_item>().HasKey(pi => pi.id_promotion_item);
+
+            model_builder.Entity<promotion_item>()
+                .HasOne(pi => pi.promotion)
+                .WithMany(p => p.items)
+                .HasForeignKey(pi => pi.id_promotion);
+
+            model_builder.Entity<promotion_item>()
+                .HasOne(pi => pi.product)
+                .WithMany()
+                .HasForeignKey(pi => pi.id_product);
         }
     }
 }

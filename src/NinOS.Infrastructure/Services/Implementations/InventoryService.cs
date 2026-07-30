@@ -43,5 +43,13 @@ namespace NinOS.Infrastructure.Services.Implementations
             _db_context.products.Remove(product_to_delete);
             await _db_context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<promotion>> get_all_promotions_async()
+        {
+            return await _db_context.promotions
+                .Include(p => p.items)
+                .ThenInclude(i => i.product)
+                .ToListAsync();
+        }
     }
 }

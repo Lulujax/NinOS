@@ -17,7 +17,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Buscar Producto:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="Buscar Producto o Combo:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBox Width="300" Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}" Padding="6" FontSize="14" />
                 </StackPanel>
 
@@ -26,20 +26,38 @@
         </Border>
 
         <TabControl Grid.Row="1" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
-            <!-- Pestaña: Todos -->
+            <!-- Todos (Mezcla Productos y Promociones) -->
             <TabItem Header="Todos">
-                <DataGrid ItemsSource="{Binding products_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding todos_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Categoría" Binding="{Binding category}" Width="120" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="110" />
+                        <DataGridTextColumn Header="Nombre / Combo" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Categoría" Binding="{Binding item_category}" Width="120" />
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <!-- Magia: Si es Promoción, los botones se colapsan automáticamente -->
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding is_promotion}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
                                         <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
                                         <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
                                     </StackPanel>
@@ -50,15 +68,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Defile -->
+            <!-- Defile -->
             <TabItem Header="Defile">
-                <DataGrid ItemsSource="{Binding defile_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding defile_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -73,15 +99,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Óleos -->
+            <!-- Óleos -->
             <TabItem Header="Óleos">
-                <DataGrid ItemsSource="{Binding oleos_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding oleos_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -96,15 +130,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Rembrandt -->
+            <!-- Rembrandt -->
             <TabItem Header="Rembrandt">
-                <DataGrid ItemsSource="{Binding rembrandt_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding rembrandt_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -119,15 +161,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Bioline -->
+            <!-- Bioline -->
             <TabItem Header="Bioline">
-                <DataGrid ItemsSource="{Binding bioline_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding bioline_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -142,15 +192,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Amazonia Secret -->
+            <!-- Amazonia Secret -->
             <TabItem Header="Amazonia Secret">
-                <DataGrid ItemsSource="{Binding amazonia_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding amazonia_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -165,15 +223,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Kedam -->
+            <!-- Kedam -->
             <TabItem Header="Kedam">
-                <DataGrid ItemsSource="{Binding kedam_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding kedam_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -188,15 +254,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Depil Clear -->
+            <!-- Depil Clear -->
             <TabItem Header="Depil Clear">
-                <DataGrid ItemsSource="{Binding depil_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding depil_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -211,15 +285,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Estilista -->
+            <!-- Estilista -->
             <TabItem Header="Estilista">
-                <DataGrid ItemsSource="{Binding estilista_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding estilista_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -234,15 +316,23 @@
                 </DataGrid>
             </TabItem>
 
-            <!-- Pestaña: Otros (Vacía intencionalmente) -->
+            <!-- Otros -->
             <TabItem Header="Otros">
-                <DataGrid ItemsSource="{Binding otros_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                <DataGrid ItemsSource="{Binding otros_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
-                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
-                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
-                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -253,6 +343,28 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Promociones -->
+            <TabItem Header="Promociones">
+                <DataGrid ItemsSource="{Binding promociones_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#E3F2FD" HeadersVisibility="Column" MinRowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_display}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding item_code}" Width="110" />
+                        <DataGridTextColumn Header="Nombre del Combo/Kit" Binding="{Binding item_name}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="Margin" Value="5" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Categoría" Binding="{Binding item_category}" Width="120" />
+                        <DataGridTextColumn Header="Disponibles" Binding="{Binding item_quantity}" Width="90" FontWeight="Bold" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding item_price}" Width="100" />
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
