@@ -26,6 +26,7 @@
         </Border>
 
         <TabControl Grid.Row="1" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
+            <!-- Pestaña: Todos -->
             <TabItem Header="Todos">
                 <DataGrid ItemsSource="{Binding products_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
                     <DataGrid.Columns>
@@ -49,6 +50,7 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- Pestaña: Defile -->
             <TabItem Header="Defile">
                 <DataGrid ItemsSource="{Binding defile_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
                     <DataGrid.Columns>
@@ -71,6 +73,7 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- Pestaña: Óleos -->
             <TabItem Header="Óleos">
                 <DataGrid ItemsSource="{Binding oleos_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
                     <DataGrid.Columns>
@@ -93,6 +96,7 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- Pestaña: Rembrandt -->
             <TabItem Header="Rembrandt">
                 <DataGrid ItemsSource="{Binding rembrandt_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
                     <DataGrid.Columns>
@@ -115,6 +119,122 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- Pestaña: Bioline -->
+            <TabItem Header="Bioline">
+                <DataGrid ItemsSource="{Binding bioline_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
+                                        <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Pestaña: Amazonia Secret -->
+            <TabItem Header="Amazonia Secret">
+                <DataGrid ItemsSource="{Binding amazonia_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
+                                        <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Pestaña: Kedam -->
+            <TabItem Header="Kedam">
+                <DataGrid ItemsSource="{Binding kedam_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
+                                        <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Pestaña: Depil Clear -->
+            <TabItem Header="Depil Clear">
+                <DataGrid ItemsSource="{Binding depil_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
+                                        <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Pestaña: Estilista -->
+            <TabItem Header="Estilista">
+                <DataGrid ItemsSource="{Binding estilista_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding id_product}" Width="50" />
+                        <DataGridTextColumn Header="Código" Binding="{Binding product_code}" Width="100" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding name}" Width="*" />
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding stock_quantity}" Width="90" />
+                        <DataGridTextColumn Header="Precio ($)" Binding="{Binding unit_price_usd}" Width="100" />
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Editar" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,10,0" Padding="10,5" Background="#E0E0E0" Cursor="Hand" />
+                                        <Button Content="Borrar" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="10,5" Background="#FFCDD2" Cursor="Hand" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Pestaña: Otros (Vacía intencionalmente) -->
             <TabItem Header="Otros">
                 <DataGrid ItemsSource="{Binding otros_list}" AutoGenerateColumns="False" IsReadOnly="True" AlternatingRowBackground="#F9F9F9" HeadersVisibility="Column" RowHeight="40" Margin="5">
                     <DataGrid.Columns>

@@ -28,6 +28,11 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<product> defile_list { get; }
         public ObservableCollection<product> oleos_list { get; }
         public ObservableCollection<product> rembrandt_list { get; }
+        public ObservableCollection<product> bioline_list { get; }
+        public ObservableCollection<product> amazonia_list { get; }
+        public ObservableCollection<product> kedam_list { get; }
+        public ObservableCollection<product> depil_list { get; }
+        public ObservableCollection<product> estilista_list { get; }
         public ObservableCollection<product> otros_list { get; }
 
         public ICommand open_add_window_command { get; }
@@ -97,11 +102,17 @@ namespace NinOS.UI.Common.ViewModels
 
             _all_products_source = new List<product>();
             
-            category_options = new ObservableCollection<string> { "Defile", "Óleos", "Rembrandt", "Otros" };
+            category_options = new ObservableCollection<string> { "Defile", "Óleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Otros" };
+            
             products_list = new ObservableCollection<product>();
             defile_list = new ObservableCollection<product>();
             oleos_list = new ObservableCollection<product>();
             rembrandt_list = new ObservableCollection<product>();
+            bioline_list = new ObservableCollection<product>();
+            amazonia_list = new ObservableCollection<product>();
+            kedam_list = new ObservableCollection<product>();
+            depil_list = new ObservableCollection<product>();
+            estilista_list = new ObservableCollection<product>();
             otros_list = new ObservableCollection<product>();
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
@@ -122,9 +133,7 @@ namespace NinOS.UI.Common.ViewModels
                 _all_products_source = data.ToList();
                 filter_products();
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         private void update_category_from_tab()
@@ -134,7 +143,12 @@ namespace NinOS.UI.Common.ViewModels
                 case 1: new_category = "Defile"; break;
                 case 2: new_category = "Óleos"; break;
                 case 3: new_category = "Rembrandt"; break;
-                case 4: new_category = "Otros"; break;
+                case 4: new_category = "Bioline"; break;
+                case 5: new_category = "Amazonia Secret"; break;
+                case 6: new_category = "Kedam"; break;
+                case 7: new_category = "Depil Clear"; break;
+                case 8: new_category = "Estilista"; break;
+                case 9: new_category = "Otros"; break;
                 default: break;
             }
         }
@@ -150,6 +164,11 @@ namespace NinOS.UI.Common.ViewModels
             defile_list.Clear();
             oleos_list.Clear();
             rembrandt_list.Clear();
+            bioline_list.Clear();
+            amazonia_list.Clear();
+            kedam_list.Clear();
+            depil_list.Clear();
+            estilista_list.Clear();
             otros_list.Clear();
 
             foreach (product p in filtered)
@@ -158,6 +177,11 @@ namespace NinOS.UI.Common.ViewModels
                 if (p.category == "Defile") defile_list.Add(p);
                 else if (p.category == "Óleos") oleos_list.Add(p);
                 else if (p.category == "Rembrandt") rembrandt_list.Add(p);
+                else if (p.category == "Bioline") bioline_list.Add(p);
+                else if (p.category == "Amazonia Secret") amazonia_list.Add(p);
+                else if (p.category == "Kedam") kedam_list.Add(p);
+                else if (p.category == "Depil Clear") depil_list.Add(p);
+                else if (p.category == "Estilista") estilista_list.Add(p);
                 else if (p.category == "Otros") otros_list.Add(p);
             }
         }

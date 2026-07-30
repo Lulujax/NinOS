@@ -19,7 +19,7 @@
             <TextBox Text="{Binding new_name, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
 
             <TextBlock Text="Categoría:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-            <ComboBox ItemsSource="{Binding category_options}" SelectedItem="{Binding new_category, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
+            <ComboBox ItemsSource="{Binding category_options}" SelectedItem="{Binding new_category, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding can_edit_category}" Padding="5" Margin="0,0,0,15"/>
 
             <Grid>
                 <Grid.ColumnDefinitions>
