@@ -51,5 +51,19 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ThenInclude(i => i.product)
                 .ToListAsync();
         }
+
+        public async Task delete_promotion_async(promotion promotion_to_delete)
+        {
+            if (promotion_to_delete == null) throw new ArgumentNullException(nameof(promotion_to_delete));
+            _db_context.promotions.Remove(promotion_to_delete);
+            await _db_context.SaveChangesAsync();
+        }
+
+        public async Task add_promotion_async(promotion new_promotion)
+        {
+            if (new_promotion == null) throw new ArgumentNullException(nameof(new_promotion));
+            await _db_context.promotions.AddAsync(new_promotion);
+            await _db_context.SaveChangesAsync();
+        }
     }
 }
