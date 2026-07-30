@@ -1,0 +1,66 @@
+<Window x:Class="NinOS.UI.Views.AddCustomerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cliente"
+        Height="640"
+        Width="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanMinimize"
+        Background="#F9F9F9">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="{Binding add_or_edit_title}"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,12"/>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="Código:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_customer_code, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Razón Social:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_business_name, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="RIF:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_rif, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Nombre del Cliente (contacto):" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_contact_name, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Teléfono:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_phone_number, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Dirección Fiscal:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_fiscal_address, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalScrollBarVisibility="Auto" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Dirección de Entrega:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding new_delivery_address, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalScrollBarVisibility="Auto" Padding="6" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Vendedor:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <ComboBox ItemsSource="{Binding seller_options}"
+                          SelectedItem="{Binding new_seller_name, UpdateSourceTrigger=PropertyChanged}"
+                          IsEnabled="{Binding can_edit_seller}"
+                          Padding="6"
+                          Margin="0,0,0,10"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="2"
+                Content="{Binding save_button_text}"
+                Command="{Binding save_customer_command}"
+                Background="#0078D7"
+                Foreground="White"
+                FontWeight="Bold"
+                Padding="0,10"
+                Cursor="Hand"
+                Margin="0,14,0,0"/>
+    </Grid>
+</Window>
