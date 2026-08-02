@@ -6,13 +6,12 @@ namespace NinOS.UI.Common
     public class RelayCommand : ICommand
     {
         private readonly Action<object?> _execute;
-        private readonly Predicate<object?>? _can_execute;
+        private readonly Predicate<object?>? _canExecute;
 
-        public RelayCommand(Action<object?> execute, Predicate<object?>? can_execute = null)
+        public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
         {
-            if (execute == null) throw new ArgumentNullException(nameof(execute));
-            _execute = execute;
-            _can_execute = can_execute;
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
         }
 
         public event EventHandler? CanExecuteChanged
@@ -23,7 +22,7 @@ namespace NinOS.UI.Common
 
         public bool CanExecute(object? parameter)
         {
-            return _can_execute == null || _can_execute(parameter);
+            return _canExecute?.Invoke(parameter) ?? true;
         }
 
         public void Execute(object? parameter)

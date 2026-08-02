@@ -39,6 +39,11 @@ namespace NinOS.UI
             };
         }
 
+        public IServiceProvider GetServiceProvider()
+        {
+            return _service_provider!;
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             try
@@ -95,6 +100,7 @@ namespace NinOS.UI
             services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<ICommissionService, CommissionService>();
+            services.AddScoped<ICustomerService, CustomerService>();
 
             services.AddTransient<DeliveryNotesViewModel>();
             services.AddTransient<AccountsReceivableViewModel>();

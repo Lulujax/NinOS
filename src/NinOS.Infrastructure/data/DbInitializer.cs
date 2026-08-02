@@ -24,8 +24,93 @@ namespace NinOS.Infrastructure.Data
             if (!db_context.customers.Any())
             {
                 db_context.customers.AddRange(
-                    new customer("C-001", "Carlos Perez", "0414-1234567", "Valencia"),
-                    new customer("C-002", "Maria Gomez", "0412-7654321", "Naguanagua")
+                    new customer("C-001", "Carlos Perez", "", "", "0414-1234567", "Valencia", "", ""),
+                    new customer("C-002", "Maria Gomez", "", "", "0412-7654321", "Naguanagua", "", ""),
+                    new customer("3300_01", "BAZAR SUPER COMPLETO C.A", "J-294385915", "CHICHI", "0412 8861755", "CALLE SUCRE LOCAL 98-31 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2001", "CALLE SUCRE LOCAL 98-31 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2002", "Anais"),
+                    new customer("3300_02", "ÁUTOMERCADO MARKET CENTER II C.A", "J-401202969", "XVENA", "0412 8812458", "CALLE SUCRE C/C CALLE CEDEÑO CC LAS 3 J NIVEL S/E LOCAL 4 ZONA TOCUYITO TOCUYITO ZONA POSTAL 2035", "DIAGONAL A CHICHI CALLE SUCRE C/C CALLE CEDEÑO CC LAS 3 J NIVEL S/E LOCAL 4 ZONA TOCUYITO TOCUYITO ZONA POSTAL 2035", "Anais"),
+                    new customer("3300_03", "INVERSIONES LISBEMAR C.A", "J-312573023", "IRIS / ANGELA", "0424 425 6174", "CALLE GIRARDOT CC MI VIEJO MERCADO NIVEL P.B LOCAL PASILLO COLOMBIA LOCAL O_12 SECTOR CENTRO VALENCIA CARABOBO ZONA POSTAL 2001", "BELLA FORIDA DETRÁS DE LA GUACAMAYA _ AV PRINCIPAL BELLA FLORIDA AV 113 VALENCIA 2001", "Anais"),
+                    new customer("3300_04", "INVERSIONES SAM LYZ C,A", "J - 405797444", "ANA / LISETH", "0412 7439938", "AV PRINCIPAL D ELA COMUNIDAD DE SAN JOSE DE LOS CHORRITOS CASA NRO 2 LOCAL 4 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2053", "AV PRINCIPAL D ELA COMUNIDAD DE SAN JOSE DE LOS CHORRITOS CASA NRO 2 LOCAL 4 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2053", "Anais"),
+                    new customer("3300_05", "INVERSONES NAILS A.Z.M C,A (MUJER BONITA)", "J-500650078", "MINERVA", "0412 533 63 24", "AV 113 /114 LOCAL NRO 01 URB BELLA FLORIDA SECTOR 20 VALENCIA CARABOBO ZONA POSTAL 2003", "MUJER BONITA_ AV 113 /114 LOCAL NRO 01 URB BELLA FLORIDA SECTOR 20 VALENCIA CARABOBO ZONA POSTAL 2004", "Anais"),
+                    new customer("3300_06", "QUINCALLERIA FELIZ,C.A.", "J299286664", "KATTY", "0412-8905708", "AV BOLIVAR PPAL LOC 10 PB SECTOR CENTRAL TACARIGUA VALENCIA EDO-CARABOBO", "AV BOLIVAR PPAL LOC 10 PB SECTOR CENTRAL TACARIGUA VALENCIA EDO-CARABOBO", "Anais"),
+                    new customer("3300_07", "COMERCIALIZADORA WLAFRANSANG C.A", "J- 501038082", "", "0412-400.37.00", "CALLE SUCRE C/C CEDEÑO CC LAS 3 J NIVEL P/B LOCAL 2 Y 3 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035", "CALLE SUCRE C/C CEDEÑO CC LAS 3 J NIVEL P/B LOCAL 2 Y 3 SECTOR TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035", "Anais"),
+                    new customer("3300_08", "COMERCIALIZADORA CUTE MIAO 2023 C.A", "J-504229822", "PAOLA", "0424-843.70.74", "CALLE SUCRE CRUCE CON LA AVENIDA BOLIVAR CC SANTA FORTUNATA NIVEL PLANTA BAJA LOCAL 01,.02 Y 03 SECTOR S/N TOCUYITO CARABOBO ZONA POSTAL 2036", "CALLE SUCRE CRUCE CON LA AVENIDA BOLIVAR CC SANTA FORTUNATA NIVEL PLANTA BAJA LOCAL 01,.02 Y 03 SECTOR S/N TOCUYITO CARABOBO ZONA POSTAL 2036", "Anais"),
+                    new customer("3300_09", "ROMENSAN DISTRIBUIDORA C.A", "J-405448997", "", "0412-435.87.08 /", "AV SUCRE NOR 06 LOCAL 3 FRENTE A MONUMENTO SAN JOAQUIN", "AV SUCRE NOR 06 LOCAL 3 FRENTE A MONUMENTO SAN JOAQUIN", "Anais"),
+                    new customer("3300_10", "INVERSIONES NESYO 2022 C.A", "J-502657100", "NESTOR / EGLEE", "0412-500.63.06", "CALLE 73 CC MEDIA LUNA NIVEL S/N LOCAL 5 BARRIO EL CARMEN VALENCIA CARABOBO ZONA POSTAL 2001", "TERMINAL DE MERCADO GOAJIROS CALLE 73 CC MEDIA LUNA NIVEL S/N LOCAL 5 BARRIO EL CARMEN VALENCIA CARABOBO ZONA POSTAL 2002", "Anais"),
+                    new customer("3300_11", "INVERSIONES P & T 2022 C.A", "J- 502178929", "", "", "CALLE VALENCIA CASSA NRO 19 SECTOR LA ALIANZA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2010", "CALLE VALENCIA CASSA NRO 19 SECTOR LA ALIANZA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2011", "Anais"),
+                    new customer("3300_12", "SUPERMERCADO KAIROS C.A", "J- 408247054", "TISIANA", "0412-747.43.96", "AV BOLIVAR CALLE 11º2 CC TACARIGUA NIVEL P.B LOCAL4 SECTOR CENTRAL TACARIGUA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2010", "AV BOLIVAR CALLE 11º2 CC TACARIGUA NIVEL P.B LOCAL4 SECTOR CENTRAL TACARIGUA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2011", "Anais"),
+                    new customer("3300_13", "BUENOS ESTILOS C.A", "J_400334357", "DARLIN", "0412.501.84.34", "AV 113 NRO 20_10 LOCAL 01 URB BELLA FLORIDA VALENCIA CARABOBO ZONA POSTAL 2003", "AV 113 NRO 20_10 LOCAL 01 URB BELLA FLORIDA VALENCIA CARABOBO ZONA POSTAL 2003", "Anais"),
+                    new customer("3300_14", "SALON DE BELLEZA STYLOS CHAVEZ F.P", "V-15.446.408", "YANET CHAVEZ", "0412-412.11.93", "AV 01 CASA NRO 30 URB. LAS AGUITAS SECTOR 02 LOS GUAYOS EDO CARABOBO", "AV 01 CASA NRO 30 URB. LAS AGUITAS SECTOR 02 LOS GUAYOS EDO CARABOBO", "Anais"),
+                    new customer("3300_15", "MEGA SOL, C.A.", "J-308660698", "LILI DENG", "0412-762.56.33", "AV BOLIVAR. URB FLOR AMARILLO C.C. OASIS LOCAL Nº 01 VALENCIA EDO-CARABOBO", "AV BOLIVAR. URB FLOR AMARILLO C.C. OASIS LOCAL Nº 01 VALENCIA EDO-CARABOBO", "Anais"),
+                    new customer("3300_16", "SUPERMERCADO GRAN OFRTA DE CARABOBO C.A", "J-315780100", "MEKY", "0412.036.80.31", "AV EL APO CARABOBO LOCAL NRO 07 SECTOR CAMPOCARABOBO TOCUYITOC CARABOBO ZONA POSTAL 2035", "PASANDO CAMPO CARABOBO EN EL RETORNO AV EL APO CARABOBO LOCAL NRO 07 SECTOR CAMPOCARABOBO TOCUYITOC CARABOBO ZONA POSTAL 2036", "Anais"),
+                    new customer("3300_17", "ATIMAS S & S C.A", "J.-411942960", "", "", "CALLE SUCRE CON CALLE COLOMBIA CC SUCRE NRO 10_35 NIVEL S/N LOCAL 2 SECTOR S/N SAN JOAQUIN CARABBOO ZONA POSTAL 2018", "CALLE SUCRE CON CALLE COLOMBIA CC SUCRE NRO 10_35 NIVEL S/N LOCAL 2 SECTOR S/N SAN JOAQUIN CARABBOO ZONA POSTAL 2018", "Anais"),
+                    new customer("3300_18", "TASCA RESTAURANT EL ALBORAL C.A", "J-406474517", "SUSAN", "0412.334.66.88", "AV BOLIVAR DE FLOR AMARILLO CC EL ALBORAL NIVEL 1 LOCAL 9 Y 10 SECTOR FLOR AMARILLO VALENCIA EDO CARABOBO", "AV BOLIVAR DE FLOR AMARILLO CC EL ALBORAL NIVEL 1 LOCAL 9 Y 10 SECTOR FLOR AMARILLO VALENCIA EDO CARABOBO", "Anais"),
+                    new customer("3300_19", "SUPER MERCADO PINO C.A", "J-314051148", "LIN XIANTING", "0424-843.70.74", "AV BOLIVAR C/C SUCRE TOCUYITO EDIF VA_PAZ PISO P.BLOCAL 02 ZONA CENTRO TOCUYITO CARABOBO ZONA POSTAL 2035", "AV BOLIVAR C/C SUCRE TOCUYITO EDIF VA_PAZ PISO P.BLOCAL 02 ZONA CENTRO TOCUYITO CARABOBO ZONA POSTAL 2035", "Anais"),
+                    new customer("3300_20", "INVERSIONES SAN LUIS VALENCIA C.A", "J-412509853", "DANIELA", "0412.454.38.39", "AUTOPISTA VALENCIA CAMPO CARABOBO LOCALES 29,30,31 Y 32 MERCADO MAYORISTA PLANTA ALTA TOCUYITO EDO CARABOBO", "AUTOPISTA VALENCIA CAMPO CARABOBO LOCALES 29,30,31 Y 32 MERCADO MAYORISTA PLANTA ALTA TOCUYITO EDO CARABOBO", "Anais"),
+                    new customer("3300_21", "BLUE STOREGM", "V-22.204.645", "MARIANNY MEDINA", "0412.406.30.48", "AV PRINCIPAL FLOR AMARILLO FRENTE AL C.C OASIS AL LADO DEL LOCAL DE LA PELUQUERIA", "AV PRINCIPAL FLOR AMARILLO FRENTE AL C.C OASIS AL LADO DEL LOCAL DE LA PELUQUERIA", "Anais"),
+                    new customer("3300_22", "DISTRIBUIDORA ESTETICA SALUD Y BELLEZA BLISS SPA C,.A", "J-411843717", "HILDA MARTINEZ", "0424-410.49.08", "AV LARA C.C REBECA NIVEL 2 LOCAL LM-15 SECTOR SANTA ROSA VALENCIA CARABOBO ZONA POSTAL 2001", "BELLA FLORIDA. AV PRINCIPAL BELLA FLORIDA", "Anais"),
+                    new customer("3300_23", "SUPERMERCADO DIEGON C.A", "J-297512195", "CELINA - Emily", "0424-498.66.51 - 0412.912.2109", "CALLE AREVALO LOCAL NRO 01 SECTOR CASCO CENTRAL TOCUYITO", "ANTES DEL CRUCE PI Y CU .CALLE AREVALO LOCAL NRO 01 SECTOR CASCO CENTRAL TOCUYITO", "Anais"),
+                    new customer("3300_24", "SUPERMERCADO BELLA FLORIDA C.A _ INVERSONES DIAR", "J-504310719", "RAY", "0412.483.34.99", "AV 129 GALPON 1 ZONA INDUSTRIAL LA GUACAMAYA VALENCIA CARABOBO ZONA POSTAL 2003", "ENTRANDO POR LA AUTOPISTA .AV 129 GALPON 1 ZONA INDUSTRIAL LA GUACAMAYA VALENCIA CARABOBO ZONA POSTAL 2003", "Anais"),
+                    new customer("3300_25", "MAXI MERCADO BELLA FLORIDA", "J-503769866", "YENIFER", "0412-534.26.02", "AV PRINCIPAL BELLA FLORIDA C.C. CONJUNTO RESIDENCIAL DIEGO 1 PRIMERA ETAPA NIVEL P-B LCOAL A,.B,.C,.D URB PARQUE RESIENDENCIAL LA FLORIDA SECTOR 2 VALENCIA CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_26", "COMERCIAL EL FUTURO STYLE, C.A.", "J403881685", "EMILY", "0412-742.52.58", "CALLE PRINCIPAL CENTRO COMERCIAL HERMANOS BOSCO. NRO. CIVICO 93-11, LOCAL NRO. 7 Y 8. URBANIZAZION POPULAR HERMOGENES LOPEZ. VALENCIA", "", "Anais"),
+                    new customer("3300_27", "ANGEL FONG", "", "", "", "", "", "Anais"),
+                    new customer("3300_28", "SUPERMERCADO PANDA 888 C.A", "J-500038747", "KALINA", "0412-488.83.18 / 0424-417.66.25", "AV BOLIVAR C.C IBERIA NIVEL 1 LOCAL 1 SECTOR CENTRAL TACARIGUA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2010", "AV PRICIPAL CENTRAL AV BOLIVAR C.C IBERIA NIVEL 1 LOCAL 1 SECTOR CENTRAL TACARIGUA CENTRAL TACARIGUA CARABOBO ZONA POSTAL 2011", "Anais"),
+                    new customer("3300_29", "INVERSONES LA GRANDEZA LIANG, C.A", "J- 296678278", "", "0412-083.19.92", "CALLE BOLIVAR NRO 23 SECTOR CENTRO DE GUACARA, EDO CARABOBO", "UNA CUADRA ANTES DE LA IGLESIA CALLE SUBIENDO A LA PLAZA. CALLE BOLIVAR NRO 23 SECTOR CENTRO DE GUACARA, EDO CARABOBO", "Anais"),
+                    new customer("3300_30", "DIVAS SHOP VALENCIA", "J-502940057", "YULI", "0412-139.55.66", "AV. BOLIVAR CRUCE CON CALLE AREVALO EDIFICIO GIAMBALVO PISO S/N LOCAL N° 2 SECTOR S/N GUACARA CARABOBO", "EN LA ESQUINA DE LA PLAZA GUACARA AV. BOLIVAR CRUCE CON CALLE AREVALO EDIFICIO GIAMBALVO PISO S/N LOCAL N° 2 SECTOR S/N GUACARA CARABOBO", "Anais"),
+                    new customer("3300_31", "UNIMARKETT LA FE C.A", "J-409939197", "WENDY CELIS", "0414048.58.15", "CALLE MORILLO LOCAL NRO 003 SECOTR LAS MANZANAS CAMPO CARABOBO TOCUYITO ZONA POSTAL 2035", "CALLE MORILLO LOCAL NRO 003 SECOTR LAS MANZANAS CAMPO CARABOBO TOCUYITO ZONA POSTAL 2035", "Anais"),
+                    new customer("3300_32", "HIPERMERCADO LA HONDA", "J-503301821", "OSCAR Y NATALY", "0412.1785436 - 04122050337", "AV.LA HONDA CRUCE CON CADAFE CARRETERA DE SERVICIO CC. CADAFE NIVEL NO INDICA LOCAL 112-21 SECTOR LA HONDA TOCUYITO", "AV.LA HONDA CRUCE CON CADAFE CARRETERA DE SERVICIO CC. CADAFE NIVEL NO INDICA LOCAL 112-21 SECTOR LA HONDA TOCUYITO", "Anais"),
+                    new customer("3300_33", "ANABEL DESIRE DAVILA MATOS ( BEAUTY COSMETICS )", "V- 144894703", "ANABEL", "414.421.19.73", "AV. JUNI CASA NRO 1-37 BARRIO BELLLO MONE 1 VALENCIA", "AV. JUNI CASA NRO 1-37 BARRIO BELLLO MONE 1 VALENCIA", "Anais"),
+                    new customer("3300_34", "EMPREDIMIENTO MAIKOL CORREA ( DISTRIBUIDORA NUEVA VALENCIA )", "J-505203436", "MICHELL", "0424.418.45.23", "AV PRINCIPAL NUEVA VALENCIA LOCAL NRO 01 FUNADCION CAP SECTOR 1 AMBITO C SECTOR FUNDACION CAP TOCUYITO CARABOBO ZONA POSTAL 2053", "AV PRINCIPAL NUEVA VALENCIA LOCAL NRO 01 FUNADCION CAP SECTOR 1 AMBITO C SECTOR FUNDACION CAP TOCUYITO CARABOBO ZONA POSTAL 2053", "Anais"),
+                    new customer("3300_35", "ILUSION`S ASIA CENTER C.A", "J-313602060", "LUCY", "0412-647.24.38", "AV BOLIVAR E/ CAVARGAS Y CALLE RONDON LOCAL NRO 103_7 SECTOR CENTRO DE VALENCIA CARABOBO ZONA POSTAL 2001", "AV BOLIVAR E/ CAVARGAS Y CALLE RONDON LOCAL NRO 103_7 SECTOR CENTRO DE VALENCIA CARABOBO ZONA POSTAL 2001", "Anais"),
+                    new customer("3300_36", "INVERSIONES YAGIR, C.A", "J-296603324", "RUBEN DUARTE", "", "CALLE PAÉZ C/C BRUZUAL C.C. SAN NICANDRO NIVE 1 LOCAL 04 ZONA LOS GUAYOS ZONA POSTAL 2003 EDO CARABOBO", "CALLE PAÉZ C/C BRUZUAL C.C. SAN NICANDRO NIVE 1 LOCAL 04 ZONA LOS GUAYOS ZONA POSTAL 2003 EDO CARABOBO", "Anais"),
+                    new customer("3300_37", "COMERCIAL MAXICENTER GUACARA C.A", "J-401806791", "NELLY", "0412.888.41.31", "AV BOLIVAR CRUCE CON AREVALO GONZALEZ LOCAL EDIFICIO ANTONIO NRO P/B ZONA GUACARA GUACARA CARABOBO ZONA POSTAL 2015", "AV BOLIVAR CRUCE CON AREVALO GONZALEZ LOCAL EDIFICIO ANTONIO NRO P/B ZONA GUACARA GUACARA CARABOBO ZONA POSTAL 2016", "Anais"),
+                    new customer("3300_38", "CORPORACION UNIVERSAL GUACARA", "J-413118629", "SUYI", "0412.481.68.70", "AV BOLIVAR C.C LOS GUAYOS NIVEL S/NN LOCAL 2 Y 3 SECTOR CENTRO GUACARA CARABOBO ZONA POSTAL 2015", "AV BOLIVAR C.C LOS GUAYOS NIVEL S/NN LOCAL 2 Y 3 SECTOR CENTRO GUACARA CARABOBO ZONA POSTAL 2016", "Anais"),
+                    new customer("3300_39", "INVERSIONES DIAR 2024 C.A", "J-505095986", "DAYLIN", "0414-581.97.57", "AV 113 CASA NRO 55-20 URB PARQUE RESIDENCIAL LA FLORIDA VALENCIA CARABOBO ZONA POSTAL 2003", "AV 113 CASA NRO 55-20 URB PARQUE RESIDENCIAL LA FLORIDA VALENCIA CARABOBO ZONA POSTAL 2004", "Anais"),
+                    new customer("3300_40", "ALICIA COROMOTO VARGAS RODRIGUEZ", "V-115512770", "ALICIA VARGAS", "", "CALLE MARQUEZ DEL TORO ENTRE AV. BOLIVAR Y CARABOBO CC. MEDIO ASISTENCIAL M.F C.A, PB. LOCAL 20 SECTOR CENTRO GUACARA CARABOBOZONA POSTAL 2015", "", "Anais"),
+                    new customer("3300_41", "MICHIS COSMETICS", "J-504598747", "JORGE", "4144061088", "AV. 101 (DIAZ MORENO) NRO CIVICO 101-85 C.C. QUEIPA LOCAL NRO 7 SECTOR N-I VALENCIA CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_42", "EMPRENDIMIENTO YOSIBEL AGUIAR _ VONNA COSMETCIS", "J-506146550", "LUZBELY AGUIAR", "0412-684.36.09", "CALLE A CASA NRO 013 SECTOR LOS CAOBOS URBANIZACION VILLA FLORIDA 2 VALENCIA CARABOBO ZONA POSTAL 2001", "CALLE A CASA NRO 013 SECTOR LOS CAOBOS URBANIZACION VILLA FLORIDA 2 VALENCIA CARABOBO ZONA POSTAL 2001 _ DIAGONAL A BUENOS ESTILOS", "Anais"),
+                    new customer("3300_43", "MAGENTA COSMETICS & ACADAEMY C.A", "J-505447335", "YESIKA", "0424.407.49.62", "AV BOLIVAR SUR CON CALLE SILVA CC ISORA NIVEL ARENA LOCAL NA 09 SECTOR N/I VALENCIA CARABOBO ZONA POSTAL 2001", "AV BOLIVAR SUR CON CALLE SILVA CC ISORA NIVEL ARENA LOCAL NA 09 SECTOR N/I VALENCIA CARABOBO ZONA POSTAL 2002", "Anais"),
+                    new customer("3300_44", "ESTRELLA 2020 C.A", "J-413261707", "SRA YUDITH", "0414.492.45.47", "AV. BOLIVAR NORTE, NRO CIVICO 130-87 CC. ROOSVELT II NIVEL N/A LOCAL 1,2, Y 3 URB. LA ALEGRIA VALENCIA CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_45", "YOSELINA MARIA ARTEAGA RUIZ", "V_149141851", "YOSELINA ARTEAGAGA", "0412.415.26.45", "AV 112 C/C SAN JUAN VIANEY C,.O 8VA ESTRELLA EDIF 1 PISO P.B APTO 2 URB BELLA FLORIDA VALENCIA CARABOBO ZONA POSTAL 2003 .", "URBANIZACION POPULAR LAS AGUITAS AV PRINCIPAL SECTOR 2 VEREDA 16 CASA NRO 01 LOCAL 01", "Anais"),
+                    new customer("3300_46", "AUTOMERCADO MERCAPLAZA C.A", "J-314968319", "YENIFER", "0414.435.61.83", "AV URDANETA C/C BRUZUAL LOCAL NRO 82 -4 SECTOR SANTA ROSA VALENCIA CARABOBO ZONA POSTAL 2001.", "AV URDANETA C/C BRUZUAL LOCAL NRO 82 -4 SECTOR SANTA ROSA VALENCIA CARABOBO ZONA POSTAL 2001.", "Anais"),
+                    new customer("3300_47", "DISTRIBUIDORA CINTHIA 2011C,.A", "J-317259890", "", "", "AV. PRINCIPAL OSCAR CELLI CASA NR 31 URB. EL OASIS TOCUYITO CARABOBO ZONA POSTAL 2035", "Av. Ricaurte entre calle socorro y silva cc villa center local 1 Tinaquillo Edo. Cojedes", "Anais"),
+                    new customer("3300_48", "MIRIAN STYLE INVERSIONES ORI & OSCAR C.A", "J-409159540", "MIRIAN", "0424 4328241", "CALLE CEDEÑO CRUCE CON ARVELO CASA NRO N/A ZONA CASCO CENTRAL DE TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035 .", "CALLE CEDEÑO CRUCE CON ARVELO CASA NRO N/A ZONA CASCO CENTRAL DE TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035 .", "Anais"),
+                    new customer("3300_49", "FARMACIA EL CARMEN", "J-293921597", "MARIA ELENA", "0414-499.68.28", "AV MIRANDA LOCAL NRO 15-04 SECTOR CENTRO TINAQUILLO COJEDES ZONA POSTAL 2209", "AV MIRANDA LOCAL NRO 15-04 SECTOR CENTRO TINAQUILLO COJEDES ZONA POSTAL 2209", "Anais"),
+                    new customer("3300_50", "JIA FENG MO ZHENG", "V-303427690", "MARIA", "", "AV.100 CC. EL ALBORAL NIVEL 3 LOCAL 16 Y 17 ZONA FLOR AMARILLO VALENCIA CARABOBO ZONA POSTAL 2003", "AV.100 CC. EL ALBORAL NIVEL 3 LOCAL 16 Y 17 ZONA FLOR AMARILLO VALENCIA CARABOBO ZONA POSTAL 2003", "Anais"),
+                    new customer("3300_51", "VAIREDADES LUZEL CARRERO F.P __LUZ MARINA CARRERO CONTRERAS", "V-147903355", "LUZ MARINA", "", "AV ESTE OESTE EDIFICIO BLOQUE 53 PISO 01 APTO 01.06 URBANIZACION LA ISABELICA VALENCIA VALENCIA CARABOBO ZONA POSTAL 2003", "", "Anais"),
+                    new customer("3300_52", "INVERSIONES DOU DOU C,.A", "J-500338570", "YAN", "0412.740.11.03", "AV PRINCIPAL CON CALLE ARVELO LOCAL NRO 93-200 P.B SECTOR CASCO DE TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035", "AV PRINCIPAL CON CALLE ARVELO LOCAL NRO 93-200 P.B SECTOR CASCO DE TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2036", "Anais"),
+                    new customer("3300_53", "TU MUNDO DE BELLEZA, C.A", "J-506703963", "PATRICIA", "0412.844.9043", "AV 102 MONTES DE OCA CC GRAN BAZAR CENTRO NIVEL P.B. LOCAL LC-1 SECTOR CENTRO VALENCIA, CARABOBO ZONA POSTAL 2001", "AV 102 MONTES DE OCA CC GRAN BAZAR CENTRO NIVEL P.B. LOCAL LC-1 SECTOR CENTRO VALENCIA, CARABOBO ZONA POSTAL 2001", "Anais"),
+                    new customer("3300_54", "INVERSIONES QIANG 2024 C.A", "J-504951595", "MAIKOL", "0412.899.00.88", "AVENIDA BOLIVAR CON CALLE SUCRE LOCAL GALPON NRO 02 URB FLOR AMARILLO VALENCIA CARABOBO ZONA POSTAL 2003", "", "Anais"),
+                    new customer("3300_55", "EZEVICVARIADADES YANET STYLOS", "", "YOSELIN", "0412.415.26.45", "LAS AGUITAS VALENCIA ESTADO CARABOBO", "", "Anais"),
+                    new customer("3300_56", "COMERCIAL FONG E Y E, C.A", "J407622269", "", "0424-432.03.43", "CALLE BOLIVAR CASA NRO 15 SECTOR CENTRAL TACARIGUA VALENCIA EDO-CARABOBO", "", "Anais"),
+                    new customer("3300_57", "ATLANTIS 2025 C.A", "J_507493946", "SR ROSA", "0412.755.52.22", "AV BOLIVAR 100 BOLIVAR NORTE LOCAL NRO 130 -7 SECTOR LAS ACACIAS VALENCIA CARABOBO ZONA POSTAL 2001", "AV BOLIVAR NORTE LOCAL NRO 130_7 SECTOR LAS ACACIAS VALENCIA CARABOBO ZONA POSTAL 2001", "Anais"),
+                    new customer("3300_58", "ÉXITO GALERIA C.A", "J-311368264", "SRA. Yanet", "4124663798", "av. 137 CC. La Galeria Nivel pb local D2,D3,D4 URB. CAMORUCO VALENCIA, CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_59", "JKO C.A", "J-402824726", "", "", "AV 100 BOLIVAR SUR NRO PISO P.B LOCAL 5 URBANIZACION FUNDACION MENDOZA VALENCIA EDO CARABOBO", "", "Anais"),
+                    new customer("3300_60", "NOVEDADES DM 2025 C.A", "J-506787806", "", "", "AV. PEDRO MELEAN, CALLE 65 BOLIVAR, NUMERO CIVICO 91-91 LOCAL NRO 1 BARRIO 24 HORAS VALENCIA CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_61", "COMERCIAL METRO LAS FERIAS 333, C.A.", "J315206307", "", "", "AV.100 BOLIVAR SUR, NRO CIVICO 70-25. LOCAL EDIF. CENTRO COMERCIAL SUR L5-A5-B. URBANIZACION FUNDACION MENDOZA. VALENCIA. EDO. CARABOBO", "", "Anais"),
+                    new customer("3300_62", "QUINCALLERIA SUPER REMATES C.A", "J-301225384", "GENESIS", "0424-408.08.81", "AV PRINCIPAL ESTE OESTE 3 LOCAL 46 C.C ISABELICA URB LA ISABELICA VALENCIA CARABOBO ZON POSTAL 2003", "", "Anais"),
+                    new customer("3300_63", "EMPRENDIMIENTO ANAHID CARRERA", "J-504611425", "ANAHID ANDREA CARRERA", "0412-647.21.37", "CALLE RONDON CRUCE ARVELO LOCAL NRO 6 SECTOR CASCO CENTRAL TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035", "CALLE RONDON CRUCE ARVELO LOCAL NRO 6 SECTOR CASCO CENTRAL TOCUYITO TOCUYITO CARABOBO ZONA POSTAL 2035", "Anais"),
+                    new customer("3300_64", "COMERCIAL FASHION LATINO 88, C.A", "J-299362344", "TONY FENG", "0412-4022747", "AVDA LARA CC LARA NIVEL PB LOCAL 3 Y 4 SECTOR CASCO CENTRAL VALENCIA CARABOBO", "", "Anais"),
+                    new customer("3300_65", "COMERCIAL XUEFANG C.A", "J-294918271", "SR TONY", "0412.830.40.83", "AV LARA ENTRE CALLE SOUBLETTE Y MANRRIQUE C.C. DILAS NIVEL P.B LOCAL 05 SECTOR CENTRO VALENCIA CARABOBO ZONA POSTAL 2001", "AV LARA ENTRE CALLE SOUBLETTE Y MANRRIQUE C.C. DILAS NIVEL P.B LOCAL 05 SECTOR CENTRO VALENCIA CARABOBO ZONA POSTAL 2001", "Anais"),
+                    new customer("3300_66", "BELLGLAM, C.A.", "J-500916701", "", "0412-413.9605", "Av Diaz Moreno, entre Cll Vargas y Rondon, CC Graciela, Minicentro nivel s/n local s/n Civico 103-22 Valencia -Carabobo", "", "Anais"),
+                    new customer("3300_67", "COMERCIAL ORINOCO C.A", "J-294797490", "YEINI", "0424-448.22.22", "AV LAS FERIAS LOCAL NRO 70-125 SECTOR SANTA ROSA VALEN CIA CARABOBO ZONA POSTAL 2013,", "AV LAS FERIAS LOCAL NRO 70-125 SECTOR SANTA ROSA VALEN CIA CARABOBO ZONA POSTAL 2013,", "Anais"),
+                    new customer("3300_68", "DISTRIBUIDORA BELLEZA CENTER, C.A.", "J-30914480-4", "", "", "Av. Universidad Nº 188-50, Edif. Fun y Kam, Local Nº 1, Municipio Naguanagua, Valencia, Edo. Carabobo Av. Universidad Nº 188-50, Edif. Fun y Kam, Local Nº 1, Muni", "", "Anais"),
+                    new customer("3300_69", "GLAMOUR SD, C.A.", "J-31433806-4", "", "0241-6008822 / 0414-495 5393", "Av. Paseo Cabriales, Urbanizacion La Granja Naguanagua, Centro Comercial Cristal, Local PN 13 PB Naguanagua - Edo. Carabobo. Av. Paseo Cabriales, Urbanizacion La Granja Naguanagua, Cent", "", "Anais"),
+                    new customer("3300_70", "BELLISSIMA LAS FERIAS, C.A", "J-405066415", "", "0241-615 6564 / 0414-4001012", "Av. Bolivar Sur, (Avenida Las Ferias Cruce Con Cantaura), Centro Comercial El Ciclon Nro. 93-95 Local Nro 1 y 2 Sector Parroquia Candelaria, Valencia- Carabobo.", "", "Anais"),
+                    new customer("3300_71", "BELLISSIMA CORP CENTRO, C.A.", "J-40814107_8", "", "0241-615 6564 / 0414-4001012", "CALLE VARGAS CRUCE CON AVENIDA MONTES DE OCA CASA NRO 101-86 SECTOR EL SOCORRO VALENCIA CARABOBO", "", "Anais"),
+                    new customer("3300_72", "SEVEN COSMETICOS C.A", "J_500405812", "ANA", "0412.113.71.26", "AV 102 MONTES DE OCA C.C GRAN BAZAR CENTRO NIVEL PLANTA BAJA LOCAL 104 ZONA CENTRO VALENCIA CENTRO VALENCIA CARABOBO", "", "Anais"),
+                    new customer("3300_73", "COSMETICOS BELLACITY, C.A.", "J-413140616", "JHON XINGS", "0412-7443173", "CALLE 96 (24 DE JUNIO) NRO CIVICO 100-70 EDIF. TORRE HERCULES PISO PB LOCAL 3 SECTOR S/N VALENCIA CARABOBO", "", "Anais"),
+                    new customer("3300_74", "LADY SILOE, C.A.", "J-31658794-0", "", "", "Calle Nº 26, Urb. Santa Ines, Casa Nº 14, Valencia, Edo. Carabobo", "", "Anais"),
+                    new customer("3300_75", "AURORA GODDESS C.A", "J-504968110", "ANDREA", "0414-420.16.56", "AV 101 DIAZ MORENO CRUCE CON CALLE 102 INDEPNDENCIA CENTRO COMERCIAL QUEIPA LOCAL NRO 6 NUMERO CATASTRAL 101-85 SECTOR N/I VALENCIA ESTADO CARABOBO", "", "Anais"),
+                    new customer("3300_76", "SUPER MERCADO MEGASUR C.A", "J-295449097", "MEY", "0412-4030646", "AV LAS FERIAS, URB SANTA ROSA", "", "Anais"),
+                    new customer("3300_77", "GRUPO DE BELLEZA MJ, C.A.", "J-29679019-1", "Sr. Mauricio", "0414-4144322", "Calle Principal, C.C. Paseo Garibaldi, Nivel P.B., Local P.B.-1, Urb. , Valle Camoruco, Valencia, Edo. Carabobo", "Centro Comercial Shoping Center, Nivel 2, Local 396, Urb. Prebo, Valencia, Edo. Carabobo", "Anais"),
+                    new customer("3300_78", "FASHION TRENDS, C.A.", "J-314568574", "YAMEIF FENG", "0412-4441169", "AVDA UNIVERSIDAD CASA NRO 188-65A ZONA CASCO CENTRAL DE NAGUANAGUA CARABOBO", "", "Anais"),
+                    new customer("3300_79", "MUNDO MAYOR DOS, C.A.", "J-315531143", "", "0414-349.80.40", "CALLE 137 Nº 100-46 EDIF GUAMO PISO PB LOCAL A Y B SECTOR LOS SAUCES VALENCIA EDO-CARABOBO", "CALLE 137 Nº 100-46 EDIF GUAMO PISO PB LOCAL A Y B SECTOR LOS SAUCES VALENCIA EDO-CARABOBO", "Anais"),
+                    new customer("3300_80", "NOVEDADES KANTON C.A", "J-310948976", "", "", "AV. UNIVERSIDAD LOCAL NRO NRO 187-66 SECTOR CENTRO DE NAGUANAGUA", "AV. UNIVERSIDAD LOCAL NRO NRO 187-66 SECTOR CENTRO DE NAGUANAGUA", "Anais"),
+                    new customer("3300_81", "COMERCIAL DIFERENTE, C.A.", "J-297835369", "CARLOS FUNG", "0412-4020201", "CALLE COMERCIO 98 LOCAL NRO 100-31 SECTOR CENTRO DE VALENCIA CARABOBO", "CALLE COMERCIO 98 LOCAL NRO 100-31 SECTOR CENTRO DE VALENCIA CARABOBO", "Anais"),
+                    new customer("3300_82", "TODO BELLEZA EXPRESS C.A", "J-402612451", "BELKIS GOYO", "0414-1576689", "AV 104 C/C CALLE 137 CC PREBO NIVEL PASILLO CENTRAL LOCAL MUEBLE 1 URB PREBO VALENCIA CARABOBO", "AV 104 C/C CALLE 137 CC PREBO NIVEL PASILLO CENTRAL LOCAL MUEBLE 1 URB PREBO VALENCIA CARABOBO", "Anais"),
+                    new customer("3300_83", "MUNDO MAYOR 2 C.A", "J-315531143", "DILIA ARIAS", "0414.408.00.35", "URB , LAS QUINTAS C.C CRITSTAL NIVEL P.B LOCAL # P.B A1/A2/A3/A4/A5 NAGUANAGUA", "URB , LAS QUINTAS C.C CRITSTAL NIVEL P.B LOCAL # P.B A1/A2/A3/A4/A5 NAGUANAGUA", "Anais"),
+                    new customer("3300_84", "COMERCIAL JKOL C.A", "J-40166110", "", "", "AV LARA ENTRE BOYACA Y CALLE FARRIAR C.C LAS MERCEDES NIVEL MEZZANINA LOCAL 97.90.5 SECTOR CASCO CENTRAL DE VALENCIA CARABOBO ZONA POSTAL 2001", "", "Anais"),
+                    new customer("3300_85", "INVERSIONES QI QI 2026 C.A", "J-508391837", "PAOLA", "", "CALLE SUCRE, CRUCE CON AV.BOLIVAR C.C. SANTA FORTUNATA NIVEL PLANTA BAJA LOCAL 01,02 Y 03 SECTOR S/N TOCUYITO", "CALLE SUCRE, CRUCE CON AV.BOLIVAR C.C. SANTA FORTUNATA NIVEL PLANTA BAJA LOCAL 01,02 Y 03 SECTOR S/N TOCUYITO", "Anais")
                 );
             }
 
@@ -189,6 +274,7 @@ namespace NinOS.Infrastructure.Data
                 product product_156 = new product("EST30612", "PEINE NEGRO CON EMPAQUE", "Estilista", 1.33m, 4);
                 product product_157 = new product("EST30615", "PORTA HILO  DENTAL", "Estilista", 1.33m, 3);
                 product product_158 = new product("EST30616", "PEINE MARRON", "Estilista", 1.33m, 4);
+
                 db_context.products.AddRange(product_1, product_2, product_3, product_4, product_5, product_6, product_7, product_8, product_9, product_10, product_11, product_12, product_13, product_14, product_15, product_16, product_17, product_18, product_19, product_20);
                 db_context.products.AddRange(product_21, product_22, product_23, product_24, product_25, product_26, product_27, product_28, product_29, product_30, product_31, product_32, product_33, product_34, product_35, product_36, product_37, product_38, product_39, product_40);
                 db_context.products.AddRange(product_41, product_42, product_43, product_44, product_45, product_46, product_47, product_48, product_49, product_50, product_51, product_52, product_53, product_54, product_55, product_56, product_57, product_58, product_59, product_60);
@@ -197,6 +283,7 @@ namespace NinOS.Infrastructure.Data
                 db_context.products.AddRange(product_101, product_102, product_103, product_104, product_105, product_106, product_107, product_108, product_109, product_110, product_111, product_112, product_113, product_114, product_115, product_116, product_117, product_118, product_119, product_120);
                 db_context.products.AddRange(product_121, product_122, product_123, product_124, product_125, product_126, product_127, product_128, product_129, product_130, product_131, product_132, product_133, product_134, product_135, product_136, product_137, product_138, product_139, product_140);
                 db_context.products.AddRange(product_141, product_142, product_143, product_144, product_145, product_146, product_147, product_148, product_149, product_150, product_151, product_152, product_153, product_154, product_155, product_156, product_157, product_158);
+
                 promotion promo_1 = new promotion("PROMO-001", "PRE-TRATAMIENTO BIOTINA DAMA MAS AMPOLLA BIOTINA 10 ML (CHAMPO Y AMPOLLA)", "Defile", 4.90m);
                 promotion promo_2 = new promotion("KIT-001", "AMAZONIA CHAMPO CEBOLLA MORADA MAS BAÑO DE CREMA CEBOLLA MORADA", "Amazonia Secret", 5.90m);
                 promotion promo_3 = new promotion("KIT-002", "KIT LINEA BLANCA DEFILE CHAMPO K BOTROX 360 ML BALSAMO K BOTROX 240 ML", "Defile", 5.90m);
@@ -217,76 +304,99 @@ namespace NinOS.Infrastructure.Data
                 promotion promo_18 = new promotion("DEP30508", "CERA LATA MANZANA VERDE (DEPIL CLEAR)", "Depil Clear", 8.00m);
                 promotion promo_19 = new promotion("DEP30510", "CERA LATA MIEL BANANA (DEPIL CLEAR)", "Depil Clear", 8.00m);
                 promotion promo_20 = new promotion("DEP30511", "CERA LATA TALCO (DEPIL CLEAR)", "Depil Clear", 8.00m);
+
                 db_context.promotions.AddRange(promo_1, promo_2, promo_3, promo_4, promo_5, promo_6, promo_7, promo_8, promo_9, promo_10, promo_11, promo_12, promo_13, promo_14, promo_15, promo_16, promo_17, promo_18, promo_19, promo_20);
+
                 db_context.SaveChanges();
+
                 var prod_1_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30114");
                 var prod_1_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30010");
                 if (prod_1_1 != null) db_context.promotion_items.Add(new promotion_item(prod_1_1.id_product, 1) { id_promotion = promo_1.id_promotion });
                 if (prod_1_2 != null) db_context.promotion_items.Add(new promotion_item(prod_1_2.id_product, 1) { id_promotion = promo_1.id_promotion });
+
                 var prod_2_1 = db_context.products.FirstOrDefault(p => p.product_code == "AMA31001");
                 var prod_2_2 = db_context.products.FirstOrDefault(p => p.product_code == "AMA31002");
                 if (prod_2_1 != null) db_context.promotion_items.Add(new promotion_item(prod_2_1.id_product, 1) { id_promotion = promo_2.id_promotion });
                 if (prod_2_2 != null) db_context.promotion_items.Add(new promotion_item(prod_2_2.id_product, 1) { id_promotion = promo_2.id_promotion });
+
                 var prod_3_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30108");
                 var prod_3_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30109");
                 if (prod_3_1 != null) db_context.promotion_items.Add(new promotion_item(prod_3_1.id_product, 1) { id_promotion = promo_3.id_promotion });
                 if (prod_3_2 != null) db_context.promotion_items.Add(new promotion_item(prod_3_2.id_product, 1) { id_promotion = promo_3.id_promotion });
+
                 var prod_4_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30104");
                 var prod_4_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30105");
                 var prod_4_3 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30003");
                 if (prod_4_1 != null) db_context.promotion_items.Add(new promotion_item(prod_4_1.id_product, 1) { id_promotion = promo_4.id_promotion });
                 if (prod_4_2 != null) db_context.promotion_items.Add(new promotion_item(prod_4_2.id_product, 1) { id_promotion = promo_4.id_promotion });
                 if (prod_4_3 != null) db_context.promotion_items.Add(new promotion_item(prod_4_3.id_product, 1) { id_promotion = promo_4.id_promotion });
+
                 var prod_5_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30108");
                 var prod_5_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30109");
                 if (prod_5_1 != null) db_context.promotion_items.Add(new promotion_item(prod_5_1.id_product, 1) { id_promotion = promo_5.id_promotion });
                 if (prod_5_2 != null) db_context.promotion_items.Add(new promotion_item(prod_5_2.id_product, 1) { id_promotion = promo_5.id_promotion });
+
                 var prod_6_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30104");
                 var prod_6_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30105");
                 if (prod_6_1 != null) db_context.promotion_items.Add(new promotion_item(prod_6_1.id_product, 1) { id_promotion = promo_6.id_promotion });
                 if (prod_6_2 != null) db_context.promotion_items.Add(new promotion_item(prod_6_2.id_product, 1) { id_promotion = promo_6.id_promotion });
+
                 var prod_7_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30104");
                 if (prod_7_1 != null) db_context.promotion_items.Add(new promotion_item(prod_7_1.id_product, 2) { id_promotion = promo_7.id_promotion });
+
                 var prod_8_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30100");
                 var prod_8_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30101");
                 if (prod_8_1 != null) db_context.promotion_items.Add(new promotion_item(prod_8_1.id_product, 1) { id_promotion = promo_8.id_promotion });
                 if (prod_8_2 != null) db_context.promotion_items.Add(new promotion_item(prod_8_2.id_product, 1) { id_promotion = promo_8.id_promotion });
+
                 var prod_9_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30110");
                 var prod_9_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30111");
                 if (prod_9_1 != null) db_context.promotion_items.Add(new promotion_item(prod_9_1.id_product, 1) { id_promotion = promo_9.id_promotion });
                 if (prod_9_2 != null) db_context.promotion_items.Add(new promotion_item(prod_9_2.id_product, 1) { id_promotion = promo_9.id_promotion });
+
                 var prod_10_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30106");
                 var prod_10_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30107");
                 if (prod_10_1 != null) db_context.promotion_items.Add(new promotion_item(prod_10_1.id_product, 1) { id_promotion = promo_10.id_promotion });
                 if (prod_10_2 != null) db_context.promotion_items.Add(new promotion_item(prod_10_2.id_product, 1) { id_promotion = promo_10.id_promotion });
+
                 var prod_11_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30112");
                 var prod_11_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30113");
                 if (prod_11_1 != null) db_context.promotion_items.Add(new promotion_item(prod_11_1.id_product, 1) { id_promotion = promo_11.id_promotion });
                 if (prod_11_2 != null) db_context.promotion_items.Add(new promotion_item(prod_11_2.id_product, 1) { id_promotion = promo_11.id_promotion });
+
                 var prod_12_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30102");
                 var prod_12_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30103");
                 if (prod_12_1 != null) db_context.promotion_items.Add(new promotion_item(prod_12_1.id_product, 1) { id_promotion = promo_12.id_promotion });
                 if (prod_12_2 != null) db_context.promotion_items.Add(new promotion_item(prod_12_2.id_product, 1) { id_promotion = promo_12.id_promotion });
+
                 var prod_13_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30108");
                 var prod_13_2 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30109");
                 if (prod_13_1 != null) db_context.promotion_items.Add(new promotion_item(prod_13_1.id_product, 1) { id_promotion = promo_13.id_promotion });
                 if (prod_13_2 != null) db_context.promotion_items.Add(new promotion_item(prod_13_2.id_product, 1) { id_promotion = promo_13.id_promotion });
+
                 var prod_14_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30100");
                 if (prod_14_1 != null) db_context.promotion_items.Add(new promotion_item(prod_14_1.id_product, 2) { id_promotion = promo_14.id_promotion });
+
                 var prod_15_1 = db_context.products.FirstOrDefault(p => p.product_code == "REM30406");
                 var prod_15_2 = db_context.products.FirstOrDefault(p => p.product_code == "REM30407");
                 if (prod_15_1 != null) db_context.promotion_items.Add(new promotion_item(prod_15_1.id_product, 1) { id_promotion = promo_15.id_promotion });
                 if (prod_15_2 != null) db_context.promotion_items.Add(new promotion_item(prod_15_2.id_product, 1) { id_promotion = promo_15.id_promotion });
+
                 var prod_16_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30126");
                 if (prod_16_1 != null) db_context.promotion_items.Add(new promotion_item(prod_16_1.id_product, 1) { id_promotion = promo_16.id_promotion });
+
                 var prod_17_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEF30127");
                 if (prod_17_1 != null) db_context.promotion_items.Add(new promotion_item(prod_17_1.id_product, 1) { id_promotion = promo_17.id_promotion });
+
                 var prod_18_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEP30508");
                 if (prod_18_1 != null) db_context.promotion_items.Add(new promotion_item(prod_18_1.id_product, 1) { id_promotion = promo_18.id_promotion });
+
                 var prod_19_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEP30510");
                 if (prod_19_1 != null) db_context.promotion_items.Add(new promotion_item(prod_19_1.id_product, 1) { id_promotion = promo_19.id_promotion });
+
                 var prod_20_1 = db_context.products.FirstOrDefault(p => p.product_code == "DEP30511");
                 if (prod_20_1 != null) db_context.promotion_items.Add(new promotion_item(prod_20_1.id_product, 1) { id_promotion = promo_20.id_promotion });
+
                 db_context.SaveChanges();
             }
         }

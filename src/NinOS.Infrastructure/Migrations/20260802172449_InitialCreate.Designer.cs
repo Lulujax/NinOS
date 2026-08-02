@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    [Migration("20260722224028_InitialCreate")]
+    [Migration("20260802172449_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -76,11 +76,17 @@ namespace NinOS.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_customer"));
 
-                    b.Property<string>("address")
+                    b.Property<string>("business_name")
                         .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)")
-                        .HasColumnName("address");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("business_name");
+
+                    b.Property<string>("contact_name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("contact_name");
 
                     b.Property<string>("customer_code")
                         .IsRequired()
@@ -88,17 +94,33 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("customer_code");
 
-                    b.Property<string>("full_name")
+                    b.Property<string>("delivery_address")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)")
-                        .HasColumnName("full_name");
+                        .HasColumnType("text")
+                        .HasColumnName("delivery_address");
+
+                    b.Property<string>("fiscal_address")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("fiscal_address");
 
                     b.Property<string>("phone_number")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("phone_number");
+
+                    b.Property<string>("rif")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("rif");
+
+                    b.Property<string>("seller_name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("seller_name");
 
                     b.HasKey("id_customer");
 
@@ -242,8 +264,8 @@ namespace NinOS.Infrastructure.Migrations
 
                     b.Property<string>("name")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
                         .HasColumnName("name");
 
                     b.Property<string>("product_code")
@@ -263,6 +285,72 @@ namespace NinOS.Infrastructure.Migrations
                     b.HasKey("id_product");
 
                     b.ToTable("product", (string)null);
+                });
+
+            modelBuilder.Entity("NinOS.Domain.promotion", b =>
+                {
+                    b.Property<int>("id_promotion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_promotion");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_promotion"));
+
+                    b.Property<string>("category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("promotion_code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("promotion_code");
+
+                    b.Property<decimal>("unit_price_usd")
+                        .HasColumnType("numeric")
+                        .HasColumnName("unit_price_usd");
+
+                    b.HasKey("id_promotion");
+
+                    b.ToTable("promotion", (string)null);
+                });
+
+            modelBuilder.Entity("NinOS.Domain.promotion_item", b =>
+                {
+                    b.Property<int>("id_promotion_item")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_promotion_item");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_promotion_item"));
+
+                    b.Property<int>("id_product")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_product");
+
+                    b.Property<int>("id_promotion")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_promotion");
+
+                    b.Property<int>("quantity_required")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_required");
+
+                    b.HasKey("id_promotion_item");
+
+                    b.HasIndex("id_product");
+
+                    b.HasIndex("id_promotion");
+
+                    b.ToTable("promotion_item", (string)null);
                 });
 
             modelBuilder.Entity("NinOS.Domain.seller", b =>
@@ -343,6 +431,30 @@ namespace NinOS.Infrastructure.Migrations
                         .HasForeignKey("id_delivery_note")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NinOS.Domain.promotion_item", b =>
+                {
+                    b.HasOne("NinOS.Domain.product", "product")
+                        .WithMany()
+                        .HasForeignKey("id_product")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NinOS.Domain.promotion", "promotion")
+                        .WithMany("items")
+                        .HasForeignKey("id_promotion")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("product");
+
+                    b.Navigation("promotion");
+                });
+
+            modelBuilder.Entity("NinOS.Domain.promotion", b =>
+                {
+                    b.Navigation("items");
                 });
 #pragma warning restore 612, 618
         }

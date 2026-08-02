@@ -1,79 +1,64 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NinOS.Domain
 {
     public class customer
     {
-        private int _id_customer;
-        private string _customer_code;
-        private string _full_name;
-        private string _phone_number;
-        private string _address;
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int id_customer { get; set; }
 
-        public int id_customer
+        [Required]
+        [MaxLength(50)]
+        public string customer_code { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string business_name { get; set; }
+
+        [MaxLength(50)]
+        public string rif { get; set; }
+
+        [MaxLength(100)]
+        public string contact_name { get; set; }
+
+        [MaxLength(50)]
+        public string phone_number { get; set; }
+
+        public string fiscal_address { get; set; }
+        
+        public string delivery_address { get; set; }
+
+        [MaxLength(100)]
+        public string seller_name { get; set; }
+
+        public customer()
         {
-            get { return _id_customer; }
-            set
-            {
-                if (value < 0) throw new ArgumentException();
-                _id_customer = value;
-            }
+            customer_code = string.Empty;
+            business_name = string.Empty;
+            rif = string.Empty;
+            contact_name = string.Empty;
+            phone_number = string.Empty;
+            fiscal_address = string.Empty;
+            delivery_address = string.Empty;
+            seller_name = string.Empty;
         }
 
-        public string customer_code
+        public customer(string code, string business, string doc_rif, string contact, string phone, string fiscal, string delivery, string seller)
         {
-            get { return _customer_code; }
-            set
-            {
-                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
-                _customer_code = value;
-            }
-        }
+            if (string.IsNullOrWhiteSpace(code)) throw new ArgumentNullException(nameof(code));
+            if (string.IsNullOrWhiteSpace(business)) throw new ArgumentNullException(nameof(business));
 
-        public string full_name
-        {
-            get { return _full_name; }
-            set
-            {
-                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
-                _full_name = value;
-            }
-        }
-
-        public string phone_number
-        {
-            get { return _phone_number; }
-            set
-            {
-                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
-                _phone_number = value;
-            }
-        }
-
-        public string address
-        {
-            get { return _address; }
-            set
-            {
-                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
-                _address = value;
-            }
-        }
-
-        protected customer()
-        {
-            _customer_code = "-";
-            _full_name = "-";
-            _phone_number = "-";
-            _address = "-";
-        }
-
-        public customer(string customer_code, string full_name, string phone_number, string address)
-        {
-            this.customer_code = customer_code;
-            this.full_name = full_name;
-            this.phone_number = phone_number;
-            this.address = address;
+            customer_code = code;
+            business_name = business;
+            rif = doc_rif ?? string.Empty;
+            contact_name = contact ?? string.Empty;
+            phone_number = phone ?? string.Empty;
+            fiscal_address = fiscal ?? string.Empty;
+            delivery_address = delivery ?? string.Empty;
+            seller_name = seller ?? string.Empty;
         }
     }
 }

@@ -5,10 +5,10 @@ namespace NinOS.UI.Views
 {
     public partial class MainWindow : Window
     {
-        public MainWindow(MainWindowViewModel main_view_model)
+        public MainWindow(MainWindowViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = main_view_model;
+            DataContext = viewModel;
         }
     }
 }

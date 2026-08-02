@@ -1,5 +1,5 @@
-using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -9,33 +9,41 @@ namespace NinOS.UI.Views
         public CustomerView()
         {
             InitializeComponent();
+            DataContextChanged += UserControl_DataContextChanged;
+        }
 
-            Loaded += (s, e) =>
+        public CustomerView(CustomerViewModel viewModel) : this()
+        {
+            DataContext = viewModel;
+            SetupEvents();
+        }
+
+        private void SetupEvents()
+        {
+            if (DataContext is CustomerViewModel viewModel)
             {
-                if (DataContext is CustomerViewModel view_model)
+                viewModel.OnRequestAddCustomerWindow = () =>
                 {
-                    view_model.on_request_add_customer_window = () =>
-                    {
-                        AddCustomerWindow window = new AddCustomerWindow();
-                        window.DataContext = view_model;
-                        window.Owner = Application.Current.MainWindow;
-                        window.ShowDialog();
-                    };
+                    AddCustomerWindow window = new AddCustomerWindow();
+                    window.DataContext = viewModel;
+                    window.Owner = Window.GetWindow(this);
+                    window.ShowDialog();
+                };
 
-                    view_model.on_close_add_customer_window = () =>
-                    {
-                        foreach (Window open_window in Application.Current.Windows)
-                        {
-                            if (open_window is AddCustomerWindow)
-                            {
-                                open_window.Close();
-                                break;
-                            }
-                        }
-                    };
-                }
-            };
+                viewModel.OnRequestEditCustomerWindow = (CustomerRowDto selected) =>
+                {
+                    AddCustomerWindow window = new AddCustomerWindow();
+                    window.DataContext = viewModel;
+                    window.Owner = Window.GetWindow(this);
+                    viewModel.StartEditCustomer(selected);
+                    window.ShowDialog();
+                };
+            }
+        }
 
+        private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            SetupEvents();
         }
     }
 }

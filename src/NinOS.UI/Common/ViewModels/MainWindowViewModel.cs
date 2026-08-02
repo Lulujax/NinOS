@@ -1,42 +1,75 @@
-using System;
 using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
-        public DeliveryNotesViewModel delivery_notes_vm { get; }
-        public AccountsReceivableViewModel accounts_receivable_vm { get; }
-        public SalesViewModel sales_vm { get; }
-        public PaymentsViewModel payments_vm { get; }
-        public CommissionsViewModel commissions_vm { get; }
-        public CustomerViewModel customer_vm { get; }
-        public InventoryViewModel inventory_vm { get; }
+        private DeliveryNotesViewModel? _delivery_notes_vm;
+        private AccountsReceivableViewModel? _accounts_receivable_vm;
+        private SalesViewModel? _sales_vm;
+        private PaymentsViewModel? _payments_vm;
+        private CommissionsViewModel? _commissions_vm;
+        private CustomerViewModel? _customer_vm;
+        private InventoryViewModel? _inventory_vm;
+
+        public DeliveryNotesViewModel? delivery_notes_vm
+        {
+            get => _delivery_notes_vm;
+            set { _delivery_notes_vm = value; on_property_changed(); }
+        }
+
+        public AccountsReceivableViewModel? accounts_receivable_vm
+        {
+            get => _accounts_receivable_vm;
+            set { _accounts_receivable_vm = value; on_property_changed(); }
+        }
+
+        public SalesViewModel? sales_vm
+        {
+            get => _sales_vm;
+            set { _sales_vm = value; on_property_changed(); }
+        }
+
+        public PaymentsViewModel? payments_vm
+        {
+            get => _payments_vm;
+            set { _payments_vm = value; on_property_changed(); }
+        }
+
+        public CommissionsViewModel? commissions_vm
+        {
+            get => _commissions_vm;
+            set { _commissions_vm = value; on_property_changed(); }
+        }
+
+        public CustomerViewModel? customer_vm
+        {
+            get => _customer_vm;
+            set { _customer_vm = value; on_property_changed(); }
+        }
+
+        public InventoryViewModel? inventory_vm
+        {
+            get => _inventory_vm;
+            set { _inventory_vm = value; on_property_changed(); }
+        }
 
         public MainWindowViewModel(
-            DeliveryNotesViewModel delivery_notes,
-            AccountsReceivableViewModel accounts_receivable,
-            SalesViewModel sales,
-            PaymentsViewModel payments,
-            CommissionsViewModel commissions,
-            CustomerViewModel customer,
-            InventoryViewModel inventory)
+            DeliveryNotesViewModel deliveryNotesVm,
+            AccountsReceivableViewModel accountsReceivableVm,
+            SalesViewModel salesVm,
+            PaymentsViewModel paymentsVm,
+            CommissionsViewModel commissionsVm,
+            CustomerViewModel customerVm,
+            InventoryViewModel inventoryVm)
         {
-            if (delivery_notes == null) throw new ArgumentNullException(nameof(delivery_notes));
-            if (accounts_receivable == null) throw new ArgumentNullException(nameof(accounts_receivable));
-            if (sales == null) throw new ArgumentNullException(nameof(sales));
-            if (payments == null) throw new ArgumentNullException(nameof(payments));
-            if (commissions == null) throw new ArgumentNullException(nameof(commissions));
-            if (customer == null) throw new ArgumentNullException(nameof(customer));
-            if (inventory == null) throw new ArgumentNullException(nameof(inventory));
-
-            delivery_notes_vm = delivery_notes;
-            accounts_receivable_vm = accounts_receivable;
-            sales_vm = sales;
-            payments_vm = payments;
-            commissions_vm = commissions;
-            customer_vm = customer;
-            inventory_vm = inventory;
+            delivery_notes_vm = deliveryNotesVm;
+            accounts_receivable_vm = accountsReceivableVm;
+            sales_vm = salesVm;
+            payments_vm = paymentsVm;
+            commissions_vm = commissionsVm;
+            customer_vm = customerVm;
+            inventory_vm = inventoryVm;
         }
     }
 }

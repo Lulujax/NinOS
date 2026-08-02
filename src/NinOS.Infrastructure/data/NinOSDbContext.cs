@@ -12,8 +12,6 @@ namespace NinOS.Infrastructure.Data
         public DbSet<note_detail> note_details { get; set; }
         public DbSet<payment> payments { get; set; }
         public DbSet<commission> commissions { get; set; }
-        
-        // Nuevas tablas de promociones
         public DbSet<promotion> promotions { get; set; }
         public DbSet<promotion_item> promotion_items { get; set; }
 
@@ -38,9 +36,13 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_customer);
                 entity.Property(e => e.id_customer).HasColumnName("id_customer").UseIdentityByDefaultColumn();
                 entity.Property(e => e.customer_code).HasColumnName("customer_code").IsRequired().HasMaxLength(50);
-                entity.Property(e => e.full_name).HasColumnName("full_name").IsRequired().HasMaxLength(150);
-                entity.Property(e => e.phone_number).HasColumnName("phone_number").IsRequired().HasMaxLength(20);
-                entity.Property(e => e.address).HasColumnName("address").IsRequired().HasMaxLength(250);
+                entity.Property(e => e.business_name).HasColumnName("business_name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.rif).HasColumnName("rif").HasMaxLength(50);
+                entity.Property(e => e.contact_name).HasColumnName("contact_name").HasMaxLength(100);
+                entity.Property(e => e.phone_number).HasColumnName("phone_number").HasMaxLength(50);
+                entity.Property(e => e.fiscal_address).HasColumnName("fiscal_address");
+                entity.Property(e => e.delivery_address).HasColumnName("delivery_address");
+                entity.Property(e => e.seller_name).HasColumnName("seller_name").HasMaxLength(100);
             });
 
             model_builder.Entity<product>(entity =>
@@ -49,7 +51,7 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_product);
                 entity.Property(e => e.id_product).HasColumnName("id_product").UseIdentityByDefaultColumn();
                 entity.Property(e => e.product_code).HasColumnName("product_code").IsRequired().HasMaxLength(50);
-                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(150);
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(250);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
                 entity.Property(e => e.stock_quantity).HasColumnName("stock_quantity").IsRequired();
@@ -116,19 +118,36 @@ namespace NinOS.Infrastructure.Data
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configuración de las nuevas tablas de promociones
-            model_builder.Entity<promotion>().HasKey(p => p.id_promotion);
-            model_builder.Entity<promotion_item>().HasKey(pi => pi.id_promotion_item);
+            model_builder.Entity<promotion>(entity =>
+            {
+                entity.ToTable("promotion");
+                entity.HasKey(e => e.id_promotion);
+                entity.Property(e => e.id_promotion).HasColumnName("id_promotion").UseIdentityByDefaultColumn();
+                entity.Property(e => e.promotion_code).HasColumnName("promotion_code").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
+            });
 
-            model_builder.Entity<promotion_item>()
-                .HasOne(pi => pi.promotion)
-                .WithMany(p => p.items)
-                .HasForeignKey(pi => pi.id_promotion);
+            model_builder.Entity<promotion_item>(entity =>
+            {
+                entity.ToTable("promotion_item");
+                entity.HasKey(e => e.id_promotion_item);
+                entity.Property(e => e.id_promotion_item).HasColumnName("id_promotion_item").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_promotion).HasColumnName("id_promotion").IsRequired();
+                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired();
+                entity.Property(e => e.quantity_required).HasColumnName("quantity_required").IsRequired();
 
-            model_builder.Entity<promotion_item>()
-                .HasOne(pi => pi.product)
-                .WithMany()
-                .HasForeignKey(pi => pi.id_product);
+                entity.HasOne(e => e.promotion)
+                    .WithMany(p => p.items)
+                    .HasForeignKey(e => e.id_promotion)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.product)
+                    .WithMany()
+                    .HasForeignKey(e => e.id_product)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }

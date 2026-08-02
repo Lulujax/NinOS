@@ -19,9 +19,13 @@ namespace NinOS.Infrastructure.Migrations
                     id_customer = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     customer_code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    full_name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    phone_number = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false)
+                    business_name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    rif = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    contact_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    phone_number = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    fiscal_address = table.Column<string>(type: "text", nullable: false),
+                    delivery_address = table.Column<string>(type: "text", nullable: false),
+                    seller_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -35,7 +39,7 @@ namespace NinOS.Infrastructure.Migrations
                     id_product = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     product_code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    name = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
                     category = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     unit_price_usd = table.Column<decimal>(type: "numeric", nullable: false),
                     stock_quantity = table.Column<int>(type: "integer", nullable: false)
@@ -43,6 +47,22 @@ namespace NinOS.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_product", x => x.id_product);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "promotion",
+                columns: table => new
+                {
+                    id_promotion = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    promotion_code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    category = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    unit_price_usd = table.Column<decimal>(type: "numeric", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_promotion", x => x.id_promotion);
                 });
 
             migrationBuilder.CreateTable(
@@ -57,6 +77,33 @@ namespace NinOS.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_seller", x => x.id_seller);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "promotion_item",
+                columns: table => new
+                {
+                    id_promotion_item = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    id_promotion = table.Column<int>(type: "integer", nullable: false),
+                    id_product = table.Column<int>(type: "integer", nullable: false),
+                    quantity_required = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_promotion_item", x => x.id_promotion_item);
+                    table.ForeignKey(
+                        name: "FK_promotion_item_product_id_product",
+                        column: x => x.id_product,
+                        principalTable: "product",
+                        principalColumn: "id_product",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_promotion_item_promotion_id_promotion",
+                        column: x => x.id_promotion,
+                        principalTable: "promotion",
+                        principalColumn: "id_promotion",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -205,6 +252,16 @@ namespace NinOS.Infrastructure.Migrations
                 name: "IX_payment_id_delivery_note",
                 table: "payment",
                 column: "id_delivery_note");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_promotion_item_id_product",
+                table: "promotion_item",
+                column: "id_product");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_promotion_item_id_promotion",
+                table: "promotion_item",
+                column: "id_promotion");
         }
 
         /// <inheritdoc />
@@ -220,10 +277,16 @@ namespace NinOS.Infrastructure.Migrations
                 name: "payment");
 
             migrationBuilder.DropTable(
-                name: "product");
+                name: "promotion_item");
 
             migrationBuilder.DropTable(
                 name: "delivery_note");
+
+            migrationBuilder.DropTable(
+                name: "product");
+
+            migrationBuilder.DropTable(
+                name: "promotion");
 
             migrationBuilder.DropTable(
                 name: "customer");
