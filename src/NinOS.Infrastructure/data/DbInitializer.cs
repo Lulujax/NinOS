@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
 
 namespace NinOS.Infrastructure.Data
@@ -10,15 +11,21 @@ namespace NinOS.Infrastructure.Data
         {
             if (db_context == null) throw new ArgumentNullException(nameof(db_context));
 
-            db_context.Database.EnsureCreated();
+            db_context.Database.Migrate();
+
+            if (db_context.products.Any() || db_context.customers.Any() || db_context.sellers.Any())
+            {
+                return;
+            }
 
             if (!db_context.sellers.Any())
             {
                 db_context.sellers.AddRange(
-                    new seller("Sandra", "S-001"),
-                    new seller("Anais", "A-001"),
-                    new seller("Alejandra", "A-002")
+                    new seller("Sandra", "3200"),
+                    new seller("Anais", "3300"),
+                    new seller("Alejandra", "3500")
                 );
+                db_context.SaveChanges();
             }
 
             if (!db_context.customers.Any())
@@ -27,15 +34,16 @@ namespace NinOS.Infrastructure.Data
                     new customer("C-001", "Carlos Perez", "", "", "0414-1234567", "Valencia", "", ""),
                     new customer("C-002", "Maria Gomez", "", "", "0412-7654321", "Naguanagua", "", "")
                 );
+                db_context.SaveChanges();
             }
 
             if (!db_context.products.Any())
             {
-                product product_1 = new product("OLE30300", "OLEO'S AMPOLLA ANTICAIDA 24 UNDS. OLEOS", "Óleos", 1.11m, 0);
-                product product_2 = new product("OLE30302", "OLEO'S AMPOLLA ANTI-FRIZZ OLEOS", "Óleos", 1.11m, 0);
-                product product_3 = new product("OLE30303", "OLEO'S AMPOLLA ALISADORA OLEOS", "Óleos", 1.11m, 0);
-                product product_4 = new product("OLE30304", "OLEO'S AMPOLLA C.DE SABILA/ACEITE OLIVA OLEOS", "Óleos", 1.11m, 0);
-                product product_5 = new product("OLE30318", "OLEO'S CUBRE CANAS HIDRATANTE", "Óleos", 1.11m, 0);
+                product product_1 = new product("OLE30300", "OLEO'S AMPOLLA ANTICAIDA 24 UNDS. OLEOS", "Oleos", 1.11m, 0);
+                product product_2 = new product("OLE30302", "OLEO'S AMPOLLA ANTI-FRIZZ OLEOS", "Oleos", 1.11m, 0);
+                product product_3 = new product("OLE30303", "OLEO'S AMPOLLA ALISADORA OLEOS", "Oleos", 1.11m, 0);
+                product product_4 = new product("OLE30304", "OLEO'S AMPOLLA C.DE SABILA/ACEITE OLIVA OLEOS", "Oleos", 1.11m, 0);
+                product product_5 = new product("OLE30318", "OLEO'S CUBRE CANAS HIDRATANTE", "Oleos", 1.11m, 0);
                 product product_6 = new product("REM30401", "AMPOLLA ANTI CAIDA REMBRANT", "Rembrandt", 1.21m, 0);
                 product product_7 = new product("REM30402", "AMPOLLA GOTAS DE SEDA REMBRANT", "Rembrandt", 1.21m, 0);
                 product product_8 = new product("REM30403", "AMPOLLA SEMILINO REMBRANT", "Rembrandt", 1.21m, 0);
@@ -69,7 +77,7 @@ namespace NinOS.Infrastructure.Data
                 product product_36 = new product("DEF30016", "AMPOLLA KERATINA PLANCHADO EXPRESS", "Defile", 1.69m, 0);
                 product product_37 = new product("DEF30021", "AMPOLLA SBLOCK 27", "Defile", 1.69m, 0);
                 product product_38 = new product("DEF30028", "AMPOLLA ISOSFOLIEX HAIR SPA", "Defile", 1.69m, 0);
-                product product_39 = new product("OLE30301", "OLEO'S AMPOLLA COMPLEX (Hidratacion intensiva)", "Óleos", 1.23m, 0);
+                product product_39 = new product("OLE30301", "OLEO'S AMPOLLA COMPLEX (Hidratacion intensiva)", "Oleos", 1.23m, 0);
                 product product_40 = new product("DEF30003", "AMPOLLA TRICOMPLEX CON ACIDO HIALURONICO", "Defile", 1.84m, 0);
                 product product_41 = new product("DEF30030", "AMPOLLA TRICOMPLEX MATIZADOR (tipo embudo)", "Defile", 2.45m, 0);
                 product product_42 = new product("DEF30001", "AMPOLLA TRICOMPLEX MATIZADOR (tipo vial)", "Defile", 2.76m, 0);
@@ -91,8 +99,8 @@ namespace NinOS.Infrastructure.Data
                 product product_58 = new product("DEF30114", "PRE-TRATAMIENTO BIOTINA DAMA", "Defile", 5.60m, 0);
                 product product_59 = new product("DEF30115", "PRE-TRATAMIENTO BIOTINA CABALLERO", "Defile", 5.60m, 0);
                 product product_60 = new product("DEF30116", "CHAMPU PROFESIONAL PH NEUTRO 2 Lt", "Defile", 8.85m, 0);
-                product product_61 = new product("DEF30117", "PRE-TRATAMIENTO PH NEUTRO GALÓN", "Defile", 15.33m, 0);
-                product product_62 = new product("DEF30118", "POST TRATAMIENTO PH NEUTRO GALÓN", "Defile", 15.33m, 0);
+                product product_61 = new product("DEF30117", "PRE-TRATAMIENTO PH NEUTRO GALON", "Defile", 15.33m, 0);
+                product product_62 = new product("DEF30118", "POST TRATAMIENTO PH NEUTRO GALON", "Defile", 15.33m, 0);
                 product product_63 = new product("DEF30119", "SUERO CAPILAR K-BOTROX", "Defile", 4.60m, 0);
                 product product_64 = new product("DEF30120", "ACEITE DE ARGAN CAPILAR", "Defile", 5.37m, 0);
                 product product_65 = new product("DEF30121", "ACTIVADOR DE RIZOS", "Defile", 6.57m, 0);
@@ -103,7 +111,7 @@ namespace NinOS.Infrastructure.Data
                 product product_70 = new product("DEF30127", "CIRUGIA LISS EVOLUTION 911 KIT-DE 2", "Defile", 24.00m, 0);
                 product product_71 = new product("DEF30128", "LISS EVOLUTION 911 SPRAY PROTEC TERMICO", "Defile", 6.63m, 0);
                 product product_72 = new product("DEF30129", "TONICO CAPILAR ISOSFOLIEX", "Defile", 5.75m, 0);
-                product product_73 = new product("DEF30130", "DESENGRASANTE MULTIUSO GALÓN", "Defile", 12.27m, 0);
+                product product_73 = new product("DEF30130", "DESENGRASANTE MULTIUSO GALON", "Defile", 12.27m, 0);
                 product product_74 = new product("DEF30131", "AGUA OXIGENADA VOL. 20", "Defile", 1.08m, 0);
                 product product_75 = new product("DEF30132", "AGUA OXIGENADA VOL. 30", "Defile", 1.08m, 0);
                 product product_76 = new product("DEF30135", "BALSAMO PROFESIONAL PH NEUTRO 2 Lt", "Defile", 8.85m, 0);
@@ -129,24 +137,24 @@ namespace NinOS.Infrastructure.Data
                 product product_96 = new product("BIO30224", "GEL ANTIBACTERIAL 70% ALCOHOL", "Bioline", 1.53m, 0);
                 product product_97 = new product("BIO30225", "DESODORANTE ACLARANTE", "Bioline", 2.31m, 0);
                 product product_98 = new product("BIO30226", "DESODORANTE UNISEX", "Bioline", 1.53m, 0);
-                product product_99 = new product("OLE30305", "OLEO'S SHAMPOO CONTROL FRIZZ", "Óleos", 6.40m, 0);
-                product product_100 = new product("OLE30306", "OLEO'S ACONDICIONADOR CONTROL FRIZZ", "Óleos", 6.40m, 0);
-                product product_101 = new product("OLE30307", "OLEO'S SHAMPOO CONTROL CAIDA", "Óleos", 6.40m, 0);
-                product product_102 = new product("OLE30308", "OLEO'S ACONDICIONADOR CONTROL CAIDA", "Óleos", 6.40m, 0);
-                product product_103 = new product("OLE30309", "OLEO'S SHAMPOO RESTAURADOR", "Óleos", 6.40m, 0);
-                product product_104 = new product("OLE30310", "OLEO'S ACONDICIONADOR RESTAURADOR", "Óleos", 6.40m, 0);
-                product product_105 = new product("OLE30311", "OLEO'S SHAMPOO CONTROL CASPA", "Óleos", 6.40m, 0);
-                product product_106 = new product("OLE30312", "OLEO'S ACONDICIONADOR CONTROL CASPA", "Óleos", 6.40m, 0);
-                product product_107 = new product("OLE30313", "OLEO'S SHAMPOO CUIDADO DIARIO", "Óleos", 6.40m, 0);
-                product product_108 = new product("OLE30314", "OLEO'S ACONDICIONADOR CUIDADO DIARIO", "Óleos", 6.40m, 0);
-                product product_109 = new product("OLE30315", "OLEO'S SHAMPOO RIZOS DEFINIDOS", "Óleos", 6.40m, 0);
-                product product_110 = new product("OLE30316", "OLEO'S ACONDICIONADOR RIZOS DEFINIDOS", "Óleos", 6.40m, 0);
-                product product_111 = new product("OLE30317", "OLEO'S MASCARILLA HIDRATANTE + PROTEINAS", "Óleos", 6.40m, 0);
+                product product_99 = new product("OLE30305", "OLEO'S SHAMPOO CONTROL FRIZZ", "Oleos", 6.40m, 0);
+                product product_100 = new product("OLE30306", "OLEO'S ACONDICIONADOR CONTROL FRIZZ", "Oleos", 6.40m, 0);
+                product product_101 = new product("OLE30307", "OLEO'S SHAMPOO CONTROL CAIDA", "Oleos", 6.40m, 0);
+                product product_102 = new product("OLE30308", "OLEO'S ACONDICIONADOR CONTROL CAIDA", "Oleos", 6.40m, 0);
+                product product_103 = new product("OLE30309", "OLEO'S SHAMPOO RESTAURADOR", "Oleos", 6.40m, 0);
+                product product_104 = new product("OLE30310", "OLEO'S ACONDICIONADOR RESTAURADOR", "Oleos", 6.40m, 0);
+                product product_105 = new product("OLE30311", "OLEO'S SHAMPOO CONTROL CASPA", "Oleos", 6.40m, 0);
+                product product_106 = new product("OLE30312", "OLEO'S ACONDICIONADOR CONTROL CASPA", "Oleos", 6.40m, 0);
+                product product_107 = new product("OLE30313", "OLEO'S SHAMPOO CUIDADO DIARIO", "Oleos", 6.40m, 0);
+                product product_108 = new product("OLE30314", "OLEO'S ACONDICIONADOR CUIDADO DIARIO", "Oleos", 6.40m, 0);
+                product product_109 = new product("OLE30315", "OLEO'S SHAMPOO RIZOS DEFINIDOS", "Oleos", 6.40m, 0);
+                product product_110 = new product("OLE30316", "OLEO'S ACONDICIONADOR RIZOS DEFINIDOS", "Oleos", 6.40m, 0);
+                product product_111 = new product("OLE30317", "OLEO'S MASCARILLA HIDRATANTE + PROTEINAS", "Oleos", 6.40m, 0);
                 product product_112 = new product("REM30420", "PRE-TRATAMIENTO PLACENTA OVEJO 1 LITRO", "Rembrandt", 5.33m, 0);
                 product product_113 = new product("REM30421", "TRATAMIENTO INTENSIVO PLACENTA OVEJO 400 GR", "Rembrandt", 4.67m, 0);
-                product product_114 = new product("REM30408", "Pre-Tratamiento Argán 360 ml REMBRANDT", "Rembrandt", 5.01m, 0);
-                product product_115 = new product("REM30409", "Post-Tratamiento Aceite/Argán 360ml REMBRANDT", "Rembrandt", 5.11m, 0);
-                product product_116 = new product("REM30410", "Tratamiento Intensivo Capilar Baño de Crema Aceite/Argán 240ml REMBRANDT", "Rembrandt", 4.93m, 0);
+                product product_114 = new product("REM30408", "Pre-Tratamiento Argan 360 ml REMBRANDT", "Rembrandt", 5.01m, 0);
+                product product_115 = new product("REM30409", "Post-Tratamiento Aceite/Argan 360ml REMBRANDT", "Rembrandt", 5.11m, 0);
+                product product_116 = new product("REM30410", "Tratamiento Intensivo Capilar Baño de Crema Aceite/Argan 240ml REMBRANDT", "Rembrandt", 4.93m, 0);
                 product product_117 = new product("REM30411", "Crema Reafirmante con Colageno y Vitamina E 60 Grs. REMBRANDT", "Rembrandt", 5.13m, 0);
                 product product_118 = new product("REM30412", "Agua Micelar 120 ML. REMBRANDT", "Rembrandt", 5.13m, 0);
                 product product_119 = new product("REM30413", "Locion Desmaquillante 120 ML. REMBRANDT", "Rembrandt", 3.96m, 0);
@@ -218,12 +226,12 @@ namespace NinOS.Infrastructure.Data
                 promotion promo_9 = new promotion("PROMO-CERA-001", "CERA LATA MANZANA VERDE (DEPIL CLEAR)", "Depil Clear", 8.00m);
                 promotion promo_10 = new promotion("PROMO-CERA-002", "CERA LATA MIEL BANANA (DEPIL CLEAR)", "Depil Clear", 8.00m);
                 promotion promo_11 = new promotion("PROMO-CERA-003", "CERA LATA TALCO (DEPIL CLEAR)", "Depil Clear", 8.00m);
-                promotion promo_12 = new promotion("PROMO-OLEOS-001", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL FRIZZ + CREMA DE OBSEQUIO", "Óleos", 12.80m);
-                promotion promo_13 = new promotion("PROMO-OLEOS-002", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL CASPA + CREMA DE OBSEQUIO", "Óleos", 12.80m);
-                promotion promo_14 = new promotion("PROMO-OLEOS-003", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL DE CAIDA + CREMA DE OBSEQUIO", "Óleos", 12.80m);
-                promotion promo_15 = new promotion("PROMO-OLEOS-004", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RESTAURADOR + CREMA DE OBSEQUIO", "Óleos", 12.80m);
-                promotion promo_16 = new promotion("PROMO-OLEOS-005", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CUIDADO DIARIO + CREMA DE OBSEQUIO", "Óleos", 12.80m);
-                promotion promo_17 = new promotion("PROMO-OLEOS-006", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RIZOS + CREMA DE OBSEQUIO", "Óleos", 12.80m);
+                promotion promo_12 = new promotion("PROMO-OLEOS-001", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL FRIZZ + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_13 = new promotion("PROMO-OLEOS-002", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL CASPA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_14 = new promotion("PROMO-OLEOS-003", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL DE CAIDA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_15 = new promotion("PROMO-OLEOS-004", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RESTAURADOR + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_16 = new promotion("PROMO-OLEOS-005", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CUIDADO DIARIO + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_17 = new promotion("PROMO-OLEOS-006", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RIZOS + CREMA DE OBSEQUIO", "Oleos", 12.80m);
                 promotion promo_18 = new promotion("OFERTA-DEPIL-001", "OFERTA DEPICLEAR - ACEITE VARIADOS 240 ML", "Depil Clear", 2.50m);
                 promotion promo_19 = new promotion("OFERTA-KEDAM-001", "OFERTA KEDAM - SHAMPO KEDAM VARIO 360 ML", "Kedam", 2.50m);
                 promotion promo_20 = new promotion("OFERTA-POLVO-001", "OFERTA POLVO - POLVO DECOLORANTE DEFILE 200GR", "Defile", 8.50m);

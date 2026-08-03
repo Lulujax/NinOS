@@ -6,9 +6,11 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </UserControl.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -19,6 +21,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
@@ -26,11 +29,17 @@
                     <TextBox FontSize="14" Padding="6" Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}" Width="300"/>
                 </StackPanel>
 
-                <Button Grid.Column="2" Background="#0078D7" Command="{Binding open_add_window_command}" Content="{Binding add_button_text}" Cursor="Hand" FontWeight="Bold" Foreground="White" Padding="20,8"/>
+                <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <Button Grid.Column="3" Background="#0078D7" Command="{Binding open_add_window_command}" Content="{Binding add_button_text}" Cursor="Hand" FontWeight="Bold" Foreground="White" Padding="20,8"/>
             </Grid>
         </Border>
 
-        <TabControl Grid.Row="1" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
+        <Border Grid.Row="1" Background="#FFE6E6" CornerRadius="4" Padding="10" Margin="0,0,0,10" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#CC0000" FontWeight="Bold" TextWrapping="Wrap"/>
+        </Border>
+
+        <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Todos">
                 <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding todos_list}" Margin="5" MinRowHeight="40">
                     <DataGrid.Columns>
@@ -98,7 +107,7 @@
                 </DataGrid>
             </TabItem>
 
-            <TabItem Header="Óleos">
+            <TabItem Header="Oleos">
                 <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding oleos_list}" Margin="5" MinRowHeight="40">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>

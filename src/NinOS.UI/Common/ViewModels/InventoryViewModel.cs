@@ -48,6 +48,7 @@ namespace NinOS.UI.Common.ViewModels
         private product? _product_being_edited;
         private promotion? _promotion_being_edited;
         private string _errorMessage = string.Empty;
+        private bool _isLoading = false;
 
         private string _search_query = string.Empty;
         private int _selected_tab_index = 0;
@@ -100,6 +101,12 @@ namespace NinOS.UI.Common.ViewModels
         {
             get { return _errorMessage; }
             set { _errorMessage = value; on_property_changed(); }
+        }
+
+        public bool IsLoading
+        {
+            get { return _isLoading; }
+            set { _isLoading = value; on_property_changed(); }
         }
 
         public string search_query
@@ -185,7 +192,7 @@ namespace NinOS.UI.Common.ViewModels
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
             _inventory_service = inventory_service;
 
-            category_options = new ObservableCollection<string> { "Defile", "Óleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Cutique", "Otros" };
+            category_options = new ObservableCollection<string> { "Defile", "Oleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Cutique", "Otros" };
             
             todos_list = new ObservableCollection<inventory_item_dto>();
             defile_list = new ObservableCollection<inventory_item_dto>();
@@ -222,6 +229,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
+                IsLoading = true;
                 ErrorMessage = string.Empty;
                 
                 var products = await _inventory_service.get_all_products_async();
@@ -236,6 +244,10 @@ namespace NinOS.UI.Common.ViewModels
             {
                 ErrorMessage = $"Error: {ex.Message}";
             }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         private void update_category_from_tab()
@@ -245,7 +257,7 @@ namespace NinOS.UI.Common.ViewModels
             switch (_selected_tab_index)
             {
                 case 1: new_category = "Defile"; break;
-                case 2: new_category = "Óleos"; break;
+                case 2: new_category = "Oleos"; break;
                 case 3: new_category = "Rembrandt"; break;
                 case 4: new_category = "Bioline"; break;
                 case 5: new_category = "Amazonia Secret"; break;
@@ -311,23 +323,25 @@ namespace NinOS.UI.Common.ViewModels
 
                     todos_list.Add(dto);
 
-                    if (string.Equals(p.category, "Defile", StringComparison.OrdinalIgnoreCase))
+                    string cat = p.category ?? string.Empty;
+
+                    if (cat.Contains("Defile", StringComparison.OrdinalIgnoreCase))
                         defile_list.Add(dto);
-                    else if (string.Equals(p.category, "Óleos", StringComparison.OrdinalIgnoreCase) || string.Equals(p.category, "Oleos", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Ole", StringComparison.OrdinalIgnoreCase))
                         oleos_list.Add(dto);
-                    else if (string.Equals(p.category, "Rembrandt", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Rembrandt", StringComparison.OrdinalIgnoreCase))
                         rembrandt_list.Add(dto);
-                    else if (string.Equals(p.category, "Bioline", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Bioline", StringComparison.OrdinalIgnoreCase))
                         bioline_list.Add(dto);
-                    else if (string.Equals(p.category, "Amazonia Secret", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Amazonia", StringComparison.OrdinalIgnoreCase))
                         amazonia_list.Add(dto);
-                    else if (string.Equals(p.category, "Kedam", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Kedam", StringComparison.OrdinalIgnoreCase))
                         kedam_list.Add(dto);
-                    else if (string.Equals(p.category, "Depil Clear", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Depil", StringComparison.OrdinalIgnoreCase))
                         depil_list.Add(dto);
-                    else if (string.Equals(p.category, "Estilista", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Estilista", StringComparison.OrdinalIgnoreCase))
                         estilista_list.Add(dto);
-                    else if (string.Equals(p.category, "Cutique", StringComparison.OrdinalIgnoreCase))
+                    else if (cat.Contains("Cutique", StringComparison.OrdinalIgnoreCase))
                         cutique_list.Add(dto);
                     else
                         otros_list.Add(dto);
@@ -376,6 +390,19 @@ namespace NinOS.UI.Common.ViewModels
                 AddRowNumbers(cutique_list);
                 AddRowNumbers(otros_list);
                 AddRowNumbers(promociones_list);
+
+                on_property_changed(nameof(todos_list));
+                on_property_changed(nameof(defile_list));
+                on_property_changed(nameof(oleos_list));
+                on_property_changed(nameof(rembrandt_list));
+                on_property_changed(nameof(bioline_list));
+                on_property_changed(nameof(amazonia_list));
+                on_property_changed(nameof(kedam_list));
+                on_property_changed(nameof(depil_list));
+                on_property_changed(nameof(estilista_list));
+                on_property_changed(nameof(cutique_list));
+                on_property_changed(nameof(otros_list));
+                on_property_changed(nameof(promociones_list));
             }
             catch (Exception ex)
             {

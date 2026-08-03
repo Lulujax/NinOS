@@ -5,54 +5,88 @@ using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NinOS.Infrastructure.Services.Implementations
 {
     public class CustomerService : ICustomerService
     {
-        private readonly NinOSDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public CustomerService(NinOSDbContext dbContext)
+        public CustomerService(IServiceScopeFactory scopeFactory)
         {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            if (scopeFactory == null) throw new ArgumentNullException(nameof(scopeFactory));
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<IEnumerable<customer>> GetAllCustomersAsync()
         {
-            return await _dbContext.customers.ToListAsync();
+            try
+            {
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                    return await db_context.customers.ToListAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting customers: {ex.Message}");
+                return new List<customer>();
+            }
         }
 
         public async Task<customer?> GetCustomerByIdAsync(int id)
         {
-            return await _dbContext.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+            }
         }
 
         public async Task<customer?> GetCustomerByCodeAsync(string code)
         {
-            return await _dbContext.customers.FirstOrDefaultAsync(c => c.customer_code == code);
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.customers.FirstOrDefaultAsync(c => c.customer_code == code);
+            }
         }
 
         public async Task AddCustomerAsync(customer newCustomer)
         {
             if (newCustomer == null) throw new ArgumentNullException(nameof(newCustomer));
-            await _dbContext.customers.AddAsync(newCustomer);
-            await _dbContext.SaveChangesAsync();
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                await db_context.customers.AddAsync(newCustomer);
+                await db_context.SaveChangesAsync();
+            }
         }
 
         public async Task UpdateCustomerAsync(customer existingCustomer)
         {
             if (existingCustomer == null) throw new ArgumentNullException(nameof(existingCustomer));
-            _dbContext.customers.Update(existingCustomer);
-            await _dbContext.SaveChangesAsync();
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                db_context.customers.Update(existingCustomer);
+                await db_context.SaveChangesAsync();
+            }
         }
 
         public async Task DeleteCustomerAsync(int id)
         {
-            customer? customerToDelete = await GetCustomerByIdAsync(id);
-            if (customerToDelete != null)
+            using (var scope = _scopeFactory.CreateScope())
             {
-                _dbContext.customers.Remove(customerToDelete);
-                await _dbContext.SaveChangesAsync();
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                customer? customerToDelete = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+                if (customerToDelete != null)
+                {
+                    db_context.customers.Remove(customerToDelete);
+                    await db_context.SaveChangesAsync();
+                }
             }
         }
     }
