@@ -35,21 +35,24 @@ namespace NinOS.UI.Common.ViewModels
         private int _selectedTabIndex;
         private string _newCustomerCode = string.Empty;
         private string _newBusinessName = string.Empty;
-        private string _newRif = string.Empty;
+        private string _newRifNumber = string.Empty;
+        private string _newRifType = "J";
         private string _newContactName = string.Empty;
         private string _newPhoneNumber = string.Empty;
         private string _newFiscalAddress = string.Empty;
         private string _newDeliveryAddress = string.Empty;
         private string _newSellerName = string.Empty;
         private bool _canEditSeller = true;
+        private bool _canEditCode = false;
         private string _addOrEditTitle = "Agregar Cliente";
         private string _saveButtonText = "Agregar Cliente";
 
         public ObservableCollection<CustomerRowDto> AllCustomers { get; }
-        public ObservableCollection<CustomerRowDto> JuanCustomers { get; }
-        public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> AnaisCustomers { get; }
+        public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
+        public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
         public ObservableCollection<string> SellerOptions { get; }
+        public ObservableCollection<string> RifTypeOptions { get; }
 
         public Action? OnRequestAddCustomerWindow { get; set; }
         public Action<CustomerRowDto>? OnRequestEditCustomerWindow { get; set; }
@@ -78,6 +81,8 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     _selectedTabIndex = value;
                     on_property_changed();
+                    SetDefaultSellerFromTab();
+                    GenerateNextCustomerCode();
                     FilterCustomers();
                 }
             }
@@ -89,16 +94,28 @@ namespace NinOS.UI.Common.ViewModels
             set { _newCustomerCode = value; on_property_changed(); }
         }
 
+        public bool CanEditCode
+        {
+            get => _canEditCode;
+            set { _canEditCode = value; on_property_changed(); }
+        }
+
         public string NewBusinessName
         {
             get => _newBusinessName;
             set { _newBusinessName = value; on_property_changed(); }
         }
 
-        public string NewRif
+        public string NewRifNumber
         {
-            get => _newRif;
-            set { _newRif = value; on_property_changed(); }
+            get => _newRifNumber;
+            set { _newRifNumber = value; on_property_changed(); }
+        }
+
+        public string NewRifType
+        {
+            get => _newRifType;
+            set { _newRifType = value; on_property_changed(); }
         }
 
         public string NewContactName
@@ -128,7 +145,12 @@ namespace NinOS.UI.Common.ViewModels
         public string NewSellerName
         {
             get => _newSellerName;
-            set { _newSellerName = value; on_property_changed(); }
+            set 
+            { 
+                _newSellerName = value; 
+                on_property_changed();
+                GenerateNextCustomerCode();
+            }
         }
 
         public bool CanEditSeller
@@ -174,12 +196,14 @@ namespace NinOS.UI.Common.ViewModels
             _isLoading = false;
 
             AllCustomers = new ObservableCollection<CustomerRowDto>();
-            JuanCustomers = new ObservableCollection<CustomerRowDto>();
-            SandraCustomers = new ObservableCollection<CustomerRowDto>();
             AnaisCustomers = new ObservableCollection<CustomerRowDto>();
+            SandraCustomers = new ObservableCollection<CustomerRowDto>();
+            AlejandraCustomers = new ObservableCollection<CustomerRowDto>();
 
             SellerOptions = new ObservableCollection<string> { "Sandra", "Anais", "Alejandra" };
+            RifTypeOptions = new ObservableCollection<string> { "J", "V", "E", "P", "G", "C" };
             _newSellerName = "Anais";
+            _newRifType = "J";
 
             SaveCustomerCommand = new RelayCommand(ExecuteSaveCustomer, CanExecuteSaveCustomer);
             AddCustomerCommand = new RelayCommand(ExecuteAddCustomer);
@@ -227,16 +251,78 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 FilterCustomers();
+                GenerateNextCustomerCode();
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Error al cargar clientes: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error loading customers: {ex.Message}");
                 _allCustomersSource = new List<CustomerRowDto>();
             }
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        private string GetSellerPrefix(string sellerName)
+        {
+            switch (sellerName)
+            {
+                case "Anais":
+                    return "3300";
+                case "Sandra":
+                    return "3301";
+                case "Alejandra":
+                    return "3305";
+                default:
+                    return "3300";
+            }
+        }
+
+        private void GenerateNextCustomerCode()
+        {
+            if (_editingCustomer != null) return;
+
+            string sellerPrefix = GetSellerPrefix(_newSellerName);
+            string prefix = $"{sellerPrefix}_";
+            
+            var existingCodes = _allCustomersSource
+                .Where(c => !string.IsNullOrEmpty(c.CustomerCode) && c.CustomerCode.StartsWith(prefix))
+                .Select(c => c.CustomerCode)
+                .ToList();
+
+            int maxNumber = 0;
+            foreach (string code in existingCodes)
+            {
+                string numberPart = code.Replace(prefix, "");
+                if (int.TryParse(numberPart, out int num))
+                {
+                    if (num > maxNumber) maxNumber = num;
+                }
+            }
+
+            int nextNumber = maxNumber + 1;
+            NewCustomerCode = $"{prefix}{nextNumber:D2}";
+        }
+
+        private void SetDefaultSellerFromTab()
+        {
+            if (_editingCustomer != null) return;
+
+            switch (_selectedTabIndex)
+            {
+                case 1:
+                    NewSellerName = "Anais";
+                    break;
+                case 2:
+                    NewSellerName = "Sandra";
+                    break;
+                case 3:
+                    NewSellerName = "Alejandra";
+                    break;
+                default:
+                    NewSellerName = "Anais";
+                    break;
             }
         }
 
@@ -259,24 +345,16 @@ namespace NinOS.UI.Common.ViewModels
                         (c.Rif?.ToLower().Contains(query) ?? false) ||
                         (c.ContactName?.ToLower().Contains(query) ?? false) ||
                         (c.PhoneNumber?.ToLower().Contains(query) ?? false) ||
+                        (c.FiscalAddress?.ToLower().Contains(query) ?? false) ||
+                        (c.DeliveryAddress?.ToLower().Contains(query) ?? false) ||
                         (c.SellerName?.ToLower().Contains(query) ?? false)
                     ).ToList();
                 }
 
                 UpdateCollection(AllCustomers, filtered);
-
-                if (_selectedTabIndex == 0)
-                {
-                    UpdateCollection(JuanCustomers, filtered.Where(c => c.SellerName == "Juan").ToList());
-                    UpdateCollection(SandraCustomers, filtered.Where(c => c.SellerName == "Sandra").ToList());
-                    UpdateCollection(AnaisCustomers, filtered.Where(c => c.SellerName == "Anais").ToList());
-                }
-                else if (_selectedTabIndex == 1)
-                {
-                    UpdateCollection(JuanCustomers, _allCustomersSource.Where(c => c.SellerName == "Juan").ToList());
-                    UpdateCollection(SandraCustomers, _allCustomersSource.Where(c => c.SellerName == "Sandra").ToList());
-                    UpdateCollection(AnaisCustomers, _allCustomersSource.Where(c => c.SellerName == "Anais").ToList());
-                }
+                UpdateCollection(AnaisCustomers, filtered.Where(c => c.SellerName == "Anais").ToList());
+                UpdateCollection(SandraCustomers, filtered.Where(c => c.SellerName == "Sandra").ToList());
+                UpdateCollection(AlejandraCustomers, filtered.Where(c => c.SellerName == "Alejandra").ToList());
             }
             catch (Exception ex)
             {
@@ -306,10 +384,12 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
 
+                string fullRif = string.IsNullOrWhiteSpace(_newRifNumber) ? "" : $"{_newRifType}-{_newRifNumber}";
+
                 customer newCustomer = new customer(
                     _newCustomerCode,
                     _newBusinessName,
-                    _newRif,
+                    fullRif,
                     _newContactName,
                     _newPhoneNumber,
                     _newFiscalAddress,
@@ -322,7 +402,7 @@ namespace NinOS.UI.Common.ViewModels
                     customer existing = _editingCustomer.CustomerRef!;
                     existing.customer_code = _newCustomerCode;
                     existing.business_name = _newBusinessName;
-                    existing.rif = _newRif;
+                    existing.rif = fullRif;
                     existing.contact_name = _newContactName;
                     existing.phone_number = _newPhoneNumber;
                     existing.fiscal_address = _newFiscalAddress;
@@ -343,7 +423,6 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 ErrorMessage = $"Error al guardar: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error saving customer: {ex.Message}");
             }
             finally
             {
@@ -355,9 +434,12 @@ namespace NinOS.UI.Common.ViewModels
         {
             ClearForm();
             _editingCustomer = null;
+            _canEditCode = false;
             AddOrEditTitle = "Agregar Cliente";
             SaveButtonText = "Agregar Cliente";
             CanEditSeller = true;
+            SetDefaultSellerFromTab();
+            GenerateNextCustomerCode();
             OnRequestAddCustomerWindow?.Invoke();
         }
 
@@ -377,9 +459,22 @@ namespace NinOS.UI.Common.ViewModels
         public void StartEditCustomer(CustomerRowDto selected)
         {
             _editingCustomer = selected;
+            _canEditCode = true;
             NewCustomerCode = selected.CustomerCode;
             NewBusinessName = selected.BusinessName;
-            NewRif = selected.Rif;
+            
+            if (!string.IsNullOrEmpty(selected.Rif) && selected.Rif.Contains("-"))
+            {
+                string[] parts = selected.Rif.Split('-');
+                NewRifType = parts.Length > 0 ? parts[0] : "J";
+                NewRifNumber = parts.Length > 1 ? parts[1] : "";
+            }
+            else
+            {
+                NewRifType = "J";
+                NewRifNumber = selected.Rif ?? "";
+            }
+            
             NewContactName = selected.ContactName;
             NewPhoneNumber = selected.PhoneNumber;
             NewFiscalAddress = selected.FiscalAddress;
@@ -410,7 +505,6 @@ namespace NinOS.UI.Common.ViewModels
                 catch (Exception ex)
                 {
                     ErrorMessage = $"Error al eliminar: {ex.Message}";
-                    System.Diagnostics.Debug.WriteLine($"Error deleting customer: {ex.Message}");
                 }
                 finally
                 {
@@ -423,13 +517,17 @@ namespace NinOS.UI.Common.ViewModels
         {
             NewCustomerCode = string.Empty;
             NewBusinessName = string.Empty;
-            NewRif = string.Empty;
+            NewRifNumber = string.Empty;
+            NewRifType = "J";
             NewContactName = string.Empty;
             NewPhoneNumber = string.Empty;
             NewFiscalAddress = string.Empty;
             NewDeliveryAddress = string.Empty;
             NewSellerName = "Anais";
             _editingCustomer = null;
+            _canEditCode = false;
+            SetDefaultSellerFromTab();
+            GenerateNextCustomerCode();
         }
     }
 }

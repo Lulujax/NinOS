@@ -12,12 +12,6 @@ namespace NinOS.UI.Views
             DataContextChanged += UserControl_DataContextChanged;
         }
 
-        public CustomerView(CustomerViewModel viewModel) : this()
-        {
-            DataContext = viewModel;
-            SetupEvents();
-        }
-
         private void SetupEvents()
         {
             if (DataContext is CustomerViewModel viewModel)

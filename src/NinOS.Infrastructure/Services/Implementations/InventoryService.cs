@@ -20,7 +20,15 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         public async Task<IEnumerable<product>> get_all_products_async()
         {
-            return await _db_context.products.ToListAsync();
+            try
+            {
+                return await _db_context.products.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting products: {ex.Message}");
+                return new List<product>();
+            }
         }
 
         public async Task add_product_async(product new_product)
@@ -46,23 +54,38 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         public async Task<IEnumerable<promotion>> get_all_promotions_async()
         {
-            return await _db_context.promotions
-                .Include(p => p.items)
-                .ThenInclude(i => i.product)
-                .ToListAsync();
-        }
-
-        public async Task delete_promotion_async(promotion promotion_to_delete)
-        {
-            if (promotion_to_delete == null) throw new ArgumentNullException(nameof(promotion_to_delete));
-            _db_context.promotions.Remove(promotion_to_delete);
-            await _db_context.SaveChangesAsync();
+            try
+            {
+                return await _db_context.promotions
+                    .Include(p => p.items)
+                    .ThenInclude(i => i.product)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting promotions: {ex.Message}");
+                return new List<promotion>();
+            }
         }
 
         public async Task add_promotion_async(promotion new_promotion)
         {
             if (new_promotion == null) throw new ArgumentNullException(nameof(new_promotion));
             await _db_context.promotions.AddAsync(new_promotion);
+            await _db_context.SaveChangesAsync();
+        }
+
+        public async Task update_promotion_async(promotion promotion_to_update)
+        {
+            if (promotion_to_update == null) throw new ArgumentNullException(nameof(promotion_to_update));
+            _db_context.promotions.Update(promotion_to_update);
+            await _db_context.SaveChangesAsync();
+        }
+
+        public async Task delete_promotion_async(promotion promotion_to_delete)
+        {
+            if (promotion_to_delete == null) throw new ArgumentNullException(nameof(promotion_to_delete));
+            _db_context.promotions.Remove(promotion_to_delete);
             await _db_context.SaveChangesAsync();
         }
     }

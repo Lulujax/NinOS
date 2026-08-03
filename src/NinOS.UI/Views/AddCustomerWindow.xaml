@@ -1,54 +1,69 @@
 <Window x:Class="NinOS.UI.Views.AddCustomerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{Binding AddOrEditTitle}" Height="600" Width="400"
+        Title="{Binding AddOrEditTitle}" Height="750" Width="550"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Código del Cliente" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="1" Text="{Binding NewCustomerCode, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="0" Text="Código del Cliente" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="1" Text="{Binding NewCustomerCode}" IsReadOnly="True" Background="#F0F0F0" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="2" Text="Razón Social (Negocio/Nombre)" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="3" Text="{Binding NewBusinessName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="2" Text="Razón Social (Negocio/Nombre)" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="3" Text="{Binding NewBusinessName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" Text="RIF / Cédula" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="5" Text="{Binding NewRif, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="4" Text="RIF" FontWeight="Bold" Margin="0,0,0,5"/>
+        <Grid Grid.Row="5" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox Grid.Column="0" ItemsSource="{Binding RifTypeOptions}" SelectedItem="{Binding NewRifType}" Padding="5" Margin="0,0,5,0"/>
+            <TextBox Grid.Column="1" Text="{Binding NewRifNumber, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+        </Grid>
 
-        <TextBlock Grid.Row="6" Text="Nombre de Contacto" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="7" Text="{Binding NewContactName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="6" Text="Nombre de Contacto" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="7" Text="{Binding NewContactName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="8" Text="Teléfono" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="9" Text="{Binding NewPhoneNumber, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="8" Text="Teléfono" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="9" Text="{Binding NewPhoneNumber, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="10" Text="Dirección Fiscal" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="11" Text="{Binding NewFiscalAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="10" Text="Dirección Fiscal" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="11" Text="{Binding NewFiscalAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" TextWrapping="Wrap" Height="60" AcceptsReturn="True"/>
 
-        <TextBlock Grid.Row="12" Text="Dirección de Entrega" FontWeight="Bold" Margin="0,0,0,5" />
-        <TextBox Grid.Row="13" Text="{Binding NewDeliveryAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="12" Text="Dirección de Entrega" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="13" Text="{Binding NewDeliveryAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10" TextWrapping="Wrap" Height="60" AcceptsReturn="True"/>
 
-        <TextBlock Grid.Row="14" Text="Vendedor Asignado" FontWeight="Bold" Margin="0,0,0,5" />
-        <ComboBox Grid.Row="15" ItemsSource="{Binding SellerOptions}" SelectedItem="{Binding NewSellerName}" IsEnabled="{Binding CanEditSeller}" Padding="5" Margin="0,0,0,20" />
+        <TextBlock Grid.Row="14" Text="Vendedor Asignado" FontWeight="Bold" Margin="0,0,0,5"/>
+        <ComboBox Grid.Row="15" ItemsSource="{Binding SellerOptions}" SelectedItem="{Binding NewSellerName}" IsEnabled="{Binding CanEditSeller}" Padding="5" Margin="0,0,0,20"/>
 
-        <Button Grid.Row="16" Content="{Binding SaveButtonText}" Command="{Binding SaveCustomerCommand}" Background="#0078D7" Foreground="White" FontWeight="Bold" Padding="10" Cursor="Hand" />
+        <TextBlock Grid.Row="16" Text="{Binding ErrorMessage}" Foreground="Red" FontWeight="Bold" Margin="0,0,0,5" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+        <StackPanel Grid.Row="17" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,20">
+            <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCustomerCommand}" Background="#0078D7" Foreground="White" FontWeight="Bold" Padding="15,8" Cursor="Hand" Margin="0,0,10,0"/>
+            <Button Content="Cancelar" Click="CancelButton_Click" Background="#6C757D" Foreground="White" Padding="15,8" Cursor="Hand"/>
+        </StackPanel>
     </Grid>
 </Window>
