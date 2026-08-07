@@ -79,13 +79,15 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_note_detail);
                 entity.Property(e => e.id_note_detail).HasColumnName("id_note_detail").UseIdentityByDefaultColumn();
                 entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
-                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired();
+                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired(false);
+                entity.Property(e => e.id_promotion).HasColumnName("id_promotion").IsRequired(false);
                 entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired();
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<payment>(entity =>

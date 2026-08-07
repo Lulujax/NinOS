@@ -1,7 +1,250 @@
 <UserControl x:Class="NinOS.UI.Views.DeliveryNotesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid>
-        <TextBlock Text="Módulo: Notas de Entrega" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20"/>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#F4F4F4" CornerRadius="4" Margin="0,0,10,0" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="VENDEDORES" FontWeight="Bold" FontSize="16" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                <ListBox Grid.Row="1" ItemsSource="{Binding sellers}" SelectedItem="{Binding selected_seller, UpdateSourceTrigger=PropertyChanged}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding full_name}" Padding="5" FontSize="14" Cursor="Hand"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <Border BorderBrush="Black" BorderThickness="1" Padding="10" Background="White">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,10">
+                        <TextBlock Text="DEFILE" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" TextDecorations="Underline"/>
+                        <TextBlock Text="Caracas venezuela" FontSize="14" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="1" BorderBrush="Black" BorderThickness="1" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="150"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="RAZON SOCIAL" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="0" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
+                                <ComboBox ItemsSource="{Binding filtered_customers}" SelectedItem="{Binding selected_customer}" DisplayMemberPath="business_name" IsEditable="True" IsTextSearchEnabled="True" TextSearch.TextPath="business_name" BorderThickness="0" Background="Transparent"/>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="Fecha Emision" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="0" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
+                                <DatePicker SelectedDate="{Binding creation_date, ValidatesOnExceptions=True}" BorderThickness="0" HorizontalAlignment="Center"/>
+                            </Border>
+
+                            <Border Grid.Row="1" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="NOMBRE COMERCIAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
+                            <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.business_name}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+                            <Border Grid.Row="1" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="codigo" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="1" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding selected_customer.customer_code}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
+
+                            <Border Grid.Row="2" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="DOMICILIO FISCAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
+                            <Border Grid.Row="2" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.fiscal_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="2" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="Fecha Vencimiento" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="2" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
+                                <DatePicker SelectedDate="{Binding due_date, ValidatesOnExceptions=True}" BorderThickness="0" HorizontalAlignment="Center"/>
+                            </Border>
+
+                            <Border Grid.Row="3" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="DIRECCION DE ENTREGA" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
+                            <Border Grid.Row="3" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.delivery_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="3" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="NOTA DE ENTREGA NRO" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="3" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding note_number}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+
+                            <Border Grid.Row="4" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="RIF:" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="4" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.rif}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
+                            <Border Grid.Row="4" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="CONTACTO" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="4" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding selected_customer.contact_name}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+
+                            <Border Grid.Row="5" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="TELEFONO:" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="5" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="{Binding selected_customer.phone_number}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding note_details}" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" 
+                              GridLinesVisibility="All" HorizontalGridLinesBrush="Black" VerticalGridLinesBrush="Black" BorderBrush="Black" BorderThickness="1,1,1,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="cantidad" Binding="{Binding quantity, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="70">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTextColumn Header="Codigo" Binding="{Binding item_search_code, UpdateSourceTrigger=PropertyChanged}" Width="100">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTemplateColumn Header="Descripcion" Width="*">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding available_items}" SelectedItem="{Binding selected_item, UpdateSourceTrigger=PropertyChanged}" Text="{Binding item_search_text, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" DisplayMemberPath="name" BorderThickness="0" Background="Transparent"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
+                            <DataGridTextColumn Header="precio unitario" Binding="{Binding unit_price_usd, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Width="100">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTextColumn Header="precio promocion" Binding="{Binding promo_price_usd_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="120">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontWeight" Value="Bold"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTextColumn Header="TOTAL" Binding="{Binding subtotal_usd, StringFormat=N2}" IsReadOnly="True" Width="100">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTemplateColumn Header="X" Width="30">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="-" Background="#FFCDD2" Command="{Binding DataContext.remove_item_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Cursor="Hand" BorderThickness="0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Button Grid.Row="3" Content="+ Agregar Producto" Command="{Binding add_item_command}" HorizontalAlignment="Left" Background="#E0E0E0" Padding="10,2" Margin="0,5,0,0" Cursor="Hand"/>
+
+                    <Border Grid.Row="4" BorderBrush="Black" BorderThickness="1" Margin="0,10,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBox Grid.Column="0" Text="{Binding conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" TextWrapping="Wrap" AcceptsReturn="True" FontStyle="Italic" FontWeight="Bold" BorderThickness="0,0,1,0" BorderBrush="Black" Padding="5"/>
+                            <TextBlock Grid.Column="1" Text="Total General" FontStyle="Italic" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Border Grid.Column="2" BorderBrush="Black" BorderThickness="1,0,0,0">
+                                <TextBlock Text="{Binding gross_total_usd, StringFormat=N2}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="5" BorderBrush="Black" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#DCE6C8" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="DATOS PARA PAGOS  NOTAS DE ENTREGA DEFILE" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="TRANSFERENCIA   BANCO MERCANTIL  CUENTA CORRIENTE" TextDecorations="Underline" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="NRO DE CUENTA _ 0105--0120—23—11200 92426 /  CEDULA – 13.046.042" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="PAGO MOVIL" TextDecorations="Underline" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="BANCO MERCANTIL /  NRO TELEFONO_0424.496.01.02  /   CEDULA – 13.046.042" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="200"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Background="#DCE6C8" BorderBrush="Black" BorderThickness="0,0,1,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox Grid.Row="0" Text="{Binding discount_conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="Black" TextWrapping="Wrap" AcceptsReturn="True" Padding="2" TextAlignment="Center" FontWeight="Bold"/>
+                                        
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1"><TextBlock Text="sub total" TextAlignment="Center" Padding="2"/></Border>
+                                            <Border Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,0,1"><TextBlock Text="{Binding gross_total_usd, StringFormat=N2}" FontStyle="Italic" FontWeight="Bold" TextAlignment="Center" Padding="2"/></Border>
+                                        </Grid>
+
+                                        <Grid Grid.Row="2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="5">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBox Text="{Binding discount_percentage_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="40" Background="White" BorderThickness="1" BorderBrush="#AAAAAA" TextAlignment="Center"/>
+                                                    <TextBlock Text="%" VerticalAlignment="Center" Margin="5,0,0,0" FontWeight="Bold"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,0,1"><TextBlock Text="{Binding discount_amount, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" Padding="2" VerticalAlignment="Center"/></Border>
+                                        </Grid>
+
+                                        <Grid Grid.Row="3">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0"><TextBlock Text="Total General" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Padding="2"/></Border>
+                                            <Border Grid.Column="1"><TextBlock Text="{Binding total_amount_usd, StringFormat=N2}" FontWeight="Bold" FontSize="16" TextAlignment="Center" Padding="2" VerticalAlignment="Center"/></Border>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,0">
+                                    <TextBlock Text="FECHA _ FIRMA Y SELLO DEL CLIENTE" FontStyle="Italic" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="2" Margin="10" VerticalAlignment="Bottom">
+                                    <TextBlock Text="fecha de pago: ________________" Margin="0,0,0,5"/>
+                                    <TextBlock Text="monto Bs: ____________________" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Nro Referencia: ________________" Margin="0,0,0,15"/>
+                                    <TextBlock Text="Banco: _______________________"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    
+                    <Button Grid.Row="6" Content="GUARDAR NOTA" Command="{Binding save_note_command}" Background="#4CAF50" Foreground="White" FontWeight="Bold" FontSize="16" Padding="20,10" Margin="0,20,0,0" Cursor="Hand" HorizontalAlignment="Right"/>
+
+                </Grid>
+            </Border>
+        </ScrollViewer>
     </Grid>
 </UserControl>
