@@ -11,11 +11,11 @@ namespace NinOS.UI.Common.ViewModels
 {
     public class inventory_item_dto : ViewModelBase
     {
-        private int _rowNumber;
+        private int _row_number;
         public int RowNumber 
         { 
-            get => _rowNumber; 
-            set { _rowNumber = value; on_property_changed(); }
+            get { return _row_number; }
+            set { _row_number = value; on_property_changed(); }
         }
         public string id_display { get; set; } = string.Empty;
         public string item_code { get; set; } = string.Empty;
@@ -43,12 +43,12 @@ namespace NinOS.UI.Common.ViewModels
     public class InventoryViewModel : ViewModelBase
     {
         private readonly IInventoryService _inventory_service;
-        private List<product> _all_products_source = new List<product>();
-        private List<promotion> _all_promotions_source = new List<promotion>();
+        private List<product> _all_products_source;
+        private List<promotion> _all_promotions_source;
         private product? _product_being_edited;
         private promotion? _promotion_being_edited;
-        private string _errorMessage = string.Empty;
-        private bool _isLoading = false;
+        private string _error_message = string.Empty;
+        private bool _is_loading = false;
 
         private string _search_query = string.Empty;
         private int _selected_tab_index = 0;
@@ -97,16 +97,21 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_close_add_window;
         public Action? on_close_add_promotion_window;
 
+        public bool can_edit_category
+        {
+            get { return _selected_tab_index == 0; }
+        }
+
         public string ErrorMessage
         {
-            get { return _errorMessage; }
-            set { _errorMessage = value; on_property_changed(); }
+            get { return _error_message; }
+            set { _error_message = value; on_property_changed(); }
         }
 
         public bool IsLoading
         {
-            get { return _isLoading; }
-            set { _isLoading = value; on_property_changed(); }
+            get { return _is_loading; }
+            set { _is_loading = value; on_property_changed(); }
         }
 
         public string search_query
@@ -118,7 +123,13 @@ namespace NinOS.UI.Common.ViewModels
         public int selected_tab_index
         {
             get { return _selected_tab_index; }
-            set { _selected_tab_index = value; on_property_changed(); update_category_from_tab(); }
+            set 
+            { 
+                _selected_tab_index = value; 
+                on_property_changed(); 
+                update_category_from_tab(); 
+                on_property_changed(nameof(can_edit_category)); 
+            }
         }
 
         public string add_button_text
@@ -192,6 +203,9 @@ namespace NinOS.UI.Common.ViewModels
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
             _inventory_service = inventory_service;
 
+            _all_products_source = new List<product>();
+            _all_promotions_source = new List<promotion>();
+
             category_options = new ObservableCollection<string> { "Defile", "Oleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Cutique", "Otros" };
             
             todos_list = new ObservableCollection<inventory_item_dto>();
@@ -222,27 +236,27 @@ namespace NinOS.UI.Common.ViewModels
             
             new_category = "Defile";
             
-            load_initial_data();
+            load_initial_data_async();
         }
 
-        private async void load_initial_data()
+        private async void load_initial_data_async()
         {
             try
             {
                 IsLoading = true;
                 ErrorMessage = string.Empty;
                 
-                var products = await _inventory_service.get_all_products_async();
+                IEnumerable<product> products = await _inventory_service.get_all_products_async();
                 _all_products_source = products.ToList();
                 
-                var promotions = await _inventory_service.get_all_promotions_async();
+                IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
                 _all_promotions_source = promotions.ToList();
 
                 filter_data();
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error: {ex.Message}";
+                ErrorMessage = ex.Message;
             }
             finally
             {
@@ -270,144 +284,124 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void AddRowNumbers(ObservableCollection<inventory_item_dto> list)
+        private void assign_row_numbers(ObservableCollection<inventory_item_dto> target_list)
         {
-            int rowNumber = 1;
-            foreach (var item in list)
+            int row = 1;
+            foreach (inventory_item_dto item in target_list)
             {
-                item.RowNumber = rowNumber++;
+                item.RowNumber = row++;
             }
         }
 
         private void filter_data()
         {
-            try
+            List<product> filtered_products = _all_products_source.Where(p =>
+                string.IsNullOrWhiteSpace(_search_query) ||
+                p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
+                p.product_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            List<promotion> filtered_promos = _all_promotions_source.Where(p =>
+                string.IsNullOrWhiteSpace(_search_query) ||
+                p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
+                p.promotion_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            todos_list.Clear();
+            defile_list.Clear();
+            oleos_list.Clear();
+            rembrandt_list.Clear();
+            bioline_list.Clear();
+            amazonia_list.Clear();
+            kedam_list.Clear();
+            depil_list.Clear();
+            estilista_list.Clear();
+            cutique_list.Clear();
+            otros_list.Clear();
+            promociones_list.Clear();
+
+            foreach (product p in filtered_products)
             {
-                var filtered_products = _all_products_source.Where(p =>
-                    string.IsNullOrWhiteSpace(_search_query) ||
-                    p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
-                    p.product_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                var filtered_promos = _all_promotions_source.Where(p =>
-                    string.IsNullOrWhiteSpace(_search_query) ||
-                    p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
-                    p.promotion_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                todos_list.Clear();
-                defile_list.Clear();
-                oleos_list.Clear();
-                rembrandt_list.Clear();
-                bioline_list.Clear();
-                amazonia_list.Clear();
-                kedam_list.Clear();
-                depil_list.Clear();
-                estilista_list.Clear();
-                cutique_list.Clear();
-                otros_list.Clear();
-                promociones_list.Clear();
-
-                foreach (product p in filtered_products)
+                inventory_item_dto new_dto = new inventory_item_dto
                 {
-                    var dto = new inventory_item_dto
-                    {
-                        id_display = p.id_product.ToString(),
-                        item_code = p.product_code,
-                        item_name = p.name,
-                        item_category = p.category,
-                        item_quantity = p.stock_quantity.ToString(),
-                        item_price = p.unit_price_usd,
-                        is_promotion = false,
-                        is_default_combo = false,
-                        product_ref = p
-                    };
+                    id_display = p.id_product.ToString(),
+                    item_code = p.product_code,
+                    item_name = p.name,
+                    item_category = p.category,
+                    item_quantity = p.stock_quantity.ToString(),
+                    item_price = p.unit_price_usd,
+                    is_promotion = false,
+                    is_default_combo = false,
+                    product_ref = p
+                };
 
-                    todos_list.Add(dto);
+                todos_list.Add(new_dto);
 
-                    string cat = p.category ?? string.Empty;
+                string safe_category = p.category ?? string.Empty;
 
-                    if (cat.Contains("Defile", StringComparison.OrdinalIgnoreCase))
-                        defile_list.Add(dto);
-                    else if (cat.Contains("Ole", StringComparison.OrdinalIgnoreCase))
-                        oleos_list.Add(dto);
-                    else if (cat.Contains("Rembrandt", StringComparison.OrdinalIgnoreCase))
-                        rembrandt_list.Add(dto);
-                    else if (cat.Contains("Bioline", StringComparison.OrdinalIgnoreCase))
-                        bioline_list.Add(dto);
-                    else if (cat.Contains("Amazonia", StringComparison.OrdinalIgnoreCase))
-                        amazonia_list.Add(dto);
-                    else if (cat.Contains("Kedam", StringComparison.OrdinalIgnoreCase))
-                        kedam_list.Add(dto);
-                    else if (cat.Contains("Depil", StringComparison.OrdinalIgnoreCase))
-                        depil_list.Add(dto);
-                    else if (cat.Contains("Estilista", StringComparison.OrdinalIgnoreCase))
-                        estilista_list.Add(dto);
-                    else if (cat.Contains("Cutique", StringComparison.OrdinalIgnoreCase))
-                        cutique_list.Add(dto);
-                    else
-                        otros_list.Add(dto);
-                }
+                if (safe_category.Contains("Defile", StringComparison.OrdinalIgnoreCase))
+                    defile_list.Add(new_dto);
+                else if (safe_category.Contains("Ole", StringComparison.OrdinalIgnoreCase))
+                    oleos_list.Add(new_dto);
+                else if (safe_category.Contains("Rembrandt", StringComparison.OrdinalIgnoreCase))
+                    rembrandt_list.Add(new_dto);
+                else if (safe_category.Contains("Bioline", StringComparison.OrdinalIgnoreCase))
+                    bioline_list.Add(new_dto);
+                else if (safe_category.Contains("Amazonia", StringComparison.OrdinalIgnoreCase))
+                    amazonia_list.Add(new_dto);
+                else if (safe_category.Contains("Kedam", StringComparison.OrdinalIgnoreCase))
+                    kedam_list.Add(new_dto);
+                else if (safe_category.Contains("Depil", StringComparison.OrdinalIgnoreCase))
+                    depil_list.Add(new_dto);
+                else if (safe_category.Contains("Estilista", StringComparison.OrdinalIgnoreCase))
+                    estilista_list.Add(new_dto);
+                else if (safe_category.Contains("Cutique", StringComparison.OrdinalIgnoreCase))
+                    cutique_list.Add(new_dto);
+                else
+                    otros_list.Add(new_dto);
+            }
 
-                foreach (promotion p in filtered_promos)
+            foreach (promotion p in filtered_promos)
+            {
+                int calculated_available = 0;
+                if (p.items != null && p.items.Count > 0)
                 {
-                    int calculated_available = 0;
-                    if (p.items != null && p.items.Count > 0)
+                    try
                     {
-                        try
-                        {
-                            calculated_available = p.items.Min(i => (i.product != null && i.quantity_required > 0) ? (i.product.stock_quantity / i.quantity_required) : 0);
-                        }
-                        catch { calculated_available = 0; }
+                        calculated_available = p.items.Min(i => (i.product != null && i.quantity_required > 0) ? (i.product.stock_quantity / i.quantity_required) : 0);
                     }
-
-                    string display_code = p.promotion_code.Replace("C-PROMO-", "").Replace("C-KIT-", "KIT-").Replace("C-COMBO-", "COMBO-");
-
-                    var dto = new inventory_item_dto
-                    {
-                        id_display = p.id_promotion.ToString(),
-                        item_code = display_code,
-                        item_name = p.name,
-                        item_category = p.category,
-                        item_quantity = calculated_available.ToString(),
-                        item_price = p.unit_price_usd,
-                        is_promotion = true,
-                        is_default_combo = false,
-                        promo_ref = p
-                    };
-
-                    todos_list.Add(dto);
-                    promociones_list.Add(dto);
+                    catch { calculated_available = 0; }
                 }
 
-                AddRowNumbers(todos_list);
-                AddRowNumbers(defile_list);
-                AddRowNumbers(oleos_list);
-                AddRowNumbers(rembrandt_list);
-                AddRowNumbers(bioline_list);
-                AddRowNumbers(amazonia_list);
-                AddRowNumbers(kedam_list);
-                AddRowNumbers(depil_list);
-                AddRowNumbers(estilista_list);
-                AddRowNumbers(cutique_list);
-                AddRowNumbers(otros_list);
-                AddRowNumbers(promociones_list);
+                string display_code = p.promotion_code.Replace("C-PROMO-", "").Replace("C-KIT-", "KIT-").Replace("C-COMBO-", "COMBO-");
 
-                on_property_changed(nameof(todos_list));
-                on_property_changed(nameof(defile_list));
-                on_property_changed(nameof(oleos_list));
-                on_property_changed(nameof(rembrandt_list));
-                on_property_changed(nameof(bioline_list));
-                on_property_changed(nameof(amazonia_list));
-                on_property_changed(nameof(kedam_list));
-                on_property_changed(nameof(depil_list));
-                on_property_changed(nameof(estilista_list));
-                on_property_changed(nameof(cutique_list));
-                on_property_changed(nameof(otros_list));
-                on_property_changed(nameof(promociones_list));
+                inventory_item_dto new_dto = new inventory_item_dto
+                {
+                    id_display = p.id_promotion.ToString(),
+                    item_code = display_code,
+                    item_name = p.name,
+                    item_category = "Promociones",
+                    item_quantity = calculated_available.ToString(),
+                    item_price = p.unit_price_usd,
+                    is_promotion = true,
+                    is_default_combo = false,
+                    promo_ref = p
+                };
+
+                todos_list.Add(new_dto);
+                promociones_list.Add(new_dto);
             }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"Error filtrando: {ex.Message}";
-            }
+
+            assign_row_numbers(todos_list);
+            assign_row_numbers(defile_list);
+            assign_row_numbers(oleos_list);
+            assign_row_numbers(rembrandt_list);
+            assign_row_numbers(bioline_list);
+            assign_row_numbers(amazonia_list);
+            assign_row_numbers(kedam_list);
+            assign_row_numbers(depil_list);
+            assign_row_numbers(estilista_list);
+            assign_row_numbers(cutique_list);
+            assign_row_numbers(otros_list);
+            assign_row_numbers(promociones_list);
         }
 
         private void filter_promo_search()
@@ -415,9 +409,9 @@ namespace NinOS.UI.Common.ViewModels
             promo_search_results.Clear();
             if (string.IsNullOrWhiteSpace(_promo_search_query)) return;
 
-            var results = _all_products_source.Where(p => 
+            IEnumerable<product> results = _all_products_source.Where(p => 
                 p.name.Contains(_promo_search_query, StringComparison.OrdinalIgnoreCase) || 
-                p.product_code.Contains(_promo_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+                p.product_code.Contains(_promo_search_query, StringComparison.OrdinalIgnoreCase));
 
             foreach (product p in results)
             {
@@ -447,6 +441,7 @@ namespace NinOS.UI.Common.ViewModels
             new_quantity = string.Empty;
             new_price = string.Empty;
             update_category_from_tab();
+            on_property_changed(nameof(can_edit_category));
             on_request_add_window?.Invoke();
         }
 
@@ -460,6 +455,7 @@ namespace NinOS.UI.Common.ViewModels
                 new_category = dto.product_ref.category;
                 new_quantity = dto.product_ref.stock_quantity.ToString();
                 new_price = dto.product_ref.unit_price_usd.ToString();
+                on_property_changed(nameof(can_edit_category));
                 on_request_add_window?.Invoke();
             }
         }
@@ -469,21 +465,31 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is inventory_item_dto dto && dto.is_promotion && dto.promo_ref != null)
             {
                 _promotion_being_edited = dto.promo_ref;
-                promo_type_index = 2;
                 new_promo_name = dto.promo_ref.name;
                 new_promo_price = dto.promo_ref.unit_price_usd.ToString();
                 
                 builder_items.Clear();
-                if (dto.promo_ref.items != null)
+                
+                if (dto.promo_ref.items != null && dto.promo_ref.items.Count == 1 && dto.promo_ref.items.First().quantity_required == 1)
                 {
-                    foreach (var item in dto.promo_ref.items)
+                    promo_type_index = 0;
+                    promotion_item item = dto.promo_ref.items.First();
+                    selected_promo_product = _all_products_source.FirstOrDefault(p => p.id_product == item.id_product);
+                }
+                else
+                {
+                    promo_type_index = 2;
+                    if (dto.promo_ref.items != null)
                     {
-                        if (item.product != null)
+                        foreach (promotion_item item in dto.promo_ref.items)
                         {
-                            builder_items.Add(new promo_builder_item { 
-                                product_ref = item.product, 
-                                quantity = item.quantity_required 
-                            });
+                            if (item.product != null)
+                            {
+                                builder_items.Add(new promo_builder_item { 
+                                    product_ref = item.product, 
+                                    quantity = item.quantity_required 
+                                });
+                            }
                         }
                     }
                 }
@@ -497,7 +503,7 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is inventory_item_dto dto && !dto.is_promotion && dto.product_ref != null)
             {
                 await _inventory_service.delete_product_async(dto.product_ref);
-                load_initial_data();
+                load_initial_data_async();
             }
         }
 
@@ -506,7 +512,7 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is inventory_item_dto dto && dto.is_promotion && dto.promo_ref != null)
             {
                 await _inventory_service.delete_promotion_async(dto.promo_ref);
-                load_initial_data();
+                load_initial_data_async();
             }
         }
 
@@ -529,12 +535,12 @@ namespace NinOS.UI.Common.ViewModels
             }
             else
             {
-                var new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
+                product new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
                 await _inventory_service.add_product_async(new_prod);
             }
             
             _product_being_edited = null;
-            load_initial_data();
+            load_initial_data_async();
             on_close_add_window?.Invoke();
         }
 
@@ -560,9 +566,28 @@ namespace NinOS.UI.Common.ViewModels
 
             if (_promotion_being_edited != null)
             {
-                _promotion_being_edited.name = new_promo_name;
-                _promotion_being_edited.unit_price_usd = parsed_price;
-                await _inventory_service.update_promotion_async(_promotion_being_edited);
+                promotion promo_update = new promotion(_promotion_being_edited.promotion_code, new_promo_name, "Promociones", parsed_price);
+                promo_update.id_promotion = _promotion_being_edited.id_promotion;
+                
+                if (_promo_type_index == 0)
+                {
+                    if (_selected_promo_product != null)
+                    {
+                        promo_update.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
+                    }
+                }
+                else
+                {
+                    foreach (promo_builder_item item in builder_items)
+                    {
+                        if (item.product_ref != null)
+                        {
+                            promo_update.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
+                        }
+                    }
+                }
+
+                await _inventory_service.update_promotion_async(promo_update);
             }
             else if (_promo_type_index == 0)
             {
@@ -571,9 +596,9 @@ namespace NinOS.UI.Common.ViewModels
                 string new_code = "C-PROMO-" + _selected_promo_product.product_code;
                 string final_name = string.IsNullOrWhiteSpace(new_promo_name) ? "PROMO " + _selected_promo_product.name : new_promo_name;
                 
-                var promo = new promotion(new_code, final_name, _selected_promo_product.category, parsed_price);
-                promo.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
-                await _inventory_service.add_promotion_async(promo);
+                promotion new_promo = new promotion(new_code, final_name, "Promociones", parsed_price);
+                new_promo.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
+                await _inventory_service.add_promotion_async(new_promo);
             }
             else
             {
@@ -582,21 +607,19 @@ namespace NinOS.UI.Common.ViewModels
                 string prefix = _promo_type_index == 1 ? "C-KIT-" : "C-COMBO-";
                 string new_code = prefix + Guid.NewGuid().ToString().Substring(0, 4).ToUpper();
                 
-                string final_category = builder_items.First().product_ref?.category ?? "Otros";
-
-                var promo = new promotion(new_code, new_promo_name, final_category, parsed_price);
-                foreach (var item in builder_items)
+                promotion new_promo = new promotion(new_code, new_promo_name, "Promociones", parsed_price);
+                foreach (promo_builder_item item in builder_items)
                 {
                     if (item.product_ref != null)
                     {
-                        promo.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
+                        new_promo.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
                     }
                 }
-                await _inventory_service.add_promotion_async(promo);
+                await _inventory_service.add_promotion_async(new_promo);
             }
 
             _promotion_being_edited = null;
-            load_initial_data();
+            load_initial_data_async();
             on_close_add_promotion_window?.Invoke();
         }
     }

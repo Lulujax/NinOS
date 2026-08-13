@@ -70,6 +70,14 @@ namespace NinOS.UI.Common.ViewModels
             commissions_vm = commissionsVm;
             customer_vm = customerVm;
             inventory_vm = inventoryVm;
+
+            if (delivery_notes_vm != null)
+            {
+                delivery_notes_vm.OnNoteSaved += () =>
+                {
+                    accounts_receivable_vm?.refresh_data();
+                };
+            }
         }
     }
 }

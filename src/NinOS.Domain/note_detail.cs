@@ -21,7 +21,7 @@ namespace NinOS.Domain
         public int id_delivery_note
         {
             get { return _id_delivery_note; }
-            set { if (value <= 0) throw new ArgumentException(); _id_delivery_note = value; }
+            set { if (value < 0) throw new ArgumentException(); _id_delivery_note = value; }
         }
 
         public int? id_product

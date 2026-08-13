@@ -1,7 +1,245 @@
 <UserControl x:Class="NinOS.UI.Views.AccountsReceivableView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:NinOS.UI.Converters"
+             mc:Ignorable="d"
+             Background="White">
+    
+    <UserControl.Resources>
+        <converters:BalanceColorConverter x:Key="BalanceColorConverter"/>
+        
+        <Style x:Key="MonthListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#2196F3"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+    </UserControl.Resources>
+    
     <Grid>
-        <TextBlock Text="Módulo: Cuentas por Cobrar" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <Border Grid.Column="0" Background="#F4F4F4" CornerRadius="4" Margin="0,0,10,0" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Text="MESES PENDIENTES" 
+                           FontWeight="Bold" 
+                           FontSize="16" 
+                           Margin="0,0,0,10"
+                           HorizontalAlignment="Center"/>
+                
+                <ListBox Grid.Row="1" 
+                         ItemsSource="{Binding pending_months}"
+                         SelectedItem="{Binding selected_month}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource MonthListBoxItemStyle}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Padding="5" FontSize="14" Cursor="Hand"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+        
+        <Border Grid.Column="1" BorderBrush="Black" BorderThickness="1" Padding="10" Background="White">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" 
+                           Text="CUENTAS POR COBRAR" 
+                           FontWeight="Bold" 
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,10"/>
+                
+                <DataGrid Grid.Row="1" 
+                          ItemsSource="{Binding current_month_notes}"
+                          SelectedItem="{Binding selected_note}"
+                          AutoGenerateColumns="False"
+                          AlternatingRowBackground="#E3F2FD"
+                          RowBackground="White"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          GridLinesVisibility="All"
+                          HorizontalGridLinesBrush="Black"
+                          VerticalGridLinesBrush="Black"
+                          BorderBrush="Black"
+                          BorderThickness="1"
+                          FontSize="13"
+                          RowHeight="40">
+                    
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#DCE6C8"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="Height" Value="35"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="BorderBrush" Value="Black"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="BorderBrush" Value="Black"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="5,2"/>
+                        </Style>
+                    </DataGrid.Resources>
+                    
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NOTA" 
+                                            Binding="{Binding note_number}"
+                                            Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="CLIENTE" 
+                                            Binding="{Binding customer_name}"
+                                            Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="TOTAL VENTA" 
+                                            Binding="{Binding total_amount_usd, StringFormat={}{0:N2}}"
+                                            Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="ABONADO" 
+                                            Binding="{Binding paid_amount_usd, StringFormat={}{0:N2}}"
+                                            Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="SALDO DEUDOR" 
+                                            Binding="{Binding balance_due_usd, StringFormat={}{0:N2}}"
+                                            Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="Foreground">
+                                        <Setter.Value>
+                                            <Binding Path="balance_due_usd">
+                                                <Binding.Converter>
+                                                    <StaticResource ResourceKey="BalanceColorConverter"/>
+                                                </Binding.Converter>
+                                            </Binding>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="FECHA" 
+                                            Binding="{Binding creation_date, StringFormat={}{0:dd/MM/yyyy}}"
+                                            Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTemplateColumn Header="ACCIONES" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Anular" 
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Command="{Binding DataContext.annul_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        
+                                        <Button Content="Abonar" 
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Command="{Binding DataContext.open_payment_modal_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        
+                                        <Button Content="Imprimir" 
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                
+                <Border Grid.Row="2" Background="#DCE6C8" BorderBrush="Black" BorderThickness="1" Margin="0,10,0,0" Padding="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" 
+                                   Text="TOTAL DEUDA DEL MES:" 
+                                   FontWeight="Bold" 
+                                   FontSize="14"
+                                   VerticalAlignment="Center"/>
+                        
+                        <TextBlock Grid.Column="1" 
+                                   Text="{Binding total_month_balance, StringFormat={}{0:N2} USD}" 
+                                   FontWeight="Bold" 
+                                   FontSize="18"
+                                   Foreground="#D32F2F"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

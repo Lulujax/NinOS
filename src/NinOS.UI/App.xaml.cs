@@ -89,6 +89,7 @@ namespace NinOS.UI
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
             services.AddScoped<IInventoryService, InventoryService>();
+            services.AddScoped<IAccountsReceivableService, AccountsReceivableService>();
             services.AddScoped<IDeliveryNoteRepository, DeliveryNoteRepository>();
             services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
             services.AddScoped<IPaymentService, PaymentService>();

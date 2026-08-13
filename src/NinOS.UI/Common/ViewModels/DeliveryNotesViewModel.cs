@@ -14,11 +14,12 @@ namespace NinOS.UI.Common.ViewModels
 {
     public class billable_item
     {
-        public int? id_product { get; set; }
-        public int? id_promotion { get; set; }
+        public int id_product { get; set; }
+        public int id_promotion { get; set; }
         public string code { get; set; } = string.Empty;
         public string name { get; set; } = string.Empty;
         public decimal unit_price_usd { get; set; }
+        public int available_stock { get; set; }
     }
 
     public class note_detail_row : ViewModelBase
@@ -85,6 +86,11 @@ namespace NinOS.UI.Common.ViewModels
 
                 on_property_changed();
                 
+                if (_selected_item != null && _selected_item.code.Equals(value, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+                
                 billable_item? found = _all_items_ref.FirstOrDefault(p => p.code.Equals(value, StringComparison.OrdinalIgnoreCase));
                 if (found != null && _selected_item != found)
                 {
@@ -102,13 +108,18 @@ namespace NinOS.UI.Common.ViewModels
                 _selected_item = value;
                 if (_selected_item != null)
                 {
+                    if (_selected_item.available_stock <= 0) throw new InvalidOperationException($"STOCK EN 0: El articulo {_selected_item.name} esta agotado.");
+                    
                     unit_price_usd = _selected_item.unit_price_usd;
                     _item_search_code = _selected_item.code;
                     _item_search_text = _selected_item.name;
+
+                    if (_quantity > _selected_item.available_stock) _quantity = _selected_item.available_stock;
                 }
                 on_property_changed();
                 on_property_changed(nameof(item_search_code));
                 on_property_changed(nameof(item_search_text));
+                on_property_changed(nameof(quantity));
                 calculate_subtotal();
             }
         }
@@ -118,7 +129,9 @@ namespace NinOS.UI.Common.ViewModels
             get { return _quantity; }
             set
             {
-                if (value <= 0) throw new ArgumentException();
+                if (value <= 0) throw new ArgumentException("La cantidad no puede ser 0 o menor.");
+                if (_selected_item != null && value > _selected_item.available_stock) throw new InvalidOperationException($"Solo tienes {_selected_item.available_stock} unidades disponibles.");
+                
                 _quantity = value;
                 on_property_changed();
                 calculate_subtotal();
@@ -229,8 +242,8 @@ namespace NinOS.UI.Common.ViewModels
         private seller? _selected_seller;
         private customer? _selected_customer;
         private string _note_number = string.Empty;
-        private DateTime _creation_date = DateTime.Now;
-        private DateTime _due_date = DateTime.Now.AddDays(15);
+        private DateTime _creation_date = DateTime.UtcNow;
+        private DateTime _due_date = DateTime.UtcNow.AddDays(15);
         
         private decimal _gross_total_usd;
         private string _discount_percentage_text = "0";
@@ -248,6 +261,8 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand add_item_command { get; }
         public ICommand remove_item_command { get; }
         public ICommand save_note_command { get; }
+
+        public Action? OnNoteSaved;
 
         public seller? selected_seller
         {
@@ -305,7 +320,7 @@ namespace NinOS.UI.Common.ViewModels
             set
             {
                 if (_creation_date == value) return;
-                _creation_date = value;
+                _creation_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
                 on_property_changed();
                 
                 if (_due_date.Date < _creation_date.Date)
@@ -322,7 +337,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_due_date == value) return;
                 if (value.Date < _creation_date.Date) throw new ArgumentException();
-                _due_date = value;
+                _due_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
                 on_property_changed();
             }
         }
@@ -437,22 +452,58 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void load_initial_data_async()
         {
-            seller[] db_sellers = await _seller_repository.get_all_async();
-            foreach (seller s in db_sellers) sellers.Add(s);
-
-            IEnumerable<customer> db_customers = await _customer_service.GetAllCustomersAsync();
-            foreach (customer c in db_customers) _all_customers_cache.Add(c);
-
-            IEnumerable<product> db_products = await _inventory_service.get_all_products_async();
-            foreach (product p in db_products)
+            try
             {
-                all_items.Add(new billable_item { id_product = p.id_product, code = p.product_code, name = p.name, unit_price_usd = p.unit_price_usd });
+                seller[] db_sellers = await _seller_repository.get_all_async();
+                foreach (seller s in db_sellers) sellers.Add(s);
+
+                IEnumerable<customer> db_customers = await _customer_service.GetAllCustomersAsync();
+                foreach (customer c in db_customers) _all_customers_cache.Add(c);
+
+                IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
+                foreach (promotion pr in db_promotions)
+                {
+                    int promo_stock = int.MaxValue;
+                    if (pr.items != null && pr.items.Any())
+                    {
+                        foreach (var item in pr.items)
+                        {
+                            if (item.product != null && item.quantity_required > 0)
+                            {
+                                int max_combos = item.product.stock_quantity / item.quantity_required;
+                                if (max_combos < promo_stock) promo_stock = max_combos;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        promo_stock = 0;
+                    }
+
+                    all_items.Add(new billable_item { 
+                        id_promotion = pr.id_promotion, 
+                        code = pr.promotion_code, 
+                        name = pr.name, 
+                        unit_price_usd = pr.unit_price_usd,
+                        available_stock = promo_stock == int.MaxValue ? 0 : promo_stock
+                    });
+                }
+
+                IEnumerable<product> db_products = await _inventory_service.get_all_products_async();
+                foreach (product p in db_products)
+                {
+                    all_items.Add(new billable_item { 
+                        id_product = p.id_product, 
+                        code = p.product_code, 
+                        name = p.name, 
+                        unit_price_usd = p.unit_price_usd,
+                        available_stock = p.stock_quantity
+                    });
+                }
             }
-
-            IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
-            foreach (promotion pr in db_promotions)
+            catch (Exception ex)
             {
-                all_items.Add(new billable_item { id_promotion = pr.id_promotion, code = pr.promotion_code, name = pr.name, unit_price_usd = pr.unit_price_usd });
+                System.Windows.MessageBox.Show($"Error al cargar datos: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -464,14 +515,28 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
-            note_number = await _delivery_note_service.generate_correlative_async(_selected_seller.id_seller);
+            try
+            {
+                note_number = await _delivery_note_service.generate_correlative_async(_selected_seller.id_seller);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar correlativo: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void execute_add_item(object? parameter)
         {
-            note_detail_row new_row = new note_detail_row(all_items);
-            new_row.on_subtotal_changed = recalculate_total;
-            note_details.Add(new_row);
+            try
+            {
+                note_detail_row new_row = new note_detail_row(all_items);
+                new_row.on_subtotal_changed = recalculate_total;
+                note_details.Add(new_row);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al agregar item: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void execute_remove_item(object? parameter)
@@ -508,45 +573,81 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_save_note(object? parameter)
         {
-            if (_selected_seller == null) throw new InvalidOperationException("Debe seleccionar un vendedor.");
-            if (_selected_customer == null) throw new InvalidOperationException("Debe seleccionar un cliente.");
-            if (note_details.Count == 0) throw new InvalidOperationException("La nota no puede estar vacia. Agregue productos.");
-            if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
-            if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Las condiciones no pueden estar vacias.");
-            if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Las condiciones de descuento no pueden estar vacias.");
-            if (string.IsNullOrWhiteSpace(_discount_percentage_text)) throw new InvalidOperationException("El porcentaje de descuento no puede estar vacio.");
-
-            delivery_note new_note = new delivery_note(
-                _note_number,
-                _creation_date,
-                _selected_seller.id_seller,
-                _selected_customer.id_customer,
-                _total_amount_usd,
-                "Pendiente"
-            );
-
-            List<note_detail> domain_details = new List<note_detail>();
-            foreach (note_detail_row row in note_details)
+            try
             {
-                if (row.selected_item == null) throw new InvalidOperationException("Renglon invalido: Debe seleccionar un producto o promocion.");
-                if (row.quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor a 0.");
-                
-                domain_details.Add(new note_detail(
-                    0, 
-                    row.selected_item.id_product,
-                    row.selected_item.id_promotion,
-                    row.quantity,
-                    row.unit_price_usd,
-                    row.subtotal_usd
-                ));
+                if (_selected_seller == null) throw new InvalidOperationException("Debe seleccionar un vendedor.");
+                if (_selected_customer == null) throw new InvalidOperationException("Debe seleccionar un cliente.");
+                if (note_details.Count == 0) throw new InvalidOperationException("La nota no puede estar vacia. Agregue productos.");
+                if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
+                if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Las condiciones no pueden estar vacias.");
+                if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Las condiciones de descuento no pueden estar vacias.");
+                if (string.IsNullOrWhiteSpace(_discount_percentage_text)) throw new InvalidOperationException("El porcentaje de descuento no puede estar vacio.");
+
+                delivery_note new_note = new delivery_note(
+                    _note_number,
+                    _creation_date,
+                    _selected_seller.id_seller,
+                    _selected_customer.id_customer,
+                    _total_amount_usd,
+                    "Pendiente"
+                );
+
+                List<note_detail> domain_details = new List<note_detail>();
+                foreach (note_detail_row row in note_details)
+                {
+                    if (row.selected_item == null) throw new InvalidOperationException("Renglon invalido: Debe seleccionar un producto o promocion.");
+                    if (row.quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor a 0.");
+                    
+                    int? id_product = null;
+                    int? id_promotion = null;
+                    
+                    if (row.selected_item.id_product > 0)
+                    {
+                        id_product = row.selected_item.id_product;
+                    }
+                    else if (row.selected_item.id_promotion > 0)
+                    {
+                        id_promotion = row.selected_item.id_promotion;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("El item seleccionado no tiene producto ni promocion asociada.");
+                    }
+                    
+                    domain_details.Add(new note_detail(
+                        0,
+                        id_product,
+                        id_promotion,
+                        row.quantity,
+                        row.unit_price_usd,
+                        row.subtotal_usd
+                    ));
+                }
+
+                await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
+
+                note_details.Clear();
+                discount_percentage_text = "0";
+                recalculate_total();
+                update_correlative_async();
+
+                OnNoteSaved?.Invoke();
+
+                System.Windows.MessageBox.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
-
-            await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
-
-            note_details.Clear();
-            discount_percentage_text = "0";
-            recalculate_total();
-            update_correlative_async(); 
+            catch (Exception ex)
+            {
+                string full_message = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    full_message += Environment.NewLine + "Detalle: " + ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        full_message += Environment.NewLine + "Detalle 2: " + ex.InnerException.InnerException.Message;
+                    }
+                }
+                System.Windows.MessageBox.Show($"Error al guardar nota: {full_message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 }

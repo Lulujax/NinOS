@@ -48,30 +48,27 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     foreach (note_detail detail in details)
                     {
-                        if (detail.id_product == null && detail.id_promotion == null) throw new InvalidOperationException("Renglón inválido.");
-                        if (detail.quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor a cero.");
-
                         if (detail.id_product != null)
                         {
-                            product? p = await _db_context.products.FindAsync(detail.id_product);
-                            if (p == null) throw new InvalidOperationException();
+                            product p = await _db_context.products.FindAsync(detail.id_product);
+                            if (p == null) throw new InvalidOperationException($"Producto con ID {detail.id_product} no encontrado.");
                             if (p.stock_quantity < detail.quantity) throw new InvalidOperationException($"Stock insuficiente para {p.name}");
                             p.stock_quantity -= detail.quantity;
                             _db_context.products.Update(p);
                         }
                         else if (detail.id_promotion != null)
                         {
-                            promotion? promo = await _db_context.promotions
+                            promotion promo = await _db_context.promotions
                                 .Include(pr => pr.items)
                                 .FirstOrDefaultAsync(pr => pr.id_promotion == detail.id_promotion);
                             
-                            if (promo == null) throw new InvalidOperationException("Promoción no encontrada.");
+                            if (promo == null) throw new InvalidOperationException($"Promoción con ID {detail.id_promotion} no encontrada.");
                             if (promo.items == null || promo.items.Count == 0) throw new InvalidOperationException($"La promoción {promo.name} no tiene productos asignados.");
 
                             foreach (var p_item in promo.items)
                             {
-                                product? p = await _db_context.products.FindAsync(p_item.id_product);
-                                if (p == null) throw new InvalidOperationException();
+                                product p = await _db_context.products.FindAsync(p_item.id_product);
+                                if (p == null) throw new InvalidOperationException($"Producto con ID {p_item.id_product} no encontrado.");
                                 int required_qty = detail.quantity * p_item.quantity_required;
                                 if (p.stock_quantity < required_qty) throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promoción.");
                                 p.stock_quantity -= required_qty;
@@ -81,20 +78,21 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
 
                     await _delivery_note_repository.add_async(new_note);
-                    
+                    await _db_context.SaveChangesAsync();
+
                     foreach (note_detail detail in details)
                     {
                         detail.id_delivery_note = new_note.id_delivery_note;
                         await _db_context.note_details.AddAsync(detail);
                     }
-                    
+
                     await _db_context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
                 catch (Exception)
                 {
                     await transaction.RollbackAsync();
-                    throw; 
+                    throw;
                 }
             }
         }

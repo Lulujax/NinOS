@@ -38,7 +38,7 @@ namespace NinOS.Domain
             set
             {
                 if (value == default) throw new ArgumentException();
-                _creation_date = value;
+                _creation_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
             }
         }
 
