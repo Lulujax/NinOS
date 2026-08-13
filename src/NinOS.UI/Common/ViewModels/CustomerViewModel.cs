@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using NinOS.Domain;
+using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -26,6 +27,8 @@ namespace NinOS.UI.Common.ViewModels
     public class CustomerViewModel : ViewModelBase
     {
         private readonly ICustomerService _customerService;
+        private readonly IGenericRepository<seller> _sellerRepository;
+        private readonly Dictionary<string, string> _sellerPrefixMap;
         private List<CustomerRowDto> _allCustomersSource;
         private CustomerRowDto? _editingCustomer;
         private bool _isLoading;
@@ -189,9 +192,18 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand DeleteCustomerCommand { get; }
         public ICommand LoadCustomersCommand { get; }
 
-        public CustomerViewModel(ICustomerService customerService)
+        public CustomerViewModel(ICustomerService customerService, IGenericRepository<seller> sellerRepository)
         {
             _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
+            _sellerRepository = sellerRepository ?? throw new ArgumentNullException(nameof(sellerRepository));
+
+            _sellerPrefixMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Anais", "3300" },
+                { "Sandra", "3301" },
+                { "Alejandra", "3305" }
+            };
+
             _allCustomersSource = new List<CustomerRowDto>();
             _isLoading = false;
 
@@ -227,6 +239,22 @@ namespace NinOS.UI.Common.ViewModels
                 ErrorMessage = string.Empty;
                 
                 IEnumerable<customer> customers = await _customerService.GetAllCustomersAsync();
+
+                try
+                {
+                    seller[] sellers = await _sellerRepository.get_all_async();
+                    foreach (seller s in sellers)
+                    {
+                        if (!string.IsNullOrWhiteSpace(s.full_name) && !string.IsNullOrWhiteSpace(s.customer_code_prefix))
+                        {
+                            _sellerPrefixMap[s.full_name] = s.customer_code_prefix;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading sellers: {ex.Message}");
+                }
                 
                 if (customers == null)
                 {
@@ -266,17 +294,12 @@ namespace NinOS.UI.Common.ViewModels
 
         private string GetSellerPrefix(string sellerName)
         {
-            switch (sellerName)
+            if (_sellerPrefixMap.TryGetValue(sellerName ?? string.Empty, out string? prefix) && !string.IsNullOrWhiteSpace(prefix))
             {
-                case "Anais":
-                    return "3300";
-                case "Sandra":
-                    return "3301";
-                case "Alejandra":
-                    return "3305";
-                default:
-                    return "3300";
+                return prefix;
             }
+
+            return "3300";
         }
 
         private void GenerateNextCustomerCode()

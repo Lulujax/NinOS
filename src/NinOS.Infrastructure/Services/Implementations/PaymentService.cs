@@ -44,7 +44,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 if (total_paid_usd >= target_note.total_amount_usd)
                 {
-                    target_note.status = "Paid";
+                    target_note.status = "Pagada";
                     _db_context.delivery_notes.Update(target_note);
                     
                     decimal generated_amount_usd = target_note.total_amount_usd * 0.05m;

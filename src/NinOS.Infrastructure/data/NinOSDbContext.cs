@@ -28,6 +28,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").UseIdentityByDefaultColumn();
                 entity.Property(e => e.full_name).HasColumnName("full_name").IsRequired().HasMaxLength(150);
                 entity.Property(e => e.seller_code).HasColumnName("seller_code").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.customer_code_prefix).HasColumnName("customer_code_prefix").IsRequired().HasMaxLength(50);
             });
 
             model_builder.Entity<customer>(entity =>

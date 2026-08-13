@@ -279,7 +279,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_seller != null)
                 {
                     IEnumerable<customer> match = _all_customers_cache.Where(c => 
-                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)) || 
+                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.customer_code_prefix)) || 
                         c.seller_name == _selected_seller.full_name);
 
                     foreach (customer c in match)

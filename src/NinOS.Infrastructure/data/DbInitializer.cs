@@ -21,9 +21,9 @@ namespace NinOS.Infrastructure.Data
             if (!db_context.sellers.Any())
             {
                 db_context.sellers.AddRange(
-                    new seller("Sandra", "3200"),
-                    new seller("Anais", "3300"),
-                    new seller("Alejandra", "3500")
+                    new seller("Sandra", "3200", "3301"),
+                    new seller("Anais", "3300", "3300"),
+                    new seller("Alejandra", "3500", "3305")
                 );
                 db_context.SaveChanges();
             }

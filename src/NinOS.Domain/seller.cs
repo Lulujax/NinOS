@@ -7,6 +7,7 @@ namespace NinOS.Domain
         private int _id_seller;
         private string _full_name;
         private string _seller_code;
+        private string _customer_code_prefix;
 
         public int id_seller
         {
@@ -38,16 +39,28 @@ namespace NinOS.Domain
             }
         }
 
+        public string customer_code_prefix
+        {
+            get { return _customer_code_prefix; }
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
+                _customer_code_prefix = value;
+            }
+        }
+
         protected seller()
         {
             _full_name = "-";
             _seller_code = "-";
+            _customer_code_prefix = "-";
         }
 
-        public seller(string full_name, string seller_code)
+        public seller(string full_name, string seller_code, string customer_code_prefix)
         {
             this.full_name = full_name;
             this.seller_code = seller_code;
+            this.customer_code_prefix = customer_code_prefix;
         }
     }
 }
