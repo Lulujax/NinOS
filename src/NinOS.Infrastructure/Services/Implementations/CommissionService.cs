@@ -21,13 +21,14 @@ namespace NinOS.Infrastructure.Services.Implementations
         public async Task<commission[]> get_pending_commissions_by_seller_async(int id_seller)
         {
             return await _db_context.commissions
+                .AsNoTracking()
                 .Where(c => c.id_seller == id_seller && !c.is_paid)
                 .ToArrayAsync();
         }
 
         public async Task process_liquidation_async(int[] commission_ids)
         {
-            if (commission_ids == null || commission_ids.Length == 0) throw new ArgumentException();
+            if (commission_ids == null || commission_ids.Length == 0) throw new ArgumentException("Se debe proporcionar al menos una comision.");
 
             using var transaction = await _db_context.Database.BeginTransactionAsync();
             try
@@ -36,11 +37,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     commission current_commission = await _db_context.commissions.FindAsync(commission_ids[i]);
                     
-                    if (current_commission == null) throw new InvalidOperationException();
-                    if (current_commission.is_paid) throw new InvalidOperationException();
+                    if (current_commission == null) throw new InvalidOperationException($"Comision con ID {commission_ids[i]} no encontrada.");
+                    if (current_commission.is_paid) throw new InvalidOperationException($"La comision con ID {commission_ids[i]} ya fue pagada.");
 
                     current_commission.is_paid = true;
-                    current_commission.payout_date = DateTime.Now;
+                    current_commission.payout_date = DateTime.UtcNow;
                     
                     _db_context.commissions.Update(current_commission);
                 }

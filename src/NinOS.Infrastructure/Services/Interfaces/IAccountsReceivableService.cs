@@ -10,6 +10,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<string>> get_pending_months_async();
         Task<IEnumerable<accounts_receivable_dto>> get_receivables_by_month_async(string month_year);
         Task annul_delivery_note_async(int id_delivery_note);
-        Task add_payment_async(payment new_payment);
+        Task<note_print_dto> get_printable_note_async(int id_delivery_note);
     }
 }

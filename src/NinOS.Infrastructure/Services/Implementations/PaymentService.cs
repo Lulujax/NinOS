@@ -25,12 +25,23 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var transaction = await _db_context.Database.BeginTransactionAsync();
             try
             {
+                delivery_note target_note = await _db_context.delivery_notes.FindAsync(new_payment.id_delivery_note);
+                if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
+                if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
+                if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
+
+                decimal previously_paid_usd = await _db_context.payments
+                    .Where(p => p.id_delivery_note == target_note.id_delivery_note)
+                    .SumAsync(p => p.amount_usd);
+
+                if (new_payment.amount_usd > target_note.total_amount_usd - previously_paid_usd)
+                {
+                    throw new InvalidOperationException("El monto del abono supera el saldo pendiente de la nota.");
+                }
+
                 new_payment.amount_bs = new_payment.amount_usd * new_payment.exchange_rate;
                 await _db_context.payments.AddAsync(new_payment);
                 await _db_context.SaveChangesAsync();
-
-                delivery_note target_note = await _db_context.delivery_notes.FindAsync(new_payment.id_delivery_note);
-                if (target_note == null) throw new InvalidOperationException();
 
                 payment[] all_payments = await _db_context.payments
                     .Where(p => p.id_delivery_note == target_note.id_delivery_note)
@@ -48,13 +59,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                     _db_context.delivery_notes.Update(target_note);
                     
                     decimal generated_amount_usd = target_note.total_amount_usd * 0.05m;
-                    commission new_commission = (commission)Activator.CreateInstance(typeof(commission), nonPublic: true);
-                    
-                    typeof(commission).GetProperty("id_seller")?.SetValue(new_commission, target_note.id_seller);
-                    typeof(commission).GetProperty("id_delivery_note")?.SetValue(new_commission, target_note.id_delivery_note);
-                    typeof(commission).GetProperty("commission_percentage")?.SetValue(new_commission, 0.05m);
-                    typeof(commission).GetProperty("amount_usd")?.SetValue(new_commission, generated_amount_usd);
-                    typeof(commission).GetProperty("is_paid")?.SetValue(new_commission, false);
+                    commission new_commission = new commission(
+                        target_note.id_seller,
+                        target_note.id_delivery_note,
+                        0.05m,
+                        generated_amount_usd,
+                        false,
+                        null);
 
                     await _db_context.commissions.AddAsync(new_commission);
                 }

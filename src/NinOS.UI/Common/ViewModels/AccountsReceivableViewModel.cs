@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -12,6 +13,7 @@ namespace NinOS.UI.Common.ViewModels
     public class AccountsReceivableViewModel : ViewModelBase
     {
         private readonly IAccountsReceivableService _receivable_service;
+        private readonly IPaymentService _payment_service;
         private string _selected_month = string.Empty;
         private accounts_receivable_dto? _selected_note;
         private decimal _total_month_balance;
@@ -62,10 +64,12 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_request_confirmation_window;
         public Action? on_refresh_requested;
 
-        public AccountsReceivableViewModel(IAccountsReceivableService receivable_service)
+        public AccountsReceivableViewModel(IAccountsReceivableService receivable_service, IPaymentService payment_service)
         {
             if (receivable_service == null) throw new ArgumentNullException(nameof(receivable_service));
+            if (payment_service == null) throw new ArgumentNullException(nameof(payment_service));
             _receivable_service = receivable_service;
+            _payment_service = payment_service;
 
             pending_months = new ObservableCollection<string>();
             current_month_notes = new ObservableCollection<accounts_receivable_dto>();
@@ -161,6 +165,30 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public async Task confirm_payment_async(decimal amount_usd, decimal exchange_rate)
+        {
+            if (selected_note == null) return;
+
+            try
+            {
+                payment new_payment = new payment(
+                    selected_note.id_delivery_note,
+                    DateTime.UtcNow,
+                    amount_usd,
+                    0,
+                    exchange_rate
+                );
+
+                await _payment_service.register_payment_async(new_payment);
+                refresh_data();
+                System.Windows.MessageBox.Show("Abono registrado exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al registrar abono: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
         private void execute_open_payment_modal(object? parameter)
         {
             if (parameter is accounts_receivable_dto note)
@@ -170,11 +198,20 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void execute_print_pdf(object? parameter)
+        private async void execute_print_pdf(object? parameter)
         {
             if (parameter is accounts_receivable_dto note)
             {
                 selected_note = note;
+                try
+                {
+                    note_print_dto printable = await _receivable_service.get_printable_note_async(note.id_delivery_note);
+                    NotePdfGenerator.generate(printable);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
             }
         }
     }

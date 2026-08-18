@@ -8,9 +8,7 @@ namespace NinOS.Infrastructure.Data
         public NinOSDbContext CreateDbContext(string[] args)
         {
             DbContextOptionsBuilder<NinOSDbContext> options_builder = new DbContextOptionsBuilder<NinOSDbContext>();
-            string connection_string = "Host=localhost;Database=ninos_db;Username=postgres;Password=1234";
-            
-            options_builder.UseNpgsql(connection_string);
+            options_builder.UseNpgsql(DbConnectionFactory.GetConnectionString());
 
             return new NinOSDbContext(options_builder.Options);
         }

@@ -83,9 +83,7 @@ namespace NinOS.UI
 
         private void configure_services(ServiceCollection services)
         {
-            string connection_string = "Host=localhost;Database=ninos_db;Username=postgres;Password=1234";
-            
-            services.AddDbContext<NinOSDbContext>(options => options.UseNpgsql(connection_string));
+            services.AddDbContext<NinOSDbContext>(options => options.UseNpgsql(DbConnectionFactory.GetConnectionString()));
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
             services.AddScoped<IInventoryService, InventoryService>();

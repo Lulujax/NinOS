@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
@@ -40,47 +41,65 @@ namespace NinOS.Infrastructure.Services.Implementations
         public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details)
         {
             if (new_note == null) throw new ArgumentNullException(nameof(new_note));
-            if (details == null) throw new InvalidOperationException();
+            if (details == null) throw new InvalidOperationException("Los detalles no pueden ser nulos.");
 
             using (var transaction = await _db_context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    foreach (note_detail detail in details)
+                    var details_list = details.ToList();
+
+                    var product_ids = new HashSet<int>();
+                    var promotion_ids = new HashSet<int>();
+
+                    foreach (note_detail detail in details_list)
+                    {
+                        if (detail.id_product != null) product_ids.Add(detail.id_product.Value);
+                        if (detail.id_promotion != null) promotion_ids.Add(detail.id_promotion.Value);
+                    }
+
+                    var products = await _db_context.products
+                        .Where(p => product_ids.Contains(p.id_product))
+                        .ToDictionaryAsync(p => p.id_product);
+
+                    var promotions = await _db_context.promotions
+                        .Include(pr => pr.items)
+                        .Where(p => promotion_ids.Contains(p.id_promotion))
+                        .ToDictionaryAsync(p => p.id_promotion);
+
+                    foreach (note_detail detail in details_list)
                     {
                         if (detail.id_product != null)
                         {
-                            product p = await _db_context.products.FindAsync(detail.id_product);
-                            if (p == null) throw new InvalidOperationException($"Producto con ID {detail.id_product} no encontrado.");
-                            if (p.stock_quantity < detail.quantity) throw new InvalidOperationException($"Stock insuficiente para {p.name}");
+                            if (!products.TryGetValue(detail.id_product.Value, out var p))
+                                throw new InvalidOperationException($"Producto con ID {detail.id_product} no encontrado.");
+                            if (p.stock_quantity < detail.quantity)
+                                throw new InvalidOperationException($"Stock insuficiente para {p.name}");
                             p.stock_quantity -= detail.quantity;
-                            _db_context.products.Update(p);
                         }
                         else if (detail.id_promotion != null)
                         {
-                            promotion promo = await _db_context.promotions
-                                .Include(pr => pr.items)
-                                .FirstOrDefaultAsync(pr => pr.id_promotion == detail.id_promotion);
-                            
-                            if (promo == null) throw new InvalidOperationException($"Promoción con ID {detail.id_promotion} no encontrada.");
-                            if (promo.items == null || promo.items.Count == 0) throw new InvalidOperationException($"La promoción {promo.name} no tiene productos asignados.");
+                            if (!promotions.TryGetValue(detail.id_promotion.Value, out var promo))
+                                throw new InvalidOperationException($"Promocion con ID {detail.id_promotion} no encontrada.");
+                            if (promo.items == null || promo.items.Count == 0)
+                                throw new InvalidOperationException($"La promocion {promo.name} no tiene productos asignados.");
 
                             foreach (var p_item in promo.items)
                             {
-                                product p = await _db_context.products.FindAsync(p_item.id_product);
-                                if (p == null) throw new InvalidOperationException($"Producto con ID {p_item.id_product} no encontrado.");
+                                if (!products.TryGetValue(p_item.id_product, out var p))
+                                    throw new InvalidOperationException($"Producto con ID {p_item.id_product} no encontrado.");
                                 int required_qty = detail.quantity * p_item.quantity_required;
-                                if (p.stock_quantity < required_qty) throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promoción.");
+                                if (p.stock_quantity < required_qty)
+                                    throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promocion.");
                                 p.stock_quantity -= required_qty;
-                                _db_context.products.Update(p);
                             }
                         }
                     }
 
-                    await _delivery_note_repository.add_async(new_note);
+                    await _db_context.delivery_notes.AddAsync(new_note);
                     await _db_context.SaveChangesAsync();
 
-                    foreach (note_detail detail in details)
+                    foreach (note_detail detail in details_list)
                     {
                         detail.id_delivery_note = new_note.id_delivery_note;
                         await _db_context.note_details.AddAsync(detail);
@@ -89,7 +108,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     await _db_context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
-                catch (Exception)
+                catch
                 {
                     await transaction.RollbackAsync();
                     throw;

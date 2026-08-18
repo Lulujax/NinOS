@@ -463,22 +463,31 @@ namespace NinOS.UI.Common.ViewModels
                 IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
                 foreach (promotion pr in db_promotions)
                 {
-                    int promo_stock = int.MaxValue;
-                    if (pr.items != null && pr.items.Any())
+                    if (pr.items == null || !pr.items.Any())
                     {
-                        foreach (var item in pr.items)
+                        continue;
+                    }
+
+                    bool has_invalid_item = false;
+                    foreach (var item in pr.items)
+                    {
+                        if (item.product == null || item.quantity_required <= 0)
                         {
-                            if (item.product != null && item.quantity_required > 0)
-                            {
-                                int max_combos = item.product.stock_quantity / item.quantity_required;
-                                if (max_combos < promo_stock) promo_stock = max_combos;
-                            }
+                            has_invalid_item = true;
+                            break;
                         }
                     }
-                    else
+
+                    if (has_invalid_item) continue;
+
+                    int promo_stock = int.MaxValue;
+                    foreach (var item in pr.items)
                     {
-                        promo_stock = 0;
+                        int max_combos = item.product!.stock_quantity / item.quantity_required;
+                        if (max_combos < promo_stock) promo_stock = max_combos;
                     }
+
+                    if (promo_stock <= 0) continue;
 
                     all_items.Add(new billable_item { 
                         id_promotion = pr.id_promotion, 

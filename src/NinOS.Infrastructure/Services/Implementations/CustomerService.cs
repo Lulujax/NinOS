@@ -21,18 +21,10 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         public async Task<IEnumerable<customer>> GetAllCustomersAsync()
         {
-            try
+            using (var scope = _scopeFactory.CreateScope())
             {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                    return await db_context.customers.ToListAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting customers: {ex.Message}");
-                return new List<customer>();
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.customers.AsNoTracking().ToListAsync();
             }
         }
 
@@ -41,7 +33,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+                return await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == id);
             }
         }
 
@@ -50,7 +42,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.customers.FirstOrDefaultAsync(c => c.customer_code == code);
+                return await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.customer_code == code);
             }
         }
 
