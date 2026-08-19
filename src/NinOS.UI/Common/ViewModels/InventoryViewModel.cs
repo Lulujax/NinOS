@@ -264,6 +264,23 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public async void refresh_data()
+        {
+            try
+            {
+                IEnumerable<product> products = await _inventory_service.get_all_products_async();
+                _all_products_source = products.ToList();
+                
+                IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
+                _all_promotions_source = promotions.ToList();
+
+                filter_data();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         private void update_category_from_tab()
         {
             add_button_text = (_selected_tab_index == 11) ? "+ Añadir Promoción" : "+ Añadir Producto";

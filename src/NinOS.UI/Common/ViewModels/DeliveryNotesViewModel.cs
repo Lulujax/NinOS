@@ -450,6 +450,69 @@ namespace NinOS.UI.Common.ViewModels
             load_initial_data_async();
         }
 
+        public async void refresh_data()
+        {
+            try
+            {
+                var db_sellers = await _seller_repository.get_all_async();
+                sellers.Clear();
+                foreach (seller s in db_sellers) sellers.Add(s);
+
+                var db_customers = await _customer_service.GetAllCustomersAsync();
+                _all_customers_cache.Clear();
+                foreach (customer c in db_customers) _all_customers_cache.Add(c);
+
+                if (_selected_seller != null)
+                {
+                    filtered_customers.Clear();
+                    IEnumerable<customer> match = _all_customers_cache.Where(c =>
+                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.customer_code_prefix)) ||
+                        c.seller_name == _selected_seller.full_name);
+                    foreach (customer c in match) filtered_customers.Add(c);
+                }
+
+                all_items.Clear();
+                IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
+                foreach (promotion pr in db_promotions)
+                {
+                    if (pr.items == null || !pr.items.Any()) continue;
+                    if (pr.items.Any(i => i.product == null || i.quantity_required <= 0)) continue;
+
+                    int promo_stock = int.MaxValue;
+                    foreach (var item in pr.items)
+                    {
+                        int max_combos = item.product!.stock_quantity / item.quantity_required;
+                        if (max_combos < promo_stock) promo_stock = max_combos;
+                    }
+                    if (promo_stock <= 0) continue;
+
+                    all_items.Add(new billable_item {
+                        id_promotion = pr.id_promotion,
+                        code = pr.promotion_code,
+                        name = pr.name,
+                        unit_price_usd = pr.unit_price_usd,
+                        available_stock = promo_stock == int.MaxValue ? 0 : promo_stock
+                    });
+                }
+
+                IEnumerable<product> db_products = await _inventory_service.get_all_products_async();
+                foreach (product p in db_products)
+                {
+                    all_items.Add(new billable_item {
+                        id_product = p.id_product,
+                        code = p.product_code,
+                        name = p.name,
+                        unit_price_usd = p.unit_price_usd,
+                        available_stock = p.stock_quantity
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al actualizar datos: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
         private async void load_initial_data_async()
         {
             try

@@ -76,6 +76,8 @@ namespace NinOS.UI.Common.ViewModels
                 delivery_notes_vm.OnNoteSaved += () =>
                 {
                     accounts_receivable_vm?.refresh_data();
+                    delivery_notes_vm?.refresh_data();
+                    inventory_vm?.refresh_data();
                 };
             }
         }

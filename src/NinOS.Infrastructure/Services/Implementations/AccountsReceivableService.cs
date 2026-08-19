@@ -239,6 +239,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
+                    company_name = "DEFILE _REMBRANT_OLEOS_FLYING_BIOLINE",
                     creation_date = note.creation_date,
                     due_date = note.creation_date.AddDays(15),
                     status = note.status,

@@ -87,7 +87,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                             foreach (var p_item in promo.items)
                             {
                                 if (!products.TryGetValue(p_item.id_product, out var p))
-                                    throw new InvalidOperationException($"Producto con ID {p_item.id_product} no encontrado.");
+                                {
+                                    throw new InvalidOperationException(
+                                        $"La promocion '{promo.name}' referencia el producto ID {p_item.id_product} que ya no existe en el inventario. " +
+                                        $"Elimine esta promocion y cree una nueva con productos validos.");
+                                }
                                 int required_qty = detail.quantity * p_item.quantity_required;
                                 if (p.stock_quantity < required_qty)
                                     throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promocion.");

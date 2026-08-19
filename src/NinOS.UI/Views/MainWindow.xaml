@@ -5,7 +5,7 @@
         Title="NinOS - Sistema Administrativo" Height="720" Width="1280" WindowStartupLocation="CenterScreen">
     
     <Grid>
-        <TabControl Margin="10">
+        <TabControl x:Name="MainTabControl" Margin="10" SelectionChanged="TabControl_SelectionChanged">
             <TabItem Header="Notas de Entrega">
                 <views:DeliveryNotesView DataContext="{Binding delivery_notes_vm}" />
             </TabItem>

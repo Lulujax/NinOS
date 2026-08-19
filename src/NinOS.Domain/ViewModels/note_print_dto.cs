@@ -7,6 +7,7 @@ namespace NinOS.Domain.ViewModels
     {
         public int id_delivery_note { get; set; }
         public string note_number { get; set; } = string.Empty;
+        public string company_name { get; set; } = string.Empty;
         public DateTime creation_date { get; set; }
         public DateTime due_date { get; set; }
         public string status { get; set; } = string.Empty;
