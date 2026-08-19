@@ -378,15 +378,16 @@ namespace NinOS.UI.Common.ViewModels
 
             foreach (promotion p in filtered_promos)
             {
-                int calculated_available = 0;
-                if (p.items != null && p.items.Count > 0)
+                if (p.items == null || p.items.Count == 0) continue;
+                if (p.items.Any(i => i.product == null || i.quantity_required <= 0)) continue;
+
+                int calculated_available = int.MaxValue;
+                foreach (var item in p.items)
                 {
-                    try
-                    {
-                        calculated_available = p.items.Min(i => (i.product != null && i.quantity_required > 0) ? (i.product.stock_quantity / i.quantity_required) : 0);
-                    }
-                    catch { calculated_available = 0; }
+                    int max_combos = item.product!.stock_quantity / item.quantity_required;
+                    if (max_combos < calculated_available) calculated_available = max_combos;
                 }
+                if (calculated_available <= 0) continue;
 
                 string display_code = p.promotion_code.Replace("C-PROMO-", "").Replace("C-KIT-", "KIT-").Replace("C-COMBO-", "COMBO-");
 

@@ -49,23 +49,35 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     var details_list = details.ToList();
 
-                    var product_ids = new HashSet<int>();
+                    var direct_product_ids = new HashSet<int>();
                     var promotion_ids = new HashSet<int>();
 
                     foreach (note_detail detail in details_list)
                     {
-                        if (detail.id_product != null) product_ids.Add(detail.id_product.Value);
+                        if (detail.id_product != null) direct_product_ids.Add(detail.id_product.Value);
                         if (detail.id_promotion != null) promotion_ids.Add(detail.id_promotion.Value);
                     }
-
-                    var products = await _db_context.products
-                        .Where(p => product_ids.Contains(p.id_product))
-                        .ToDictionaryAsync(p => p.id_product);
 
                     var promotions = await _db_context.promotions
                         .Include(pr => pr.items)
                         .Where(p => promotion_ids.Contains(p.id_promotion))
                         .ToDictionaryAsync(p => p.id_promotion);
+
+                    var all_product_ids = new HashSet<int>(direct_product_ids);
+                    foreach (var promo in promotions.Values)
+                    {
+                        if (promo.items != null)
+                        {
+                            foreach (var item in promo.items)
+                            {
+                                all_product_ids.Add(item.id_product);
+                            }
+                        }
+                    }
+
+                    var products = await _db_context.products
+                        .Where(p => all_product_ids.Contains(p.id_product))
+                        .ToDictionaryAsync(p => p.id_product);
 
                     foreach (note_detail detail in details_list)
                     {

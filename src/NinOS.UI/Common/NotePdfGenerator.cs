@@ -157,26 +157,34 @@ namespace NinOS.UI.Common
                             }
                         });
 
-                        col.Item().PaddingTop(8).Row(row =>
+                        col.Item().PaddingTop(6).Row(row =>
                         {
                             row.RelativeItem();
 
                             row.ConstantItem(220).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(totals =>
                             {
-                                totals.Item().Row(r =>
+                                totals.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
+                                totals.Item().PaddingTop(2).Text(note.conditions_text).FontSize(8);
+
+                                if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
+                                {
+                                    totals.Item().PaddingTop(3).LineHorizontal(0.25f).LineColor("#DDDDDD");
+                                    totals.Item().PaddingTop(2).Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
+                                }
+
+                                totals.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(LightBorder);
+
+                                totals.Item().PaddingTop(3).Row(r =>
                                 {
                                     r.RelativeItem().Text("Subtotal:").FontSize(9);
                                     r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(9);
                                 });
 
-                                if (note.discount_percentage > 0)
+                                totals.Item().PaddingTop(2).Row(r =>
                                 {
-                                    totals.Item().PaddingTop(2).Row(r =>
-                                    {
-                                        r.RelativeItem().Text($"Descuento ({note.discount_percentage:0}%):").FontSize(9).FontColor("#CC0000");
-                                        r.RelativeItem().AlignRight().Text($"-{note.discount_amount:N2}").FontSize(9).FontColor("#CC0000");
-                                    });
-                                }
+                                    r.RelativeItem().Text($"Descuento ({note.discount_percentage:0}%):").FontSize(9).FontColor("#CC0000");
+                                    r.RelativeItem().AlignRight().Text($"-{note.discount_amount:N2}").FontSize(9).FontColor("#CC0000");
+                                });
 
                                 totals.Item().PaddingTop(3).LineHorizontal(0.5f).LineColor(LightBorder);
 
@@ -201,12 +209,6 @@ namespace NinOS.UI.Common
                                     r.RelativeItem().AlignRight().Text($"{note.balance_due_usd:N2}").FontSize(9).Bold();
                                 });
                             });
-                        });
-
-                        col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(cond =>
-                        {
-                            cond.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
-                            cond.Item().PaddingTop(3).Text(note.conditions_text).FontSize(9);
                         });
 
                         col.Item().PaddingTop(6).Row(row =>
@@ -257,11 +259,6 @@ namespace NinOS.UI.Common
                             signature.Item().Text("FECHA  /  FIRMA Y SELLO DEL CLIENTE").FontSize(9).Bold().FontColor(PrimaryColor).AlignCenter();
                             signature.Item().PaddingTop(40).LineHorizontal(0.5f).LineColor(LightBorder);
                         });
-
-                        if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
-                        {
-                            col.Item().PaddingTop(6).Border(0.5f).BorderColor("#DDDDDD").Padding(4).Background("#FFF8F0").Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
-                        }
                     });
 
                     page.Footer().Column(col =>
