@@ -9,7 +9,9 @@ namespace NinOS.Domain
         private DateTime _payment_date;
         private decimal _amount_usd;
         private decimal _amount_bs;
-        private decimal _exchange_rate;
+        private decimal? _exchange_rate;
+        private string _payment_type = string.Empty;
+        private string _reference_number = string.Empty;
 
         public int id_payment
         {
@@ -61,27 +63,37 @@ namespace NinOS.Domain
             }
         }
 
-        public decimal exchange_rate
+        public decimal? exchange_rate
         {
             get { return _exchange_rate; }
-            set
-            {
-                if (value <= 0) throw new ArgumentException();
-                _exchange_rate = value;
-            }
+            set { _exchange_rate = value; }
+        }
+
+        public string payment_type
+        {
+            get { return _payment_type; }
+            set { _payment_type = value ?? string.Empty; }
+        }
+
+        public string reference_number
+        {
+            get { return _reference_number; }
+            set { _reference_number = value ?? string.Empty; }
         }
 
         protected payment()
         {
         }
 
-        public payment(int id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal exchange_rate)
+        public payment(int id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal? exchange_rate, string payment_type = "", string reference_number = "")
         {
             this.id_delivery_note = id_delivery_note;
             this.payment_date = payment_date;
             this.amount_usd = amount_usd;
             this.amount_bs = amount_bs;
             this.exchange_rate = exchange_rate;
+            this.payment_type = payment_type;
+            this.reference_number = reference_number;
         }
     }
 }

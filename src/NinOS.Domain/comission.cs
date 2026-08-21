@@ -9,6 +9,9 @@ namespace NinOS.Domain
         private int _id_delivery_note;
         private decimal _commission_percentage;
         private decimal _amount_usd;
+        private decimal _amount_bs;
+        private decimal _exchange_rate;
+        private string _reference_number = string.Empty;
         private bool _is_paid;
         private DateTime? _payout_date;
 
@@ -62,6 +65,32 @@ namespace NinOS.Domain
             }
         }
 
+        public decimal amount_bs
+        {
+            get { return _amount_bs; }
+            set
+            {
+                if (value < 0) throw new ArgumentException();
+                _amount_bs = value;
+            }
+        }
+
+        public decimal exchange_rate
+        {
+            get { return _exchange_rate; }
+            set
+            {
+                if (value < 0) throw new ArgumentException();
+                _exchange_rate = value;
+            }
+        }
+
+        public string reference_number
+        {
+            get { return _reference_number; }
+            set { _reference_number = value ?? string.Empty; }
+        }
+
         public bool is_paid
         {
             get { return _is_paid; }
@@ -78,7 +107,7 @@ namespace NinOS.Domain
         {
         }
 
-        public commission(int id_seller, int id_delivery_note, decimal commission_percentage, decimal amount_usd, bool is_paid, DateTime? payout_date)
+        public commission(int id_seller, int id_delivery_note, decimal commission_percentage, decimal amount_usd, bool is_paid, DateTime? payout_date, decimal amount_bs = 0, decimal exchange_rate = 0, string reference_number = "")
         {
             this.id_seller = id_seller;
             this.id_delivery_note = id_delivery_note;
@@ -86,6 +115,9 @@ namespace NinOS.Domain
             this.amount_usd = amount_usd;
             this.is_paid = is_paid;
             this.payout_date = payout_date;
+            this.amount_bs = amount_bs;
+            this.exchange_rate = exchange_rate;
+            this.reference_number = reference_number;
         }
     }
 }

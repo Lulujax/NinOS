@@ -157,24 +157,13 @@ namespace NinOS.UI.Common
                             }
                         });
 
-                        col.Item().PaddingTop(6).Row(row =>
+                        col.Item().PaddingTop(8).Row(row =>
                         {
                             row.RelativeItem();
 
                             row.ConstantItem(220).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(totals =>
                             {
-                                totals.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
-                                totals.Item().PaddingTop(2).Text(note.conditions_text).FontSize(8);
-
-                                if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
-                                {
-                                    totals.Item().PaddingTop(3).LineHorizontal(0.25f).LineColor("#DDDDDD");
-                                    totals.Item().PaddingTop(2).Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
-                                }
-
-                                totals.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(LightBorder);
-
-                                totals.Item().PaddingTop(3).Row(r =>
+                                totals.Item().Row(r =>
                                 {
                                     r.RelativeItem().Text("Subtotal:").FontSize(9);
                                     r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(9);
@@ -209,6 +198,25 @@ namespace NinOS.UI.Common
                                     r.RelativeItem().AlignRight().Text($"{note.balance_due_usd:N2}").FontSize(9).Bold();
                                 });
                             });
+                        });
+
+                        col.Item().PaddingTop(8).Row(row =>
+                        {
+                            row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(cond =>
+                            {
+                                cond.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
+                                cond.Item().PaddingTop(3).Text(note.conditions_text).FontSize(9);
+                            });
+
+                            if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
+                            {
+                                row.ConstantItem(10);
+                                row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(disc =>
+                                {
+                                    disc.Item().Text("DESCUENTO").FontSize(9).Bold().FontColor(PrimaryColor);
+                                    disc.Item().PaddingTop(3).Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
+                                });
+                            }
                         });
 
                         col.Item().PaddingTop(6).Row(row =>

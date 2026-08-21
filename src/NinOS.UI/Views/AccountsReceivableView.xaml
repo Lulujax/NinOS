@@ -10,18 +10,21 @@
     <UserControl.Resources>
         <converters:BalanceColorConverter x:Key="BalanceColorConverter"/>
         
-        <Style x:Key="MonthListBoxItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontSize" Value="14"/>
+        <Style x:Key="TabListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#2196F3"/>
+                    <Setter Property="Background" Value="#D32F2F"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="BorderBrush" Value="#B71C1C"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E3F2FD"/>
+                    <Setter Property="Background" Value="#FFCDD2"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -31,141 +34,172 @@
             <Setter Property="Margin" Value="2"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="#424242"/>
         </Style>
     </UserControl.Resources>
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
-        <Border Grid.Column="0" Background="#F4F4F4" CornerRadius="4" Margin="0,0,10,0" Padding="10">
+        <Border Grid.Column="0" Background="#FFF5F5" CornerRadius="4" Margin="0,0,10,0" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                
-                <TextBlock Text="MESES PENDIENTES" 
-                           FontWeight="Bold" 
-                           FontSize="16" 
-                           Margin="0,0,0,10"
-                           HorizontalAlignment="Center"/>
-                
-                <ListBox Grid.Row="1" 
+
+                <TextBlock Grid.Row="0" Text="CUENTAS POR COBRAR" FontWeight="Bold" FontSize="13" Margin="0,0,0,8" Foreground="#D32F2F" HorizontalAlignment="Center"/>
+
+                <ListBox Grid.Row="1" Margin="0,0,0,10"
                          ItemsSource="{Binding pending_months}"
                          SelectedItem="{Binding selected_month}"
                          Background="Transparent"
                          BorderThickness="0"
-                         ItemContainerStyle="{StaticResource MonthListBoxItemStyle}">
+                         ItemContainerStyle="{StaticResource TabListBoxItemStyle}">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}" Padding="5" FontSize="14" Cursor="Hand"/>
-                        </DataTemplate>
+                        <DataTemplate><TextBlock Text="{Binding}" FontSize="13"/></DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+
+                <TextBlock Grid.Row="2" Text="VENDEDORES" FontWeight="Bold" FontSize="11" Margin="0,5,0,5" Foreground="#888"/>
+                <ListBox Grid.Row="3"
+                         ItemsSource="{Binding sellers}"
+                         SelectedItem="{Binding selected_seller}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource TabListBoxItemStyle}"
+                         DisplayMemberPath="full_name"/>
             </Grid>
         </Border>
         
-        <Border Grid.Column="1" BorderBrush="Black" BorderThickness="1" Padding="10" Background="White">
+        <Border Grid.Column="1" BorderBrush="#D32F2F" BorderThickness="2" Padding="10" Background="White" CornerRadius="4">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" 
+                            Command="{Binding cycle_filter_command}" 
+                            Padding="10,5" Margin="0,0,10,0"
+                            FontWeight="Bold" FontSize="12"
+                            Cursor="Hand" BorderThickness="0">
+                        <Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Por Cobrar"/>
+                                        <Setter Property="Foreground" Value="#D32F2F"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding filter_mode}" Value="1">
+                                                <Setter Property="Text" Value="Anuladas"/>
+                                                <Setter Property="Foreground" Value="#757575"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding filter_mode}" Value="2">
+                                                <Setter Property="Text" Value="Todas"/>
+                                                <Setter Property="Foreground" Value="#1565C0"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.Content>
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding filter_mode}" Value="0">
+                                        <Setter Property="Background" Value="#FFEBEE"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding filter_mode}" Value="1">
+                                        <Setter Property="Background" Value="#F5F5F5"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding filter_mode}" Value="2">
+                                        <Setter Property="Background" Value="#E3F2FD"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <TextBlock Grid.Column="1" Text="NOTAS" FontWeight="Bold" FontSize="15" Foreground="#D32F2F" VerticalAlignment="Center"/>
+
+                    <TextBox Grid.Column="2" 
+                             Text="{Binding search_text, UpdateSourceTrigger=PropertyChanged}"
+                             Width="220" Padding="6,4" FontSize="13"
+                             BorderBrush="#E0E0E0" BorderThickness="1"
+                             Foreground="#333" Background="White"
+                             VerticalContentAlignment="Center" Height="28"/>
+                </Grid>
                 
-                <TextBlock Grid.Row="0" 
-                           Text="CUENTAS POR COBRAR" 
-                           FontWeight="Bold" 
-                           FontSize="16"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,10"/>
-                
-                <DataGrid Grid.Row="1" 
-                          ItemsSource="{Binding current_month_notes}"
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding filtered_notes}"
                           SelectedItem="{Binding selected_note}"
                           AutoGenerateColumns="False"
-                          AlternatingRowBackground="#E3F2FD"
+                          AlternatingRowBackground="#FFF5F5"
                           RowBackground="White"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
                           IsReadOnly="True"
                           GridLinesVisibility="All"
-                          HorizontalGridLinesBrush="Black"
-                          VerticalGridLinesBrush="Black"
-                          BorderBrush="Black"
+                          HorizontalGridLinesBrush="#FFCDD2"
+                          VerticalGridLinesBrush="#FFCDD2"
+                          BorderBrush="#D32F2F"
                           BorderThickness="1"
                           FontSize="13"
-                          RowHeight="40">
+                          RowHeight="38">
                     
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="#DCE6C8"/>
+                            <Setter Property="Background" Value="#D32F2F"/>
+                            <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="Bold"/>
                             <Setter Property="FontSize" Value="12"/>
-                            <Setter Property="Height" Value="35"/>
+                            <Setter Property="Height" Value="32"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="BorderBrush" Value="Black"/>
+                            <Setter Property="BorderBrush" Value="#B71C1C"/>
                             <Setter Property="BorderThickness" Value="0,0,1,1"/>
                         </Style>
                         <Style TargetType="DataGridCell">
-                            <Setter Property="BorderBrush" Value="Black"/>
-                            <Setter Property="BorderThickness" Value="0,0,1,0"/>
                             <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="Padding" Value="5,2"/>
+                            <Setter Property="Padding" Value="4,2"/>
                         </Style>
                     </DataGrid.Resources>
                     
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NOTA" 
-                                            Binding="{Binding note_number}"
-                                            Width="100">
+                        <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="90">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                                </Style>
+                                <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Center"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="CLIENTE" 
-                                            Binding="{Binding customer_name}"
-                                            Width="*">
+                        <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="110"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
+                        <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat={}{0:N2}}" Width="100">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Left"/>
-                                </Style>
+                                <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="TOTAL VENTA" 
-                                            Binding="{Binding total_amount_usd, StringFormat={}{0:N2}}"
-                                            Width="120">
+                        <DataGridTextColumn Header="ABONADO" Binding="{Binding paid_amount_usd, StringFormat={}{0:N2}}" Width="100">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
+                                <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="ABONADO" 
-                                            Binding="{Binding paid_amount_usd, StringFormat={}{0:N2}}"
-                                            Width="120">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="SALDO DEUDOR" 
-                                            Binding="{Binding balance_due_usd, StringFormat={}{0:N2}}"
-                                            Width="120">
+                        <DataGridTextColumn Header="SALDO" Binding="{Binding balance_due_usd, StringFormat={}{0:N2}}" Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="Bold"/>
@@ -182,33 +216,58 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="FECHA" 
-                                            Binding="{Binding creation_date, StringFormat={}{0:dd/MM/yyyy}}"
-                                            Width="100">
+                        <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding status}" Value="Anulada">
+                                            <Setter Property="Foreground" Value="#9E9E9E"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Pendiente">
+                                            <Setter Property="Foreground" Value="#D32F2F"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        
-                        <DataGridTemplateColumn Header="ACCIONES" Width="180">
+                        <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat={}{0:dd/MM/yyyy}}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Center"/></Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="ACCIONES" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Anular" 
-                                                Style="{StaticResource ActionButtonStyle}"
+                                        <Button Content="Anular"
                                                 Command="{Binding DataContext.annul_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Padding" Value="8,4"/>
+                                                    <Setter Property="Margin" Value="2"/>
+                                                    <Setter Property="FontSize" Value="11"/>
+                                                    <Setter Property="Cursor" Value="Hand"/>
+                                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                    <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                                                    <Setter Property="Foreground" Value="#D32F2F"/>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding status}" Value="Anulada">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="Vista Previa" Style="{StaticResource ActionButtonStyle}"
+                                                Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        
-                                        <Button Content="Abonar" 
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Command="{Binding DataContext.open_payment_modal_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"/>
-                                        
-                                        <Button Content="Imprimir" 
-                                                Style="{StaticResource ActionButtonStyle}"
+                                        <Button Content="PDF" Style="{StaticResource ActionButtonStyle}"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
                                     </StackPanel>
@@ -218,25 +277,14 @@
                     </DataGrid.Columns>
                 </DataGrid>
                 
-                <Border Grid.Row="2" Background="#DCE6C8" BorderBrush="Black" BorderThickness="1" Margin="0,10,0,0" Padding="10">
+                <Border Grid.Row="2" Background="#D32F2F" BorderBrush="#B71C1C" BorderThickness="1" Margin="0,8,0,0" Padding="8,10" CornerRadius="4">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Column="0" 
-                                   Text="TOTAL DEUDA DEL MES:" 
-                                   FontWeight="Bold" 
-                                   FontSize="14"
-                                   VerticalAlignment="Center"/>
-                        
-                        <TextBlock Grid.Column="1" 
-                                   Text="{Binding total_month_balance, StringFormat={}{0:N2} USD}" 
-                                   FontWeight="Bold" 
-                                   FontSize="18"
-                                   Foreground="#D32F2F"
-                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="TOTAL DEUDA MES:" FontWeight="Bold" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding total_month_balance, StringFormat={}{0:N2} USD}" FontWeight="Bold" FontSize="16" Foreground="White" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
             </Grid>

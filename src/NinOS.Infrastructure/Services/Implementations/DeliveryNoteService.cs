@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Repositories.Interfaces;
@@ -12,36 +13,36 @@ namespace NinOS.Infrastructure.Services.Implementations
 {
     public class DeliveryNoteService : IDeliveryNoteService
     {
-        private readonly IDeliveryNoteRepository _delivery_note_repository;
-        private readonly NinOSDbContext _db_context;
+        private readonly IServiceScopeFactory _scope_factory;
 
-        public DeliveryNoteService(
-            IDeliveryNoteRepository delivery_note_repository, 
-            NinOSDbContext db_context)
+        public DeliveryNoteService(IServiceScopeFactory scope_factory)
         {
-            if (delivery_note_repository == null) throw new ArgumentNullException(nameof(delivery_note_repository));
-            if (db_context == null) throw new ArgumentNullException(nameof(db_context));
-
-            _delivery_note_repository = delivery_note_repository;
-            _db_context = db_context;
+            if (scope_factory == null) throw new ArgumentNullException(nameof(scope_factory));
+            _scope_factory = scope_factory;
         }
 
         public async Task<IEnumerable<delivery_note>> get_all_notes_async()
         {
-            return await _delivery_note_repository.get_all_async();
+            using var scope = _scope_factory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
+            return await repo.get_all_async();
         }
 
         public async Task<string> generate_correlative_async(int id_seller)
         {
             if (id_seller <= 0) throw new ArgumentException(nameof(id_seller));
-            
-            return await _delivery_note_repository.get_next_correlative_async(id_seller);
+            using var scope = _scope_factory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
+            return await repo.get_next_correlative_async(id_seller);
         }
 
         public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details)
         {
             if (new_note == null) throw new ArgumentNullException(nameof(new_note));
             if (details == null) throw new InvalidOperationException("Los detalles no pueden ser nulos.");
+
+            using var scope = _scope_factory.CreateScope();
+            var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             using (var transaction = await _db_context.Database.BeginTransactionAsync())
             {

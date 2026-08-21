@@ -30,6 +30,15 @@ namespace NinOS.UI.Views
                 case 1:
                     _viewModel.accounts_receivable_vm?.refresh_data();
                     break;
+                case 2:
+                    _viewModel.sales_vm?.refresh_data();
+                    break;
+                case 3:
+                    _viewModel.payments_vm?.refresh_data();
+                    break;
+                case 4:
+                    _viewModel.commissions_vm?.refresh_data();
+                    break;
                 case 6:
                     _viewModel.inventory_vm?.refresh_data();
                     break;

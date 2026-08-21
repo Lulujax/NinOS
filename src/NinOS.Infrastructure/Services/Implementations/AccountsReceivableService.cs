@@ -62,7 +62,13 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var note_ids = notes.Select(n => n.id_delivery_note).ToList();
 
+                var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
                 var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+
+                var sellers = await db_context.sellers
+                    .AsNoTracking()
+                    .Where(s => seller_ids.Contains(s.id_seller))
+                    .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
                 var customers = await db_context.customers
                     .AsNoTracking()
                     .Where(c => customer_ids.Contains(c.id_customer))
@@ -79,12 +85,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
+                    sellers.TryGetValue(dn.id_seller, out string? seller_name);
                     customers.TryGetValue(dn.id_customer, out string? customer_name);
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
                         note_number = dn.note_number,
                         customer_name = customer_name ?? string.Empty,
+                        id_seller = dn.id_seller,
+                        seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
                         total_amount_usd = dn.total_amount_usd,
                         status = dn.status,
@@ -94,6 +103,89 @@ namespace NinOS.Infrastructure.Services.Implementations
                 }
 
                 return result;
+            }
+        }
+
+        public async Task<IEnumerable<accounts_receivable_dto>> get_receivables_by_month_and_seller_async(string month_year, int id_seller)
+        {
+            var all = await get_receivables_by_month_async(month_year);
+            return all.Where(n => n.id_seller == id_seller);
+        }
+
+        public async Task<IEnumerable<accounts_receivable_dto>> get_all_by_month_async(string month_year)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                
+                var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                
+                var notes = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(dn => dn.creation_date.Year == target_date.Year
+                              && dn.creation_date.Month == target_date.Month)
+                    .ToListAsync();
+
+                if (notes.Count == 0)
+                    return Enumerable.Empty<accounts_receivable_dto>();
+
+                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+                var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
+                var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+
+                var sellers = await db_context.sellers
+                    .AsNoTracking()
+                    .Where(s => seller_ids.Contains(s.id_seller))
+                    .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
+                var customers = await db_context.customers
+                    .AsNoTracking()
+                    .Where(c => customer_ids.Contains(c.id_customer))
+                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+                var payment_totals = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .GroupBy(p => p.id_delivery_note)
+                    .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
+                    .ToDictionaryAsync(x => x.Id, x => x.Total);
+
+                var result = new List<accounts_receivable_dto>();
+                foreach (var dn in notes)
+                {
+                    decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
+                    sellers.TryGetValue(dn.id_seller, out string? seller_name);
+                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    result.Add(new accounts_receivable_dto
+                    {
+                        id_delivery_note = dn.id_delivery_note,
+                        note_number = dn.note_number,
+                        customer_name = customer_name ?? string.Empty,
+                        id_seller = dn.id_seller,
+                        seller_name = seller_name ?? string.Empty,
+                        creation_date = dn.creation_date,
+                        total_amount_usd = dn.total_amount_usd,
+                        status = dn.status,
+                        paid_amount_usd = paid,
+                        balance_due_usd = dn.total_amount_usd - paid
+                    });
+                }
+
+                return result;
+            }
+        }
+
+        public async Task<IEnumerable<accounts_receivable_dto>> get_all_by_month_and_seller_async(string month_year, int id_seller)
+        {
+            var all = await get_all_by_month_async(month_year);
+            return all.Where(n => n.id_seller == id_seller);
+        }
+
+        public async Task<IEnumerable<seller>> get_sellers_async()
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.sellers.AsNoTracking().ToListAsync();
             }
         }
 
@@ -235,6 +327,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
+                decimal gross = details.Sum(d => d.subtotal_usd);
+                decimal discount_amt = gross - note.total_amount_usd;
+                decimal discount_pct = gross > 0 ? Math.Round((discount_amt / gross) * 100m) : 0;
+
                 return new note_print_dto
                 {
                     id_delivery_note = note.id_delivery_note,
@@ -243,9 +339,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     creation_date = note.creation_date,
                     due_date = note.creation_date.AddDays(15),
                     status = note.status,
-                    gross_total_usd = details.Sum(d => d.subtotal_usd),
-                    discount_percentage = 0,
-                    discount_amount = 0,
+                    gross_total_usd = gross,
+                    discount_percentage = discount_pct,
+                    discount_amount = discount_amt,
                     total_amount_usd = note.total_amount_usd,
                     paid_amount_usd = paid,
                     balance_due_usd = note.total_amount_usd - paid,
