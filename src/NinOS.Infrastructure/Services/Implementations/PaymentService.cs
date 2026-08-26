@@ -37,6 +37,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
 
                 new_payment.amount_bs = new_payment.exchange_rate > 0 ? new_payment.amount_usd * new_payment.exchange_rate.Value : 0;
+                if (string.IsNullOrEmpty(new_payment.bank_name)) new_payment.bank_name = "";
+                if (string.IsNullOrEmpty(new_payment.observations)) new_payment.observations = "";
                 await _db_context.payments.AddAsync(new_payment);
                 await _db_context.SaveChangesAsync();
 
@@ -50,10 +52,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     total_paid_usd += all_payments[i].amount_usd;
                 }
 
-                if (total_paid_usd >= target_note.total_amount_usd)
+                if (total_paid_usd >= target_note.total_amount_usd && target_note.status != "Pagada")
                 {
                     target_note.status = "Pagada";
-                    _db_context.delivery_notes.Update(target_note);
                     
                     decimal generated_amount_usd = target_note.total_amount_usd * 0.10m;
                     commission new_commission = new commission(
@@ -69,6 +70,9 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 await _db_context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[PAYMENT] Note={target_note.note_number} | Total={target_note.total_amount_usd} | Paid={total_paid_usd} | Status={target_note.status}");
             }
             catch
             {

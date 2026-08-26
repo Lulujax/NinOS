@@ -12,6 +12,8 @@ namespace NinOS.Domain
         private decimal? _exchange_rate;
         private string _payment_type = string.Empty;
         private string _reference_number = string.Empty;
+        private string _bank_name = string.Empty;
+        private string _observations = string.Empty;
 
         public int id_payment
         {
@@ -81,11 +83,23 @@ namespace NinOS.Domain
             set { _reference_number = value ?? string.Empty; }
         }
 
+        public string bank_name
+        {
+            get { return _bank_name; }
+            set { _bank_name = value ?? string.Empty; }
+        }
+
+        public string observations
+        {
+            get { return _observations; }
+            set { _observations = value ?? string.Empty; }
+        }
+
         protected payment()
         {
         }
 
-        public payment(int id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal? exchange_rate, string payment_type = "", string reference_number = "")
+        public payment(int id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal? exchange_rate, string payment_type = "", string reference_number = "", string bank_name = "", string observations = "")
         {
             this.id_delivery_note = id_delivery_note;
             this.payment_date = payment_date;
@@ -94,6 +108,8 @@ namespace NinOS.Domain
             this.exchange_rate = exchange_rate;
             this.payment_type = payment_type;
             this.reference_number = reference_number;
+            this.bank_name = bank_name;
+            this.observations = observations;
         }
     }
 }

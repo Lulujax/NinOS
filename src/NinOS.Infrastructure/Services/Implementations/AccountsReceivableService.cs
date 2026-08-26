@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,27 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .ToListAsync();
 
                 return pending_notes
-                    .Select(n => new DateTime(n.Year, n.Month, 1).ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")))
+                    .Select(n => new DateTime(n.Year, n.Month, 1).ToString("MMMM yyyy", new CultureInfo("es-VE")))
+                    .ToList();
+            }
+        }
+
+        public async Task<IEnumerable<string>> get_all_months_async()
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var all_notes = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Select(n => new { n.creation_date.Year, n.creation_date.Month })
+                    .Distinct()
+                    .OrderBy(n => n.Year)
+                    .ThenBy(n => n.Month)
+                    .ToListAsync();
+
+                return all_notes
+                    .Select(n => new DateTime(n.Year, n.Month, 1).ToString("MMMM yyyy", new CultureInfo("es-VE")))
                     .ToList();
             }
         }
@@ -118,7 +139,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 
-                var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"));
                 
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
@@ -149,10 +170,43 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
+                var note_ids_with_payments = payment_totals.Keys.ToList();
+                var last_payments = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids_with_payments.Contains(p.id_delivery_note))
+                    .GroupBy(p => p.id_delivery_note)
+                    .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
+                    .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
+
+                var note_payments = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .OrderBy(p => p.payment_date)
+                    .GroupBy(p => p.id_delivery_note)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var gross_totals = new Dictionary<int, decimal>();
+                var note_detail_map = await db_context.note_details
+                    .AsNoTracking()
+                    .Where(d => note_ids.Contains(d.id_delivery_note))
+                    .GroupBy(d => d.id_delivery_note)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(d => d.subtotal_usd));
+
                 var result = new List<accounts_receivable_dto>();
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
+                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.total_amount_usd;
+                    decimal discount = gross - dn.total_amount_usd;
+
+                    DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
+
+                    string paymentMethod = "";
+                    if (note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
+                    {
+                        paymentMethod = string.Join("/", pList.Select(p => p.reference_number));
+                    }
+
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
                     customers.TryGetValue(dn.id_customer, out string? customer_name);
                     result.Add(new accounts_receivable_dto
@@ -164,9 +218,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
                         total_amount_usd = dn.total_amount_usd,
+                        gross_total_usd = gross,
+                        discount_amount = discount,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.total_amount_usd - paid
+                        balance_due_usd = dn.total_amount_usd - paid,
+                        last_payment_date = lastDate,
+                        payment_method_text = paymentMethod
                     });
                 }
 
@@ -178,6 +236,143 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             var all = await get_all_by_month_async(month_year);
             return all.Where(n => n.id_seller == id_seller);
+        }
+
+        public async Task<IEnumerable<accounts_receivable_dto>> get_all_notes_async()
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var notes = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                if (notes.Count == 0)
+                    return Enumerable.Empty<accounts_receivable_dto>();
+
+                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+                var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
+                var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+
+                var sellers = await db_context.sellers
+                    .AsNoTracking()
+                    .Where(s => seller_ids.Contains(s.id_seller))
+                    .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
+                var customers = await db_context.customers
+                    .AsNoTracking()
+                    .Where(c => customer_ids.Contains(c.id_customer))
+                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+                var payment_totals = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .GroupBy(p => p.id_delivery_note)
+                    .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
+                    .ToDictionaryAsync(x => x.Id, x => x.Total);
+
+                var note_ids_with_payments = payment_totals.Keys.ToList();
+                var last_payments = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids_with_payments.Contains(p.id_delivery_note))
+                    .GroupBy(p => p.id_delivery_note)
+                    .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
+                    .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
+
+                var note_payments = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .OrderBy(p => p.payment_date)
+                    .GroupBy(p => p.id_delivery_note)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var note_detail_map = await db_context.note_details
+                    .AsNoTracking()
+                    .Where(d => note_ids.Contains(d.id_delivery_note))
+                    .GroupBy(d => d.id_delivery_note)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(d => d.subtotal_usd));
+
+                var result = new List<accounts_receivable_dto>();
+                foreach (var dn in notes)
+                {
+                    decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
+                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.total_amount_usd;
+                    decimal discount = gross - dn.total_amount_usd;
+
+                    DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
+
+                    string paymentMethod = "";
+                    if (note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
+                    {
+                        paymentMethod = string.Join("/", pList.Select(p => p.reference_number));
+                    }
+
+                    sellers.TryGetValue(dn.id_seller, out string? seller_name);
+                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    result.Add(new accounts_receivable_dto
+                    {
+                        id_delivery_note = dn.id_delivery_note,
+                        note_number = dn.note_number,
+                        customer_name = customer_name ?? string.Empty,
+                        id_seller = dn.id_seller,
+                        seller_name = seller_name ?? string.Empty,
+                        creation_date = dn.creation_date,
+                        total_amount_usd = dn.total_amount_usd,
+                        gross_total_usd = gross,
+                        discount_amount = discount,
+                        status = dn.status,
+                        paid_amount_usd = paid,
+                        balance_due_usd = dn.total_amount_usd - paid,
+                        last_payment_date = lastDate,
+                        payment_method_text = paymentMethod
+                    });
+                }
+
+                return result;
+            }
+        }
+
+        public async Task<accounts_receivable_dto?> search_note_by_number_async(string note_number)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var dn = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(n => n.note_number == note_number);
+
+                if (dn == null) return null;
+
+                var customer = await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == dn.id_customer);
+                var seller = await db_context.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == dn.id_seller);
+
+                decimal paid = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => p.id_delivery_note == dn.id_delivery_note)
+                    .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+
+                var detail_sum = await db_context.note_details
+                    .AsNoTracking()
+                    .Where(d => d.id_delivery_note == dn.id_delivery_note)
+                    .SumAsync(d => (decimal?)d.subtotal_usd) ?? dn.total_amount_usd;
+
+                return new accounts_receivable_dto
+                {
+                    id_delivery_note = dn.id_delivery_note,
+                    note_number = dn.note_number,
+                    customer_name = customer?.business_name ?? string.Empty,
+                    id_seller = dn.id_seller,
+                    seller_name = seller?.full_name ?? string.Empty,
+                    creation_date = dn.creation_date,
+                    total_amount_usd = dn.total_amount_usd,
+                    gross_total_usd = detail_sum,
+                    discount_amount = detail_sum - dn.total_amount_usd,
+                    status = dn.status,
+                    paid_amount_usd = paid,
+                    balance_due_usd = dn.total_amount_usd - paid
+                };
+            }
         }
 
         public async Task<IEnumerable<seller>> get_sellers_async()

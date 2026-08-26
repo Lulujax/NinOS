@@ -103,6 +103,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate");
                 entity.Property(e => e.payment_type).HasColumnName("payment_type").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.reference_number).HasColumnName("reference_number").HasMaxLength(100);
+                entity.Property(e => e.bank_name).HasColumnName("bank_name").HasMaxLength(100);
+                entity.Property(e => e.observations).HasColumnName("observations");
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
             });
