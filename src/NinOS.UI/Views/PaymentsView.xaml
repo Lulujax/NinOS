@@ -129,8 +129,9 @@
                         <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"/>
                         <DataGridTextColumn Header="DCTO" Binding="{Binding discount_percentage_text}" Width="45"/>
                         <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"/>
-                        <DataGridTextColumn Header="SALDO PENDIENTE" Binding="{Binding balance_due_usd, StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"/>
                         <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"/>
+                        <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"/>
                         <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70"/>
                     </DataGrid.Columns>
@@ -150,8 +151,9 @@
                         <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"/>
                         <DataGridTextColumn Header="DCTO" Binding="{Binding discount_percentage_text}" Width="45"/>
                         <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"/>
-                        <DataGridTextColumn Header="SALDO PENDIENTE" Binding="{Binding balance_due_usd, StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"/>
                         <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"/>
+                        <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"/>
                         <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70"/>
                     </DataGrid.Columns>
@@ -171,8 +173,9 @@
                         <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"/>
                         <DataGridTextColumn Header="DCTO" Binding="{Binding discount_percentage_text}" Width="45"/>
                         <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"/>
-                        <DataGridTextColumn Header="SALDO PENDIENTE" Binding="{Binding balance_due_usd, StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"/>
                         <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"/>
+                        <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"/>
                         <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70"/>
                     </DataGrid.Columns>
@@ -192,8 +195,9 @@
                         <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"/>
                         <DataGridTextColumn Header="DCTO" Binding="{Binding discount_percentage_text}" Width="45"/>
                         <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"/>
-                        <DataGridTextColumn Header="SALDO PENDIENTE" Binding="{Binding balance_due_usd, StringFormat=N2}" Width="*"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"/>
                         <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"/>
+                        <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"/>
                         <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70"/>
                     </DataGrid.Columns>

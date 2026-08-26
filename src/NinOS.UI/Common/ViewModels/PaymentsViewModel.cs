@@ -24,6 +24,7 @@ namespace NinOS.UI.Common.ViewModels
         public decimal balance_due_usd { get; set; }
         public DateTime? last_payment_date { get; set; }
         public string payment_method_text { get; set; } = string.Empty;
+        public string bank_name_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;
         public int id_seller { get; set; }
@@ -207,6 +208,7 @@ namespace NinOS.UI.Common.ViewModels
                 balance_due_usd = n.balance_due_usd,
                 last_payment_date = n.last_payment_date,
                 payment_method_text = n.payment_method_text,
+                bank_name_text = n.bank_name_text,
                 status = n.status,
                 seller_name = n.seller_name,
                 id_seller = n.id_seller,

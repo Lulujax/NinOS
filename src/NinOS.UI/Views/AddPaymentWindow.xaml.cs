@@ -89,6 +89,21 @@ namespace NinOS.UI.Views
         {
             string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
             FilterNotes(query);
+            NotePopup.IsOpen = !string.IsNullOrEmpty(query) && NoteListBox.Items.Count > 0;
+        }
+
+        private void OnToggleDropdown(object sender, RoutedEventArgs e)
+        {
+            if (NotePopup.IsOpen)
+            {
+                NotePopup.IsOpen = false;
+            }
+            else
+            {
+                string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
+                FilterNotes(query);
+                NotePopup.IsOpen = NoteListBox.ItemsSource != null;
+            }
         }
 
         private void FilterNotes(string query)
@@ -107,7 +122,6 @@ namespace NinOS.UI.Views
             }
 
             NoteListBox.ItemsSource = filtered;
-            NotePopup.IsOpen = filtered.Count > 0 && NoteTextBox.IsFocused;
         }
 
         private void OnNoteListSelected(object sender, SelectionChangedEventArgs e)
@@ -271,8 +285,7 @@ namespace NinOS.UI.Views
                 await _vm.confirm_payment_async(_selected_note.id_delivery_note, amount_usd, exchange_rate, payType, reference, payDate, bank, obs);
 
                 PaymentRegistered?.Invoke(this, EventArgs.Empty);
-                ShowError("Pago registrado.");
-                ErrorText.Foreground = System.Windows.Media.Brushes.Green;
+                Close();
 
                 if (_selected_note != null)
                 {

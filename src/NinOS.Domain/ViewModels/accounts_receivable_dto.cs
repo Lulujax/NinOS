@@ -17,6 +17,7 @@ namespace NinOS.Domain.ViewModels
         public decimal balance_due_usd { get; set; }
         public DateTime? last_payment_date { get; set; }
         public string payment_method_text { get; set; } = string.Empty;
+        public string bank_name_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
     }
 }

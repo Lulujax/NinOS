@@ -202,9 +202,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
                     string paymentMethod = "";
+                    string bankText = "";
                     if (note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
                     {
                         paymentMethod = string.Join("/", pList.Select(p => p.reference_number));
+                        bankText = string.Join("/", pList.Select(p => p.bank_name).Where(b => !string.IsNullOrEmpty(b)).Distinct());
                     }
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
@@ -224,7 +226,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         paid_amount_usd = paid,
                         balance_due_usd = dn.total_amount_usd - paid,
                         last_payment_date = lastDate,
-                        payment_method_text = paymentMethod
+                        payment_method_text = paymentMethod,
+                        bank_name_text = bankText
                     });
                 }
 
@@ -302,9 +305,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
                     string paymentMethod = "";
+                    string bankText = "";
                     if (note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
                     {
                         paymentMethod = string.Join("/", pList.Select(p => p.reference_number));
+                        bankText = string.Join("/", pList.Select(p => p.bank_name).Where(b => !string.IsNullOrEmpty(b)).Distinct());
                     }
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
@@ -324,7 +329,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         paid_amount_usd = paid,
                         balance_due_usd = dn.total_amount_usd - paid,
                         last_payment_date = lastDate,
-                        payment_method_text = paymentMethod
+                        payment_method_text = paymentMethod,
+                        bank_name_text = bankText
                     });
                 }
 
