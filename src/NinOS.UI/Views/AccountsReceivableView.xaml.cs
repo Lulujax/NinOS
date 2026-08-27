@@ -54,5 +54,17 @@ namespace NinOS.UI.Views
         {
             SetupEvents();
         }
+
+        private void txt_search_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            btn_clear_search.Visibility = !string.IsNullOrEmpty(txt_search.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void btn_clear_search_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is AccountsReceivableViewModel vm) vm.search_query = "";
+        }
     }
 }

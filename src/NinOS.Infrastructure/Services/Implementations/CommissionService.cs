@@ -118,6 +118,72 @@ namespace NinOS.Infrastructure.Services.Implementations
             }).ToList();
         }
 
+        public async Task<IEnumerable<commission_dto>> get_all_commissions_async()
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var commissions = await db.commissions
+                .AsNoTracking()
+                .ToListAsync();
+
+            if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
+
+            var note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
+            var notes = await db.delivery_notes
+                .AsNoTracking()
+                .Where(n => note_ids.Contains(n.id_delivery_note))
+                .ToDictionaryAsync(n => n.id_delivery_note);
+
+            var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
+            var customers = await db.customers
+                .AsNoTracking()
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            var seller_ids = commissions.Select(c => c.id_seller).Distinct().ToList();
+            var sellers = await db.sellers
+                .AsNoTracking()
+                .Where(s => seller_ids.Contains(s.id_seller))
+                .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
+
+            var note_ids_with_payments = await db.payments
+                .AsNoTracking()
+                .Where(p => note_ids.Contains(p.id_delivery_note))
+                .GroupBy(p => p.id_delivery_note)
+                .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
+                .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
+
+            return commissions.Select(c =>
+            {
+                notes.TryGetValue(c.id_delivery_note, out var note);
+                string customer_name = note != null && customers.TryGetValue(note.id_customer, out var cn) ? cn : string.Empty;
+                sellers.TryGetValue(c.id_seller, out string? seller_name);
+                note_ids_with_payments.TryGetValue(c.id_delivery_note, out DateTime raw_last_payment_date);
+                DateTime? note_last_payment_date = raw_last_payment_date;
+                return new commission_dto
+                {
+                    id_commission = c.id_commission,
+                    id_seller = c.id_seller,
+                    seller_name = seller_name ?? string.Empty,
+                    id_delivery_note = c.id_delivery_note,
+                    note_number = note?.note_number ?? string.Empty,
+                    customer_name = customer_name,
+                    creation_date = note?.creation_date ?? DateTime.MinValue,
+                    commission_percentage = c.commission_percentage,
+                    amount_usd = c.amount_usd,
+                    amount_bs = c.amount_bs,
+                    exchange_rate = c.exchange_rate,
+                    reference_number = c.reference_number,
+                    is_paid = c.is_paid,
+                    payout_date = c.payout_date,
+                    note_last_payment_date = note_last_payment_date
+                };
+            })
+            .OrderByDescending(c => c.creation_date)
+            .ToList();
+        }
+
         public async Task<IEnumerable<commission_dto>> get_commissions_by_seller_and_month_async(int id_seller, string month_year)
         {
             using var scope = _scope_factory.CreateScope();

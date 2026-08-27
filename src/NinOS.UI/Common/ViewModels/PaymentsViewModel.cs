@@ -40,6 +40,7 @@ namespace NinOS.UI.Common.ViewModels
         private int _selected_tab_index;
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
+        private string _selected_filter = "Pendientes";
         private decimal _total_invoiced_usd;
         private decimal _total_paid_usd;
         private decimal _total_balance_usd;
@@ -48,6 +49,7 @@ namespace NinOS.UI.Common.ViewModels
         private List<payment_row_dto> _all_notes_source = new();
 
         public ObservableCollection<string> pending_months { get; }
+        public ObservableCollection<string> filter_options { get; }
         public ObservableCollection<payment_row_dto> all_notes { get; }
         public ObservableCollection<payment_row_dto> sandra_notes { get; }
         public ObservableCollection<payment_row_dto> anais_notes { get; }
@@ -69,6 +71,12 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _search_query;
             set { _search_query = value; on_property_changed(); apply_filters(); }
+        }
+
+        public string selected_filter
+        {
+            get => _selected_filter;
+            set { if (_selected_filter == value) return; _selected_filter = value; on_property_changed(); apply_filters(); }
         }
 
         public decimal total_invoiced_usd
@@ -98,10 +106,15 @@ namespace NinOS.UI.Common.ViewModels
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
 
             pending_months = new ObservableCollection<string>();
+            filter_options = new ObservableCollection<string>();
             all_notes = new ObservableCollection<payment_row_dto>();
             sandra_notes = new ObservableCollection<payment_row_dto>();
             anais_notes = new ObservableCollection<payment_row_dto>();
             alejandra_notes = new ObservableCollection<payment_row_dto>();
+
+            filter_options.Add("Pendientes");
+            filter_options.Add("Pagadas");
+            filter_options.Add("Todas");
 
             add_payment_command = new RelayCommand(execute_add_payment);
 
@@ -149,6 +162,11 @@ namespace NinOS.UI.Common.ViewModels
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
             var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
+
+            if (_selected_filter == "Pendientes")
+                filtered = filtered.Where(n => n.status == "Pendiente").ToList();
+            else if (_selected_filter == "Pagadas")
+                filtered = filtered.Where(n => n.status == "Pagada").ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());

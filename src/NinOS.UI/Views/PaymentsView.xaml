@@ -86,13 +86,34 @@
                 </Border>
             </Grid>
 
-            <!-- Mes + Boton registrar -->
+            <!-- Mes + Filtro + Boton registrar -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                 <ComboBox x:Name="cmb_month" Margin="0,0,8,0"
                           ItemsSource="{Binding pending_months}"
                           SelectedItem="{Binding selected_month}"
                           FontSize="11" Height="26"
                           HorizontalContentAlignment="Center"/>
+
+                <ComboBox Width="110" Margin="0,0,8,0"
+                          ItemsSource="{Binding filter_options}"
+                          SelectedItem="{Binding selected_filter}"
+                          FontSize="11" Height="26"
+                          HorizontalContentAlignment="Center">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem">
+                            <Setter Property="Foreground" Value="#212121"/>
+                            <Setter Property="FontWeight" Value="Normal"/>
+                            <Setter Property="Padding" Value="6,3"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#BBDEFB"/>
+                                    <Setter Property="Foreground" Value="#0D47A1"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
 
                 <Button Content="Registrar pago" Background="#1565C0" Foreground="White"
                         FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"

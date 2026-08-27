@@ -2,13 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Vista Previa - Nota de Entrega"
-        Width="800" Height="900"
+        Width="760" Height="900"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="White">
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="NotePanel" Margin="30" Width="740"/>
+            <StackPanel x:Name="NotePanel" Margin="16" Width="700"/>
         </ScrollViewer>
     </Grid>
 </Window>

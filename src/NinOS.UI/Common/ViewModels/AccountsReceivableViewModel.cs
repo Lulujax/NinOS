@@ -4,208 +4,264 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
+    public class accounts_receivable_row_dto
+    {
+        public int id_delivery_note { get; set; }
+        public string note_number { get; set; } = string.Empty;
+        public string customer_name { get; set; } = string.Empty;
+        public string seller_name { get; set; } = string.Empty;
+        public int id_seller { get; set; }
+        public DateTime creation_date { get; set; }
+        public decimal total_amount_usd { get; set; }
+        public decimal gross_total_usd { get; set; }
+        public decimal discount_amount { get; set; }
+        public string discount_percentage_text { get; set; } = "0%";
+        public decimal paid_amount_usd { get; set; }
+        public decimal balance_due_usd { get; set; }
+        public DateTime? last_payment_date { get; set; }
+        public string payment_method_text { get; set; } = string.Empty;
+        public string bank_name_text { get; set; } = string.Empty;
+        public string status { get; set; } = string.Empty;
+        public string month_key { get; set; } = string.Empty;
+    }
+
     public class AccountsReceivableViewModel : ViewModelBase
     {
         private readonly IAccountsReceivableService _receivable_service;
 
+        private int _selected_tab_index;
+        private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
-        private accounts_receivable_dto? _selected_note;
-        private decimal _total_month_balance;
-        private string _search_text = string.Empty;
-        private seller? _selected_seller;
-        private int _filter_mode = 0;
+        private string _selected_filter = "Por Cobrar";
+        private decimal _total_invoiced_usd;
+        private decimal _total_paid_usd;
+        private decimal _total_balance_usd;
         private bool _is_loading;
+        private accounts_receivable_row_dto? _selected_note;
+
+        private List<accounts_receivable_row_dto> _all_notes_source = new();
 
         public ObservableCollection<string> pending_months { get; }
-        public ObservableCollection<seller> sellers { get; }
-        public ObservableCollection<accounts_receivable_dto> filtered_notes { get; }
+        public ObservableCollection<string> filter_options { get; }
+        public ObservableCollection<accounts_receivable_row_dto> all_notes { get; }
+        public ObservableCollection<accounts_receivable_row_dto> sandra_notes { get; }
+        public ObservableCollection<accounts_receivable_row_dto> anais_notes { get; }
+        public ObservableCollection<accounts_receivable_row_dto> alejandra_notes { get; }
 
         public string selected_month
         {
-            get { return _selected_month; }
-            set
-            {
-                if (_selected_month == value) return;
-                _selected_month = value;
-                on_property_changed();
-                if (!string.IsNullOrEmpty(_selected_month))
-                    load_month_data_async();
-            }
+            get => _selected_month;
+            set { if (_selected_month == value) return; _selected_month = value; on_property_changed(); if (!_is_loading) apply_filters(); }
         }
 
-        public accounts_receivable_dto? selected_note
+        public int selected_tab_index
         {
-            get { return _selected_note; }
+            get => _selected_tab_index;
+            set { _selected_tab_index = value; on_property_changed(); if (!_is_loading) apply_filters(); }
+        }
+
+        public string search_query
+        {
+            get => _search_query;
+            set { _search_query = value; on_property_changed(); apply_filters(); }
+        }
+
+        public int filter_mode => _selected_filter switch
+        {
+            "Anuladas" => 1,
+            "Todas" => 2,
+            _ => 0
+        };
+
+        public string selected_filter
+        {
+            get => _selected_filter;
+            set { if (_selected_filter == value) return; _selected_filter = value; on_property_changed(); apply_filters(); }
+        }
+
+        public accounts_receivable_row_dto? selected_note
+        {
+            get => _selected_note;
             set { _selected_note = value; on_property_changed(); }
         }
 
-        public decimal total_month_balance
+        public decimal total_invoiced_usd
         {
-            get { return _total_month_balance; }
-            private set { _total_month_balance = value; on_property_changed(); }
+            get => _total_invoiced_usd;
+            private set { _total_invoiced_usd = value; on_property_changed(); }
         }
 
-        public string search_text
+        public decimal total_paid_usd
         {
-            get { return _search_text; }
-            set { _search_text = value; on_property_changed(); apply_filter(); }
+            get => _total_paid_usd;
+            private set { _total_paid_usd = value; on_property_changed(); }
         }
 
-        public seller? selected_seller
+        public decimal total_balance_usd
         {
-            get { return _selected_seller; }
-            set { _selected_seller = value; on_property_changed(); load_month_data_async(); }
+            get => _total_balance_usd;
+            private set { _total_balance_usd = value; on_property_changed(); }
         }
-
-        public int filter_mode
-        {
-            get { return _filter_mode; }
-            set { _filter_mode = value; on_property_changed(); load_month_data_async(); }
-        }
-
-        public string filter_label => filter_mode switch
-        {
-            0 => "Por Cobrar",
-            1 => "Anuladas",
-            2 => "Todas",
-            _ => "Por Cobrar"
-        };
 
         public ICommand annul_note_command { get; }
         public ICommand preview_note_command { get; }
         public ICommand print_pdf_command { get; }
-        public ICommand cycle_filter_command { get; }
 
-        public Action<accounts_receivable_dto>? on_request_preview_window;
+        public Action<accounts_receivable_row_dto>? on_request_preview_window;
         public Action? on_request_confirmation_window;
 
-        private readonly IPaymentService _payment_service;
-
-        public AccountsReceivableViewModel(IAccountsReceivableService receivable_service, IPaymentService payment_service)
+        public AccountsReceivableViewModel(IAccountsReceivableService receivable_service)
         {
-            if (receivable_service == null) throw new ArgumentNullException(nameof(receivable_service));
-            if (payment_service == null) throw new ArgumentNullException(nameof(payment_service));
-            _receivable_service = receivable_service;
-            _payment_service = payment_service;
+            _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
 
             pending_months = new ObservableCollection<string>();
-            sellers = new ObservableCollection<seller>();
-            filtered_notes = new ObservableCollection<accounts_receivable_dto>();
+            filter_options = new ObservableCollection<string>();
+            all_notes = new ObservableCollection<accounts_receivable_row_dto>();
+            sandra_notes = new ObservableCollection<accounts_receivable_row_dto>();
+            anais_notes = new ObservableCollection<accounts_receivable_row_dto>();
+            alejandra_notes = new ObservableCollection<accounts_receivable_row_dto>();
+
+            filter_options.Add("Por Cobrar");
+            filter_options.Add("Anuladas");
+            filter_options.Add("Todas");
 
             annul_note_command = new RelayCommand(execute_annul_note);
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
-            cycle_filter_command = new RelayCommand(_ => { filter_mode = (filter_mode + 1) % 3; });
 
-            load_initial_data_async();
+            load_all_async();
         }
 
-        public void refresh_data()
-        {
-            load_initial_data_async();
-        }
+        public void refresh_data() => load_all_async();
 
-        private async void load_initial_data_async()
+        private async void load_all_async()
         {
             try
             {
                 _is_loading = true;
-                var seller_list = await _receivable_service.get_sellers_async();
-                sellers.Clear();
-                sellers.Add(new seller("Todos", "-", "-") { id_seller = 0 });
-                foreach (var s in seller_list) sellers.Add(s);
 
-                var months = await _receivable_service.get_pending_months_async();
+                var raw = await _receivable_service.get_all_notes_async();
+                var all_rows = raw.Select(map_to_row).ToList();
+
+                var unique_months = all_rows
+                    .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .Select(d => d.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")))
+                    .ToList();
+
                 pending_months.Clear();
-                foreach (string m in months) pending_months.Add(m);
+                foreach (var m in unique_months) pending_months.Add(m);
+
+                _all_notes_source = all_rows;
+
+                var current_month = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                _selected_month = pending_months.Contains(current_month) ? current_month : pending_months.LastOrDefault() ?? string.Empty;
+                on_property_changed(nameof(selected_month));
 
                 _is_loading = false;
-
-                if (pending_months.Any())
-                    selected_month = pending_months.First();
-                else
-                    load_month_data_async();
+                apply_filters();
             }
             catch (Exception ex)
             {
                 _is_loading = false;
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
             }
         }
 
-        private async void load_month_data_async()
+        private void apply_filters()
         {
-            if (string.IsNullOrEmpty(selected_month) || _is_loading) return;
+            var query = _search_query?.Trim().ToLower() ?? string.Empty;
+            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
 
-            try
-            {
-                _is_loading = true;
+            if (_selected_filter == "Por Cobrar")
+                filtered = filtered.Where(n => n.status == "Pendiente").ToList();
+            else if (_selected_filter == "Anuladas")
+                filtered = filtered.Where(n => n.status == "Anulada").ToList();
 
-                IEnumerable<accounts_receivable_dto> notes;
-                if (filter_mode == 0)
-                {
-                    notes = selected_seller != null && selected_seller.id_seller != 0
-                        ? await _receivable_service.get_receivables_by_month_and_seller_async(selected_month, selected_seller.id_seller)
-                        : await _receivable_service.get_receivables_by_month_async(selected_month);
-                }
-                else
-                {
-                    notes = selected_seller != null && selected_seller.id_seller != 0
-                        ? await _receivable_service.get_all_by_month_and_seller_async(selected_month, selected_seller.id_seller)
-                        : await _receivable_service.get_all_by_month_async(selected_month);
-                }
+            update_collection(all_notes, filtered);
+            update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
+            update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
+            update_collection(alejandra_notes, filtered.Where(n => n.seller_name == "Alejandra").ToList());
 
-                var all_notes = notes.ToList();
-                apply_filter_on(all_notes);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
-            finally { _is_loading = false; }
+            recalc_totals();
         }
 
-        private void apply_filter()
+        private List<accounts_receivable_row_dto> filter_by_month_and_search(List<accounts_receivable_row_dto> source, string selected_month, string query)
         {
-            if (_is_loading) return;
-            load_month_data_async();
-        }
+            var result = source.AsEnumerable();
 
-        private void apply_filter_on(List<accounts_receivable_dto> source)
-        {
-            filtered_notes.Clear();
+            if (!string.IsNullOrEmpty(selected_month))
+                result = result.Where(n => n.month_key == selected_month);
 
-            IEnumerable<accounts_receivable_dto> result = source;
-
-            if (filter_mode == 0)
-                result = result.Where(n => n.status != "Anulada");
-            else if (filter_mode == 1)
-                result = result.Where(n => n.status == "Anulada");
-
-            if (!string.IsNullOrWhiteSpace(search_text))
+            if (!string.IsNullOrEmpty(query))
             {
                 result = result.Where(n =>
-                    n.note_number.Contains(search_text, StringComparison.OrdinalIgnoreCase) ||
-                    n.customer_name.Contains(search_text, StringComparison.OrdinalIgnoreCase) ||
-                    n.seller_name.Contains(search_text, StringComparison.OrdinalIgnoreCase));
+                    (n.note_number?.ToLower().Contains(query) ?? false) ||
+                    (n.customer_name?.ToLower().Contains(query) ?? false) ||
+                    (n.seller_name?.ToLower().Contains(query) ?? false));
             }
 
-            foreach (var note in result)
-                filtered_notes.Add(note);
+            return result.ToList();
+        }
 
-            total_month_balance = filtered_notes.Where(n => n.status != "Anulada").Sum(n => n.balance_due_usd);
+        private void recalc_totals()
+        {
+            var list = _selected_tab_index switch
+            {
+                0 => all_notes.ToList(),
+                1 => sandra_notes.ToList(),
+                2 => anais_notes.ToList(),
+                3 => alejandra_notes.ToList(),
+                _ => new List<accounts_receivable_row_dto>()
+            };
+            list = list.Where(n => n.status != "Anulada").ToList();
+
+            total_invoiced_usd = list.Sum(n => n.total_amount_usd);
+            total_paid_usd = list.Sum(n => n.paid_amount_usd);
+            total_balance_usd = list.Sum(n => n.balance_due_usd);
+        }
+
+        private accounts_receivable_row_dto map_to_row(accounts_receivable_dto n)
+        {
+            return new accounts_receivable_row_dto
+            {
+                id_delivery_note = n.id_delivery_note,
+                note_number = n.note_number,
+                customer_name = n.customer_name,
+                seller_name = n.seller_name,
+                id_seller = n.id_seller,
+                creation_date = n.creation_date,
+                total_amount_usd = n.total_amount_usd,
+                gross_total_usd = n.gross_total_usd,
+                discount_amount = n.discount_amount,
+                discount_percentage_text = n.gross_total_usd > 0 ? $"{Math.Round((n.discount_amount / n.gross_total_usd) * 100)}%" : "0%",
+                paid_amount_usd = n.paid_amount_usd,
+                balance_due_usd = n.balance_due_usd,
+                last_payment_date = n.last_payment_date,
+                payment_method_text = n.payment_method_text,
+                bank_name_text = n.bank_name_text,
+                status = n.status,
+                month_key = new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
+                    .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"))
+            };
+        }
+
+        private void update_collection(ObservableCollection<accounts_receivable_row_dto> collection, List<accounts_receivable_row_dto> items)
+        {
+            collection.Clear();
+            foreach (var item in items) collection.Add(item);
         }
 
         private void execute_annul_note(object? parameter)
         {
-            if (parameter is accounts_receivable_dto note)
+            if (parameter is accounts_receivable_row_dto note)
             {
                 selected_note = note;
                 on_request_confirmation_window?.Invoke();
@@ -218,9 +274,8 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 await _receivable_service.annul_delivery_note_async(selected_note.id_delivery_note);
-                selected_note.status = "Anulada";
                 selected_note = null;
-                load_month_data_async();
+                load_all_async();
             }
             catch (Exception ex)
             {
@@ -230,10 +285,8 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_preview_note(object? parameter)
         {
-            if (parameter is accounts_receivable_dto note)
-            {
+            if (parameter is accounts_receivable_row_dto note)
                 on_request_preview_window?.Invoke(note);
-            }
         }
 
         public async Task<note_print_dto> get_printable_note_async(int id_delivery_note)
@@ -243,17 +296,15 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_print_pdf(object? parameter)
         {
-            if (parameter is accounts_receivable_dto note)
+            if (parameter is not accounts_receivable_row_dto note) return;
+            try
             {
-                try
-                {
-                    note_print_dto printable = await _receivable_service.get_printable_note_async(note.id_delivery_note);
-                    NotePdfGenerator.generate(printable);
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
+                note_print_dto printable = await _receivable_service.get_printable_note_async(note.id_delivery_note);
+                NotePdfGenerator.generate(printable);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
     }

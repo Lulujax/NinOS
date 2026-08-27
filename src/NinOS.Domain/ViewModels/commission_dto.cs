@@ -18,6 +18,7 @@ namespace NinOS.Domain.ViewModels
         public string reference_number { get; set; } = string.Empty;
         public bool is_paid { get; set; }
         public DateTime? payout_date { get; set; }
+        public DateTime? note_last_payment_date { get; set; }
         public bool is_selected { get; set; }
     }
 }
