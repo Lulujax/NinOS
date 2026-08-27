@@ -14,6 +14,8 @@ namespace NinOS.Domain
         private string _reference_number = string.Empty;
         private string _bank_name = string.Empty;
         private string _observations = string.Empty;
+        private DateTime _created_at;
+        private DateTime? _updated_at;
 
         public int id_payment
         {
@@ -95,6 +97,18 @@ namespace NinOS.Domain
             set { _observations = value ?? string.Empty; }
         }
 
+        public DateTime created_at
+        {
+            get { return _created_at; }
+            set { _created_at = value; }
+        }
+
+        public DateTime? updated_at
+        {
+            get { return _updated_at; }
+            set { _updated_at = value; }
+        }
+
         protected payment()
         {
         }
@@ -110,6 +124,7 @@ namespace NinOS.Domain
             this.reference_number = reference_number;
             this.bank_name = bank_name;
             this.observations = observations;
+            this.created_at = DateTime.UtcNow;
         }
     }
 }

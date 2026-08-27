@@ -81,6 +81,89 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task update_payment_async(payment updated_payment)
+        {
+            if (updated_payment == null) throw new ArgumentNullException(nameof(updated_payment));
+
+            using var scope = _scope_factory.CreateScope();
+            var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            using var transaction = await _db_context.Database.BeginTransactionAsync();
+            try
+            {
+                payment existing = await _db_context.payments.FindAsync(updated_payment.id_payment);
+                if (existing == null) throw new InvalidOperationException("El pago no existe.");
+
+                delivery_note target_note = await _db_context.delivery_notes.FindAsync(existing.id_delivery_note);
+                if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
+
+                existing.id_delivery_note = updated_payment.id_delivery_note;
+                existing.payment_date = updated_payment.payment_date;
+                existing.amount_usd = updated_payment.amount_usd;
+                existing.amount_bs = updated_payment.exchange_rate > 0 ? updated_payment.amount_usd * updated_payment.exchange_rate.Value : 0;
+                existing.exchange_rate = updated_payment.exchange_rate;
+                existing.payment_type = updated_payment.payment_type;
+                existing.reference_number = updated_payment.reference_number;
+                existing.bank_name = updated_payment.bank_name ?? "";
+                existing.observations = updated_payment.observations ?? "";
+                existing.updated_at = DateTime.UtcNow;
+
+                await _db_context.SaveChangesAsync();
+
+                payment[] all_payments = await _db_context.payments
+                    .Where(p => p.id_delivery_note == existing.id_delivery_note)
+                    .ToArrayAsync();
+
+                decimal total_paid_usd = all_payments.Sum(p => p.amount_usd);
+
+                bool is_fully_paid = total_paid_usd >= target_note.total_amount_usd;
+
+                var existing_commission = await _db_context.commissions
+                    .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
+
+                if (is_fully_paid)
+                {
+                    if (target_note.status != "Pagada")
+                    {
+                        target_note.status = "Pagada";
+
+                        if (existing_commission == null)
+                        {
+                            decimal generated_amount_usd = target_note.total_amount_usd * 0.10m;
+                            commission new_commission = new commission(
+                                target_note.id_seller,
+                                target_note.id_delivery_note,
+                                0.10m,
+                                generated_amount_usd,
+                                false,
+                                null);
+                            await _db_context.commissions.AddAsync(new_commission);
+                        }
+                    }
+                }
+                else
+                {
+                    if (target_note.status == "Pagada") target_note.status = "Pendiente";
+
+                    if (existing_commission != null)
+                    {
+                        _db_context.commissions.Remove(existing_commission);
+                    }
+                }
+
+                await _db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[PAYMENT-UPDATE] Note={target_note.note_number} | Paid={total_paid_usd} | Status={target_note.status}");
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<payment_dto>> get_payments_by_note_async(int id_delivery_note)
         {
             using var scope = _scope_factory.CreateScope();
@@ -105,11 +188,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                 seller_name = seller?.full_name ?? string.Empty,
                 id_seller = note?.id_seller ?? 0,
                 payment_date = p.payment_date,
+                created_at = p.created_at,
+                updated_at = p.updated_at,
                 amount_usd = p.amount_usd,
                 amount_bs = p.amount_bs,
                 exchange_rate = p.exchange_rate,
                 payment_type = p.payment_type,
+                bank_name = p.bank_name,
                 reference_number = p.reference_number,
+                notes = p.observations,
                 total_note_usd = note?.total_amount_usd ?? 0,
                 balance_due_usd = (note?.total_amount_usd ?? 0) - payments.Sum(x => x.amount_usd)
             }).ToList();
@@ -162,11 +249,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                     seller_name = seller_name,
                     id_seller = note?.id_seller ?? 0,
                     payment_date = p.payment_date,
+                    created_at = p.created_at,
+                    updated_at = p.updated_at,
                     amount_usd = p.amount_usd,
                     amount_bs = p.amount_bs,
                     exchange_rate = p.exchange_rate,
                     payment_type = p.payment_type,
+                    bank_name = p.bank_name,
                     reference_number = p.reference_number,
+                    notes = p.observations,
                     total_note_usd = note?.total_amount_usd ?? 0
                 };
             }).ToList();

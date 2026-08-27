@@ -105,6 +105,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.reference_number).HasColumnName("reference_number").HasMaxLength(100);
                 entity.Property(e => e.bank_name).HasColumnName("bank_name").HasMaxLength(100);
                 entity.Property(e => e.observations).HasColumnName("observations");
+                entity.Property(e => e.created_at).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.updated_at).HasColumnName("updated_at");
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
             });

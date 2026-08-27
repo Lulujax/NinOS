@@ -254,6 +254,26 @@ namespace NinOS.UI.Common.ViewModels
             return await _payment_service.get_payments_by_note_async(id_delivery_note);
         }
 
+        public async Task update_payment_async(payment_dto dto, decimal amount_usd, decimal? exchange_rate, string payment_type, string reference_number, DateTime payment_date, string bank_name = "", string observations = "")
+        {
+            try
+            {
+                payment updated = new payment(
+                    dto.id_delivery_note, payment_date,
+                    amount_usd, 0, exchange_rate, payment_type, reference_number, bank_name, observations)
+                {
+                    id_payment = dto.id_payment
+                };
+                await _payment_service.update_payment_async(updated);
+                await Task.Run(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    System.Windows.Application.Current.Dispatcher.Invoke(() => load_all_async());
+                });
+            }
+            catch (Exception ex) { System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error"); }
+        }
+
         public async Task<IEnumerable<string>> get_all_months_async()
         {
             return await _receivable_service.get_all_months_async();

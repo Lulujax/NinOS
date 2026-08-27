@@ -27,19 +27,81 @@ namespace NinOS.UI.Views
     {
         private readonly PaymentsViewModel _vm;
         private readonly string _current_month;
+        private readonly payment_dto? _edit_payment;
         private accounts_receivable_dto? _selected_note;
         private bool _is_bs_mode = true;
+        private bool _is_edit_mode;
         private List<note_combo_item> _all_combo_items = new();
 
         public event EventHandler? PaymentRegistered;
 
-        public AddPaymentWindow(PaymentsViewModel vm, string current_month)
+        public AddPaymentWindow(PaymentsViewModel vm, string current_month, payment_dto? edit_payment = null)
         {
             InitializeComponent();
             _vm = vm;
             _current_month = current_month;
-            PaymentDatePicker.SelectedDate = DateTime.Now;
-            Loaded += async (_, _) => await LoadNotesAsync();
+            _edit_payment = edit_payment;
+            _is_edit_mode = edit_payment != null;
+
+            if (_is_edit_mode)
+            {
+                Title = "Editar Pago";
+                BtnRegistrar.Content = "Guardar";
+                SetupEditMode(edit_payment!);
+            }
+            else
+            {
+                PaymentDatePicker.SelectedDate = DateTime.Now;
+            }
+
+            Loaded += async (_, _) =>
+            {
+                if (!_is_edit_mode) await LoadNotesAsync();
+            };
+        }
+
+        private void SetupEditMode(payment_dto p)
+        {
+            _selected_note = new accounts_receivable_dto
+            {
+                id_delivery_note = p.id_delivery_note,
+                note_number = p.note_number,
+                customer_name = p.customer_name,
+                total_amount_usd = p.total_note_usd,
+                paid_amount_usd = p.amount_usd,
+                balance_due_usd = p.balance_due_usd,
+                status = ""
+            };
+
+            NoteTextBox.Text = $"{p.note_number} - {p.customer_name}";
+            NoteTextBox.IsReadOnly = true;
+            BtnToggleDropdown.IsEnabled = false;
+
+            NoteInfoBorder.Visibility = Visibility.Visible;
+            NoteInfoText.Text = $"{p.note_number} - {p.customer_name}\nTOTAL: {p.total_note_usd:N2}  |  ABONADO: {p.amount_usd:N2}  |  SALDO PENDIENTE: {p.balance_due_usd:N2}";
+
+            if (p.payment_date != default) PaymentDatePicker.SelectedDate = p.payment_date;
+
+            ReferenceBox.Text = p.reference_number.Replace("REF-", "").Replace("EF-", "");
+            BankBox.Text = p.bank_name;
+            ObsBox.Text = p.notes;
+
+            if (p.payment_type == "Efectivo")
+            {
+                RadioEfectivo.IsChecked = true;
+                RadioBS.IsChecked = false;
+                AmountBox.Text = p.amount_usd.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                RadioBS.IsChecked = true;
+                RadioEfectivo.IsChecked = false;
+                if (p.exchange_rate.HasValue)
+                {
+                    RateBox.Text = p.exchange_rate.Value.ToString("0.##", CultureInfo.InvariantCulture);
+                    AmountBox.Text = (p.amount_usd * p.exchange_rate.Value).ToString("0.##", CultureInfo.InvariantCulture);
+                }
+            }
         }
 
         private async System.Threading.Tasks.Task LoadNotesAsync()
@@ -225,11 +287,14 @@ namespace NinOS.UI.Views
 
                 DateTime payDate = PaymentDatePicker.SelectedDate.Value;
 
-                var refreshed = await _vm.search_note_async(_selected_note.note_number);
-                if (refreshed == null) { ShowError("La nota ya no existe."); return; }
-                if (refreshed.status == "Pagada") { ShowError("Esta nota ya fue pagada."); return; }
-                if (refreshed.status == "Anulada") { ShowError("Esta nota fue anulada."); return; }
-                _selected_note = refreshed;
+                if (!_is_edit_mode)
+                {
+                    var refreshed = await _vm.search_note_async(_selected_note.note_number);
+                    if (refreshed == null) { ShowError("La nota ya no existe."); return; }
+                    if (refreshed.status == "Pagada") { ShowError("Esta nota ya fue pagada."); return; }
+                    if (refreshed.status == "Anulada") { ShowError("Esta nota fue anulada."); return; }
+                    _selected_note = refreshed;
+                }
 
                 decimal amount_usd;
                 decimal? exchange_rate;
@@ -264,14 +329,31 @@ namespace NinOS.UI.Views
                     bank = "";
                 }
 
+                if (_is_edit_mode && _edit_payment != null)
+                {
+                    string msg = $"Monto: {amount_usd:N2}\nDesea guardar los cambios de este abono?";
+                    var edit_result = MessageBox.Show(
+                        msg,
+                        "Confirmar edicion",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+                    if (edit_result != MessageBoxResult.Yes) { ShowError("Edicion cancelada."); return; }
+
+                    await _vm.update_payment_async(_edit_payment, amount_usd, exchange_rate, payType, reference, payDate, bank, obs);
+
+                    PaymentRegistered?.Invoke(this, EventArgs.Empty);
+                    Close();
+                    return;
+                }
+
                 decimal nuevo_saldo = _selected_note.balance_due_usd - amount_usd;
-                string msg = $"Monto: {amount_usd:N2}\nSaldo actual: {_selected_note.balance_due_usd:N2}\n";
-                msg += nuevo_saldo <= 0
+                string nmsg = $"Monto: {amount_usd:N2}\nSaldo actual: {_selected_note.balance_due_usd:N2}\n";
+                nmsg += nuevo_saldo <= 0
                     ? "El saldo quedara en 0. La nota se marcara como PAGADA."
                     : $"Nuevo saldo: {nuevo_saldo:N2}";
 
                 var result = MessageBox.Show(
-                    msg + "\n\nDesea registrar este pago?",
+                    nmsg + "\n\nDesea registrar este pago?",
                     "Confirmar pago",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);

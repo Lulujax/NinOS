@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -48,7 +49,20 @@ namespace NinOS.UI.Views
                     if (DataContext is not PaymentsViewModel vm) return;
 
                     var payments = await vm.get_payments_by_note_async(row.id_delivery_note);
-                    var window = new PaymentNoteHistoryWindow(payments);
+
+                    var note = new accounts_receivable_dto
+                    {
+                        id_delivery_note = row.id_delivery_note,
+                        note_number = row.note_number,
+                        customer_name = row.customer_name,
+                        seller_name = row.seller_name,
+                        total_amount_usd = row.total_amount_usd,
+                        paid_amount_usd = row.paid_amount_usd,
+                        balance_due_usd = row.balance_due_usd,
+                        status = row.status
+                    };
+
+                    var window = new PaymentNoteHistoryWindow(vm, note, payments);
                     window.Owner = Window.GetWindow(this);
                     window.ShowDialog();
                 }
