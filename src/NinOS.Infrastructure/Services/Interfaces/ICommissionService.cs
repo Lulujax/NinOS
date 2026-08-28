@@ -13,6 +13,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<commission_dto>> get_all_commissions_async();
         Task<IEnumerable<commission_dto>> get_commissions_by_seller_and_month_async(int id_seller, string month_year);
         Task<IEnumerable<seller>> get_sellers_with_commissions_async();
-        Task register_commission_payment_async(int[] commission_ids, decimal exchange_rate, string payment_type, string reference_number);
+        Task register_commission_payment_async(int[] commission_ids, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs);
     }
 }

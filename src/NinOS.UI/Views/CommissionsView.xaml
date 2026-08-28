@@ -21,6 +21,15 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="RowHeight" Value="32"/>
         </Style>
+        <Style x:Key="CellText" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
         <Style x:Key="GreenComboBox" TargetType="ComboBox">
             <Setter Property="Height" Value="26"/>
             <Setter Property="FontSize" Value="11"/>
@@ -175,26 +184,22 @@
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding all_rows}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
+                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=F2}" Width="90">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"/>
+                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -222,26 +227,22 @@
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding sandra_rows}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
+                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=F2}" Width="90">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"/>
+                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -269,26 +270,22 @@
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding anais_rows}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
+                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=F2}" Width="90">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"/>
+                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -316,26 +313,22 @@
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding alejandra_rows}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
+                        <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=F2}" Width="90">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"/>
+                        <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">

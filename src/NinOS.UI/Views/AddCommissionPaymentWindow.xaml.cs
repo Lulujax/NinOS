@@ -116,6 +116,27 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void OnRateChanged(object sender, TextChangedEventArgs e) => UpdateEquiv();
+
+        private void OnAmountChanged(object sender, TextChangedEventArgs e) => UpdateEquiv();
+
+        private void UpdateEquiv()
+        {
+            if (_selected_item == null) { EquivText.Text = ""; return; }
+
+            decimal bs = ParseDecimal(AmountBox.Text);
+            decimal rate = ParseDecimal(RateBox.Text);
+            if (bs > 0 && rate > 0)
+            {
+                decimal usd = Math.Round(bs / rate, 2);
+                EquivText.Text = $"{usd.ToString("0.00", CultureInfo.InvariantCulture)}  |  comision: {_selected_item.amount_usd.ToString("0.00", CultureInfo.InvariantCulture)}";
+            }
+            else
+            {
+                EquivText.Text = "";
+            }
+        }
+
         private void OnPreviewNumeric(object sender, System.Windows.Input.TextCompositionEventArgs e)
         {
             TextBox? tb = sender as TextBox;
@@ -149,18 +170,23 @@ namespace NinOS.UI.Views
                 decimal rate = ParseDecimal(RateBox.Text);
                 if (rate <= 0) { ShowError("Ingrese tasa BS/USD valida."); return; }
 
+                decimal amount_bs = ParseDecimal(AmountBox.Text);
+                if (amount_bs <= 0) { ShowError("Ingrese el monto pagado."); return; }
+
 string payment_type = (TypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Pago Movil";
             string reference = ReferenceBox.Text?.Trim() ?? "";
 
             var result = MessageBox.Show(
-                $"Nota: {_selected_item.note_number}\nComision: {_selected_item.amount_usd:0.00}\nTasa: {rate:0.00}\n\nDesea liquidar esta comision?",
+                $"Nota: {_selected_item.note_number}\nComision: {_selected_item.amount_usd:0.00}\n" +
+                $"Monto pagado: {amount_bs.ToString("0.00", CultureInfo.InvariantCulture)}  (tasa {rate:0.00})\n\n" +
+                $"Desea liquidar esta comision?",
                     "Confirmar liquidacion",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
                 if (result != MessageBoxResult.Yes) { ShowError("Liquidacion cancelada."); return; }
 
-                await _vm.pay_commission_async(_selected_item.id_commission, rate, payment_type, reference);
+                await _vm.pay_commission_async(_selected_item.id_commission, rate, payment_type, reference, amount_bs);
 
                 CommissionPaid?.Invoke(this, EventArgs.Empty);
                 Close();

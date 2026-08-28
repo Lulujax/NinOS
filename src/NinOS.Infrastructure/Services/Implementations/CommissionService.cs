@@ -258,7 +258,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToListAsync();
         }
 
-        public async Task register_commission_payment_async(int[] commission_ids, decimal exchange_rate, string payment_type, string reference_number)
+        public async Task register_commission_payment_async(int[] commission_ids, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs)
         {
             if (commission_ids == null || commission_ids.Length == 0)
                 throw new ArgumentException("Debe seleccionar al menos una comision.");
@@ -277,7 +277,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     current_commission.is_paid = true;
                     current_commission.payout_date = DateTime.UtcNow;
                     current_commission.exchange_rate = exchange_rate;
-                    current_commission.amount_bs = current_commission.amount_usd * exchange_rate;
+                    current_commission.amount_bs = amount_bs;
                     current_commission.reference_number = reference_number;
 
                     db.commissions.Update(current_commission);

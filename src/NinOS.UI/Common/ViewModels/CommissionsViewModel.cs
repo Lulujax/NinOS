@@ -242,11 +242,11 @@ namespace NinOS.UI.Common.ViewModels
             return await _commission_service.get_all_commissions_async();
         }
 
-        public async Task pay_commission_async(int id_commission, decimal exchange_rate, string payment_type, string reference_number)
+        public async Task pay_commission_async(int id_commission, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs)
         {
             try
             {
-                await _commission_service.register_commission_payment_async(new[] { id_commission }, exchange_rate, payment_type, reference_number);
+                await _commission_service.register_commission_payment_async(new[] { id_commission }, exchange_rate, payment_type, reference_number, amount_bs);
                 System.Windows.MessageBox.Show("Comision liquidada exitosamente.", "Exito");
                 load_all_async();
             }
