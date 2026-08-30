@@ -96,11 +96,9 @@ namespace NinOS.UI.Views
             {
                 RadioBS.IsChecked = true;
                 RadioEfectivo.IsChecked = false;
-                if (p.exchange_rate.HasValue)
-                {
-                    RateBox.Text = p.exchange_rate.Value.ToString("0.##", CultureInfo.InvariantCulture);
-                    AmountBox.Text = (p.amount_usd * p.exchange_rate.Value).ToString("0.##", CultureInfo.InvariantCulture);
-                }
+                AmountBox.Text = p.amount_usd.ToString("0.##", CultureInfo.InvariantCulture);
+                if (p.exchange_rate.HasValue) RateBox.Text = p.exchange_rate.Value.ToString("0.##", CultureInfo.InvariantCulture);
+                if (p.amount_bs > 0) BsAmountBox.Text = p.amount_bs.ToString("0.##", CultureInfo.InvariantCulture);
             }
         }
 
@@ -220,6 +218,8 @@ namespace NinOS.UI.Views
             ObsBox.Text = "";
             ReferenceBox.Text = "";
             BankBox.Text = "";
+            BsAmountBox.Text = "";
+            RateBox.Text = "";
             UpdateEquiv();
         }
 
@@ -244,29 +244,13 @@ namespace NinOS.UI.Views
         {
             if (_selected_note == null) { EquivText.Text = ""; return; }
             decimal balance = _selected_note.balance_due_usd;
-
-            if (_is_bs_mode)
+            decimal usd = ParseDecimal(AmountBox.Text);
+            if (usd > 0)
             {
-                decimal bs = ParseDecimal(AmountBox.Text);
-                decimal rate = ParseDecimal(RateBox.Text);
-                if (bs > 0 && rate > 0)
-                {
-                    decimal usd = bs / rate;
-                    decimal remaining = usd - balance;
-                    EquivText.Text = $"{usd:N2}  |  saldo pendiente: {remaining:N2}";
-                }
-                else EquivText.Text = "";
+                decimal remaining = usd - balance;
+                EquivText.Text = $"saldo pendiente: {remaining:N2}";
             }
-            else
-            {
-                decimal usd = ParseDecimal(AmountBox.Text);
-                if (usd > 0)
-                {
-                    decimal remaining = usd - balance;
-                    EquivText.Text = $"saldo pendiente: {remaining:N2}";
-                }
-                else EquivText.Text = "";
-            }
+            else EquivText.Text = "";
         }
 
         private decimal ParseDecimal(string text)
@@ -297,6 +281,7 @@ namespace NinOS.UI.Views
                 }
 
                 decimal amount_usd;
+                decimal amount_bs = 0;
                 decimal? exchange_rate;
                 string payType;
                 string reference;
@@ -305,15 +290,15 @@ namespace NinOS.UI.Views
 
                 if (_is_bs_mode)
                 {
-                    decimal bs = ParseDecimal(AmountBox.Text);
-                    if (bs <= 0) { ShowError("Ingrese monto BS valido."); return; }
+                    amount_usd = ParseDecimal(AmountBox.Text);
+                    if (amount_usd <= 0) { ShowError("Ingrese monto USD valido."); return; }
                     decimal rate = ParseDecimal(RateBox.Text);
-                    if (rate <= 0) { ShowError("Ingrese tasa valida."); return; }
+                    decimal bs = ParseDecimal(BsAmountBox.Text);
                     string refInput = ReferenceBox.Text?.Trim() ?? "";
                     if (string.IsNullOrWhiteSpace(refInput)) { ShowError("Ingrese referencia."); return; }
                     if (!Regex.IsMatch(refInput, @"^\d+$")) { ShowError("La referencia BS debe ser solo numeros."); return; }
-                    amount_usd = bs / rate;
-                    exchange_rate = rate;
+                    exchange_rate = rate > 0 ? rate : null;
+                    amount_bs = bs;
                     payType = "Bolivares";
                     reference = $"REF-{refInput}";
                     bank = BankBox.Text?.Trim() ?? "";
@@ -339,7 +324,7 @@ namespace NinOS.UI.Views
                         MessageBoxImage.Question);
                     if (edit_result != MessageBoxResult.Yes) { ShowError("Edicion cancelada."); return; }
 
-                    await _vm.update_payment_async(_edit_payment, amount_usd, exchange_rate, payType, reference, payDate, bank, obs);
+                    await _vm.update_payment_async(_edit_payment, amount_usd, exchange_rate, payType, reference, payDate, amount_bs, bank, obs);
 
                     PaymentRegistered?.Invoke(this, EventArgs.Empty);
                     Close();
@@ -364,7 +349,7 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                await _vm.confirm_payment_async(_selected_note.id_delivery_note, amount_usd, exchange_rate, payType, reference, payDate, bank, obs);
+                await _vm.confirm_payment_async(_selected_note.id_delivery_note, amount_usd, exchange_rate, payType, reference, payDate, amount_bs, bank, obs);
 
                 PaymentRegistered?.Invoke(this, EventArgs.Empty);
                 Close();
@@ -381,6 +366,7 @@ namespace NinOS.UI.Views
 
                 AmountBox.Text = "";
                 RateBox.Text = "";
+                BsAmountBox.Text = "";
                 ReferenceBox.Text = "";
                 BankBox.Text = "";
             }

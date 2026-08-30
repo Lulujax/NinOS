@@ -10,7 +10,8 @@
                 <views:DeliveryNotesView DataContext="{Binding delivery_notes_vm}" />
             </TabItem>
             <TabItem Header="Cuentas por Cobrar">
-                <views:AccountsReceivableView DataContext="{Binding accounts_receivable_vm}" />
+                <views:AccountsReceivableView DataContext="{Binding accounts_receivable_vm}"
+                                              PaymentsContext="{Binding payments_vm}" />
             </TabItem>
             <TabItem Header="Ventas">
                 <views:SalesView DataContext="{Binding sales_vm}" />
@@ -19,7 +20,8 @@
                 <views:PaymentsView DataContext="{Binding payments_vm}" />
             </TabItem>
             <TabItem Header="Comisiones">
-                <views:CommissionsView DataContext="{Binding commissions_vm}" />
+                <views:CommissionsView DataContext="{Binding commissions_vm}"
+                                       PaymentsContext="{Binding payments_vm}" />
             </TabItem>
             <TabItem Header="Clientes">
                 <views:CustomerView DataContext="{Binding customer_vm}" />

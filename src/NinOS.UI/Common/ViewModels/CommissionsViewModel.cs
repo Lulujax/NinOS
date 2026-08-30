@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
@@ -10,7 +12,7 @@ using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
-    public class commission_row_dto
+    public class commission_row_dto : INotifyPropertyChanged
     {
         public int id_commission { get; set; }
         public int id_seller { get; set; }
@@ -29,6 +31,16 @@ namespace NinOS.UI.Common.ViewModels
         public DateTime? payout_date { get; set; }
         public bool is_paid { get; set; }
         public string status => is_paid ? "Pagada" : "Pendiente";
+
+        private bool _is_selected;
+
+        public bool is_selected
+        {
+            get => _is_selected;
+            set { _is_selected = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(is_selected))); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     public class CommissionsViewModel : ViewModelBase
@@ -96,7 +108,8 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public ICommand add_commission_payment_command { get; }
-        public Action? on_request_add_commission_payment_window { get; set; }
+        public Action<List<commission_row_dto>>? on_request_add_commission_payment_window { get; set; }
+        public Action<commission_row_dto>? on_request_commission_history_window { get; set; }
 
         public CommissionsViewModel(ICommissionService commission_service)
         {
@@ -113,7 +126,7 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Pagadas");
             filter_options.Add("Todas");
 
-            add_commission_payment_command = new RelayCommand(_ => on_request_add_commission_payment_window?.Invoke());
+            add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
 
             load_all_async();
         }
@@ -237,17 +250,42 @@ namespace NinOS.UI.Common.ViewModels
             foreach (var item in items) collection.Add(item);
         }
 
+        private List<commission_row_dto> get_available_pending_rows()
+        {
+            return _selected_tab_index switch
+            {
+                0 => all_rows.Where(r => !r.is_paid).ToList(),
+                1 => sandra_rows.Where(r => !r.is_paid).ToList(),
+                2 => anais_rows.Where(r => !r.is_paid).ToList(),
+                3 => alejandra_rows.Where(r => !r.is_paid).ToList(),
+                _ => new List<commission_row_dto>()
+            };
+        }
+
+        private void execute_add_commission_payment(object? parameter)
+        {
+            var available = get_available_pending_rows();
+            if (available.Count == 0)
+            {
+                System.Windows.MessageBox.Show("No hay comisiones pendientes para pagar.", "Pago de comision",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
+            on_request_add_commission_payment_window?.Invoke(available);
+        }
+
         public async Task<IEnumerable<commission_dto>> get_all_commissions_async()
         {
             return await _commission_service.get_all_commissions_async();
         }
 
-        public async Task pay_commission_async(int id_commission, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs)
+        public async Task pay_commissions_async(int[] id_commissions, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs)
         {
             try
             {
-                await _commission_service.register_commission_payment_async(new[] { id_commission }, exchange_rate, payment_type, reference_number, amount_bs);
-                System.Windows.MessageBox.Show("Comision liquidada exitosamente.", "Exito");
+                await _commission_service.register_commission_payment_async(id_commissions, exchange_rate, payment_type, reference_number, amount_bs);
+                System.Windows.MessageBox.Show("Comision(es) liquidadas exitosamente.", "Exito");
                 load_all_async();
             }
             catch (Exception ex)

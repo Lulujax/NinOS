@@ -68,6 +68,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired();
                 entity.Property(e => e.total_amount_usd).HasColumnName("total_amount_usd").IsRequired();
+                entity.Property(e => e.adjusted_total_usd).HasColumnName("adjusted_total_usd").IsRequired();
                 entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);

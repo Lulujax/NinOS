@@ -19,7 +19,7 @@
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="RowHeight" Value="32"/>
+            <Setter Property="MinRowHeight" Value="20"/>
         </Style>
         <Style x:Key="CellText" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
@@ -29,6 +29,10 @@
         <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CellTextWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
         </Style>
         <Style x:Key="BlueComboBox" TargetType="ComboBox">
             <Setter Property="Height" Value="26"/>
@@ -98,16 +102,16 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="0" Text="VENTAS" FontSize="15" FontWeight="Bold"
+            <TextBlock Grid.Column="0" Text="VENTAS" FontSize="16.5" FontWeight="Bold"
                        Foreground="#00897B" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
             <!-- Busqueda -->
             <Grid Grid.Column="1" Margin="0,0,8,0">
                 <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
                     <Grid>
-                        <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12" Foreground="#9E9E9E"/>
+                        <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
                         <TextBox x:Name="txt_search" Margin="26,2,22,2" BorderThickness="0" Background="Transparent"
-                                 VerticalContentAlignment="Center" FontSize="11"
+                                 VerticalContentAlignment="Center" FontSize="12.5"
                                  Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"
                                  TextChanged="txt_search_TextChanged"/>
                         <Button x:Name="btn_clear_search" Content="&#x2715;" Margin="0,0,4,0"
@@ -116,7 +120,7 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="Transparent" Padding="2">
-                                        <TextBlock Text="{TemplateBinding Content}" FontSize="9" Foreground="#9E9E9E"
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="10.5" Foreground="#9E9E9E"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                 </ControlTemplate>
@@ -131,7 +135,7 @@
                 <ComboBox x:Name="cmb_month" Margin="0,0,8,0"
                           ItemsSource="{Binding pending_months}"
                           SelectedItem="{Binding selected_month}"
-                          FontSize="11" Height="26"
+                          FontSize="12.5" Height="26"
                           HorizontalContentAlignment="Center"/>
 
                 <ComboBox Width="110" Style="{StaticResource BlueComboBox}"
@@ -160,7 +164,7 @@
 
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Text="Todos" FontWeight="SemiBold" FontSize="11"/>
+                    <TextBlock Text="Todos" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding all_notes}">
                     <DataGrid.Columns>
@@ -169,7 +173,7 @@
                         <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
+                          ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
@@ -198,11 +202,11 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" FontSize="10" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="PDF" FontSize="10" Padding="6,2" Cursor="Hand"
+                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -217,14 +221,14 @@
             <!-- SANDRA -->
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Text="Sandra" FontWeight="SemiBold" FontSize="11"/>
+                    <TextBlock Text="Sandra" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding sandra_notes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
+                          ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
@@ -249,11 +253,11 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" FontSize="10" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="PDF" FontSize="10" Padding="6,2" Cursor="Hand"
+                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -267,14 +271,14 @@
 
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Text="Anais" FontWeight="SemiBold" FontSize="11"/>
+                    <TextBlock Text="Anais" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding anais_notes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
+                          ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
@@ -299,11 +303,11 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" FontSize="10" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="PDF" FontSize="10" Padding="6,2" Cursor="Hand"
+                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -317,14 +321,14 @@
 
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Text="Alejandra" FontWeight="SemiBold" FontSize="11"/>
+                    <TextBlock Text="Alejandra" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding alejandra_notes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
+                          ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
@@ -349,11 +353,11 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" FontSize="10" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="PDF" FontSize="10" Padding="6,2" Cursor="Hand"
+                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -369,8 +373,8 @@
         <!-- FILA 3: FOOTER - total -->
         <Border Grid.Row="3" Background="#00897B" Padding="10,5" CornerRadius="0,0,4,4">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <TextBlock Text="TOTAL VENTA:" Foreground="#B2DFDB" FontSize="11" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding total_sales_usd, StringFormat=F2}" Foreground="White" FontSize="13"
+                <TextBlock Text="TOTAL VENTA:" Foreground="#B2DFDB" FontSize="12.5" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding total_sales_usd, StringFormat=F2}" Foreground="White" FontSize="14.5"
                            FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
             </StackPanel>
         </Border>

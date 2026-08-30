@@ -116,10 +116,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
-                        total_amount_usd = dn.total_amount_usd,
+                        total_amount_usd = dn.adjusted_total_usd,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.total_amount_usd - paid
+                        balance_due_usd = dn.adjusted_total_usd - paid
                     });
                 }
 
@@ -196,8 +196,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
-                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.total_amount_usd;
-                    decimal discount = gross - dn.total_amount_usd;
+                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd;
+                    decimal discount = gross - dn.adjusted_total_usd;
 
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
@@ -219,12 +219,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
-                        total_amount_usd = dn.total_amount_usd,
+                        total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.total_amount_usd - paid,
+                        balance_due_usd = dn.adjusted_total_usd - paid,
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText
@@ -299,8 +299,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
-                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.total_amount_usd;
-                    decimal discount = gross - dn.total_amount_usd;
+                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd;
+                    decimal discount = gross - dn.adjusted_total_usd;
 
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
@@ -322,12 +322,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
-                        total_amount_usd = dn.total_amount_usd,
+                        total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.total_amount_usd - paid,
+                        balance_due_usd = dn.adjusted_total_usd - paid,
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText
@@ -371,13 +371,85 @@ namespace NinOS.Infrastructure.Services.Implementations
                     id_seller = dn.id_seller,
                     seller_name = seller?.full_name ?? string.Empty,
                     creation_date = dn.creation_date,
-                    total_amount_usd = dn.total_amount_usd,
+                    total_amount_usd = dn.adjusted_total_usd,
                     gross_total_usd = detail_sum,
-                    discount_amount = detail_sum - dn.total_amount_usd,
+                    discount_amount = detail_sum - dn.adjusted_total_usd,
                     status = dn.status,
                     paid_amount_usd = paid,
-                    balance_due_usd = dn.total_amount_usd - paid
+                    balance_due_usd = dn.adjusted_total_usd - paid
                 };
+            }
+        }
+
+        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                using var transaction = await db_context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    var delivery_note = await db_context.delivery_notes
+                        .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
+                    if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                    if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
+
+                    decimal gross = await db_context.note_details
+                        .AsNoTracking()
+                        .Where(d => d.id_delivery_note == id_delivery_note)
+                        .SumAsync(d => (decimal?)d.subtotal_usd) ?? delivery_note.adjusted_total_usd;
+
+                    decimal adjusted = adjusted_total_usd < 0 ? 0 : adjusted_total_usd;
+                    if (adjusted > gross) adjusted = gross;
+
+                    delivery_note.adjusted_total_usd = adjusted;
+
+                    decimal total_paid = await db_context.payments
+                        .AsNoTracking()
+                        .Where(p => p.id_delivery_note == id_delivery_note)
+                        .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+
+                    var existing_commission = await db_context.commissions
+                        .FirstOrDefaultAsync(c => c.id_delivery_note == id_delivery_note);
+
+                    if (total_paid >= adjusted)
+                    {
+                        if (delivery_note.status != "Pagada")
+                        {
+                            delivery_note.status = "Pagada";
+
+                            if (existing_commission == null)
+                            {
+                                existing_commission = new commission(
+                                    delivery_note.id_seller,
+                                    delivery_note.id_delivery_note,
+                                    0.10m,
+                                    Math.Round(adjusted * 0.10m, 2),
+                                    false,
+                                    null);
+                                await db_context.commissions.AddAsync(existing_commission);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (delivery_note.status == "Pagada") delivery_note.status = "Pendiente";
+                    }
+
+                    if (existing_commission != null)
+                    {
+                        existing_commission.amount_usd = Math.Round(adjusted * existing_commission.commission_percentage, 2);
+                    }
+
+                    await db_context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
         }
 

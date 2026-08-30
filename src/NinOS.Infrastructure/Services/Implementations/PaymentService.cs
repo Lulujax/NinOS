@@ -36,7 +36,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
 
-                new_payment.amount_bs = new_payment.exchange_rate > 0 ? new_payment.amount_usd * new_payment.exchange_rate.Value : 0;
+                new_payment.amount_bs = new_payment.amount_bs < 0 ? 0 : new_payment.amount_bs;
                 if (string.IsNullOrEmpty(new_payment.bank_name)) new_payment.bank_name = "";
                 if (string.IsNullOrEmpty(new_payment.observations)) new_payment.observations = "";
                 await _db_context.payments.AddAsync(new_payment);
@@ -52,11 +52,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     total_paid_usd += all_payments[i].amount_usd;
                 }
 
-                if (total_paid_usd >= target_note.total_amount_usd && target_note.status != "Pagada")
+                if (total_paid_usd >= target_note.adjusted_total_usd && target_note.status != "Pagada")
                 {
                     target_note.status = "Pagada";
                     
-                    decimal generated_amount_usd = target_note.total_amount_usd * 0.10m;
+                    decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
                     commission new_commission = new commission(
                         target_note.id_seller,
                         target_note.id_delivery_note,
@@ -100,7 +100,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 existing.id_delivery_note = updated_payment.id_delivery_note;
                 existing.payment_date = updated_payment.payment_date;
                 existing.amount_usd = updated_payment.amount_usd;
-                existing.amount_bs = updated_payment.exchange_rate > 0 ? updated_payment.amount_usd * updated_payment.exchange_rate.Value : 0;
+                existing.amount_bs = updated_payment.amount_bs < 0 ? 0 : updated_payment.amount_bs;
                 existing.exchange_rate = updated_payment.exchange_rate;
                 existing.payment_type = updated_payment.payment_type;
                 existing.reference_number = updated_payment.reference_number;
@@ -116,7 +116,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 decimal total_paid_usd = all_payments.Sum(p => p.amount_usd);
 
-                bool is_fully_paid = total_paid_usd >= target_note.total_amount_usd;
+                bool is_fully_paid = total_paid_usd >= target_note.adjusted_total_usd;
 
                 var existing_commission = await _db_context.commissions
                     .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
@@ -129,7 +129,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         if (existing_commission == null)
                         {
-                            decimal generated_amount_usd = target_note.total_amount_usd * 0.10m;
+                            decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
                             commission new_commission = new commission(
                                 target_note.id_seller,
                                 target_note.id_delivery_note,
@@ -197,8 +197,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 bank_name = p.bank_name,
                 reference_number = p.reference_number,
                 notes = p.observations,
-                total_note_usd = note?.total_amount_usd ?? 0,
-                balance_due_usd = (note?.total_amount_usd ?? 0) - payments.Sum(x => x.amount_usd)
+                total_note_usd = note?.adjusted_total_usd ?? 0,
+                balance_due_usd = (note?.adjusted_total_usd ?? 0) - payments.Sum(x => x.amount_usd)
             }).ToList();
         }
 
@@ -258,7 +258,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     bank_name = p.bank_name,
                     reference_number = p.reference_number,
                     notes = p.observations,
-                    total_note_usd = note?.total_amount_usd ?? 0
+                    total_note_usd = note?.adjusted_total_usd ?? 0
                 };
             }).ToList();
         }

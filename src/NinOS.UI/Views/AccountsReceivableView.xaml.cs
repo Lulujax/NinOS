@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using NinOS.Domain.ViewModels;
@@ -7,6 +8,16 @@ namespace NinOS.UI.Views
 {
     public partial class AccountsReceivableView : UserControl
     {
+        public static readonly DependencyProperty PaymentsContextProperty =
+            DependencyProperty.Register(nameof(PaymentsContext), typeof(PaymentsViewModel), typeof(AccountsReceivableView),
+                new PropertyMetadata(null));
+
+        public PaymentsViewModel? PaymentsContext
+        {
+            get => (PaymentsViewModel?)GetValue(PaymentsContextProperty);
+            set => SetValue(PaymentsContextProperty, value);
+        }
+
         public AccountsReceivableView()
         {
             InitializeComponent();
@@ -26,7 +37,7 @@ namespace NinOS.UI.Views
                         preview.Owner = Window.GetWindow(this);
                         preview.ShowDialog();
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         MessageBox.Show($"Error al cargar la nota: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
@@ -47,7 +58,29 @@ namespace NinOS.UI.Views
                         _ = viewModel.confirm_annulation_async();
                     }
                 };
+
+                viewModel.on_request_add_payment_for_month = (month) => OpenPaymentWindow(viewModel, month);
+
+                viewModel.on_request_add_payment_for_note = (note) =>
+                {
+                    string month = note.creation_date.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                    OpenPaymentWindow(viewModel, month);
+                };
             }
+        }
+
+        private void OpenPaymentWindow(AccountsReceivableViewModel ar_vm, string month)
+        {
+            if (PaymentsContext == null) return;
+
+            var window = new AddPaymentWindow(PaymentsContext, month);
+            window.Owner = Window.GetWindow(this);
+            window.PaymentRegistered += (_, _) =>
+            {
+                PaymentsContext.refresh_data();
+                ar_vm.refresh_data();
+            };
+            window.ShowDialog();
         }
 
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

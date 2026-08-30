@@ -53,6 +53,14 @@ namespace NinOS.UI
                 configure_services(service_collection);
                 _service_provider = service_collection.BuildServiceProvider();
 
+                log_startup_message("Before DbInitializer");
+                using (var scope = _service_provider.CreateScope())
+                {
+                    var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                    DbInitializer.initialize(db_context);
+                }
+                log_startup_message("After DbInitializer");
+
                 log_startup_message("Before MainWindow resolve");
                 MainWindow main_window = _service_provider.GetRequiredService<MainWindow>();
                 log_startup_message("Before MainWindow show");

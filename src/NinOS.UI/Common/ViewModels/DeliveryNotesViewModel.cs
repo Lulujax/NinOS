@@ -724,7 +724,8 @@ namespace NinOS.UI.Common.ViewModels
                     _selected_seller.id_seller,
                     _selected_customer.id_customer,
                     _total_amount_usd,
-                    "Pendiente"
+                    "Pendiente",
+                    _total_amount_usd
                 );
 
                 List<note_detail> domain_details = new List<note_detail>();

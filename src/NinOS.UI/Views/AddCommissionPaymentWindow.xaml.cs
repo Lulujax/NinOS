@@ -1,73 +1,68 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
 {
-    public class commission_combo_item
-    {
-        public int id_commission { get; set; }
-        public string note_number { get; set; } = string.Empty;
-        public string customer_name { get; set; } = string.Empty;
-        public string seller_name { get; set; } = string.Empty;
-        public decimal commission_percentage { get; set; }
-        public decimal amount_usd { get; set; }
-        public decimal sale_amount_usd => commission_percentage > 0 ? Math.Round(amount_usd / commission_percentage, 2) : amount_usd;
-        public string Display => $"{note_number} - {customer_name} ({seller_name})";
-    }
-
     public partial class AddCommissionPaymentWindow : Window
     {
         private readonly CommissionsViewModel _vm;
-        private commission_combo_item? _selected_item;
-        private List<commission_combo_item> _all_combo_items = new();
+        private readonly List<commission_row_dto> _available;
+        private readonly ObservableCollection<commission_row_dto> _to_pay = new();
+        private commission_row_dto? _selected_note;
+        private bool _loading_list;
 
         public event EventHandler? CommissionPaid;
 
-        public AddCommissionPaymentWindow(CommissionsViewModel vm)
+        public AddCommissionPaymentWindow(CommissionsViewModel vm, List<commission_row_dto> available)
         {
             InitializeComponent();
             _vm = vm;
-            Loaded += async (_, _) => await LoadPendingCommissionsAsync();
+            _available = available ?? new List<commission_row_dto>();
+
+            Loaded += (_, _) => Setup();
         }
 
-        private async System.Threading.Tasks.Task LoadPendingCommissionsAsync()
+        private void Setup()
         {
-            try
-            {
-                var all = await _vm.get_all_commissions_async();
-                _all_combo_items = all
-                    .Where(c => !c.is_paid)
-                    .OrderBy(c => c.note_number)
-                    .Select(c => new commission_combo_item
-                    {
-                        id_commission = c.id_commission,
-                        note_number = c.note_number,
-                        customer_name = c.customer_name,
-                        seller_name = c.seller_name,
-                        commission_percentage = c.commission_percentage,
-                        amount_usd = c.amount_usd
-                    })
-                    .ToList();
+            NotesGrid.ItemsSource = _to_pay;
+            RefreshTotals();
+        }
 
-                FilterNotes(string.Empty);
-            }
-            catch (Exception ex)
+        private void RefreshTotals()
+        {
+            decimal total = _to_pay.Sum(c => c.amount_usd);
+            string seller = _to_pay.FirstOrDefault()?.seller_name ?? string.Empty;
+            SummaryText.Text = $"VENDEDORA: {seller}    |    {_to_pay.Count} NOTA(S)    |    TOTAL COMISION: {total:0.00}";
+            AmountBox.Text = total.ToString("0.##", CultureInfo.InvariantCulture);
+            BtnRegistrar.IsEnabled = _to_pay.Count > 0;
+        }
+
+        private List<commission_row_dto> filter_matches(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
             {
-                ShowError($"Error al cargar comisiones: {ex.Message}");
+                return _available.ToList();
             }
+            string q = query.Trim().ToLowerInvariant();
+            return _available.Where(c =>
+                (c.note_number != null && c.note_number.ToLowerInvariant().Contains(q)) ||
+                (c.customer_name != null && c.customer_name.ToLowerInvariant().Contains(q))).ToList();
         }
 
         private void OnNoteSearchChanged(object sender, TextChangedEventArgs e)
         {
-            string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
-            FilterNotes(query);
-            NotePopup.IsOpen = !string.IsNullOrEmpty(query) && NoteListBox.Items.Count > 0;
+            if (_loading_list) return;
+            var matches = filter_matches(NoteTextBox.Text);
+            _loading_list = true;
+            NoteListBox.ItemsSource = matches;
+            _loading_list = false;
+            NotePopup.IsOpen = matches.Count > 0;
         }
 
         private void OnToggleDropdown(object sender, RoutedEventArgs e)
@@ -75,89 +70,102 @@ namespace NinOS.UI.Views
             if (NotePopup.IsOpen)
             {
                 NotePopup.IsOpen = false;
+                return;
             }
-            else
-            {
-                string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
-                FilterNotes(query);
-                NotePopup.IsOpen = NoteListBox.ItemsSource != null;
-            }
-        }
-
-        private void FilterNotes(string query)
-        {
-            List<commission_combo_item> filtered;
-            if (string.IsNullOrEmpty(query))
-                filtered = _all_combo_items;
-            else
-                filtered = _all_combo_items
-                    .Where(n => (n.note_number?.ToLower().Contains(query) ?? false) ||
-                                (n.customer_name?.ToLower().Contains(query) ?? false) ||
-                                (n.seller_name?.ToLower().Contains(query) ?? false))
-                    .ToList();
-
-            NoteListBox.ItemsSource = filtered;
+            var matches = filter_matches(NoteTextBox.Text);
+            _loading_list = true;
+            NoteListBox.ItemsSource = matches;
+            _loading_list = false;
+            NotePopup.IsOpen = matches.Count > 0;
         }
 
         private void OnNoteListSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (NoteListBox.SelectedItem is commission_combo_item item)
+            if (_loading_list) return;
+            if (NoteListBox.SelectedItem is commission_row_dto row)
             {
-                _selected_item = item;
-                NoteTextBox.Text = item.Display;
-                NotePopup.IsOpen = false;
-
-                ErrorText.Visibility = Visibility.Collapsed;
+                _selected_note = row;
+                NoteInfoText.Text = $"Nota {row.note_number}  |  {row.customer_name}  |  VENTA {row.sale_amount_usd:0.##}  |  COMISION {row.amount_usd:0.##}";
                 NoteInfoBorder.Visibility = Visibility.Visible;
-                NoteInfoText.Text =
-                    $"NOTA: {item.note_number}  |  VENDEDORA: {item.seller_name}\n" +
-                    $"VENTA: {item.sale_amount_usd:0.00}  |  COMISION ({item.commission_percentage * 100:0}%): {item.amount_usd:0.00}";
-                BtnRegistrar.IsEnabled = true;
+                NotePopup.IsOpen = false;
             }
         }
 
-        private void OnRateChanged(object sender, TextChangedEventArgs e) => UpdateEquiv();
-
-        private void OnAmountChanged(object sender, TextChangedEventArgs e) => UpdateEquiv();
-
-        private void UpdateEquiv()
+        private void OnAddClick(object sender, RoutedEventArgs e)
         {
-            if (_selected_item == null) { EquivText.Text = ""; return; }
-
-            decimal bs = ParseDecimal(AmountBox.Text);
-            decimal rate = ParseDecimal(RateBox.Text);
-            if (bs > 0 && rate > 0)
+            var note = _selected_note;
+            if (note == null)
             {
-                decimal usd = Math.Round(bs / rate, 2);
-                EquivText.Text = $"{usd.ToString("0.00", CultureInfo.InvariantCulture)}  |  comision: {_selected_item.amount_usd.ToString("0.00", CultureInfo.InvariantCulture)}";
+                ShowError("Busque y seleccione una nota para añadir.");
+                return;
             }
-            else
+            ClearError();
+            if (_to_pay.Any(c => c.id_commission == note.id_commission))
             {
-                EquivText.Text = "";
+                ShowError($"La nota {note.note_number} ya fue añadida.");
+                return;
+            }
+            _to_pay.Add(note);
+            _selected_note = null;
+            _loading_list = true;
+            NoteTextBox.Text = "";
+            NoteListBox.ItemsSource = null;
+            _loading_list = false;
+            NotePopup.IsOpen = false;
+            NoteInfoBorder.Visibility = Visibility.Collapsed;
+            RefreshTotals();
+        }
+
+        private void OnRemoveClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is commission_row_dto row)
+            {
+                _to_pay.Remove(row);
+                RefreshTotals();
             }
         }
 
         private void OnPreviewNumeric(object sender, System.Windows.Input.TextCompositionEventArgs e)
         {
-            TextBox? tb = sender as TextBox;
-            string current = tb?.Text ?? string.Empty;
-            foreach (char c in e.Text)
-            {
-                if (char.IsDigit(c)) continue;
-                bool isSep = c == ',' || c == '.';
-                bool hasSep = current.Contains(',') || current.Contains('.');
-                if (isSep && !hasSep) continue;
-                e.Handled = true;
-                return;
-            }
+            e.Handled = !IsNumeric(e.Text);
         }
 
-        private decimal ParseDecimal(string text)
+        private bool IsNumeric(string text)
         {
-            if (string.IsNullOrWhiteSpace(text)) return 0;
-            string norm = text.Replace(',', '.');
-            if (decimal.TryParse(norm, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal r)) return r;
+            foreach (char c in text)
+            {
+                if (!char.IsDigit(c) && c != '.') return false;
+            }
+            return true;
+        }
+
+        private decimal ParseDecimal(string? text)
+        {
+            if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal value))
+            {
+                return value;
+            }
+            if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out decimal current))
+            {
+                return current;
+            }
             return 0;
+        }
+
+        private void ShowError(string message)
+        {
+            ErrorText.Text = message;
+            ErrorText.Visibility = Visibility.Visible;
+        }
+
+        private void ClearError()
+        {
+            ErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        private void OnCancelClick(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
 
         private async void OnConfirmClick(object sender, RoutedEventArgs e)
@@ -165,28 +173,67 @@ namespace NinOS.UI.Views
             BtnRegistrar.IsEnabled = false;
             try
             {
-                if (_selected_item == null) { ShowError("Seleccione una nota."); return; }
+                ClearError();
+
+                if (_to_pay.Count == 0)
+                {
+                    ShowError("Añada al menos una nota para liquidar.");
+                    return;
+                }
+
+                int sellers = _to_pay.Select(c => c.id_seller).Distinct().Count();
+                if (sellers > 1)
+                {
+                    ShowError("Las notas añadidas son de vendedoras distintas. Añada solo notas de una misma vendedora.");
+                    return;
+                }
 
                 decimal rate = ParseDecimal(RateBox.Text);
-                if (rate <= 0) { ShowError("Ingrese tasa BS/USD valida."); return; }
+                if (rate <= 0)
+                {
+                    ShowError("La tasa BS/USD es obligatoria.");
+                    return;
+                }
 
-                decimal amount_bs = ParseDecimal(AmountBox.Text);
-                if (amount_bs <= 0) { ShowError("Ingrese el monto pagado."); return; }
+                decimal amount_usd = ParseDecimal(AmountBox.Text);
+                if (amount_usd <= 0)
+                {
+                    ShowError("Ingrese el monto USD.");
+                    return;
+                }
 
-string payment_type = (TypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Pago Movil";
-            string reference = ReferenceBox.Text?.Trim() ?? "";
+                decimal amount_bs = ParseDecimal(BsAmountBox.Text);
+                if (amount_bs <= 0)
+                {
+                    ShowError("El monto BS es obligatorio.");
+                    return;
+                }
 
-            var result = MessageBox.Show(
-                $"Nota: {_selected_item.note_number}\nComision: {_selected_item.amount_usd:0.00}\n" +
-                $"Monto pagado: {amount_bs.ToString("0.00", CultureInfo.InvariantCulture)}  (tasa {rate:0.00})\n\n" +
-                $"Desea liquidar esta comision?",
-                    "Confirmar liquidacion",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                string reference = ReferenceBox.Text?.Trim() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(reference))
+                {
+                    ShowError("Ingrese la referencia.");
+                    return;
+                }
 
-                if (result != MessageBoxResult.Yes) { ShowError("Liquidacion cancelada."); return; }
+                string payment_type = (TypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Pago Movil";
 
-                await _vm.pay_commission_async(_selected_item.id_commission, rate, payment_type, reference, amount_bs);
+                decimal total = _to_pay.Sum(c => c.amount_usd);
+                string seller = _to_pay.FirstOrDefault()?.seller_name ?? string.Empty;
+
+                var result = MessageBox.Show(
+                    $"VENDEDORA: {seller}\nNOTAS A PAGAR: {_to_pay.Count}\nTOTAL COMISION USD: {total:0.##}\n\n" +
+                    $"TASA: {rate:0.##}\nMONTO BS: {amount_bs:0.##}\nTIPO: {payment_type}\nREFERENCIA: {reference}\n\n" +
+                    "¿Confirmar liquidacion de comisiones?",
+                    "Confirmar Liquidacion", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                int[] ids = _to_pay.Select(c => c.id_commission).ToArray();
+                await _vm.pay_commissions_async(ids, rate, payment_type, reference, amount_bs);
 
                 CommissionPaid?.Invoke(this, EventArgs.Empty);
                 Close();
@@ -195,14 +242,6 @@ string payment_type = (TypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToStrin
             {
                 BtnRegistrar.IsEnabled = true;
             }
-        }
-
-        private void OnCancelClick(object sender, RoutedEventArgs e) => Close();
-
-        private void ShowError(string msg)
-        {
-            ErrorText.Text = msg;
-            ErrorText.Visibility = Visibility.Visible;
         }
     }
 }

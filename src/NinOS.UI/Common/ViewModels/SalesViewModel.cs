@@ -80,6 +80,7 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Todas");
             filter_options.Add("Por Cobrar");
             filter_options.Add("Pagadas");
+            filter_options.Add("Anuladas");
 
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
@@ -101,7 +102,7 @@ namespace NinOS.UI.Common.ViewModels
                 _is_loading = true;
 
                 var raw = await _receivable_service.get_all_notes_async();
-                var all_rows = raw.Where(n => n.status != "Anulada").ToList();
+                var all_rows = raw.ToList();
 
                 var unique_months = all_rows
                     .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
@@ -138,6 +139,8 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(n => n.status == "Pendiente").ToList();
             else if (_selected_filter == "Pagadas")
                 filtered = filtered.Where(n => n.status == "Pagada").ToList();
+            else if (_selected_filter == "Anuladas")
+                filtered = filtered.Where(n => n.status == "Anulada").ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());

@@ -18,14 +18,6 @@ namespace NinOS.UI.Views
         {
             if (DataContext is PaymentsViewModel vm)
             {
-                vm.on_request_add_payment_window = () =>
-                {
-                    var window = new AddPaymentWindow(vm, vm.selected_month);
-                    window.Owner = Window.GetWindow(this);
-                    window.PaymentRegistered += (_, _) => vm.refresh_data();
-                    window.ShowDialog();
-                };
-
                 txt_search.TextChanged += Txt_search_TextChanged;
             }
         }

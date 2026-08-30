@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
@@ -10,7 +13,7 @@ using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
-    public class accounts_receivable_row_dto
+    public class accounts_receivable_row_dto : INotifyPropertyChanged
     {
         public int id_delivery_note { get; set; }
         public string note_number { get; set; } = string.Empty;
@@ -29,6 +32,68 @@ namespace NinOS.UI.Common.ViewModels
         public string bank_name_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public string month_key { get; set; } = string.Empty;
+
+        private bool _is_editing;
+        private string _edit_monto_text = string.Empty;
+        private string _edit_dcto_text = string.Empty;
+        private bool _syncing;
+
+        public bool is_editing
+        {
+            get => _is_editing;
+            set { _is_editing = value; on_property_changed(); }
+        }
+
+        public string edit_monto_text
+        {
+            get => _edit_monto_text;
+            set
+            {
+                if (_edit_monto_text == value) return;
+                _edit_monto_text = value;
+                on_property_changed();
+                if (!_syncing && gross_total_usd > 0)
+                {
+                    _syncing = true;
+                    decimal monto = accounts_receivable_row_dto.parse_numeric(value);
+                    edit_dcto_text = monto <= 0 ? "" : $"{((gross_total_usd - monto) / gross_total_usd * 100):0.###}";
+                    _syncing = false;
+                }
+            }
+        }
+
+        public string edit_dcto_text
+        {
+            get => _edit_dcto_text;
+            set
+            {
+                if (_edit_dcto_text == value) return;
+                _edit_dcto_text = value;
+                on_property_changed();
+                if (!_syncing && gross_total_usd > 0)
+                {
+                    _syncing = true;
+                    decimal pct = accounts_receivable_row_dto.parse_numeric(value);
+                    edit_monto_text = pct < 0 ? "" : $"{gross_total_usd * (1 - pct / 100):0.###}";
+                    _syncing = false;
+                }
+            }
+        }
+
+        public static decimal parse_numeric(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return -1;
+            string normalized = text.Replace(',', '.');
+            if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal result)) return result;
+            return -1;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void on_property_changed([CallerMemberName] string? property_name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property_name));
+        }
     }
 
     public class AccountsReceivableViewModel : ViewModelBase
@@ -112,9 +177,16 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand annul_note_command { get; }
         public ICommand preview_note_command { get; }
         public ICommand print_pdf_command { get; }
+        public ICommand start_edit_command { get; }
+        public ICommand apply_edit_command { get; }
+        public ICommand cancel_edit_command { get; }
+        public ICommand request_payment_command { get; }
+        public ICommand add_payment_command { get; }
 
         public Action<accounts_receivable_row_dto>? on_request_preview_window;
         public Action? on_request_confirmation_window;
+        public Action<accounts_receivable_row_dto>? on_request_add_payment_for_note;
+        public Action<string>? on_request_add_payment_for_month;
 
         public AccountsReceivableViewModel(IAccountsReceivableService receivable_service)
         {
@@ -134,13 +206,18 @@ namespace NinOS.UI.Common.ViewModels
             annul_note_command = new RelayCommand(execute_annul_note);
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
+            start_edit_command = new RelayCommand(execute_start_edit);
+            apply_edit_command = new RelayCommand(execute_apply_edit);
+            cancel_edit_command = new RelayCommand(execute_cancel_edit);
+            request_payment_command = new RelayCommand(execute_request_payment);
+            add_payment_command = new RelayCommand(execute_add_payment);
 
-            load_all_async();
+            _ = load_all_async();
         }
 
-        public void refresh_data() => load_all_async();
+        public void refresh_data() => _ = load_all_async();
 
-        private async void load_all_async()
+        private async Task load_all_async()
         {
             try
             {
@@ -275,7 +352,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 await _receivable_service.annul_delivery_note_async(selected_note.id_delivery_note);
                 selected_note = null;
-                load_all_async();
+                await load_all_async();
             }
             catch (Exception ex)
             {
@@ -306,6 +383,53 @@ namespace NinOS.UI.Common.ViewModels
             {
                 System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        private void execute_start_edit(object? parameter)
+        {
+            if (parameter is not accounts_receivable_row_dto note) return;
+            foreach (var row in _all_notes_source) row.is_editing = false;
+            note.edit_monto_text = $"{note.total_amount_usd:0.##}";
+            note.edit_dcto_text = note.gross_total_usd > 0 && note.discount_amount > 0 ? $"{note.discount_amount / note.gross_total_usd * 100:0.###}" : "0";
+            note.is_editing = true;
+        }
+
+        private void execute_cancel_edit(object? parameter)
+        {
+            if (parameter is accounts_receivable_row_dto note) note.is_editing = false;
+        }
+
+        private async void execute_apply_edit(object? parameter)
+        {
+            if (parameter is not accounts_receivable_row_dto note) return;
+            if (note.status == "Anulada") { note.is_editing = false; return; }
+            try
+            {
+                decimal gross = note.gross_total_usd;
+                decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);
+                decimal adjusted = monto > 0 ? monto : gross * (1 - Math.Max(0, accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text)) / 100);
+                adjusted = Math.Min(gross, Math.Max(0, adjusted));
+
+                await _receivable_service.update_note_total_async(note.id_delivery_note, adjusted);
+
+                note.is_editing = false;
+                await load_all_async();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al guardar: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_request_payment(object? parameter)
+        {
+            if (parameter is accounts_receivable_row_dto note)
+                on_request_add_payment_for_note?.Invoke(note);
+        }
+
+        private void execute_add_payment(object? parameter)
+        {
+            on_request_add_payment_for_month?.Invoke(selected_month);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace NinOS.Domain
         private int _id_seller;
         private int _id_customer;
         private decimal _total_amount_usd;
+        private decimal _adjusted_total_usd;
         private string _status;
 
         public int id_delivery_note
@@ -72,6 +73,16 @@ namespace NinOS.Domain
             }
         }
 
+        public decimal adjusted_total_usd
+        {
+            get { return _adjusted_total_usd; }
+            set
+            {
+                if (value < 0) throw new ArgumentException();
+                _adjusted_total_usd = value;
+            }
+        }
+
         public string status
         {
             get { return _status; }
@@ -88,13 +99,14 @@ namespace NinOS.Domain
             _status = "-";
         }
 
-        public delivery_note(string note_number, DateTime creation_date, int id_seller, int id_customer, decimal total_amount_usd, string status)
+        public delivery_note(string note_number, DateTime creation_date, int id_seller, int id_customer, decimal total_amount_usd, string status, decimal adjusted_total_usd)
         {
             this.note_number = note_number;
             this.creation_date = creation_date;
             this.id_seller = id_seller;
             this.id_customer = id_customer;
             this.total_amount_usd = total_amount_usd;
+            this.adjusted_total_usd = adjusted_total_usd;
             this.status = status;
         }
     }
