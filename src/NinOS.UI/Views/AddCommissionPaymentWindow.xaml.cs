@@ -14,7 +14,6 @@ namespace NinOS.UI.Views
         private readonly CommissionsViewModel _vm;
         private readonly List<commission_row_dto> _available;
         private readonly ObservableCollection<commission_row_dto> _to_pay = new();
-        private commission_row_dto? _selected_note;
         private bool _loading_list;
 
         public event EventHandler? CommissionPaid;
@@ -31,28 +30,35 @@ namespace NinOS.UI.Views
         private void Setup()
         {
             NotesGrid.ItemsSource = _to_pay;
+            PaymentDatePicker.SelectedDate = DateTime.Today;
             RefreshTotals();
         }
 
         private void RefreshTotals()
         {
-            decimal total = _to_pay.Sum(c => c.amount_usd);
+            decimal total_pending = _to_pay.Sum(c => c.remaining_amount_usd);
             string seller = _to_pay.FirstOrDefault()?.seller_name ?? string.Empty;
-            SummaryText.Text = $"VENDEDORA: {seller}    |    {_to_pay.Count} NOTA(S)    |    TOTAL COMISION: {total:0.00}";
-            AmountBox.Text = total.ToString("0.##", CultureInfo.InvariantCulture);
+            SummaryText.Text = $"VENDEDORA: {seller}    |    {_to_pay.Count} NOTA(S)    |    TOTAL PENDIENTE: {total_pending:0.00}";
+            AmountBox.Text = total_pending.ToString("0.##", CultureInfo.InvariantCulture);
             BtnRegistrar.IsEnabled = _to_pay.Count > 0;
         }
 
         private List<commission_row_dto> filter_matches(string query)
         {
-            if (string.IsNullOrWhiteSpace(query))
+            IEnumerable<commission_row_dto> rows = _available;
+            if (_to_pay.Count > 0)
             {
-                return _available.ToList();
+                int seller_id = _to_pay[0].id_seller;
+                rows = rows.Where(c => c.id_seller == seller_id);
             }
-            string q = query.Trim().ToLowerInvariant();
-            return _available.Where(c =>
-                (c.note_number != null && c.note_number.ToLowerInvariant().Contains(q)) ||
-                (c.customer_name != null && c.customer_name.ToLowerInvariant().Contains(q))).ToList();
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                string q = query.Trim().ToLowerInvariant();
+                rows = rows.Where(c =>
+                    (c.note_number != null && c.note_number.ToLowerInvariant().Contains(q)) ||
+                    (c.customer_name != null && c.customer_name.ToLowerInvariant().Contains(q)));
+            }
+            return rows.ToList();
         }
 
         private void OnNoteSearchChanged(object sender, TextChangedEventArgs e)
@@ -82,37 +88,29 @@ namespace NinOS.UI.Views
         private void OnNoteListSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_loading_list) return;
-            if (NoteListBox.SelectedItem is commission_row_dto row)
-            {
-                _selected_note = row;
-                NoteInfoText.Text = $"Nota {row.note_number}  |  {row.customer_name}  |  VENTA {row.sale_amount_usd:0.##}  |  COMISION {row.amount_usd:0.##}";
-                NoteInfoBorder.Visibility = Visibility.Visible;
-                NotePopup.IsOpen = false;
-            }
-        }
+            if (!(NoteListBox.SelectedItem is commission_row_dto row)) return;
 
-        private void OnAddClick(object sender, RoutedEventArgs e)
-        {
-            var note = _selected_note;
-            if (note == null)
-            {
-                ShowError("Busque y seleccione una nota para añadir.");
-                return;
-            }
             ClearError();
-            if (_to_pay.Any(c => c.id_commission == note.id_commission))
+            if (_to_pay.Count > 0 && row.id_seller != _to_pay[0].id_seller)
             {
-                ShowError($"La nota {note.note_number} ya fue añadida.");
+                ShowError($"La nota {row.note_number} es de otra vendedora ({row.seller_name}). Solo puede añadir notas de {_to_pay[0].seller_name}.");
+                NotePopup.IsOpen = false;
+                _loading_list = true;
+                NoteListBox.SelectedItem = null;
+                _loading_list = false;
                 return;
             }
-            _to_pay.Add(note);
-            _selected_note = null;
+
+            if (!_to_pay.Any(c => c.id_commission == row.id_commission))
+            {
+                _to_pay.Add(row);
+            }
+
             _loading_list = true;
             NoteTextBox.Text = "";
             NoteListBox.ItemsSource = null;
             _loading_list = false;
             NotePopup.IsOpen = false;
-            NoteInfoBorder.Visibility = Visibility.Collapsed;
             RefreshTotals();
         }
 
@@ -194,11 +192,33 @@ namespace NinOS.UI.Views
                     ShowError("La tasa BS/USD es obligatoria.");
                     return;
                 }
+                if (rate > 10_000_000m)
+                {
+                    ShowError("La tasa ingresada es demasiado grande. Revise el campo Tasa.");
+                    return;
+                }
 
                 decimal amount_usd = ParseDecimal(AmountBox.Text);
                 if (amount_usd <= 0)
                 {
                     ShowError("Ingrese el monto USD.");
+                    return;
+                }
+                if (amount_usd > 10_000_000m)
+                {
+                    ShowError("El monto USD ingresado es demasiado grande.");
+                    return;
+                }
+
+                decimal total_pending = _to_pay.Sum(c => c.remaining_amount_usd);
+                if (total_pending > 10_000_000m)
+                {
+                    ShowError("El total pendiente es demasiado grande.");
+                    return;
+                }
+                if (amount_usd > total_pending)
+                {
+                    ShowError($"El monto USD ({amount_usd:0.##}) supera el total pendiente seleccionado ({total_pending:0.##}).");
                     return;
                 }
 
@@ -218,13 +238,40 @@ namespace NinOS.UI.Views
 
                 string payment_type = (TypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Pago Movil";
 
-                decimal total = _to_pay.Sum(c => c.amount_usd);
+                DateTime? selected_date = PaymentDatePicker.SelectedDate;
+                DateTime payment_date = selected_date ?? DateTime.Today;
+
+                string bank_name = BankBox.Text?.Trim() ?? string.Empty;
+                string observations = ObsBox.Text?.Trim() ?? string.Empty;
+
                 string seller = _to_pay.FirstOrDefault()?.seller_name ?? string.Empty;
 
+                var ordered = _to_pay.OrderBy(c => c.remaining_amount_usd).ToList();
+                decimal remain = amount_usd;
+                int fully = 0;
+                foreach (var c in ordered)
+                {
+                    if (remain <= 0) break;
+                    decimal r = c.remaining_amount_usd;
+                    if (remain >= r) { remain -= r; fully++; }
+                    else { remain = 0; }
+                }
+                decimal pending_after = total_pending - amount_usd;
+
+                string plan = $"FECHA: {payment_date:dd/MM/yyyy}\n" +
+                    $"TASA: {rate:0.##}\nMONTO BS: {amount_bs:0.##}\nTIPO: {payment_type}\nREFERENCIA: {reference}\n" +
+                    (string.IsNullOrWhiteSpace(bank_name) ? "" : $"BANCO: {bank_name}\n") +
+                    (string.IsNullOrWhiteSpace(observations) ? "" : $"OBSERVACION: {observations}\n") +
+                    $"\nNotas que quedan pagas: {fully}\n";
+                if (pending_after > 0)
+                    plan += $"Queda pendiente por pagar: {pending_after:0.##}\n";
+                else
+                    plan += "No quedan saldos pendientes.\n";
+
                 var result = MessageBox.Show(
-                    $"VENDEDORA: {seller}\nNOTAS A PAGAR: {_to_pay.Count}\nTOTAL COMISION USD: {total:0.##}\n\n" +
-                    $"TASA: {rate:0.##}\nMONTO BS: {amount_bs:0.##}\nTIPO: {payment_type}\nREFERENCIA: {reference}\n\n" +
-                    "¿Confirmar liquidacion de comisiones?",
+                    $"VENDEDORA: {seller}\nNOTAS A PAGAR: {_to_pay.Count}\nTOTAL PENDIENTE: {total_pending:0.##}\nA PAGAR: {amount_usd:0.##}\n\n" +
+                    plan +
+                    "\n¿Confirmar liquidacion de comisiones?",
                     "Confirmar Liquidacion", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result != MessageBoxResult.Yes)
@@ -233,7 +280,7 @@ namespace NinOS.UI.Views
                 }
 
                 int[] ids = _to_pay.Select(c => c.id_commission).ToArray();
-                await _vm.pay_commissions_async(ids, rate, payment_type, reference, amount_bs);
+                await _vm.pay_commissions_async(ids, amount_usd, rate, payment_type, reference, amount_bs, payment_date, bank_name, observations);
 
                 CommissionPaid?.Invoke(this, EventArgs.Empty);
                 Close();

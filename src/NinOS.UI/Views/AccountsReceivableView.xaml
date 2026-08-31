@@ -384,7 +384,8 @@
                 <TabItem.Header>
                     <TextBlock Text="Todos" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding all_notes}">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding all_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -422,6 +423,40 @@
                     </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding observations}" ToolTip="{Binding observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="ACCIONES" Width="*" CanUserResize="False">
                             <DataGridTemplateColumn.HeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">
@@ -443,7 +478,8 @@
                 <TabItem.Header>
                     <TextBlock Text="Sandra" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding sandra_notes}">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding sandra_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -481,6 +517,40 @@
                     </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding observations}" ToolTip="{Binding observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="ACCIONES" Width="*" CanUserResize="False">
                             <DataGridTemplateColumn.HeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">
@@ -502,7 +572,8 @@
                 <TabItem.Header>
                     <TextBlock Text="Anais" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding anais_notes}">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding anais_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -540,6 +611,40 @@
                     </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding observations}" ToolTip="{Binding observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="ACCIONES" Width="*" CanUserResize="False">
                             <DataGridTemplateColumn.HeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">
@@ -561,7 +666,8 @@
                 <TabItem.Header>
                     <TextBlock Text="Alejandra" FontWeight="SemiBold" FontSize="12.5"/>
                 </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding alejandra_notes}">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding alejandra_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -599,6 +705,40 @@
                     </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding observations}" ToolTip="{Binding observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="ACCIONES" Width="*" CanUserResize="False">
                             <DataGridTemplateColumn.HeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">

@@ -13,6 +13,7 @@ namespace NinOS.Domain.ViewModels
         public DateTime creation_date { get; set; }
         public decimal commission_percentage { get; set; }
         public decimal amount_usd { get; set; }
+        public decimal paid_amount_usd { get; set; }
         public decimal amount_bs { get; set; }
         public decimal exchange_rate { get; set; }
         public string reference_number { get; set; } = string.Empty;

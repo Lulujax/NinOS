@@ -93,6 +93,9 @@ namespace NinOS.Domain
             }
         }
 
+        public string? cxc_observations { get; set; }
+        public string? sales_observations { get; set; }
+
         protected delivery_note()
         {
             _note_number = "-";

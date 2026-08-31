@@ -11,7 +11,7 @@
             </TabItem>
             <TabItem Header="Cuentas por Cobrar">
                 <views:AccountsReceivableView DataContext="{Binding accounts_receivable_vm}"
-                                              PaymentsContext="{Binding payments_vm}" />
+                                              PaymentsContext="{Binding DataContext.payments_vm, RelativeSource={RelativeSource AncestorType=Window}}" />
             </TabItem>
             <TabItem Header="Ventas">
                 <views:SalesView DataContext="{Binding sales_vm}" />
@@ -21,7 +21,7 @@
             </TabItem>
             <TabItem Header="Comisiones">
                 <views:CommissionsView DataContext="{Binding commissions_vm}"
-                                       PaymentsContext="{Binding payments_vm}" />
+                                       PaymentsContext="{Binding DataContext.payments_vm, RelativeSource={RelativeSource AncestorType=Window}}" />
             </TabItem>
             <TabItem Header="Clientes">
                 <views:CustomerView DataContext="{Binding customer_vm}" />

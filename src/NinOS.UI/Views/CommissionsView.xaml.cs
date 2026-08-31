@@ -48,7 +48,7 @@ namespace NinOS.UI.Views
                     try
                     {
                         if (PaymentsContext == null) return;
-                        var window = new CommissionHistoryWindow(PaymentsContext, row);
+                        var window = new CommissionHistoryWindow(viewModel, PaymentsContext, row);
                         window.Owner = Window.GetWindow(this);
                         window.ShowDialog();
                     }
@@ -79,10 +79,30 @@ namespace NinOS.UI.Views
 
         private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (sender is DataGrid dg && dg.SelectedItem is commission_row_dto row)
+            var row = (e.OriginalSource as FrameworkElement)?.DataContext as commission_row_dto
+                ?? (sender as DataGrid)?.SelectedItem as commission_row_dto;
+
+            if (row == null)
             {
-                if (DataContext is CommissionsViewModel vm)
-                    vm.on_request_commission_history_window?.Invoke(row);
+                MessageBox.Show("No se pudo identificar la comision seleccionada.", "Historial");
+                return;
+            }
+
+            if (DataContext is not CommissionsViewModel vm)
+            {
+                MessageBox.Show("Contexto de comisiones no disponible.", "Historial");
+                return;
+            }
+
+            try
+            {
+                var window = new CommissionHistoryWindow(vm, PaymentsContext, row);
+                window.Owner = Window.GetWindow(this);
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir historial: {ex.Message}", "Error");
             }
         }
     }

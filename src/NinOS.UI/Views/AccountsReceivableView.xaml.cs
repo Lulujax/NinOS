@@ -99,5 +99,78 @@ namespace NinOS.UI.Views
         {
             if (DataContext is AccountsReceivableViewModel vm) vm.search_query = "";
         }
+
+        private void DataGrid_PreviewMouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var grid = sender as DataGrid;
+            if (grid?.CurrentColumn?.Header?.ToString() != "OBSERVACION") return;
+            if (grid.SelectedItem is not accounts_receivable_row_dto row) return;
+            row.saved_observations = row.observations;
+            row.is_editing_observations = true;
+            FocusObservationsTextBox(e);
+        }
+
+        private static void FocusObservationsTextBox(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var source = e.OriginalSource as System.Windows.DependencyObject;
+            while (source != null && source is not DataGridCell)
+                source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+            if (source is not DataGridCell cell) return;
+
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.Input,
+                new System.Action(() =>
+                {
+                    var textbox = FindVisualChild<TextBox>(cell);
+                    if (textbox == null) return;
+                    textbox.Focus();
+                    textbox.CaretIndex = textbox.Text.Length;
+                }));
+        }
+
+        private static T? FindVisualChild<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T match) return match;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        private async void ObsTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (sender is not TextBox textbox) return;
+            if (textbox.DataContext is not accounts_receivable_row_dto row) return;
+            if (!row.is_editing_observations) return;
+
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                string text = textbox.Text?.Trim() ?? string.Empty;
+                row.is_editing_observations = false;
+                if (DataContext is AccountsReceivableViewModel vm)
+                    await vm.save_observations_async(row, text);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                e.Handled = true;
+                row.observations = row.saved_observations ?? string.Empty;
+                row.is_editing_observations = false;
+            }
+        }
+
+        private async void ObsTextBox_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (sender is not TextBox textbox) return;
+            if (textbox.DataContext is not accounts_receivable_row_dto row) return;
+            if (!row.is_editing_observations) return;
+            string text = textbox.Text?.Trim() ?? string.Empty;
+            row.is_editing_observations = false;
+            if (DataContext is AccountsReceivableViewModel vm)
+                await vm.save_observations_async(row, text);
+        }
     }
 }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -354,23 +356,23 @@ namespace NinOS.UI.Common.ViewModels
 
                 string safe_category = p.category ?? string.Empty;
 
-                if (safe_category.Contains("Defile", StringComparison.OrdinalIgnoreCase))
+                if (safe_category.Equals("Defile", StringComparison.OrdinalIgnoreCase))
                     defile_list.Add(new_dto);
-                else if (safe_category.Contains("Ole", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Oleos", StringComparison.OrdinalIgnoreCase))
                     oleos_list.Add(new_dto);
-                else if (safe_category.Contains("Rembrandt", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Rembrandt", StringComparison.OrdinalIgnoreCase))
                     rembrandt_list.Add(new_dto);
-                else if (safe_category.Contains("Bioline", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Bioline", StringComparison.OrdinalIgnoreCase))
                     bioline_list.Add(new_dto);
-                else if (safe_category.Contains("Amazonia", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Amazonia Secret", StringComparison.OrdinalIgnoreCase))
                     amazonia_list.Add(new_dto);
-                else if (safe_category.Contains("Kedam", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Kedam", StringComparison.OrdinalIgnoreCase))
                     kedam_list.Add(new_dto);
-                else if (safe_category.Contains("Depil", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Depil Clear", StringComparison.OrdinalIgnoreCase))
                     depil_list.Add(new_dto);
-                else if (safe_category.Contains("Estilista", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Estilista", StringComparison.OrdinalIgnoreCase))
                     estilista_list.Add(new_dto);
-                else if (safe_category.Contains("Cutique", StringComparison.OrdinalIgnoreCase))
+                else if (safe_category.Equals("Cutique", StringComparison.OrdinalIgnoreCase))
                     cutique_list.Add(new_dto);
                 else
                     otros_list.Add(new_dto);
@@ -518,48 +520,93 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_delete_product(object? parameter)
         {
-            if (parameter is inventory_item_dto dto && !dto.is_promotion && dto.product_ref != null)
+            if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
+
+            MessageBoxResult confirm = MessageBox.Show(
+                $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?",
+                "Confirmar eliminación",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
             {
                 await _inventory_service.delete_product_async(dto.product_ref);
                 load_initial_data_async();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"No se pudo eliminar el producto: {ex.Message}";
             }
         }
 
         private async void execute_delete_promotion(object? parameter)
         {
-            if (parameter is inventory_item_dto dto && dto.is_promotion && dto.promo_ref != null)
+            if (parameter is not inventory_item_dto dto || !dto.is_promotion || dto.promo_ref == null) return;
+
+            MessageBoxResult confirm = MessageBox.Show(
+                $"¿Seguro de eliminar la promoción \"{dto.promo_ref.name}\"?",
+                "Confirmar eliminación",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
             {
                 await _inventory_service.delete_promotion_async(dto.promo_ref);
                 load_initial_data_async();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"No se pudo eliminar la promoción: {ex.Message}";
             }
         }
 
         private async void execute_save_product(object? parameter)
         {
             if (string.IsNullOrWhiteSpace(new_code) || string.IsNullOrWhiteSpace(new_name) || string.IsNullOrWhiteSpace(new_category))
+            {
+                ErrorMessage = "Código, nombre y categoría son obligatorios.";
                 return;
-
-            decimal parsed_price = decimal.TryParse(new_price, out decimal temp_price) ? temp_price : 0m;
-            int parsed_quantity = int.TryParse(new_quantity, out int temp_qty) ? temp_qty : 0;
-
-            if (_product_being_edited != null)
-            {
-                _product_being_edited.product_code = new_code;
-                _product_being_edited.name = new_name;
-                _product_being_edited.category = new_category;
-                _product_being_edited.unit_price_usd = parsed_price;
-                _product_being_edited.stock_quantity = parsed_quantity;
-                await _inventory_service.update_product_async(_product_being_edited);
             }
-            else
+
+            if (!int.TryParse(new_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed_quantity) || parsed_quantity < 0)
             {
-                product new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
-                await _inventory_service.add_product_async(new_prod);
+                ErrorMessage = "La cantidad debe ser un número entero mayor o igual a 0.";
+                return;
             }
-            
-            _product_being_edited = null;
-            load_initial_data_async();
-            on_close_add_window?.Invoke();
+
+            if (!decimal.TryParse((new_price ?? string.Empty).Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsed_price) || parsed_price < 0)
+            {
+                ErrorMessage = "El precio debe ser un número mayor o igual a 0.";
+                return;
+            }
+
+            try
+            {
+                if (_product_being_edited != null)
+                {
+                    _product_being_edited.product_code = new_code;
+                    _product_being_edited.name = new_name;
+                    _product_being_edited.category = new_category;
+                    _product_being_edited.unit_price_usd = parsed_price;
+                    _product_being_edited.stock_quantity = parsed_quantity;
+                    await _inventory_service.update_product_async(_product_being_edited);
+                }
+                else
+                {
+                    product new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
+                    await _inventory_service.add_product_async(new_prod);
+                }
+
+                _product_being_edited = null;
+                load_initial_data_async();
+                on_close_add_window?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"No se pudo guardar el producto: {ex.Message}";
+            }
         }
 
         private void execute_add_to_builder(object? parameter)
@@ -580,65 +627,84 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_save_promotion(object? parameter)
         {
-            decimal parsed_price = decimal.TryParse(new_promo_price, out decimal temp_price) ? temp_price : 0m;
-
-            if (_promotion_being_edited != null)
+            if (!decimal.TryParse((new_promo_price ?? string.Empty).Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsed_price) || parsed_price < 0)
             {
-                promotion promo_update = new promotion(_promotion_being_edited.promotion_code, new_promo_name, "Promociones", parsed_price);
-                promo_update.id_promotion = _promotion_being_edited.id_promotion;
-                
-                if (_promo_type_index == 0)
+                ErrorMessage = "El precio de la promoción debe ser un número mayor o igual a 0.";
+                return;
+            }
+
+            try
+            {
+                if (_promotion_being_edited != null)
                 {
-                    if (_selected_promo_product != null)
+                    promotion promo_update = new promotion(_promotion_being_edited.promotion_code, new_promo_name, "Promociones", parsed_price);
+                    promo_update.id_promotion = _promotion_being_edited.id_promotion;
+
+                    if (_promo_type_index == 0)
                     {
-                        promo_update.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
+                        if (_selected_promo_product != null)
+                        {
+                            promo_update.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
+                        }
                     }
+                    else
+                    {
+                        foreach (promo_builder_item item in builder_items)
+                        {
+                            if (item.product_ref != null)
+                            {
+                                promo_update.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
+                            }
+                        }
+                    }
+
+                    await _inventory_service.update_promotion_async(promo_update);
+                }
+                else if (_promo_type_index == 0)
+                {
+                    if (_selected_promo_product == null)
+                    {
+                        ErrorMessage = "Seleccione el producto para la promoción.";
+                        return;
+                    }
+
+                    string new_code = "C-PROMO-" + _selected_promo_product.product_code;
+                    string final_name = string.IsNullOrWhiteSpace(new_promo_name) ? "PROMO " + _selected_promo_product.name : new_promo_name;
+
+                    promotion new_promo = new promotion(new_code, final_name, "Promociones", parsed_price);
+                    new_promo.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
+                    await _inventory_service.add_promotion_async(new_promo);
                 }
                 else
                 {
+                    if (builder_items.Count == 0 || string.IsNullOrWhiteSpace(new_promo_name))
+                    {
+                        ErrorMessage = "Agregue productos y asigne un nombre al Kit/Combo.";
+                        return;
+                    }
+
+                    string prefix = _promo_type_index == 1 ? "C-KIT-" : "C-COMBO-";
+                    string new_code = prefix + Guid.NewGuid().ToString().Substring(0, 4).ToUpper();
+
+                    promotion new_promo = new promotion(new_code, new_promo_name, "Promociones", parsed_price);
                     foreach (promo_builder_item item in builder_items)
                     {
                         if (item.product_ref != null)
                         {
-                            promo_update.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
+                            new_promo.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
                         }
                     }
+                    await _inventory_service.add_promotion_async(new_promo);
                 }
 
-                await _inventory_service.update_promotion_async(promo_update);
+                _promotion_being_edited = null;
+                load_initial_data_async();
+                on_close_add_promotion_window?.Invoke();
             }
-            else if (_promo_type_index == 0)
+            catch (Exception ex)
             {
-                if (_selected_promo_product == null) return;
-
-                string new_code = "C-PROMO-" + _selected_promo_product.product_code;
-                string final_name = string.IsNullOrWhiteSpace(new_promo_name) ? "PROMO " + _selected_promo_product.name : new_promo_name;
-                
-                promotion new_promo = new promotion(new_code, final_name, "Promociones", parsed_price);
-                new_promo.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
-                await _inventory_service.add_promotion_async(new_promo);
+                ErrorMessage = $"No se pudo guardar la promoción: {ex.Message}";
             }
-            else
-            {
-                if (builder_items.Count == 0 || string.IsNullOrWhiteSpace(new_promo_name)) return;
-
-                string prefix = _promo_type_index == 1 ? "C-KIT-" : "C-COMBO-";
-                string new_code = prefix + Guid.NewGuid().ToString().Substring(0, 4).ToUpper();
-                
-                promotion new_promo = new promotion(new_code, new_promo_name, "Promociones", parsed_price);
-                foreach (promo_builder_item item in builder_items)
-                {
-                    if (item.product_ref != null)
-                    {
-                        new_promo.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
-                    }
-                }
-                await _inventory_service.add_promotion_async(new_promo);
-            }
-
-            _promotion_being_edited = null;
-            load_initial_data_async();
-            on_close_add_promotion_window?.Invoke();
         }
     }
 }

@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
 
@@ -13,18 +11,16 @@ namespace NinOS.UI.Views
 {
     public partial class CommissionHistoryWindow : Window
     {
-        private readonly PaymentsViewModel _payments_vm;
+        private readonly CommissionsViewModel _commissions_vm;
+        private readonly PaymentsViewModel? _payments_vm;
         private readonly commission_row_dto _commission;
-        private accounts_receivable_dto? _note;
-        private decimal _total_note_usd;
-        private decimal _total_paid_usd;
 
-        public CommissionHistoryWindow(PaymentsViewModel payments_vm, commission_row_dto commission)
+        public CommissionHistoryWindow(CommissionsViewModel commissions_vm, PaymentsViewModel? payments_vm, commission_row_dto commission)
         {
             InitializeComponent();
+            _commissions_vm = commissions_vm;
             _payments_vm = payments_vm;
             _commission = commission;
-            _total_note_usd = 0;
 
             NoteNumberText.Text = commission.note_number;
             CustomerText.Text = commission.customer_name;
@@ -38,11 +34,20 @@ namespace NinOS.UI.Views
         {
             try
             {
-                var note = await _payments_vm.search_note_async(_commission.note_number);
-                if (note != null) _note = note;
+                decimal note_total = 0;
 
-                var payments = await _payments_vm.get_payments_by_note_async(_commission.id_delivery_note);
-                Refresh(payments);
+                if (_payments_vm != null)
+                {
+                    var note = await _payments_vm.search_note_async(_commission.note_number);
+                    if (note != null)
+                    {
+                        note_total = note.total_amount_usd;
+                    }
+                }
+
+                var commission_payments = await _commissions_vm.get_commission_payments_async(_commission.id_commission);
+
+                Refresh(commission_payments.ToList(), note_total);
             }
             catch (Exception ex)
             {
@@ -50,58 +55,17 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void Refresh(IEnumerable<payment_dto> payments)
+        private void Refresh(List<commission_payment_dto> payments, decimal note_total)
         {
-            var list = payments.ToList();
-            HistoryGrid.ItemsSource = list;
+            HistoryGrid.ItemsSource = payments;
+            NoHistoryBox.Visibility = payments.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-            _total_paid_usd = list.Sum(p => p.amount_usd);
-            _total_note_usd = _note?.total_amount_usd ?? 0;
-            decimal balance = _total_note_usd - _total_paid_usd;
-            decimal commission_pending = _total_note_usd > 0
-                ? _commission.amount_usd * (balance / _total_note_usd)
-                : _commission.amount_usd;
+            decimal commission_paid = payments.Sum(p => p.amount_usd);
+            decimal commission_pending = Math.Max(0, _commission.amount_usd - commission_paid);
 
-            TotalFacturadoText.Text = _total_note_usd.ToString("N2");
-            TotalAbonadoText.Text = _total_paid_usd.ToString("N2");
-            SaldoPendienteText.Text = balance.ToString("N2");
-            SaldoPendienteText.Foreground = balance <= 0 ? new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)) : new SolidColorBrush(Color.FromRgb(0xF5, 0x7C, 0x00));
+            TotalFacturadoText.Text = note_total.ToString("N2");
             CommissionPendingText.Text = commission_pending.ToString("N2");
-
-            BtnAddAbono.IsEnabled = balance > 0;
-        }
-
-        private async Task ReloadAsync()
-        {
-            await LoadAsync();
-            _payments_vm.refresh_data();
-        }
-
-        private async void EditButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.DataContext is payment_dto payment)
-            {
-                try
-                {
-                    var window = new AddPaymentWindow(_payments_vm, "", payment);
-                    window.Owner = Window.GetWindow(this);
-                    window.PaymentRegistered += async (_, _) => await ReloadAsync();
-                    window.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al abrir edicion: {ex.Message}", "Error");
-                }
-            }
-        }
-
-        private async void AddAbonoButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_note == null) return;
-            var window = new AddPaymentWindow(_payments_vm, "", null);
-            window.Owner = Window.GetWindow(this);
-            window.PaymentRegistered += async (_, _) => await ReloadAsync();
-            window.ShowDialog();
+            CommissionText.Text = _commission.amount_usd.ToString("N2");
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

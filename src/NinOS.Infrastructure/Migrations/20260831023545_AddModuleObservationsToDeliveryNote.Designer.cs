@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NinOS.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    partial class NinOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260831023545_AddModuleObservationsToDeliveryNote")]
+    partial class AddModuleObservationsToDeliveryNote
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,23 +35,19 @@ namespace NinOS.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_commission"));
 
                     b.Property<decimal>("amount_bs")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_bs");
 
                     b.Property<decimal>("amount_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_usd");
 
                     b.Property<decimal>("commission_percentage")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("commission_percentage");
 
                     b.Property<decimal>("exchange_rate")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)")
+                        .HasColumnType("numeric")
                         .HasColumnName("exchange_rate");
 
                     b.Property<int>("id_delivery_note")
@@ -92,13 +91,11 @@ namespace NinOS.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_commission_payment"));
 
                     b.Property<decimal>("amount_bs")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_bs");
 
                     b.Property<decimal>("amount_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_usd");
 
                     b.Property<string>("bank_name")
@@ -108,8 +105,7 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("bank_name");
 
                     b.Property<decimal>("exchange_rate")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)")
+                        .HasColumnType("numeric")
                         .HasColumnName("exchange_rate");
 
                     b.Property<int>("id_commission")
@@ -214,8 +210,7 @@ namespace NinOS.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_delivery_note"));
 
                     b.Property<decimal>("adjusted_total_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("adjusted_total_usd");
 
                     b.Property<DateTime>("creation_date")
@@ -253,8 +248,7 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("status");
 
                     b.Property<decimal>("total_amount_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("total_amount_usd");
 
                     b.HasKey("id_delivery_note");
@@ -292,13 +286,11 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("quantity");
 
                     b.Property<decimal>("subtotal_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("subtotal_usd");
 
                     b.Property<decimal>("unit_price_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("unit_price_usd");
 
                     b.HasKey("id_note_detail");
@@ -322,13 +314,11 @@ namespace NinOS.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_payment"));
 
                     b.Property<decimal>("amount_bs")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_bs");
 
                     b.Property<decimal>("amount_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("amount_usd");
 
                     b.Property<string>("bank_name")
@@ -342,8 +332,7 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<decimal?>("exchange_rate")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)")
+                        .HasColumnType("numeric")
                         .HasColumnName("exchange_rate");
 
                     b.Property<int>("id_delivery_note")
@@ -414,8 +403,7 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("stock_quantity");
 
                     b.Property<decimal>("unit_price_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("unit_price_usd");
 
                     b.HasKey("id_product");
@@ -451,8 +439,7 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("promotion_code");
 
                     b.Property<decimal>("unit_price_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasColumnType("numeric")
                         .HasColumnName("unit_price_usd");
 
                     b.HasKey("id_promotion");

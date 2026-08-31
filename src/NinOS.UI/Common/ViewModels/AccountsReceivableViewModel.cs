@@ -33,6 +33,24 @@ namespace NinOS.UI.Common.ViewModels
         public string status { get; set; } = string.Empty;
         public string month_key { get; set; } = string.Empty;
 
+        private string _observations = string.Empty;
+
+        public string observations
+        {
+            get => _observations;
+            set { _observations = value ?? string.Empty; on_property_changed(); }
+        }
+
+        public string? saved_observations { get; set; }
+
+        private bool _is_editing_observations;
+
+        public bool is_editing_observations
+        {
+            get => _is_editing_observations;
+            set { _is_editing_observations = value; on_property_changed(); }
+        }
+
         private bool _is_editing;
         private string _edit_monto_text = string.Empty;
         private string _edit_dcto_text = string.Empty;
@@ -325,6 +343,7 @@ namespace NinOS.UI.Common.ViewModels
                 payment_method_text = n.payment_method_text,
                 bank_name_text = n.bank_name_text,
                 status = n.status,
+                observations = n.cxc_observations,
                 month_key = new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
                     .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"))
             };
@@ -425,6 +444,20 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is accounts_receivable_row_dto note)
                 on_request_add_payment_for_note?.Invoke(note);
+        }
+
+        public async Task save_observations_async(accounts_receivable_row_dto note, string text)
+        {
+            try
+            {
+                await _receivable_service.update_note_cxc_observations_async(note.id_delivery_note, text);
+                note.observations = text;
+            }
+            catch (Exception ex)
+            {
+                note.observations = note.saved_observations ?? string.Empty;
+                System.Windows.MessageBox.Show($"No se pudo guardar la observación: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void execute_add_payment(object? parameter)

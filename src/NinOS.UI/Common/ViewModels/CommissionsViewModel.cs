@@ -25,12 +25,14 @@ namespace NinOS.UI.Common.ViewModels
         public decimal commission_percentage { get; set; }
         public decimal sale_amount_usd { get; set; }
         public decimal amount_usd { get; set; }
+        public decimal paid_amount_usd { get; set; }
         public decimal amount_bs { get; set; }
         public decimal exchange_rate { get; set; }
         public string reference_number { get; set; } = string.Empty;
         public DateTime? payout_date { get; set; }
         public bool is_paid { get; set; }
         public string status => is_paid ? "Pagada" : "Pendiente";
+        public decimal remaining_amount_usd => amount_usd - paid_amount_usd;
 
         private bool _is_selected;
 
@@ -217,7 +219,7 @@ namespace NinOS.UI.Common.ViewModels
 
             total_sold_usd = list.Sum(n => n.sale_amount_usd);
             total_commission_usd = list.Sum(n => n.amount_usd);
-            total_pending_usd = list.Where(n => !n.is_paid).Sum(n => n.amount_usd);
+            total_pending_usd = list.Where(n => !n.is_paid).Sum(n => n.remaining_amount_usd);
         }
 
         private commission_row_dto map_to_row(commission_dto c)
@@ -236,6 +238,7 @@ namespace NinOS.UI.Common.ViewModels
                 commission_percentage = c.commission_percentage,
                 sale_amount_usd = c.commission_percentage > 0 ? Math.Round(c.amount_usd / c.commission_percentage, 2) : c.amount_usd,
                 amount_usd = c.amount_usd,
+                paid_amount_usd = c.paid_amount_usd,
                 amount_bs = c.amount_bs,
                 exchange_rate = c.exchange_rate,
                 reference_number = c.reference_number,
@@ -280,11 +283,11 @@ namespace NinOS.UI.Common.ViewModels
             return await _commission_service.get_all_commissions_async();
         }
 
-        public async Task pay_commissions_async(int[] id_commissions, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs)
+        public async Task pay_commissions_async(int[] id_commissions, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
         {
             try
             {
-                await _commission_service.register_commission_payment_async(id_commissions, exchange_rate, payment_type, reference_number, amount_bs);
+                await _commission_service.register_commission_payment_async(id_commissions, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
                 System.Windows.MessageBox.Show("Comision(es) liquidadas exitosamente.", "Exito");
                 load_all_async();
             }
@@ -292,6 +295,11 @@ namespace NinOS.UI.Common.ViewModels
             {
                 System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
             }
+        }
+
+        public async Task<IEnumerable<commission_payment_dto>> get_commission_payments_async(int id_commission)
+        {
+            return await _commission_service.get_commission_payments_async(id_commission);
         }
     }
 }

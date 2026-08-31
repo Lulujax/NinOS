@@ -211,5 +211,19 @@ namespace NinOS.UI.Common.ViewModels
                 }
             }
         }
+
+        public async Task save_observations_async(accounts_receivable_dto note, string text)
+        {
+            try
+            {
+                await _receivable_service.update_note_sales_observations_async(note.id_delivery_note, text);
+                note.sales_observations = text;
+            }
+            catch (Exception ex)
+            {
+                note.sales_observations = note.saved_observations ?? string.Empty;
+                System.Windows.MessageBox.Show($"No se pudo guardar la observación: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
     }
 }

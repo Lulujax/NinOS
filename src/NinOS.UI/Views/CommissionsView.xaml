@@ -202,6 +202,13 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
+                        <DataGridTextColumn Header="PENDIENTE" Binding="{Binding remaining_amount_usd, StringFormat=F2}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+                                    <Setter Property="Foreground" Value="#F57C00"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         
                         <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -243,6 +250,13 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="PENDIENTE" Binding="{Binding remaining_amount_usd, StringFormat=F2}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+                                    <Setter Property="Foreground" Value="#F57C00"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -290,6 +304,13 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
+                        <DataGridTextColumn Header="PENDIENTE" Binding="{Binding remaining_amount_usd, StringFormat=F2}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+                                    <Setter Property="Foreground" Value="#F57C00"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         
                         <DataGridTextColumn Header="ULT. PAGO" Binding="{Binding payout_date, StringFormat=dd/MM/yy}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -331,6 +352,13 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
                                     <Setter Property="Foreground" Value="#2E7D32"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="PENDIENTE" Binding="{Binding remaining_amount_usd, StringFormat=F2}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+                                    <Setter Property="Foreground" Value="#F57C00"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>

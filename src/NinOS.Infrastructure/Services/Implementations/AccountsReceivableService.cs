@@ -119,7 +119,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = dn.adjusted_total_usd,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.adjusted_total_usd - paid
+                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
 
@@ -227,7 +229,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         balance_due_usd = dn.adjusted_total_usd - paid,
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
-                        bank_name_text = bankText
+                        bank_name_text = bankText,
+                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
 
@@ -330,7 +334,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         balance_due_usd = dn.adjusted_total_usd - paid,
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
-                        bank_name_text = bankText
+                        bank_name_text = bankText,
+                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
 
@@ -376,8 +382,38 @@ namespace NinOS.Infrastructure.Services.Implementations
                     discount_amount = detail_sum - dn.adjusted_total_usd,
                     status = dn.status,
                     paid_amount_usd = paid,
-                    balance_due_usd = dn.adjusted_total_usd - paid
+                    balance_due_usd = dn.adjusted_total_usd - paid,
+                    cxc_observations = dn.cxc_observations ?? string.Empty,
+                    sales_observations = dn.sales_observations ?? string.Empty
                 };
+            }
+        }
+
+        public async Task update_note_cxc_observations_async(int id_delivery_note, string? observations)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var delivery_note = await db_context.delivery_notes
+                    .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
+                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+
+                delivery_note.cxc_observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
+                await db_context.SaveChangesAsync();
+            }
+        }
+
+        public async Task update_note_sales_observations_async(int id_delivery_note, string? observations)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var delivery_note = await db_context.delivery_notes
+                    .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
+                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+
+                delivery_note.sales_observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
+                await db_context.SaveChangesAsync();
             }
         }
 

@@ -12,6 +12,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<note_detail> note_details { get; set; }
         public DbSet<payment> payments { get; set; }
         public DbSet<commission> commissions { get; set; }
+        public DbSet<commission_payment> commission_payments { get; set; }
         public DbSet<promotion> promotions { get; set; }
         public DbSet<promotion_item> promotion_items { get; set; }
 
@@ -54,7 +55,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.product_code).HasColumnName("product_code").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(250);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
-                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.stock_quantity).HasColumnName("stock_quantity").IsRequired();
             });
 
@@ -67,9 +68,11 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.creation_date).HasColumnName("creation_date").IsRequired();
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired();
-                entity.Property(e => e.total_amount_usd).HasColumnName("total_amount_usd").IsRequired();
-                entity.Property(e => e.adjusted_total_usd).HasColumnName("adjusted_total_usd").IsRequired();
+                entity.Property(e => e.total_amount_usd).HasColumnName("total_amount_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.adjusted_total_usd).HasColumnName("adjusted_total_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.cxc_observations).HasColumnName("cxc_observations").HasMaxLength(500);
+                entity.Property(e => e.sales_observations).HasColumnName("sales_observations").HasMaxLength(500);
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
@@ -84,8 +87,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired(false);
                 entity.Property(e => e.id_promotion).HasColumnName("id_promotion").IsRequired(false);
                 entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
-                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
-                entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired();
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
@@ -99,9 +102,9 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_payment).HasColumnName("id_payment").UseIdentityByDefaultColumn();
                 entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
                 entity.Property(e => e.payment_date).HasColumnName("payment_date").IsRequired();
-                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired();
-                entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired();
-                entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate");
+                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate").HasPrecision(18, 4);
                 entity.Property(e => e.payment_type).HasColumnName("payment_type").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.reference_number).HasColumnName("reference_number").HasMaxLength(100);
                 entity.Property(e => e.bank_name).HasColumnName("bank_name").HasMaxLength(100);
@@ -119,16 +122,34 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_commission).HasColumnName("id_commission").UseIdentityByDefaultColumn();
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
-                entity.Property(e => e.commission_percentage).HasColumnName("commission_percentage").IsRequired();
-                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired();
-                entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired();
-                entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate").IsRequired();
+                entity.Property(e => e.commission_percentage).HasColumnName("commission_percentage").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate").IsRequired().HasPrecision(18, 4);
                 entity.Property(e => e.reference_number).HasColumnName("reference_number").HasMaxLength(100);
                 entity.Property(e => e.is_paid).HasColumnName("is_paid").IsRequired();
                 entity.Property(e => e.payout_date).HasColumnName("payout_date");
 
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            model_builder.Entity<commission_payment>(entity =>
+            {
+                entity.ToTable("commission_payment");
+                entity.HasKey(e => e.id_commission_payment);
+                entity.Property(e => e.id_commission_payment).HasColumnName("id_commission_payment").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_commission).HasColumnName("id_commission").IsRequired();
+                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate").IsRequired().HasPrecision(18, 4);
+                entity.Property(e => e.payment_type).HasColumnName("payment_type").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.reference_number).HasColumnName("reference_number").HasMaxLength(100);
+                entity.Property(e => e.bank_name).HasColumnName("bank_name").HasMaxLength(100);
+                entity.Property(e => e.observations).HasColumnName("observations");
+                entity.Property(e => e.payment_date).HasColumnName("payment_date").IsRequired();
+
+                entity.HasOne<commission>().WithMany().HasForeignKey(e => e.id_commission).OnDelete(DeleteBehavior.Cascade);
             });
 
             model_builder.Entity<promotion>(entity =>
@@ -139,7 +160,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.promotion_code).HasColumnName("promotion_code").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(200);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
-                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired();
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
             });
 
             model_builder.Entity<promotion_item>(entity =>
