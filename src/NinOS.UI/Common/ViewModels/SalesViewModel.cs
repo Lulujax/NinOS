@@ -233,13 +233,16 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
+                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
+                    .Where(n => n.status != "Anulada")
+                    .ToList();
 
                 var report = new monthly_report_dto
                 {
-                    title = "Reporte Ventas - Detalle del Mes",
+                    title = "VENTAS - DETALLE DEL MES",
                     month = _selected_month,
                     detail_column_header = "ABONADO",
+                    show_paid_balance_summary = true,
                     rows = month_rows
                         .OrderBy(n => n.creation_date)
                         .Select(n => new monthly_report_row_dto
@@ -249,7 +252,9 @@ namespace NinOS.UI.Common.ViewModels
                             customer_name = n.customer_name,
                             seller_name = n.seller_name,
                             amount_usd = n.total_amount_usd,
-                            detail_text = n.status == "Anulada" ? "Anulada" : $"{n.paid_amount_usd:N2}",
+                            paid_amount_usd = n.paid_amount_usd,
+                            balance_due_usd = n.balance_due_usd,
+                            detail_text = $"{n.paid_amount_usd:N2}",
                             status = n.status
                         })
                         .ToList()

@@ -313,7 +313,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 var report = new monthly_report_dto
                 {
-                    title = "Reporte Pagos - Detalle del Mes",
+                    title = "PAGOS - DETALLE DEL MES",
                     month = _selected_month,
                     detail_column_header = "BANCO / REFERENCIA",
                     rows = payments
