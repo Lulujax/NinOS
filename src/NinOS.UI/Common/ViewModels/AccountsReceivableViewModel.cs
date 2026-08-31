@@ -55,6 +55,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _edit_monto_text = string.Empty;
         private string _edit_dcto_text = string.Empty;
         private bool _syncing;
+        public bool edited_dcto_directly;
 
         public bool is_editing
         {
@@ -73,6 +74,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (!_syncing && gross_total_usd > 0)
                 {
                     _syncing = true;
+                    edited_dcto_directly = false;
                     decimal monto = accounts_receivable_row_dto.parse_numeric(value);
                     edit_dcto_text = monto <= 0 ? "" : $"{((gross_total_usd - monto) / gross_total_usd * 100):0.###}";
                     _syncing = false;
@@ -91,6 +93,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (!_syncing && gross_total_usd > 0)
                 {
                     _syncing = true;
+                    edited_dcto_directly = true;
                     decimal pct = accounts_receivable_row_dto.parse_numeric(value);
                     edit_monto_text = pct < 0 ? "" : $"{gross_total_usd * (1 - pct / 100):0.###}";
                     _syncing = false;
@@ -101,7 +104,28 @@ namespace NinOS.UI.Common.ViewModels
         public static decimal parse_numeric(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return -1;
-            string normalized = text.Replace(',', '.');
+            string t = text.Trim().Replace(" ", "");
+            if (t.Length == 0) return -1;
+
+            string sep = CultureInfo.InvariantCulture.NumberFormat.NumberDecimalSeparator;
+            string normalized;
+            int last_comma = t.LastIndexOf(',');
+            int last_dot = t.LastIndexOf('.');
+
+            if (last_comma >= 0 && last_dot >= 0)
+            {
+                if (last_comma > last_dot)
+                    normalized = t.Replace(".", "").Replace(",", sep);
+                else
+                    normalized = t.Replace(",", "").Replace(".", sep);
+            }
+            else if (last_comma >= 0)
+                normalized = t.Replace(",", sep);
+            else if (last_dot >= 0)
+                normalized = t.Replace(".", sep);
+            else
+                normalized = t;
+
             if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal result)) return result;
             return -1;
         }
@@ -339,7 +363,9 @@ namespace NinOS.UI.Common.ViewModels
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
-                discount_percentage_text = n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%",
+                discount_percentage_text = n.discount_percentage.HasValue
+                    ? $"{n.discount_percentage.Value:0.##}%"
+                    : (n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%"),
                 paid_amount_usd = n.paid_amount_usd,
                 balance_due_usd = n.balance_due_usd,
                 last_payment_date = n.last_payment_date,
@@ -414,6 +440,7 @@ namespace NinOS.UI.Common.ViewModels
             note.edit_monto_text = $"{note.total_amount_usd:0.##}";
             note.edit_dcto_text = note.gross_total_usd > 0 && note.discount_amount > 0 ? $"{note.discount_amount / note.gross_total_usd * 100:0.###}" : "0";
             note.is_editing = true;
+            note.edited_dcto_directly = false;
         }
 
         private void execute_cancel_edit(object? parameter)
@@ -429,10 +456,19 @@ namespace NinOS.UI.Common.ViewModels
             {
                 decimal gross = note.gross_total_usd;
                 decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);
-                decimal adjusted = monto > 0 ? monto : gross * (1 - Math.Max(0, accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text)) / 100);
+                decimal dcto_entered = accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text);
+                decimal adjusted = monto > 0 ? monto : gross * (1 - Math.Max(0, dcto_entered) / 100);
                 adjusted = Math.Min(gross, Math.Max(0, adjusted));
 
-                await _receivable_service.update_note_total_async(note.id_delivery_note, adjusted);
+                decimal? discount_pct;
+                if (note.edited_dcto_directly && dcto_entered >= 0)
+                    discount_pct = dcto_entered;
+                else if (gross > 0)
+                    discount_pct = (gross - adjusted) / gross * 100m;
+                else
+                    discount_pct = null;
+
+                await _receivable_service.update_note_total_async(note.id_delivery_note, adjusted, discount_pct);
 
                 note.is_editing = false;
                 await load_all_async();
@@ -480,6 +516,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     title = "CUENTAS POR COBRAR - DETALLE DEL MES",
                     month = _selected_month,
+                    report_name = "cuentas por cobrar",
                     detail_column_header = "SALDO",
                     show_paid_balance_summary = true,
                     rows = month_rows

@@ -823,6 +823,8 @@ namespace NinOS.UI.Common.ViewModels
                     "Pendiente",
                     _total_amount_usd
                 );
+                new_note.discount_percentage = string.IsNullOrWhiteSpace(_discount_percentage_text) ? null
+                    : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : null);
 
                 List<note_detail> domain_details = new List<note_detail>();
                 foreach (note_detail_row row in note_details)

@@ -15,6 +15,7 @@ namespace NinOS.Domain.ViewModels
         public decimal total_amount_usd { get; set; }
         public decimal gross_total_usd { get; set; }
         public decimal discount_amount { get; set; }
+        public decimal? discount_percentage { get; set; }
         public decimal paid_amount_usd { get; set; }
         public decimal balance_due_usd { get; set; }
         public DateTime? last_payment_date { get; set; }

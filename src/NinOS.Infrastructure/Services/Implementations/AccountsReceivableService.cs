@@ -224,6 +224,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
+                        discount_percentage = dn.discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
                         balance_due_usd = dn.adjusted_total_usd - paid,
@@ -329,6 +330,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
+                        discount_percentage = dn.discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
                         balance_due_usd = dn.adjusted_total_usd - paid,
@@ -380,6 +382,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     total_amount_usd = dn.adjusted_total_usd,
                     gross_total_usd = detail_sum,
                     discount_amount = detail_sum - dn.adjusted_total_usd,
+                    discount_percentage = dn.discount_percentage,
                     status = dn.status,
                     paid_amount_usd = paid,
                     balance_due_usd = dn.adjusted_total_usd - paid,
@@ -417,7 +420,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd)
+        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage = null)
         {
             using (var scope = _scope_factory.CreateScope())
             {
@@ -440,6 +443,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (adjusted > gross) adjusted = gross;
 
                     delivery_note.adjusted_total_usd = adjusted;
+
+                    if (discount_percentage.HasValue)
+                        delivery_note.discount_percentage = discount_percentage.Value >= 0 ? discount_percentage.Value : null;
+                    else if (gross > 0)
+                        delivery_note.discount_percentage = (gross - adjusted) / gross * 100m;
 
                     decimal total_paid = await db_context.payments
                         .AsNoTracking()
@@ -639,6 +647,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal gross = details.Sum(d => d.subtotal_usd);
                 decimal discount_amt = gross - note.total_amount_usd;
                 decimal discount_pct = gross > 0 ? (discount_amt / gross) * 100m : 0;
+                decimal effective_pct = note.discount_percentage ?? discount_pct;
 
                 return new note_print_dto
                 {
@@ -649,7 +658,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     due_date = note.creation_date.AddDays(15),
                     status = note.status,
                     gross_total_usd = gross,
-                    discount_percentage = discount_pct,
+                    discount_percentage = effective_pct,
                     discount_amount = discount_amt,
                     total_amount_usd = note.total_amount_usd,
                     paid_amount_usd = paid,

@@ -73,6 +73,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.cxc_observations).HasColumnName("cxc_observations").HasMaxLength(500);
                 entity.Property(e => e.sales_observations).HasColumnName("sales_observations").HasMaxLength(500);
+                entity.Property(e => e.discount_percentage).HasColumnName("discount_percentage").HasPrecision(18, 3);
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);

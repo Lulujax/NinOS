@@ -224,7 +224,9 @@ namespace NinOS.UI.Common.ViewModels
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
-                discount_percentage_text = n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%",
+                discount_percentage_text = n.discount_percentage.HasValue
+                    ? $"{n.discount_percentage.Value:0.##}%"
+                    : (n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%"),
                 paid_amount_usd = n.paid_amount_usd,
                 balance_due_usd = n.balance_due_usd,
                 last_payment_date = n.last_payment_date,
@@ -315,7 +317,9 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     title = "PAGOS - DETALLE DEL MES",
                     month = _selected_month,
+                    report_name = "pagos",
                     detail_column_header = "BANCO / REFERENCIA",
+                    status_column_header = "TIPO",
                     rows = payments
                         .OrderBy(p => p.payment_date)
                         .Select(p => new monthly_report_row_dto

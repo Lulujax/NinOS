@@ -13,6 +13,17 @@ namespace NinOS.Infrastructure.Data
 
             db_context.Database.Migrate();
 
+            db_context.Database.ExecuteSqlRaw(
+                @"UPDATE delivery_note dn
+                  SET discount_percentage = ROUND(
+                      ( (SELECT COALESCE(SUM(nd.subtotal_usd), 0) FROM note_detail nd WHERE nd.id_delivery_note = dn.id_delivery_note)
+                        - dn.adjusted_total_usd )
+                      / CAST((SELECT COALESCE(SUM(nd.subtotal_usd), 0) FROM note_detail nd WHERE nd.id_delivery_note = dn.id_delivery_note) AS numeric)
+                      * 100
+                  )
+                  WHERE dn.discount_percentage IS NULL
+                    AND (SELECT COALESCE(SUM(nd.subtotal_usd), 0) FROM note_detail nd WHERE nd.id_delivery_note = dn.id_delivery_note) > 0");
+
             if (db_context.products.Any() || db_context.customers.Any() || db_context.sellers.Any())
             {
                 return;

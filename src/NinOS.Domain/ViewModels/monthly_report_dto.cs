@@ -23,7 +23,9 @@ namespace NinOS.Domain.ViewModels
     {
         public string title { get; set; } = string.Empty;
         public string month { get; set; } = string.Empty;
+        public string report_name { get; set; } = string.Empty;
         public string detail_column_header { get; set; } = string.Empty;
+        public string status_column_header { get; set; } = "ESTADO";
         public bool show_paid_balance_summary { get; set; }
         public List<monthly_report_row_dto> rows { get; set; } = new();
     }

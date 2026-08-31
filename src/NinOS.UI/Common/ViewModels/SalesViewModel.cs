@@ -234,13 +234,13 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
-                    .Where(n => n.status != "Anulada")
                     .ToList();
 
                 var report = new monthly_report_dto
                 {
                     title = "VENTAS - DETALLE DEL MES",
                     month = _selected_month,
+                    report_name = "ventas",
                     detail_column_header = "ABONADO",
                     show_paid_balance_summary = true,
                     rows = month_rows
