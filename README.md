@@ -1,15 +1,11 @@
-# ⚡ NinOS — Enterprise Commercial & Distribution ERP
+# ⚡ NinOS — Sistema ERP Comercial & de Distribución
 
 <div align="center">
 
-| \ | ()     / _ / |
-|  | | _ | | | _ \
-| |\  | | ' \ || |) |
-|| _||| ||___/|____/
 ### 🏛️ La Plataforma Definitiva de Gestión Comercial, Distribución, Cartera y Comisiones
 
-*Diseñado, estructurado y forjado con pasión de ingeniería por*  
-👉 **[Luis "Lulujax"](https://github.com/lulujax)** 👈
+*Diseñado, estructurado y forjado con pasión de ingeniería por*
+**Luis "Lulujax"**
 
 ---
 
@@ -19,10 +15,11 @@
 [![WPF](https://img.shields.io/badge/UI-WPF%20%2F%20XAML-0078D7?style=for-the-badge&logo=windows&logoColor=white)](https://learn.microsoft.com/visualstudio/xaml-tools/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![EF Core](https://img.shields.io/badge/ORM-EF%20Core%2010-68217A?style=for-the-badge&logo=nuget&logoColor=white)](https://learn.microsoft.com/ef/core/)
+[![QuestPDF](https://img.shields.io/badge/PDF-QuestPDF-1F6FEB?style=for-the-badge)](https://www.questpdf.com/)
 [![Architecture](https://img.shields.io/badge/Design-Clean%20Architecture%20%7C%20MVVM-009688?style=for-the-badge)](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel)
 [![License](https://img.shields.io/badge/Status-Active%20Enterprise-blueviolet?style=for-the-badge)](https://github.com/lulujax/ninos)
 
-[🌟 El Manifiesto](#-el-manifiesto-de-ninos) • [💎 Módulos de Élite](#-módulos-del-sistema) • [🏛️ Arquitectura & SOLID](#-arquitectura-y-patrones-de-diseño) • [📂 Radiografía del Código](#-estructura-del-repositorio) • [🚀 Puesta en Marcha](#-instalación-y-configuración) • [📊 Modelo de Datos](#-modelo-entidad-relación-erd) • [👨‍💻 Sobre el Autor](#-sobre-el-autor--lulujax)
+**[🌟 El Manifiesto](#-el-manifiesto-de-ninos) • [💎 Módulos](#-módulos-del-sistema) • [🏛️ Arquitectura](#-arquitectura-y-patrones-de-diseño) • [📂 Estructura](#-estructura-del-repositorio) • [🚀 Instalación](#-instalación-y-configuración) • [📊 Modelo de Datos](#-modelo-entidad-relación-erd) • [🔮 Hoja de Ruta](#-hoja-de-ruta) • [👨‍💻 Autor](#-sobre-el-autor)**
 
 </div>
 
@@ -32,76 +29,106 @@
 
 > *"El software de misión crítica no se escribe simplemente para funcionar: se diseña para perdurar, responder con precisión matemática y transformar el caos operativo en una sinfonía de datos claros."*
 
-**NinOS** no es solo un sistema contable o un gestor de ventas más; es una suite ERP de escritorio de nivel empresarial forjada desde los cimientos para redefinir cómo operan las distribuidoras mayoristas, importadoras y empresas comerciales de alto volumen.
+**NinOS** no es solo un sistema contable o un gestor de ventas más: es una suite ERP de escritorio de nivel empresarial, forjada desde los cimientos para redefinir cómo operan las distribuidoras mayoristas, importadoras y empresas comerciales de alto volumen.
 
-Creado por **Lulujax**, este ecosistema combina la potencia en tiempo real de **.NET 10** y la belleza reactiva de **WPF (Windows Presentation Foundation)** con el rigor transaccional de **PostgreSQL**. Cada línea de código responde a un propósito: erradicar los cuellos de botella, otorgar visibilidad financiera absoluta al segundo y blindar la integridad contable con transacciones atómicas e inmutables.
+Cada línea de código responde a un propósito: erradicar los cuellos de botella, otorgar visibilidad financiera absoluta al instante y blindar la integridad contable con transacciones atómicas e inmutables.
 
 ---
 
 ## 💎 Módulos del Sistema
 
-╔═════════════════════════════════════════════════════════════════════════════════════╗║                                     NinOS CORE                                      ║╚═════════════════════════════════════════════════════════════════════════════════════╝│                  │                  │                  │                  │┌───────▼────────┐ ┌───────▼────────┐ ┌───────▼────────┐ ┌───────▼────────┐ ┌───────▼────────┐│ 📦 INVENTARIO  │ │ 📑 DESPACHOS   │ │ 💳 CARTERA &   │ │ 💰 TESORERÍA   │ │ 🤝 FUERZA DE   ││   & PROMOCIONES│ │   & FACTURACIÓN│ │    COBRANZAS   │ │   & AUDITORÍA  │ │    VENTAS      │└────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘
+```
+                    ┌─────────────────────────────────────────────┐
+                    │                NinOS CORE                   │
+                    └─────────────────────────────────────────────┘
+        ▲            ▲              ▲              ▲             ▲
+        │            │              │              │             │
+┌───────┴─────┐ ┌───┴──────┐ ┌─────┴─────┐ ┌──────┴─────┐ ┌─────┴──────┐
+│   INVENTARIO │ │ DESPACHOS│ │  CARTERA  │ │ TESORERÍA  │ │  FUERZA DE │
+│      &       │ │    &     │ │    &      │ │      &     │ │   VENTAS   │
+│ PROMOCIONES  │ │FACTURACIÓN│ │ COBRANZAS │ │ AUDITORÍA  │ │ & COMISION │
+└──────────────┘ └──────────┘ └───────────┘ └────────────┘ └────────────┘
+```
+
 ### 1. 📦 Control Maestro de Inventario & Motor de Promociones
-* 🏷️ **Catálogo de Alta Precisión**: Estructuración estricta de ítems mediante SKU, descripciones detalladas, costos directos, márgenes porcentuales dinámicos y precios calculados al mayor y al detal.
-* 🎁 **Motor de Promociones Compuestas (`promotion` / `promotion_item`)**: Módulo avanzado para empaquetar múltiples productos en combos comerciales a precios promocionales, gestionando el decremento atómico del stock individual en cada venta.
-* 🛡️ **Trazabilidad y Mínimos Críticos**: Monitoreo reactivo de existencias para anticipar quiebres de inventario y optimizar la cadena de reposición.
+
+- **Catálogo de Alta Precisión:** estructuración estricta de ítems mediante SKU, descripciones, costos directos, márgenes porcentuales dinámicos y precios calculados al mayor y al detal.
+- **Motor de Promociones Compuestas (`promotion` / `promotion_item`):** empaqueta múltiples productos en combos comerciales a precios promocionales, con decremento atómico del stock individual en cada venta.
+- **Trazabilidad y Mínimos Críticos:** monitoreo reactivo de existencias para anticipar quiebres de inventario.
+- **Historial de Movimiento de Stock (`ProductSalesHistoryWindow`):** al hacer doble clic en un producto se abre su kárdex por notas: *ventas* descuentan y *anulaciones* reponen, con color verde (entrada) / rojo (salida) y total vendido.
 
 ### 2. 📑 Facturación Rápida, Despachos & Ciclo de Notas
-* ⚡ **Punto de Venta Agilizado (`SalesView`)**: Interfaz optimizada para teclear a alta velocidad. Búsqueda instantánea de clientes, predictivo de productos/promociones y cálculo en tiempo real de subtotales, recargos y montos netos.
-* 📋 **Flujo Operativo de Entrega (`delivery_note` / `note_detail`)**: Seguimiento granular de estados de ciclo de vida de cada orden: *Emitida* ➔ *Despachada* ➔ *Cobrada* ➔ *Liquidada*.
-* 🖨️ **Motor de Renderizado Vectorial PDF (`NotePdfGenerator`)**: Compilador de documentos PDF de nivel editorial. Genera comprobantes de entrega visualmente impecables, con códigos de control, desglose fiscal y previsualización modal fluida (`NotePreviewWindow`).
+
+- **Punto de Venta Agilizado (`SalesView`):** búsqueda instantánea de clientes, predictivo de productos/promociones y cálculo en tiempo real de subtotales, descuentos y montos netos.
+- **Flujo Operativo de Entrega (`delivery_note` / `note_detail`):** seguimiento granular del ciclo de vida: *Pendiente* ➔ *Pagada* ➔ *Anulada*.
+- **Motor PDF Vectorial (`NotePdfGenerator`):** genera notas de entrega editorialmente impecables con desglose fiscal y vista previa modal (`NotePreviewWindow`).
 
 ### 3. 💳 Cuentas por Cobrar (CxC) & Blindaje Financiero
-* 📈 **Control de Cartera en Tiempo Real (`AccountsReceivableView`)**: Dashboard centralizado que agrupa la deuda global por cliente, límites crediticios autorizados y antigüedad de saldos.
-* 🚦 **Semáforo Financiero Visual XAML (`BalanceColorConverter`)**: Marcado cromático reactivo e inteligente para clasificar cuentas solventes, cuentas en periodo de gracia y clientes en mora.
-* 📜 **Kárdex Histórico Cruzado**: Conciliación transparente que contrasta notas emitidas contra pagos aplicados, evitando discrepancias en el saldo deudor.
 
-### 4. 💰 Gestión de Tesorería, Abonos & Auditoría Bancaria
-* 🏦 **Recepción de Cobros Multidivisa (`PaymentsView` / `AddPaymentWindow`)**: Procesamiento de pagos totales o abonos fraccionados distribuidos entre múltiples notas de entrega abiertas.
-* 🛡️ **Auditoría Transaccional Estricta**: Registro obligatorio de entidades bancarias, números de referencia de transferencia, cotizaciones de cambio y marcas temporales de auditoría (`migrations/add_payment_audit_columns.sql`).
-* 🔍 **Historial Transaccional Inmutable (`PaymentHistoryWindow` / `PaymentNoteHistoryWindow`)**: Registro cronológico no editable de cada entrada de dinero para auditorías fiscales y contables.
+- **Control de Cartera en Tiempo Real (`AccountsReceivableView`):** dashboard centralizado que agrupa la deuda por cliente y vendedor (Tabs: Todos / Sandra / Anais / Alejandra).
+- **Semáforo Financiero Visual (`BalanceColorConverter`):** marcado cromático reactivo para solventes, en periodo de gracia y en mora.
+- **Kárdex Histórico Cruzado:** conciliación transparente de notas emitidas contra pagos aplicados. Edición inline de montos y descuentos por nota con recálculo automático.
 
-### 5. 🤝 Fuerza de Ventas & Liquidación Automática de Comisiones
-* 🧑‍💼 **Estructura de Vendedores (`seller` / `comission`)**: Jerarquía de agentes de venta con prefijos identificadores asignados a carteras de clientes o regiones geográficas.
-* 🧮 **Algoritmo de Liquidación Automatizado (`CommissionService`)**: Cálculo automatizado de comisiones porcentuales basadas únicamente en notas cobradas o despachadas.
-* 💵 **Gestión de Egresos Comerciales (`CommissionsView` / `AddCommissionPaymentWindow`)**: Registro y control de comisiones acumuladas, anticipos entregados y balance neto por desembolsar.
+### 4. 💰 Tesorería, Abonos & Auditoría Bancaria
+
+- **Recepción de Cobros Multidivisa (`PaymentsView` / `AddPaymentWindow`):** pagos totales o abonos fraccionados, con nota pre-cargada según el origen (fila CxC o historial).
+- **Auditoría Transaccional Estricta:** registro de banco, referencia de transferencia, cotización de cambio y marcas temporales (`add_payment_audit_columns.sql`).
+- **Historial Transaccional Inmutable (`PaymentHistoryWindow` / `PaymentNoteHistoryWindow`):** registro cronológico no editable de cada entrada de dinero.
+
+### 5. 🤝 Fuerza de Ventas & Liquidación de Comisiones
+
+- **Estructura de Vendedores (`seller` / `comission`):** jerarquía de agentes con prefijos identificadores asignados a carteras.
+- **Liquidación Automatizada (`CommissionService`):** comisiones basadas únicamente en notas cobradas o despachadas.
+- **Gestión de Egresos (`CommissionsView` / `AddCommissionPaymentWindow` / `CommissionHistoryWindow`):** comisiones acumuladas, anticipos y balance neto por desembolsar.
 
 ### 6. 👥 Directorio Integral de Clientes
-* 📇 **Ficha Maestra (`CustomerView` / `AddCustomerWindow`)**: Gestión de datos fiscales (RIF/NIT), teléfonos, direcciones de entrega, límites de crédito autorizados y vendedor asignado.
+
+- **Ficha Maestra (`CustomerView` / `AddCustomerWindow`):** datos fiscales (RIF/NIT), teléfonos, dirección fiscal y efectiva de entrega, límite de crédito y vendedor asignado.
+- **Protección de Datos:** no se permite borrar un cliente que tenga notas asociadas — se avisa y solo se permite editar.
+
+### 7. 📑 Reportes de Mes (PDF)
+
+- **Botón "Reporte Mes"** en CxC, Ventas y Pagos (`MonthlyReportPdfGenerator`): genera un **PDF detallado del mes** seleccionado — resumen por documento (fecha, documento, cliente, vendedor, monto, detalle, estado), **totales por vendedor** y **total general**.
 
 ---
 
 ## 🏛️ Arquitectura y Patrones de Diseño
 
-NinOS fue concebido bajo los principios de la **Clean Architecture (Arquitectura Limpia)** y los axiomas **SOLID**, desacoplando la lógica de negocio pura de la infraestructura y de los elementos visuales.
+NinOS se construyó bajo los principios de la **Clean Architecture** y los axiomas **SOLID**, desacoplando la lógica de negocio pura de la infraestructura y de los elementos visuales.
 
-                              ┌───────────────────────────────┐
-                              │           NinOS.UI            │
-                              │     (XAML Views & ViewModels) │
-                              └───────────────┬───────────────┘
-                                              │ Consume
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │     NinOS.Infrastructure      │
-                              │ (Services, Repositories, Data)│
-                              └───────────────┬───────────────┘
-                                              │ Implementa / Usa
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │         NinOS.Domain          │
-                              │   (Entities, Enums & DTOs)    │
-                              └───────────────────────────────┘
+```
+        ┌─────────────────────────────┐
+        │         NinOS.UI            │   WPF / XAML / MVVM
+        │  (Views, ViewModels, PDFs)  │
+        └──────────────┬──────────────┘
+                       │  Consume (interfaces)
+                       ▼
+        ┌─────────────────────────────┐
+        │    NinOS.Infrastructure     │   EF Core, Npgsql
+        │  (Services, Repositories,   │
+        │   Data, Migrations)         │
+        └──────────────┬──────────────┘
+                       │  Define / Depende de
+                       ▼
+        ┌─────────────────────────────┐
+        │        NinOS.Domain         │   Entidades puras
+        │  (Entities, Enums, DTOs)    │
+        └─────────────┬───────────────┘
+                      │
+                      ▼
+        ┌─────────────────────────────┐
+        │        PostgreSQL 16        │
+        └─────────────────────────────┘
+```
 
-### 🔄 Flujo Reactivo de Ejecución
-
-┌────────────────┐         Data Binding          ┌────────────────────┐│  Vista (XAML)  │ ◄───────────────────────────► │  ViewModel (MVVM)  │└────────────────┘   INotifyPropertyChanged /    └─────────┬──────────┘RelayCommand                    ││ Invocación de Casos de Uso▼┌────────────────┐         Persistencia          ┌────────────────────┐│  PostgreSQL DB │ ◄───────────────────────────► │   Service Layer    │└────────────────┘    NinOSDbContext / Npgsql    │ (Lógica Financiera)│└─────────┬──────────┘│▼┌────────────────────┐│  Repository Layer  ││  (IGenericRepo) │└────────────────────┘
 ### 🧩 Pilares de Ingeniería Aplicados
 
-* **MVVM Puro (Model-View-ViewModel)**: Separación radical entre UI y lógica. Cero código espagueti en los archivos `code-behind` (`.xaml.cs`).
-* **Repository Pattern (`IGenericRepository<T>`, `DeliveryNoteRepository`)**: Abstracción completa de las operaciones de lectura y escritura, aislando el motor de persistencia de la capa de servicios.
-* **Service Layer (`ICustomerService`, `IDeliveryNoteService`, `ICommissionService`, etc.)**: Toda la inteligencia comercial reside en servicios orquestados, validando reglas de negocio antes de tocar la base de datos.
-* **Factory Pattern (`NinOSDbContextFactory`, `DbConnectionFactory`)**: Gestión eficiente del ciclo de vida de los contextos tanto en tiempo de ejecución como para herramientas de migración por consola.
-* **XAML Value Converters**: Transformación desacoplada de tipos de dominio en representaciones gráficas reactivas (`BalanceColorConverter`, `BooleanToVisibilityConverter`).
+- **MVVM Puro:** separación radical entre UI y lógica; zero `code-behind` con lógica espagueti.
+- **Repository Pattern (`IGenericRepository<T>`, `DeliveryNoteRepository`):** aisla el motor de persistencia de la capa de servicios.
+- **Service Layer (`ICustomerService`, `IDeliveryNoteService`, `IAccountsReceivableService`, `IPaymentService`, `ICommissionService`, `IInventoryService`):** la inteligencia comercial vive en servicios orquestados que validan reglas de negocio antes de tocar la BD.
+- **Factory Pattern (`NinOSDbContextFactory`, `DbConnectionFactory`):** ciclo de vida eficiente de contextos, en runtime y para herramientas de migración.
+- **XAML Value Converters:** transformación desacoplada de tipos de dominio en representaciones gráficas reactivas (`BalanceColorConverter`, `BooleanToVisibilityConverter`, etc.).
+- **Inyección de Dependencias:** contenedor DI en `App.xaml.cs` para desacoplar la creación de servicios y ViewModels.
 
 ---
 
@@ -109,114 +136,182 @@ NinOS fue concebido bajo los principios de la **Clean Architecture (Arquitectura
 
 ```text
 NinOS/
-├── migrations/                                     # 🗄️ Parches DDL y scripts SQL complementarios
-│   ├── add_bank_and_observations.sql               # Soporte para entidades financieras y notas
-│   ├── add_payment_and_commission_fields.sql       # Extensión para comisiones y liquidación
-│   └── add_payment_audit_columns.sql               # Campos de auditoría contable en pagos
+├── migrations/                              # 🗄️ Parches DDL y scripts SQL complementarios
+│   ├── add_bank_and_observations.sql
+│   ├── add_payment_and_commission_fields.sql
+│   └── add_payment_audit_columns.sql
 │
 ├── src/
-│   ├── NinOS.Domain/                               # 🔷 CAPA DE DOMINIO (Núcleo Puro sin Dependencias)
-│   │   ├── ViewModels/                             # DTOs optimizados para reportes y proyecciones
-│   │   │   ├── accounts_receivable_dto.cs          # DTO de cuentas por cobrar y antigüedad
-│   │   │   ├── commission_dto.cs                   # DTO para balance consolidado de comisiones
-│   │   │   ├── note_print_dto.cs                   # DTO preparado para el generador PDF
-│   │   │   └── payment_dto.cs                      # DTO para recibos y movimientos de caja
-│   │   ├── comission.cs                            # Entidad de comisión devengada
-│   │   ├── customer.cs                             # Entidad maestra de clientes
-│   │   ├── delivery_note.cs                        # Entidad cabecera de nota de entrega
-│   │   ├── note_detail.cs                          # Entidad línea de detalle de productos/combos
-│   │   ├── payment.cs                              # Entidad transaccional de pagos y abonos
-│   │   ├── product.cs                              # Entidad maestra de productos
-│   │   ├── promotion.cs                            # Entidad de paquetes comerciales
-│   │   ├── promotion_item.cs                       # Entidad de ítems asociados a promociones
-│   │   ├── seller.cs                               # Entidad maestra de vendedores
-│   │   └── NinOS.Domain.csproj                     # Proyecto .NET Class Library
+│   ├── NinOS.Domain/                        # 🔷 CAPA DE DOMINIO (núcleo puro)
+│   │   ├── ViewModels/                      # DTOs para reportes y proyecciones
+│   │   │   ├── accounts_receivable_dto.cs
+│   │   │   ├── payment_dto.cs
+│   │   │   ├── commission_dto.cs
+│   │   │   ├── commission_payment_dto.cs
+│   │   │   ├── product_sales_history_dto.cs
+│   │   │   ├── note_print_dto.cs
+│   │   │   └── monthly_report_dto.cs        # DTO genérico para reportes de mes
+│   │   ├── comission.cs                     # Entidad de comisión devengada
+│   │   ├── commission_payment.cs            # Entidad de egreso/anticipo de comisión
+│   │   ├── customer.cs                      # Entidad maestra de clientes
+│   │   ├── delivery_note.cs                 # Cabecera de nota de entrega
+│   │   ├── note_detail.cs                   # Línea de detalle productos/combos
+│   │   ├── payment.cs                       # Entidad transaccional de pagos
+│   │   ├── product.cs                       # Entidad maestra de productos
+│   │   ├── promotion.cs / promotion_item.cs # Combos y promociones
+│   │   ├── seller.cs                        # Entidad maestra de vendedores
+│   │   └── NinOS.Domain.csproj
 │   │
-│   ├── NinOS.Infrastructure/                       # 🔶 CAPA DE INFRAESTRUCTURA Y ACCESO A DATOS
-│   │   ├── data/                                   # Contextos de datos y fábricas de conexión
-│   │   │   ├── DbConnectionFactory.cs              # Fábrica de conexiones Npgsql
-│   │   │   ├── DbInitializer.cs                    # Siembra inicial de datos (Seeding)
-│   │   │   ├── NinOSDbContext.cs                   # DbContext central con mapeos Fluent API
-│   │   │   └── NinOSDbContextFactory.cs            # Fábrica en tiempo de diseño para EF Tools
-│   │   ├── Migrations/                             # Historial de migraciones Code-First versionadas
-│   │   │   ├── 20260802172449_InitialCreate.cs     # Esquema relacional inicial
-│   │   │   └── 20260813155508_FixNoteDetail...     # Refactorización de prefijos y detalles
-│   │   ├── Repositories/                           # Implementación del Patrón Repositorio
-│   │   │   ├── Interfaces/                         # IGenericRepository, IDeliveryNoteRepository
-│   │   │   └── Implementations/                    # GenericRepository, DeliveryNoteRepository
-│   │   ├── Services/                               # Implementación de Casos de Uso y Servicios
-│   │   │   ├── Interfaces/                         # IAccountsReceivableService, ICommissionService...
-│   │   │   └── Implementations/                    # AccountsReceivableService, CommissionService,
-│   │   │                                           # CustomerService, DeliveryNoteService,
-│   │   │                                           # InventoryService, PaymentService
-│   │   └── NinOS.Infrastructure.csproj             # Dependencias: EF Core, Npgsql, LINQ
+│   ├── NinOS.Infrastructure/                # 🔶 INFRAESTRUCTURA Y ACCESO A DATOS
+│   │   ├── data/                            # DbContext, fábricas, seeding
+│   │   ├── Migrations/                      # Migraciones Code-First versionadas
+│   │   ├── Repositories/                    # Patrón Repositorio (interfaces + impl)
+│   │   ├── Services/                        # Casos de uso (interfaces + impl)
+│   │   │   ├── Interfaces/
+│   │   │   └── Implementations/
+│   │   │       ├── AccountsReceivableService.cs
+│   │   │       ├── CommissionService.cs
+│   │   │       ├── CustomerService.cs
+│   │   │       ├── DeliveryNoteService.cs
+│   │   │       ├── InventoryService.cs
+│   │   │       └── PaymentService.cs
+│   │   └── NinOS.Infrastructure.csproj      # EF Core 10, Npgsql, LINQ
 │   │
-│   └── NinOS.UI/                                   # 🔴 CAPA DE PRESENTACIÓN (WPF / XAML / MVVM)
-│       ├── Common/                                 # Clases base, infraestructura MVVM y utilitarios
-│       │   ├── NotePdfGenerator.cs                 # Motor vectorial de renderizado PDF
-│       │   ├── RelayCommand.cs                     # Implementación desacoplada de ICommand
-│       │   ├── ViewModelBase.cs                    # Clase base reactiva con INotifyPropertyChanged
-│       │   └── ViewModels/                         # ViewModels de interacción de usuario
-│       │       ├── AccountsReceivableViewModel.cs  # Lógica de Cartera y Cuentas por Cobrar
-│       │       ├── CommissionsViewModel.cs         # Lógica de Liquidación de Vendedores
-│       │       ├── CustomerViewModel.cs            # Lógica de Directorio de Clientes
-│       │       ├── DeliveryNotesViewModel.cs       # Lógica del Explorador de Despachos
-│       │       ├── InventoryViewModel.cs           # Lógica de Inventario y Combos
-│       │       ├── MainWindowViewModel.cs          # Lógica del Dashboard y Navegación
-│       │       ├── PaymentsViewModel.cs            # Lógica de Tesorería y Caja
-│       │       └── SalesViewModel.cs               # Lógica de Emisión de Ventas
-│       ├── Converters/                             # Value Converters para enlace dinámico XAML
-│       │   ├── BalanceColorConverter.cs            # Formateo condicional por saldo deudor
-│       │   ├── BooleanToVisibilityConverter.cs     # Enlace Booleano a Visibility
-│       │   ├── InverseBooleanToVisibility...       # Inversor Booleano a Visibility
-│       │   └── StringToVisibilityConverter.cs      # Enlace String a Visibility
-│       ├── Views/                                  # Vistas, Formularios y Modales XAML
-│       │   ├── MainWindow.xaml                     # Contenedor principal de la aplicación
-│       │   ├── SalesView.xaml                      # Pantalla de Facturación y Ventas
-│       │   ├── InventoryView.xaml                  # Panel de Control de Inventario
-│       │   ├── CustomerView.xaml                   # Directorio de Clientes
-│       │   ├── DeliveryNotesView.xaml              # Historial y búsqueda de Notas de Entrega
-│       │   ├── AccountsReceivableView.xaml         # Panel de Cuentas por Cobrar
-│       │   ├── PaymentsView.xaml                   # Panel de Recepción de Pagos
-│       │   ├── CommissionsView.xaml                # Panel de Comisiones
-│       │   ├── NotePreviewWindow.xaml              # Ventana modal de vista previa de notas
-│       │   ├── PaymentHistoryWindow.xaml           # Modal de historial de pagos por cliente
-│       │   ├── PaymentNoteHistoryWindow.xaml       # Modal de pagos por nota de entrega
-│       │   ├── AddCustomerWindow.xaml              # Formulario de alta de clientes
-│       │   ├── AddProductWindow.xaml               # Formulario de alta de productos
-│       │   ├── AddPromotionWindow.xaml             # Formulario de combos y promociones
-│       │   ├── AddPaymentWindow.xaml               # Modal de registro de pago
-│       │   └── AddCommissionPaymentWindow.xaml     # Modal de liquidación de comisiones
-│       ├── App.xaml / App.xaml.cs                  # Configuración de inicio y contenedor
-│       └── NinOS.UI.csproj                         # Ensamblado ejecutable WPF
+│   └── NinOS.UI/                            # 🔴 CAPA DE PRESENTACIÓN (WPF / MVVM)
+│       ├── Common/
+│       │   ├── NotePdfGenerator.cs          # Motor PDF de notas de entrega
+│       │   ├── MonthlyReportPdfGenerator.cs # Motor PDF de reportes de mes
+│       │   ├── RelayCommand.cs              # Implementación de ICommand
+│       │   ├── ViewModelBase.cs             # Base reactiva INotifyPropertyChanged
+│       │   └── ViewModels/                  # Lógica de interacción por módulo
+│       ├── Converters/                      # Value Converters XAML
+│       ├── Views/                           # Vistas, formularios y modales XAML
+│       ├── App.xaml(.cs)                    # Configuración de inicio + contenedor DI
+│       └── NinOS.UI.csproj                  # WinExe WPF + QuestPDF
 │
-├── NinOS.slnx                                      # Solución unificada .NET en formato XML moderno
-└── README.md                                       # Documentación de ingeniería del proyecto
-🛠️ Tecnologías y HerramientasComponenteTecnologíaRol en la SoluciónLenguaje CoreC# 13Tipado estricto, abstracciones POO, pattern matching y recordsPlataforma Runtime.NET 10 LTSMotor de ejecución optimizado de ultra alto desempeñoFramework UIWPF (XAML)Renderizado reactivo por GPU con enlaces de datos avanzadosBase de DatosPostgreSQL 16Persistencia relacional, concurrencia MVCC y transacciones ACIDMapeador ORMEntity Framework Core 10Migraciones Code-First y consultas optimizadas LINQ vía NpgsqlMotor de ReportesPDF Vectorial NativoGeneración sin dependencias pesadas de facturas y notas de entregaGestión de VersionesGit & GitHubArquitectura de ramas y control de cambios estructurado🚀 Instalación y Configuración📋 Prerrequisitos del Entorno.NET 10 SDK instalado globalmente.Instancia local o remota de PostgreSQL (v15 o superior).IDE recomendado: Visual Studio 2022/2026 con la carga Desarrollo de escritorio de .NET o VS Code con el paquete C# Dev Kit.1️⃣ Clonar el RepositorioBashgit clone [https://github.com/lulujax/ninos.git](https://github.com/lulujax/ninos.git)
+├── NinOS.slnx                               # Solución .NET (formato moderno XML)
+└── README.md
+```
+
+### 🛠️ Tecnologías y Herramientas
+
+| Componente | Tecnología | Rol en la Solución |
+|---|---|---|
+| Lenguaje Core | C# 13 | Tipado estricto, POO, pattern matching |
+| Plataforma Runtime | .NET 10 LTS | Motor de ejecución de alto desempeño |
+| Framework UI | WPF (XAML) | Renderizado reactivo con enlaces de datos avanzados |
+| Base de Datos | PostgreSQL 16 | Persistencia relacional, ACID |
+| Mapeador ORM | EF Core 10 + Npgsql | Migraciones Code-First y consultas LINQ |
+| Motor de Reportes | QuestPDF | Generación vectorial de notas y reportes de mes |
+| Inyección de Dependencias | Microsoft.Extensions.DependencyInjection | Contenedor DI moderno |
+| Gestión de Versiones | Git & GitHub | Control de cambios y ramas |
+
+---
+
+## 🚀 Instalación y Configuración
+
+### 📋 Prerrequisitos del Entorno
+
+1. **.NET 10 SDK** instalado globalmente.
+2. Instancia local o remota de **PostgreSQL** (v15 o superior).
+3. IDE recomendado: **Visual Studio 2022/2026** (carga "Desarrollo de escritorio de .NET") o **VS Code** con **C# Dev Kit**.
+
+### 1️⃣ Clonar el Repositorio
+
+```bash
+git clone https://github.com/lulujax/ninos.git
 cd ninos
-2️⃣ Configurar la Cadena de ConexiónAjusta los parámetros de tu servidor PostgreSQL en el archivo NinOS.Infrastructure/data/DbConnectionFactory.cs o define la variable de entorno correspondiente:C#"Host=localhost;Port=5432;Database=ninos_db;Username=postgres;Password=tu_password_segura;"
-3️⃣ Restaurar Dependencias y CompilarBashdotnet restore NinOS.slnx
+```
+
+### 2️⃣ Configurar la Cadena de Conexión
+
+Ajusta los parámetros de tu servidor PostgreSQL en `src/NinOS.Infrastructure/data/DbConnectionFactory.cs`, o define la variable de entorno `NINOS_DB_CONNECTION`:
+
+```csharp
+Host=localhost;Database=ninos_db;Username=postgres;Password=1234
+```
+
+### 3️⃣ Restaurar Dependencias y Compilar
+
+```bash
+dotnet restore NinOS.slnx
 dotnet build NinOS.slnx --configuration Release
-4️⃣ Aplicar Migraciones de Base de DatosEjecuta la migración de Entity Framework Core para generar el esquema completo de base de datos de manera automática:Bashdotnet ef database update --project src/NinOS.Infrastructure --startup-project src/NinOS.UI
-💡 Nota sobre scripts de auditoría: Si requieres aplicar manualmente los parches SQL de observaciones y auditoría contable, ejecuta en tu terminal:Bashpsql -U postgres -d ninos_db -f migrations/add_bank_and_observations.sql
+```
+
+### 4️⃣ Aplicar Migraciones de Base de Datos
+
+```bash
+dotnet ef database update --project src/NinOS.Infrastructure --startup-project src/NinOS.UI
+```
+
+> **💡 Nota sobre scripts de auditoría:** si requieres aplicar manualmente los parches SQL de observaciones y auditoría contable:
+
+```bash
+psql -U postgres -d ninos_db -f migrations/add_bank_and_observations.sql
 psql -U postgres -d ninos_db -f migrations/add_payment_and_commission_fields.sql
 psql -U postgres -d ninos_db -f migrations/add_payment_audit_columns.sql
-5️⃣ Ejecutar la Suite NinOSBashdotnet run --project src/NinOS.UI
-📊 Modelo Entidad-Relación (ERD)Fragmento de códigoerDiagram
+```
+
+### 5️⃣ Ejecutar la Suite NinOS
+
+```bash
+dotnet run --project src/NinOS.UI
+```
+
+---
+
+## 📊 Modelo Entidad-Relación (ERD)
+
+```mermaid
+erDiagram
     CUSTOMER ||--o{ DELIVERY_NOTE : "genera"
     CUSTOMER ||--o{ PAYMENT : "abona"
     SELLER ||--o{ CUSTOMER : "gestiona"
     SELLER ||--o{ COMISSION : "acumula"
-    
+    SELLER ||--o{ SELLER_PAYMENT : "recibe"
+
     DELIVERY_NOTE ||--|{ NOTE_DETAIL : "contiene"
     DELIVERY_NOTE ||--o{ PAYMENT : "recibe"
     DELIVERY_NOTE ||--o{ COMISSION : "origina"
-    
+
     PRODUCT ||--o{ NOTE_DETAIL : "despachado_en"
     PRODUCT ||--o{ PROMOTION_ITEM : "conforma"
-    
+
     PROMOTION ||--|{ PROMOTION_ITEM : "agrupa"
     PROMOTION ||--o{ NOTE_DETAIL : "vendido_en"
-🔮 Hoja de Ruta (Roadmap)[x] ✅ Módulo de Catálogo Maestro, Control de Existencias y Promociones Compuestas.[x] ✅ Motor de Emisión de Notas de Entrega y Generador PDF Vectorial.[x] ✅ Panel Integral de Cuentas por Cobrar (CxC) con Semáforo de Morosidad.[x] ✅ Auditoría de Pagos, Abonos Fraccionados y Conciliación Bancaria.[x] ✅ Algoritmo de Liquidación y Auditoría de Comisiones a Vendedores.[ ] 🔄 Arquitectura Multi-Sucursal con Sincronización en la Nube vía WebSockets.[ ] 📊 Tablero de Control Gerencial con Métricas de Rentabilidad y Proyección de Flujo de Caja.[ ] 🏷️ Integración con Impresoras Térmicas de Despacho y Lectores de Códigos de Barra 2D.👨‍💻 Sobre el Autor — LulujaxNinOS es el resultado de cientos de horas de diseño, arquitectura, refinamiento de código y pasión por crear software que marque la diferencia.Luis "Lulujax"Software Engineer & Creator of NinOS"El código limpio no es un lujo estético, es el compromiso ético
- del ingeniero con la calidad, la velocidad y la excelencia."
-⭐ Si este proyecto te ha resultado inspirador, déjale una estrella en el repositorio. ⭐
+
+    COMISSION ||--o{ COMMISSION_PAYMENT : "liquida"
+```
+
+---
+
+## 🔮 Hoja de Ruta
+
+| Estado | Módulo / Mejora |
+|---|---|
+| ✅ | Catálogo maestro, control de existencias y promociones compuestas |
+| ✅ | Motor de emisión de notas de entrega y generador PDF vectorial |
+| ✅ | Panel integral de Cuentas por Cobrar (CxC) con semáforo de morosidad |
+| ✅ | Auditoría de pagos, abonos fraccionados y conciliación bancaria |
+| ✅ | Algoritmo de liquidación y auditoría de comisiones a vendedores |
+| ✅ | Reporte de mes (PDF) para CxC, Ventas y Pagos |
+| ✅ | Historial de movimiento de stock por producto con signos y colores |
+| 🔄 | Arquitectura multi-sucursal con sincronización en la nube (WebSockets) |
+| 📊 | Tablero de control gerencial con métricas de rentabilidad y flujo de caja |
+| 🏷️ | Impresoras térmicas de despacho y lectores de códigos de barra 2D |
+
+---
+
+## 👨‍💻 Sobre el Autor
+
+NinOS es el resultado de cientos de horas de diseño, arquitectura, refinamiento de código y pasión por crear software que marque la diferencia.
+
+> **Luis "Lulujax"** — Software Engineer & Creator of NinOS
+>
+> *"El código limpio no es un lujo estético, es el compromiso ético del ingeniero con la calidad, la velocidad y la excelencia."*
+
+<div align="center">
+
+⭐ Si este proyecto te ha resultado inspirador, **¡déjale una estrella en el repositorio!** ⭐
+
+</div>

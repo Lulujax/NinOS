@@ -200,6 +200,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand cancel_edit_command { get; }
         public ICommand request_payment_command { get; }
         public ICommand add_payment_command { get; }
+        public ICommand month_report_command { get; }
 
         public Action<accounts_receivable_row_dto>? on_request_preview_window;
         public Action? on_request_confirmation_window;
@@ -229,6 +230,8 @@ namespace NinOS.UI.Common.ViewModels
             cancel_edit_command = new RelayCommand(execute_cancel_edit);
             request_payment_command = new RelayCommand(execute_request_payment);
             add_payment_command = new RelayCommand(execute_add_payment);
+
+            month_report_command = new RelayCommand(execute_month_report);
 
             _ = load_all_async();
         }
@@ -336,7 +339,7 @@ namespace NinOS.UI.Common.ViewModels
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
-                discount_percentage_text = n.gross_total_usd > 0 ? $"{Math.Round((n.discount_amount / n.gross_total_usd) * 100)}%" : "0%",
+                discount_percentage_text = n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%",
                 paid_amount_usd = n.paid_amount_usd,
                 balance_due_usd = n.balance_due_usd,
                 last_payment_date = n.last_payment_date,
@@ -463,6 +466,40 @@ namespace NinOS.UI.Common.ViewModels
         private void execute_add_payment(object? parameter)
         {
             on_request_add_payment_for_month?.Invoke(selected_month);
+        }
+
+        private void execute_month_report(object? parameter)
+        {
+            try
+            {
+                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
+
+                var report = new monthly_report_dto
+                {
+                    title = "Reporte CxC - Detalle del Mes",
+                    month = _selected_month,
+                    detail_column_header = "SALDO",
+                    rows = month_rows
+                        .OrderBy(n => n.creation_date)
+                        .Select(n => new monthly_report_row_dto
+                        {
+                            date = n.creation_date,
+                            document_number = n.note_number,
+                            customer_name = n.customer_name,
+                            seller_name = n.seller_name,
+                            amount_usd = n.total_amount_usd,
+                            detail_text = n.status == "Anulada" ? "Anulada" : $"{n.balance_due_usd:N2}",
+                            status = n.status
+                        })
+                        .ToList()
+                };
+
+                MonthlyReportPdfGenerator.generate(report);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 }

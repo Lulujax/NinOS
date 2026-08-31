@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
+using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -281,6 +282,11 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception)
             {
             }
+        }
+
+        public async Task<IEnumerable<product_sales_history_dto>> get_product_history_async(int id_product)
+        {
+            return await _inventory_service.get_product_sales_history_async(id_product);
         }
 
         private void update_category_from_tab()

@@ -63,6 +63,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public ICommand preview_note_command { get; }
         public ICommand print_pdf_command { get; }
+        public ICommand month_report_command { get; }
 
         public Action<accounts_receivable_dto>? on_request_preview_window;
 
@@ -84,6 +85,8 @@ namespace NinOS.UI.Common.ViewModels
 
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
+
+            month_report_command = new RelayCommand(execute_month_report);
 
             load_all_async();
         }
@@ -223,6 +226,40 @@ namespace NinOS.UI.Common.ViewModels
             {
                 note.sales_observations = note.saved_observations ?? string.Empty;
                 System.Windows.MessageBox.Show($"No se pudo guardar la observación: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_month_report(object? parameter)
+        {
+            try
+            {
+                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
+
+                var report = new monthly_report_dto
+                {
+                    title = "Reporte Ventas - Detalle del Mes",
+                    month = _selected_month,
+                    detail_column_header = "ABONADO",
+                    rows = month_rows
+                        .OrderBy(n => n.creation_date)
+                        .Select(n => new monthly_report_row_dto
+                        {
+                            date = n.creation_date,
+                            document_number = n.note_number,
+                            customer_name = n.customer_name,
+                            seller_name = n.seller_name,
+                            amount_usd = n.total_amount_usd,
+                            detail_text = n.status == "Anulada" ? "Anulada" : $"{n.paid_amount_usd:N2}",
+                            status = n.status
+                        })
+                        .ToList()
+                };
+
+                MonthlyReportPdfGenerator.generate(report);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
     }

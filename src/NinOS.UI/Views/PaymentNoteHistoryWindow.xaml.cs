@@ -83,7 +83,7 @@ namespace NinOS.UI.Views
         private async void AddAbonoButton_Click(object sender, RoutedEventArgs e)
         {
             if (_note == null) return;
-            var window = new AddPaymentWindow(_vm, "", null);
+            var window = new AddPaymentWindow(_vm, "", null, _note);
             window.Owner = Window.GetWindow(this);
             window.PaymentRegistered += async (_, _) => await ReloadAsync();
             window.ShowDialog();

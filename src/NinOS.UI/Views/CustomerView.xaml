@@ -52,7 +52,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding DeliveryAddress}" Header="Dirección Entrega" Width="200">
+                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="Wrap"/>
@@ -102,7 +102,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding DeliveryAddress}" Header="Dirección Entrega" Width="200">
+                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="Wrap"/>
@@ -151,7 +151,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding DeliveryAddress}" Header="Dirección Entrega" Width="200">
+                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="Wrap"/>
@@ -200,7 +200,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding DeliveryAddress}" Header="Dirección Entrega" Width="200">
+                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="Wrap"/>

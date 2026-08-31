@@ -638,7 +638,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 decimal gross = details.Sum(d => d.subtotal_usd);
                 decimal discount_amt = gross - note.total_amount_usd;
-                decimal discount_pct = gross > 0 ? Math.Round((discount_amt / gross) * 100m) : 0;
+                decimal discount_pct = gross > 0 ? (discount_amt / gross) * 100m : 0;
 
                 return new note_print_dto
                 {
@@ -659,7 +659,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_business_name = customer?.business_name ?? string.Empty,
                     customer_rif = customer?.rif ?? string.Empty,
                     customer_phone = customer?.phone_number ?? string.Empty,
-                    customer_delivery_address = customer?.delivery_address ?? string.Empty,
+                    customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
                     conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
                     discount_conditions_text = "Descuento 10% SOLO\nCONTADO",

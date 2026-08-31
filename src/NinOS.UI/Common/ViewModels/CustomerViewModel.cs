@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Infrastructure.Repositories.Interfaces;
@@ -22,6 +23,9 @@ namespace NinOS.UI.Common.ViewModels
         public string DeliveryAddress { get; set; } = string.Empty;
         public string SellerName { get; set; } = string.Empty;
         public customer? CustomerRef { get; set; }
+
+        public string EffectiveDeliveryAddress =>
+            string.IsNullOrWhiteSpace(DeliveryAddress) ? FiscalAddress : DeliveryAddress;
     }
 
     public class CustomerViewModel : ViewModelBase
@@ -369,15 +373,15 @@ namespace NinOS.UI.Common.ViewModels
                         (c.ContactName?.ToLower().Contains(query) ?? false) ||
                         (c.PhoneNumber?.ToLower().Contains(query) ?? false) ||
                         (c.FiscalAddress?.ToLower().Contains(query) ?? false) ||
-                        (c.DeliveryAddress?.ToLower().Contains(query) ?? false) ||
+                        (c.EffectiveDeliveryAddress?.ToLower().Contains(query) ?? false) ||
                         (c.SellerName?.ToLower().Contains(query) ?? false)
                     ).ToList();
                 }
 
                 UpdateCollection(AllCustomers, filtered);
-                UpdateCollection(AnaisCustomers, filtered.Where(c => c.SellerName == "Anais").ToList());
-                UpdateCollection(SandraCustomers, filtered.Where(c => c.SellerName == "Sandra").ToList());
-                UpdateCollection(AlejandraCustomers, filtered.Where(c => c.SellerName == "Alejandra").ToList());
+                UpdateCollection(AnaisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(SandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(AlejandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase)).ToList());
             }
             catch (Exception ex)
             {
@@ -518,16 +522,32 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is CustomerRowDto selected && selected.CustomerRef != null)
             {
+                MessageBoxResult confirm = System.Windows.MessageBox.Show(
+                    $"Esta seguro de eliminar el cliente \"{selected.BusinessName}\"?",
+                    "Confirmar eliminacion",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes) return;
+
                 try
                 {
                     IsLoading = true;
                     ErrorMessage = string.Empty;
                     await _customerService.DeleteCustomerAsync(selected.CustomerRef.id_customer);
                     LoadCustomersAsync();
+                    System.Windows.MessageBox.Show($"Cliente \"{selected.BusinessName}\" eliminado.",
+                        "Cliente eliminado", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    ErrorMessage = ex.Message;
+                    System.Windows.MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 catch (Exception ex)
                 {
                     ErrorMessage = $"Error al eliminar: {ex.Message}";
+                    System.Windows.MessageBox.Show($"Error al eliminar el cliente: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally
                 {

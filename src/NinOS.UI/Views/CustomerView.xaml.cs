@@ -29,7 +29,6 @@ namespace NinOS.UI.Views
                     AddCustomerWindow window = new AddCustomerWindow();
                     window.DataContext = viewModel;
                     window.Owner = Window.GetWindow(this);
-                    viewModel.StartEditCustomer(selected);
                     window.ShowDialog();
                 };
             }

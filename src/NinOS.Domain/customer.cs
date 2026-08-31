@@ -31,6 +31,9 @@ namespace NinOS.Domain
         
         public string delivery_address { get; set; }
 
+        public string effective_delivery_address =>
+            string.IsNullOrWhiteSpace(delivery_address) ? fiscal_address : delivery_address;
+
         [MaxLength(100)]
         public string seller_name { get; set; }
 

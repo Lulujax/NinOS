@@ -41,7 +41,7 @@
 
         <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Todos">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding todos_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding todos_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
@@ -78,7 +78,7 @@
             </TabItem>
 
             <TabItem Header="Defile">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding defile_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding defile_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -108,7 +108,7 @@
             </TabItem>
 
             <TabItem Header="Oleos">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding oleos_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding oleos_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -138,7 +138,7 @@
             </TabItem>
 
             <TabItem Header="Rembrandt">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding rembrandt_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding rembrandt_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -168,7 +168,7 @@
             </TabItem>
 
             <TabItem Header="Bioline">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding bioline_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding bioline_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -198,7 +198,7 @@
             </TabItem>
 
             <TabItem Header="Amazonia Secret">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding amazonia_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding amazonia_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -228,7 +228,7 @@
             </TabItem>
 
             <TabItem Header="Kedam">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding kedam_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding kedam_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -258,7 +258,7 @@
             </TabItem>
 
             <TabItem Header="Depil Clear">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding depil_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding depil_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -288,7 +288,7 @@
             </TabItem>
 
             <TabItem Header="Estilista">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding estilista_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding estilista_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -318,7 +318,7 @@
             </TabItem>
 
             <TabItem Header="Cutique">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding cutique_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding cutique_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -348,7 +348,7 @@
             </TabItem>
 
             <TabItem Header="Otros">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding otros_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding otros_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
@@ -378,7 +378,7 @@
             </TabItem>
 
             <TabItem Header="Promociones">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding promociones_list}" Margin="5" MinRowHeight="40">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding promociones_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>

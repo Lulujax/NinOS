@@ -373,6 +373,24 @@
                         </ControlTemplate>
                     </Button.Template>
                 </Button>
+
+                <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
+                        Margin="8,0,0,0"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding month_report_command}" FontSize="12.5">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </StackPanel>
         </Grid>
 

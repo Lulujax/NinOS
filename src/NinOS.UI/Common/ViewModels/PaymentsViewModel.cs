@@ -98,6 +98,7 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public ICommand add_payment_command { get; }
+        public ICommand month_report_command { get; }
         public Action? on_request_add_payment_window { get; set; }
 
         public PaymentsViewModel(IPaymentService payment_service, IAccountsReceivableService receivable_service)
@@ -117,6 +118,8 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Todas");
 
             add_payment_command = new RelayCommand(execute_add_payment);
+
+            month_report_command = new RelayCommand(execute_month_report);
 
             load_all_async();
         }
@@ -221,7 +224,7 @@ namespace NinOS.UI.Common.ViewModels
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
-                discount_percentage_text = n.gross_total_usd > 0 ? $"{Math.Round((n.discount_amount / n.gross_total_usd) * 100)}%" : "0%",
+                discount_percentage_text = n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%",
                 paid_amount_usd = n.paid_amount_usd,
                 balance_due_usd = n.balance_due_usd,
                 last_payment_date = n.last_payment_date,
@@ -300,6 +303,40 @@ namespace NinOS.UI.Common.ViewModels
         public async Task<IEnumerable<accounts_receivable_dto>> get_notes_by_month_async(string month_year)
         {
             return await _receivable_service.get_all_by_month_async(month_year);
+        }
+
+        private async void execute_month_report(object? parameter)
+        {
+            try
+            {
+                var payments = (await _payment_service.get_payments_by_month_async(_selected_month)).ToList();
+
+                var report = new monthly_report_dto
+                {
+                    title = "Reporte Pagos - Detalle del Mes",
+                    month = _selected_month,
+                    detail_column_header = "BANCO / REFERENCIA",
+                    rows = payments
+                        .OrderBy(p => p.payment_date)
+                        .Select(p => new monthly_report_row_dto
+                        {
+                            date = p.payment_date,
+                            document_number = p.note_number,
+                            customer_name = p.customer_name,
+                            seller_name = p.seller_name,
+                            amount_usd = p.amount_usd,
+                            detail_text = $"{p.bank_name} / {p.reference_number}".Trim(' ', '/'),
+                            status = p.payment_type
+                        })
+                        .ToList()
+                };
+
+                MonthlyReportPdfGenerator.generate(report);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 }

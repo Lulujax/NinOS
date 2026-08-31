@@ -102,7 +102,7 @@ namespace NinOS.UI.Views
             var totalsCol = new StackPanel();
             totalsCol.Children.Add(MakeTotalsRow("Subtotal:", $"{note.gross_total_usd:N2}", false, Brushes.Black));
             if (note.discount_amount > 0)
-                totalsCol.Children.Add(MakeTotalsRow($"Descuento ({note.discount_percentage:0}%):", $"-{note.discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
+                totalsCol.Children.Add(MakeTotalsRow($"Descuento ({note.discount_percentage:0.##}%):", $"-{note.discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
             totalsCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 3, 0, 0)));
             totalsCol.Children.Add(MakeTotalsRow("TOTAL GENERAL:", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
             if (note.paid_amount_usd > 0)
@@ -310,12 +310,12 @@ namespace NinOS.UI.Views
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.HorizontalContentAlignmentProperty, HorizontalAlignment.Left));
             dg.ColumnHeaderStyle = headerStyle;
 
-            dg.Columns.Add(MakeTextColumn("CANT.", "quantity", 60));
-            dg.Columns.Add(MakeTextColumn("DESCRIPCION", "name", 250));
-            dg.Columns.Add(MakeTextColumn("PRECIO U.", "unit_price_usd", 85, "N2"));
-            dg.Columns.Add(MakeTextColumn("PRECIO P.", "promo_price_usd", 85, "N2"));
-            dg.Columns.Add(MakeTextColumn("SUBTOTAL", "subtotal_usd", 90, "N2"));
-            dg.Columns.Add(MakeTextColumn("CODIGO", "code", 80));
+            dg.Columns.Add(MakeTextColumn("CANT.", "quantity", 45));
+            dg.Columns.Add(MakeTextColumn("CODIGO", "code", 85));
+            dg.Columns.Add(MakeTextColumn("DESCRIPCION", "name", 210));
+            dg.Columns.Add(MakeTextColumn("PRECIO U.", "unit_price_usd", 80, "N2"));
+            dg.Columns.Add(MakeTextColumn("PRECIO P.", "promo_price_usd", 80, "N2"));
+            dg.Columns.Add(MakeTextColumn("SUBTOTAL", "subtotal_usd", 85, "N2"));
 
             return dg;
         }

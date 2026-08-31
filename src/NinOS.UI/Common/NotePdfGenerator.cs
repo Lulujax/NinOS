@@ -126,8 +126,8 @@ namespace NinOS.UI.Common
                             table.ColumnsDefinition(columns =>
                             {
                                 columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(3);
                                 columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(3);
                                 columns.RelativeColumn(1.2f);
                                 columns.RelativeColumn(1.2f);
                                 columns.RelativeColumn(1.2f);
@@ -136,11 +136,11 @@ namespace NinOS.UI.Common
                             table.Header(header =>
                             {
                                 header.Cell().Background(PrimaryColor).Padding(4).Text("CANT.").FontColor(Colors.White).Bold().FontSize(8);
+                                header.Cell().Background(PrimaryColor).Padding(4).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
                                 header.Cell().Background(PrimaryColor).Padding(4).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(8);
                                 header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(8);
                                 header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(8);
                                 header.Cell().Background(PrimaryColor).Padding(4).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
                             });
 
                             bool alternate = false;
@@ -148,11 +148,11 @@ namespace NinOS.UI.Common
                             {
                                 string bg = alternate ? AccentBg : Colors.White;
                                 table.Cell().Background(bg).Padding(3).Text(d.quantity.ToString()).FontSize(9);
+                                table.Cell().Background(bg).Padding(3).Text(d.code).FontSize(9);
                                 table.Cell().Background(bg).Padding(3).Text(d.name).FontSize(9);
                                 table.Cell().Background(bg).Padding(3).Text(d.unit_price_usd.ToString("N2")).FontSize(9);
                                 table.Cell().Background(bg).Padding(3).Text(d.promo_price_usd.ToString("N2")).FontSize(9);
                                 table.Cell().Background(bg).Padding(3).Text(d.subtotal_usd.ToString("N2")).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.code).FontSize(9);
                                 alternate = !alternate;
                             }
                         });
@@ -171,7 +171,7 @@ namespace NinOS.UI.Common
 
                                 totals.Item().PaddingTop(2).Row(r =>
                                 {
-                                    r.RelativeItem().Text($"Descuento ({note.discount_percentage:0}%):").FontSize(9).FontColor("#CC0000");
+                                    r.RelativeItem().Text($"Descuento ({note.discount_percentage:0.##}%):").FontSize(9).FontColor("#CC0000");
                                     r.RelativeItem().AlignRight().Text($"-{note.discount_amount:N2}").FontSize(9).FontColor("#CC0000");
                                 });
 

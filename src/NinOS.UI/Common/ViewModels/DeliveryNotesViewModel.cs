@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain;
+using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -135,10 +136,9 @@ namespace NinOS.UI.Common.ViewModels
             get { return _quantity; }
             set
             {
-                if (value <= 0) throw new ArgumentException("La cantidad no puede ser 0 o menor.");
-                if (_selected_item != null && value > _selected_item.available_stock) throw new InvalidOperationException($"Solo tienes {_selected_item.available_stock} unidades disponibles.");
-
-                _quantity = value;
+                int new_value = value < 0 ? 0 : value;
+                if (_quantity == new_value) return;
+                _quantity = new_value;
                 on_property_changed();
                 calculate_subtotal();
             }
@@ -162,16 +162,6 @@ namespace NinOS.UI.Common.ViewModels
             set
             {
                 if (_promo_price_usd_text == value) return;
-
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    string normalized = value.Replace(",", ".");
-                    if (!decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
-                    {
-                        throw new ArgumentException();
-                    }
-                }
-
                 _promo_price_usd_text = value;
                 on_property_changed();
                 calculate_subtotal();
@@ -304,6 +294,10 @@ namespace NinOS.UI.Common.ViewModels
         private string _conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
 
+        private string _credit_days_text = "21 dias de credito";
+        private string _customer_code_text = string.Empty;
+        private string _contact_name_text = string.Empty;
+
         public ObservableCollection<seller> sellers { get; }
         public ObservableCollection<customer> filtered_customers { get; }
         public ObservableCollection<billable_item> all_items { get; }
@@ -350,6 +344,11 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_customer == value) return;
                 _selected_customer = value;
+                if (_selected_customer != null)
+                {
+                    customer_code_text = _selected_customer.customer_code;
+                    contact_name_text = _selected_customer.contact_name;
+                }
                 on_property_changed();
             }
         }
@@ -468,6 +467,39 @@ namespace NinOS.UI.Common.ViewModels
                 if (_discount_conditions_text == value) return;
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
                 _discount_conditions_text = value;
+                on_property_changed();
+            }
+        }
+
+        public string credit_days_text
+        {
+            get { return _credit_days_text; }
+            set
+            {
+                if (_credit_days_text == value) return;
+                _credit_days_text = value;
+                on_property_changed();
+            }
+        }
+
+        public string customer_code_text
+        {
+            get { return _customer_code_text; }
+            set
+            {
+                if (_customer_code_text == value) return;
+                _customer_code_text = value;
+                on_property_changed();
+            }
+        }
+
+        public string contact_name_text
+        {
+            get { return _contact_name_text; }
+            set
+            {
+                if (_contact_name_text == value) return;
+                _contact_name_text = value;
                 on_property_changed();
             }
         }
@@ -706,6 +738,47 @@ namespace NinOS.UI.Common.ViewModels
             total_amount_usd = gross_total_usd - discount_amount;
         }
 
+        private note_print_dto build_preview_dto()
+        {
+            note_print_dto dto = new note_print_dto
+            {
+                note_number = _note_number,
+                creation_date = _creation_date,
+                due_date = _due_date,
+                gross_total_usd = gross_total_usd,
+                discount_percentage = string.IsNullOrWhiteSpace(_discount_percentage_text) ? 0 : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : 0),
+                discount_amount = discount_amount,
+                total_amount_usd = total_amount_usd,
+                seller_name = _selected_seller?.full_name ?? string.Empty,
+                customer_code = customer_code_text,
+                customer_business_name = _selected_customer?.business_name ?? string.Empty,
+                customer_rif = _selected_customer?.rif ?? string.Empty,
+                customer_phone = _selected_customer?.phone_number ?? string.Empty,
+                customer_delivery_address = _selected_customer?.effective_delivery_address ?? string.Empty,
+                fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
+                conditions_text = _conditions_text,
+                discount_conditions_text = _discount_conditions_text,
+                company_name = "DEFILE _REMBRANT_OLEOS_FLYING_BIOLINE"
+            };
+
+            foreach (note_detail_row row in note_details)
+            {
+                if (row.selected_item == null) continue;
+                decimal effective = row.subtotal_usd / (row.quantity > 0 ? row.quantity : 1);
+                dto.details.Add(new note_detail_print_dto
+                {
+                    code = row.selected_item.code,
+                    name = row.selected_item.name,
+                    quantity = row.quantity,
+                    unit_price_usd = row.unit_price_usd,
+                    promo_price_usd = effective,
+                    subtotal_usd = row.subtotal_usd
+                });
+            }
+
+            return dto;
+        }
+
         private async void execute_save_note(object? parameter)
         {
             try
@@ -717,6 +790,29 @@ namespace NinOS.UI.Common.ViewModels
                 if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Las condiciones no pueden estar vacias.");
                 if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Las condiciones de descuento no pueden estar vacias.");
                 if (string.IsNullOrWhiteSpace(_discount_percentage_text)) throw new InvalidOperationException("El porcentaje de descuento no puede estar vacio.");
+
+                foreach (note_detail_row row in note_details)
+                {
+                    if (row.selected_item == null) throw new InvalidOperationException("Hay un renglon sin producto seleccionado.");
+                    if (row.quantity <= 0) throw new InvalidOperationException($"La cantidad de '{row.selected_item.name}' debe ser mayor a 0.");
+                    if (row.quantity > row.selected_item.available_stock)
+                    {
+                        throw new InvalidOperationException(
+                            $"Inventario insuficiente para '{row.selected_item.name}'. Tienes {row.selected_item.available_stock} unidades disponibles y colocaste {row.quantity}.");
+                    }
+                }
+
+                note_print_dto preview = build_preview_dto();
+                NinOS.UI.Views.NotePreviewWindow preview_window = new NinOS.UI.Views.NotePreviewWindow(preview) { Owner = System.Windows.Application.Current?.MainWindow };
+                preview_window.ShowDialog();
+
+                System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
+                    "¿Desea guardar la nota de entrega?",
+                    "Confirmar creación",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result != System.Windows.MessageBoxResult.Yes) return;
 
                 delivery_note new_note = new delivery_note(
                     _note_number,

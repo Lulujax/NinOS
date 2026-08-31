@@ -1,5 +1,6 @@
 using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Input;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -66,6 +67,27 @@ namespace NinOS.UI.Views
                     };
                 }
             };
+        }
+
+        private async void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is not InventoryViewModel view_model) return;
+            if (sender is not DataGrid grid) return;
+            if (grid.SelectedItem is not inventory_item_dto dto) return;
+            if (dto.is_promotion || dto.product_ref == null) return;
+
+            try
+            {
+                var history = await view_model.get_product_history_async(dto.product_ref.id_product);
+
+                var window = new ProductSalesHistoryWindow(dto.product_ref, history);
+                window.Owner = Window.GetWindow(this);
+                window.ShowDialog();
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el historial: {ex.Message}", "Error");
+            }
         }
     }
 }

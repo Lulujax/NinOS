@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
+using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -123,6 +125,107 @@ namespace NinOS.Infrastructure.Services.Implementations
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 db_context.promotions.Remove(promotion_to_delete);
                 await db_context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<IEnumerable<product_sales_history_dto>> get_product_sales_history_async(int id_product)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var promotions = await db.promotions
+                    .AsNoTracking()
+                    .Include(p => p.items)
+                    .ToListAsync();
+
+                var promotions_with_product = promotions
+                    .Where(p => p.items != null && p.items.Any(i => i.id_product == id_product))
+                    .ToDictionary(p => p.id_promotion, p => p.items.First(i => i.id_product == id_product).quantity_required);
+
+                var promotion_ids = promotions_with_product.Keys.ToList();
+
+                var details = new List<note_detail>();
+                details.AddRange(await db.note_details
+                    .AsNoTracking()
+                    .Where(d => d.id_product == id_product)
+                    .ToListAsync());
+
+                if (promotion_ids.Count > 0)
+                {
+                    details.AddRange(await db.note_details
+                        .AsNoTracking()
+                        .Where(d => d.id_promotion != null && promotion_ids.Contains(d.id_promotion.Value))
+                        .ToListAsync());
+                }
+
+                if (details.Count == 0) return Enumerable.Empty<product_sales_history_dto>();
+
+                var note_ids = details.Select(d => d.id_delivery_note).Distinct().ToList();
+                var notes = await db.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToListAsync();
+
+                var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+                var customers = await db.customers
+                    .AsNoTracking()
+                    .Where(c => customer_ids.Contains(c.id_customer))
+                    .ToDictionaryAsync(c => c.id_customer);
+
+                var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
+                var sellers = await db.sellers
+                    .AsNoTracking()
+                    .Where(s => seller_ids.Contains(s.id_seller))
+                    .ToDictionaryAsync(s => s.id_seller);
+
+                var result = new List<product_sales_history_dto>();
+
+                foreach (note_detail d in details)
+                {
+                    delivery_note? note = notes.FirstOrDefault(n => n.id_delivery_note == d.id_delivery_note);
+                    if (note == null) continue;
+
+                    int units;
+                    string sold_as;
+                    string line_description;
+
+                    if (d.id_product == id_product)
+                    {
+                        units = d.quantity;
+                        sold_as = "Producto";
+                        line_description = "";
+                    }
+                    else if (d.id_promotion != null && promotions_with_product.TryGetValue(d.id_promotion.Value, out int qty_required))
+                    {
+                        units = d.quantity * qty_required;
+                        promotion? promo = promotions.FirstOrDefault(p => p.id_promotion == d.id_promotion.Value);
+                        sold_as = "Promoción";
+                        line_description = promo?.name ?? "Promoción";
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    result.Add(new product_sales_history_dto
+                    {
+                        id_delivery_note = note.id_delivery_note,
+                        note_number = note.note_number,
+                        creation_date = note.creation_date,
+                        customer_name = customers.TryGetValue(note.id_customer, out var c) ? c.business_name : string.Empty,
+                        seller_name = sellers.TryGetValue(note.id_seller, out var s) ? s.full_name : string.Empty,
+                        line_description = line_description,
+                        sold_as = sold_as,
+                        units_sold = units,
+                        unit_price_usd = d.unit_price_usd,
+                        line_subtotal_usd = d.subtotal_usd,
+                        status = note.status,
+                        movement_type = note.status == "Anulada" ? "ENTRADA" : "SALIDA"
+                    });
+                }
+
+                return result.OrderByDescending(r => r.creation_date).ToList();
             }
         }
     }

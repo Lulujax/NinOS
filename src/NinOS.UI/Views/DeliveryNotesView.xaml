@@ -3,29 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
     <Grid Margin="10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <Border Grid.Column="0" Background="#F4F4F4" CornerRadius="4" Margin="0,0,10,0" Padding="10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock Text="VENDEDORES" FontWeight="Bold" FontSize="16" Margin="0,0,0,10" HorizontalAlignment="Center"/>
-                <ListBox Grid.Row="1" ItemsSource="{Binding sellers}" SelectedItem="{Binding selected_seller, UpdateSourceTrigger=PropertyChanged}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding full_name}" Padding="5" FontSize="14" Cursor="Hand"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </Border>
+        <TabControl x:Name="SellerTabControl" Grid.Row="0" Margin="0,0,0,8" BorderBrush="#1B3A2D" BorderThickness="1" Background="White"
+                    SelectionChanged="SellerTabControl_SelectionChanged">
+        </TabControl>
 
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <Border BorderBrush="Black" BorderThickness="1" Padding="10" Background="White">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -71,8 +58,9 @@
 
                             <Border Grid.Row="1" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="NOMBRE COMERCIAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
                             <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.business_name}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
-                            <Border Grid.Row="1" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="codigo" FontStyle="Italic" TextAlignment="Center"/></Border>
-                            <Border Grid.Row="1" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding selected_customer.customer_code}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
+                            <Border Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
+                                <TextBox Text="{Binding credit_days_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center" FontSize="13" Padding="4"/>
+                            </Border>
 
                             <Border Grid.Row="2" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="DOMICILIO FISCAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
                             <Border Grid.Row="2" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.fiscal_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
@@ -82,17 +70,23 @@
                             </Border>
 
                             <Border Grid.Row="3" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="DIRECCION DE ENTREGA" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
-                            <Border Grid.Row="3" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.delivery_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="3" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.effective_delivery_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
                             <Border Grid.Row="3" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="NOTA DE ENTREGA NRO" FontStyle="Italic" TextAlignment="Center"/></Border>
                             <Border Grid.Row="3" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding note_number}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
 
                             <Border Grid.Row="4" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="RIF:" FontStyle="Italic" TextAlignment="Center"/></Border>
                             <Border Grid.Row="4" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.rif}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
-                            <Border Grid.Row="4" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="CONTACTO" FontStyle="Italic" TextAlignment="Center"/></Border>
-                            <Border Grid.Row="4" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding selected_customer.contact_name}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+                            <Border Grid.Row="4" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="codigo" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="4" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
+                                <TextBox Text="{Binding customer_code_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
+                            </Border>
 
                             <Border Grid.Row="5" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="TELEFONO:" FontStyle="Italic" TextAlignment="Center"/></Border>
                             <Border Grid.Row="5" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="{Binding selected_customer.phone_number}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+                            <Border Grid.Row="5" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="contacto" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="5" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,0" Padding="2">
+                                <TextBox Text="{Binding contact_name_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center"/>
+                            </Border>
                         </Grid>
                     </Border>
 
@@ -291,7 +285,7 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="5">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <TextBox Text="{Binding discount_percentage_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="40" Background="White" BorderThickness="1" BorderBrush="#AAAAAA" TextAlignment="Center"/>
+                                                    <TextBox Text="{Binding discount_percentage_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="60" Background="White" BorderThickness="1" BorderBrush="#AAAAAA" TextAlignment="Center"/>
                                                     <TextBlock Text="%" VerticalAlignment="Center" Margin="5,0,0,0" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>

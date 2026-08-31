@@ -64,16 +64,31 @@ namespace NinOS.UI.Views
                 viewModel.on_request_add_payment_for_note = (note) =>
                 {
                     string month = note.creation_date.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-                    OpenPaymentWindow(viewModel, month);
+                    OpenPaymentWindow(viewModel, month, note);
                 };
             }
         }
 
-        private void OpenPaymentWindow(AccountsReceivableViewModel ar_vm, string month)
+        private void OpenPaymentWindow(AccountsReceivableViewModel ar_vm, string month, accounts_receivable_row_dto? preselected_note = null)
         {
             if (PaymentsContext == null) return;
 
-            var window = new AddPaymentWindow(PaymentsContext, month);
+            accounts_receivable_dto? note = null;
+            if (preselected_note != null)
+            {
+                note = new accounts_receivable_dto
+                {
+                    id_delivery_note = preselected_note.id_delivery_note,
+                    note_number = preselected_note.note_number,
+                    customer_name = preselected_note.customer_name,
+                    total_amount_usd = preselected_note.total_amount_usd,
+                    paid_amount_usd = preselected_note.paid_amount_usd,
+                    balance_due_usd = preselected_note.balance_due_usd,
+                    status = preselected_note.status
+                };
+            }
+
+            var window = new AddPaymentWindow(PaymentsContext, month, null, note);
             window.Owner = Window.GetWindow(this);
             window.PaymentRegistered += (_, _) =>
             {

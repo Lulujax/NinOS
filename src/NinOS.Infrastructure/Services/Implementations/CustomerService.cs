@@ -74,11 +74,16 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 customer? customerToDelete = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
-                if (customerToDelete != null)
+                if (customerToDelete == null) return;
+
+                bool hasNotes = await db_context.delivery_notes.AnyAsync(n => n.id_customer == id);
+                if (hasNotes)
                 {
-                    db_context.customers.Remove(customerToDelete);
-                    await db_context.SaveChangesAsync();
+                    throw new InvalidOperationException("Este cliente tiene notas de entrega asociadas y no puede eliminarse. Solo puede editarse.");
                 }
+
+                db_context.customers.Remove(customerToDelete);
+                await db_context.SaveChangesAsync();
             }
         }
     }

@@ -31,23 +31,29 @@ namespace NinOS.UI.Views
         private accounts_receivable_dto? _selected_note;
         private bool _is_bs_mode = true;
         private bool _is_edit_mode;
+        private bool _is_preloaded;
         private List<note_combo_item> _all_combo_items = new();
 
         public event EventHandler? PaymentRegistered;
 
-        public AddPaymentWindow(PaymentsViewModel vm, string current_month, payment_dto? edit_payment = null)
+        public AddPaymentWindow(PaymentsViewModel vm, string current_month, payment_dto? edit_payment = null, accounts_receivable_dto? preselected_note = null)
         {
             InitializeComponent();
             _vm = vm;
             _current_month = current_month;
             _edit_payment = edit_payment;
             _is_edit_mode = edit_payment != null;
+            _is_preloaded = !_is_edit_mode && preselected_note != null;
 
             if (_is_edit_mode)
             {
                 Title = "Editar Pago";
                 BtnRegistrar.Content = "Guardar";
                 SetupEditMode(edit_payment!);
+            }
+            else if (_is_preloaded)
+            {
+                SetupPreloadedNote(preselected_note!);
             }
             else
             {
@@ -56,8 +62,22 @@ namespace NinOS.UI.Views
 
             Loaded += async (_, _) =>
             {
-                if (!_is_edit_mode) await LoadNotesAsync();
+                if (!_is_edit_mode && !_is_preloaded) await LoadNotesAsync();
             };
+        }
+
+        private void SetupPreloadedNote(accounts_receivable_dto note)
+        {
+            _selected_note = note;
+            PaymentDatePicker.SelectedDate = DateTime.Now;
+
+            NoteTextBox.Text = $"{note.note_number} - {note.customer_name}";
+            NoteTextBox.IsReadOnly = true;
+            BtnToggleDropdown.IsEnabled = false;
+
+            NoteInfoBorder.Visibility = Visibility.Visible;
+            NoteInfoText.Text = $"{note.note_number} - {note.customer_name}\nTOTAL: {note.total_amount_usd:N2}  |  ABONADO: {note.paid_amount_usd:N2}  |  SALDO PENDIENTE: {note.balance_due_usd:N2}";
+            UpdateEquiv();
         }
 
         private void SetupEditMode(payment_dto p)
