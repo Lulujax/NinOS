@@ -318,6 +318,38 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private static inventory_item_dto create_product_dto(product p)
+        {
+            return new inventory_item_dto
+            {
+                id_display = p.id_product.ToString(),
+                item_code = p.product_code,
+                item_name = p.name,
+                item_category = p.category,
+                item_quantity = p.stock_quantity.ToString(),
+                item_price = p.unit_price_usd,
+                is_promotion = false,
+                is_default_combo = false,
+                product_ref = p
+            };
+        }
+
+        private static inventory_item_dto create_promotion_dto(promotion p, string display_code, int calculated_available)
+        {
+            return new inventory_item_dto
+            {
+                id_display = p.id_promotion.ToString(),
+                item_code = display_code,
+                item_name = p.name,
+                item_category = "Promociones",
+                item_quantity = calculated_available.ToString(),
+                item_price = p.unit_price_usd,
+                is_promotion = true,
+                is_default_combo = false,
+                promo_ref = p
+            };
+        }
+
         private void filter_data()
         {
             List<product> filtered_products = _all_products_source.Where(p =>
@@ -345,43 +377,32 @@ namespace NinOS.UI.Common.ViewModels
 
             foreach (product p in filtered_products)
             {
-                inventory_item_dto new_dto = new inventory_item_dto
-                {
-                    id_display = p.id_product.ToString(),
-                    item_code = p.product_code,
-                    item_name = p.name,
-                    item_category = p.category,
-                    item_quantity = p.stock_quantity.ToString(),
-                    item_price = p.unit_price_usd,
-                    is_promotion = false,
-                    is_default_combo = false,
-                    product_ref = p
-                };
+                todos_list.Add(create_product_dto(p));
 
-                todos_list.Add(new_dto);
+                inventory_item_dto category_dto = create_product_dto(p);
 
                 string safe_category = p.category ?? string.Empty;
 
                 if (safe_category.Equals("Defile", StringComparison.OrdinalIgnoreCase))
-                    defile_list.Add(new_dto);
+                    defile_list.Add(category_dto);
                 else if (safe_category.Equals("Oleos", StringComparison.OrdinalIgnoreCase))
-                    oleos_list.Add(new_dto);
+                    oleos_list.Add(category_dto);
                 else if (safe_category.Equals("Rembrandt", StringComparison.OrdinalIgnoreCase))
-                    rembrandt_list.Add(new_dto);
+                    rembrandt_list.Add(category_dto);
                 else if (safe_category.Equals("Bioline", StringComparison.OrdinalIgnoreCase))
-                    bioline_list.Add(new_dto);
+                    bioline_list.Add(category_dto);
                 else if (safe_category.Equals("Amazonia Secret", StringComparison.OrdinalIgnoreCase))
-                    amazonia_list.Add(new_dto);
+                    amazonia_list.Add(category_dto);
                 else if (safe_category.Equals("Kedam", StringComparison.OrdinalIgnoreCase))
-                    kedam_list.Add(new_dto);
+                    kedam_list.Add(category_dto);
                 else if (safe_category.Equals("Depil Clear", StringComparison.OrdinalIgnoreCase))
-                    depil_list.Add(new_dto);
+                    depil_list.Add(category_dto);
                 else if (safe_category.Equals("Estilista", StringComparison.OrdinalIgnoreCase))
-                    estilista_list.Add(new_dto);
+                    estilista_list.Add(category_dto);
                 else if (safe_category.Equals("Cutique", StringComparison.OrdinalIgnoreCase))
-                    cutique_list.Add(new_dto);
+                    cutique_list.Add(category_dto);
                 else
-                    otros_list.Add(new_dto);
+                    otros_list.Add(category_dto);
             }
 
             foreach (promotion p in filtered_promos)
@@ -412,8 +433,8 @@ namespace NinOS.UI.Common.ViewModels
                     promo_ref = p
                 };
 
-                todos_list.Add(new_dto);
-                promociones_list.Add(new_dto);
+                todos_list.Add(create_promotion_dto(p, display_code, calculated_available));
+                promociones_list.Add(create_promotion_dto(p, display_code, calculated_available));
             }
 
             assign_row_numbers(todos_list);
