@@ -44,10 +44,6 @@
                             <TextBlock Text="STOCK:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
                             <TextBlock x:Name="ProductStockText" FontSize="13" FontWeight="Bold" Foreground="#E65100" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                            <TextBlock Text="TOTAL VENDIDO:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TotalSoldText" FontSize="13" FontWeight="Bold" Foreground="#8E24AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
                     </DockPanel>
                 </Border>
             </StackPanel>

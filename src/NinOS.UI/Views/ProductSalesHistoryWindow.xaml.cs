@@ -20,8 +20,6 @@ namespace NinOS.UI.Views
             ProductStockText.Text = product.stock_quantity.ToString();
 
             var list = history.ToList();
-            TotalSoldText.Text = list.Sum(r => r.units_sold).ToString();
-
             HistoryGrid.ItemsSource = list;
         }
 
