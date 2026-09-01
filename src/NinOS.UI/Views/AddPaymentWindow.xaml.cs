@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
 
@@ -245,21 +243,6 @@ namespace NinOS.UI.Views
 
         private void OnAmountChanged(object sender, TextChangedEventArgs e) => UpdateEquiv();
 
-        private void OnPreviewNumeric(object sender, TextCompositionEventArgs e)
-        {
-            TextBox? tb = sender as TextBox;
-            string current = tb?.Text ?? string.Empty;
-            foreach (char c in e.Text)
-            {
-                if (char.IsDigit(c)) continue;
-                bool isSep = c == ',' || c == '.';
-                bool hasSep = current.Contains(',') || current.Contains('.');
-                if (isSep && !hasSep) continue;
-                e.Handled = true;
-                return;
-            }
-        }
-
         private void UpdateEquiv()
         {
             if (_selected_note == null) { EquivText.Text = ""; return; }
@@ -311,22 +294,23 @@ namespace NinOS.UI.Views
                 if (_is_bs_mode)
                 {
                     amount_usd = ParseDecimal(AmountBox.Text);
-                    if (amount_usd <= 0) { ShowError("Ingrese monto USD valido."); return; }
+                    if (amount_usd <= 0) { ShowError("Ingrese el monto en USD."); return; }
                     decimal rate = ParseDecimal(RateBox.Text);
                     decimal bs = ParseDecimal(BsAmountBox.Text);
+                    if (bs <= 0) { ShowError("Ingrese el monto en Bs."); return; }
                     string refInput = ReferenceBox.Text?.Trim() ?? "";
                     if (string.IsNullOrWhiteSpace(refInput)) { ShowError("Ingrese referencia."); return; }
-                    if (!Regex.IsMatch(refInput, @"^\d+$")) { ShowError("La referencia BS debe ser solo numeros."); return; }
+                    bank = BankBox.Text?.Trim() ?? "";
+                    if (string.IsNullOrWhiteSpace(bank)) { ShowError("Ingrese el banco."); return; }
                     exchange_rate = rate > 0 ? rate : null;
                     amount_bs = bs;
                     payType = "Bolivares";
                     reference = $"REF-{refInput}";
-                    bank = BankBox.Text?.Trim() ?? "";
                 }
                 else
                 {
                     decimal usd = ParseDecimal(AmountBox.Text);
-                    if (usd <= 0) { ShowError("Ingrese monto valido."); return; }
+                    if (usd <= 0) { ShowError("Ingrese el monto en USD."); return; }
                     amount_usd = usd;
                     exchange_rate = null;
                     payType = "Efectivo";

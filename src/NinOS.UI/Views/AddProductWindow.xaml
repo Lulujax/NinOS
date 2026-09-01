@@ -30,12 +30,12 @@
                 
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="Cantidad:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding new_quantity, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                    <TextBox Text="{Binding new_quantity, UpdateSourceTrigger=PropertyChanged}" Padding="5" MaxLength="6" PreviewTextInput="OnQuantityPreview"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="Precio ($):" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                    <TextBox Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}" Padding="5" MaxLength="10" PreviewTextInput="OnPricePreview"/>
                 </StackPanel>
             </Grid>
         </StackPanel>

@@ -790,6 +790,11 @@ namespace NinOS.UI.Common.ViewModels
                 if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Las condiciones no pueden estar vacias.");
                 if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Las condiciones de descuento no pueden estar vacias.");
                 if (string.IsNullOrWhiteSpace(_discount_percentage_text)) throw new InvalidOperationException("El porcentaje de descuento no puede estar vacio.");
+                decimal validated_discount = decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount)
+                    ? parsed_discount
+                    : -1;
+                if (validated_discount < 0 || validated_discount > 100)
+                    throw new InvalidOperationException("El porcentaje de descuento debe estar entre 0 y 100.");
 
                 foreach (note_detail_row row in note_details)
                 {

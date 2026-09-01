@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Input;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -19,6 +21,11 @@ namespace NinOS.UI.Views
                     };
                 }
             };
+        }
+
+        private void OnPricePreview(object sender, TextCompositionEventArgs e)
+        {
+            InputRestrictions.numbers_only(sender, e);
         }
     }
 }

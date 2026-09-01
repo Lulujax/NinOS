@@ -95,7 +95,7 @@
 
         <StackPanel Grid.Row="5" Margin="0,0,0,15">
             <TextBlock Text="Precio Total Promocional ($)" FontWeight="Bold" Margin="0,0,0,5" />
-            <TextBox Text="{Binding new_promo_price, UpdateSourceTrigger=PropertyChanged}" Padding="5" />
+            <TextBox Text="{Binding new_promo_price, UpdateSourceTrigger=PropertyChanged}" Padding="5" MaxLength="10" PreviewTextInput="OnPricePreview" />
         </StackPanel>
 
         <Button Grid.Row="6" Content="Guardar" Command="{Binding save_promotion_command}" Background="#0078D7" Foreground="White" FontWeight="Bold" Padding="10" Cursor="Hand" />

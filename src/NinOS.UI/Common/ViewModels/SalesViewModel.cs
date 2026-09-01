@@ -115,12 +115,12 @@ namespace NinOS.UI.Common.ViewModels
                     .ToList();
 
                 pending_months.Clear();
+                pending_months.Add("");
                 foreach (var m in unique_months) pending_months.Add(m);
 
                 _all_notes_source = all_rows;
 
-                var current_month = DateTime.Now.ToString("MMMM yyyy", new CultureInfo("es-VE"));
-                _selected_month = pending_months.Contains(current_month) ? current_month : pending_months.LastOrDefault() ?? string.Empty;
+                if (!pending_months.Contains(_selected_month)) _selected_month = string.Empty;
                 on_property_changed(nameof(selected_month));
 
                 _is_loading = false;

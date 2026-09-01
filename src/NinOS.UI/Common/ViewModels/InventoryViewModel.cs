@@ -660,6 +660,12 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            if (_promo_type_index != 0 && builder_items.Any(it => it.product_ref != null && it.quantity < 1))
+            {
+                ErrorMessage = "La cantidad de cada producto en el Kit/Combo debe ser al menos 1.";
+                return;
+            }
+
             try
             {
                 if (_promotion_being_edited != null)

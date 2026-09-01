@@ -279,12 +279,12 @@ namespace NinOS.UI.Common.ViewModels
                     .ToList();
 
                 pending_months.Clear();
+                pending_months.Add("");
                 foreach (var m in unique_months) pending_months.Add(m);
 
                 _all_notes_source = all_rows;
 
-                var current_month = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-                _selected_month = pending_months.Contains(current_month) ? current_month : pending_months.LastOrDefault() ?? string.Empty;
+                if (!pending_months.Contains(_selected_month)) _selected_month = string.Empty;
                 on_property_changed(nameof(selected_month));
 
                 _is_loading = false;
@@ -456,7 +456,10 @@ namespace NinOS.UI.Common.ViewModels
             {
                 decimal gross = note.gross_total_usd;
                 decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);
+                if (monto < 0) throw new InvalidOperationException("El monto no puede ser negativo.");
                 decimal dcto_entered = accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text);
+                if (dcto_entered < 0 || dcto_entered > 100)
+                    throw new InvalidOperationException("El porcentaje de descuento debe estar entre 0 y 100.");
                 decimal adjusted = monto > 0 ? monto : gross * (1 - Math.Max(0, dcto_entered) / 100);
                 adjusted = Math.Min(gross, Math.Max(0, adjusted));
 

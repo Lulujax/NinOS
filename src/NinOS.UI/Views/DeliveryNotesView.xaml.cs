@@ -1,6 +1,8 @@
 using System.Collections.Specialized;
 using System.Windows.Controls;
+using System.Windows.Input;
 using NinOS.Domain;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -90,6 +92,11 @@ namespace NinOS.UI.Views
             {
                 _vm.selected_seller = s;
             }
+        }
+
+        private void OnDiscountPercentPreview(object sender, TextCompositionEventArgs e)
+        {
+            InputRestrictions.numbers_only(sender, e);
         }
     }
 }

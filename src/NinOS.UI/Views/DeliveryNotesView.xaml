@@ -285,7 +285,7 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="5">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <TextBox Text="{Binding discount_percentage_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="60" Background="White" BorderThickness="1" BorderBrush="#AAAAAA" TextAlignment="Center"/>
+                                                    <TextBox Text="{Binding discount_percentage_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="60" Background="White" BorderThickness="1" BorderBrush="#AAAAAA" TextAlignment="Center" MaxLength="6" PreviewTextInput="OnDiscountPercentPreview"/>
                                                     <TextBlock Text="%" VerticalAlignment="Center" Margin="5,0,0,0" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>

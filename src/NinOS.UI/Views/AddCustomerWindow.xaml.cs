@@ -8,7 +8,7 @@ namespace NinOS.UI.Views
         public AddCustomerWindow()
         {
             InitializeComponent();
-            
+
             Loaded += (s, e) =>
             {
                 if (DataContext is CustomerViewModel viewModel)
