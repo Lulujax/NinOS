@@ -317,6 +317,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<accounts_receivable_row_dto> filter_by_month_and_search(List<accounts_receivable_row_dto> source, string selected_month, string query)
         {
+            if (string.IsNullOrEmpty(selected_month))
+                return new List<accounts_receivable_row_dto>();
+
             var result = source.AsEnumerable();
 
             if (!string.IsNullOrEmpty(selected_month))

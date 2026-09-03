@@ -40,7 +40,7 @@ namespace NinOS.UI.Common.ViewModels
         private int _selected_tab_index;
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
-        private string _selected_filter = "Pendientes";
+        private string _selected_filter = "Pagadas";
         private decimal _total_invoiced_usd;
         private decimal _total_paid_usd;
         private decimal _total_balance_usd;
@@ -113,7 +113,6 @@ namespace NinOS.UI.Common.ViewModels
             anais_notes = new ObservableCollection<payment_row_dto>();
             alejandra_notes = new ObservableCollection<payment_row_dto>();
 
-            filter_options.Add("Pendientes");
             filter_options.Add("Pagadas");
             filter_options.Add("Todas");
 
@@ -133,7 +132,7 @@ namespace NinOS.UI.Common.ViewModels
                 _is_loading = true;
 
                 var raw = await _receivable_service.get_all_notes_async();
-                var all_rows = raw.Where(n => n.status != "Anulada").Select(map_to_row).ToList();
+                var all_rows = raw.Where(n => n.status == "Pagada").Select(map_to_row).ToList();
 
                 var unique_months = all_rows
                     .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
@@ -181,6 +180,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<payment_row_dto> filter_by_month_and_search(List<payment_row_dto> source, string selected_month, string query)
         {
+            if (string.IsNullOrEmpty(selected_month))
+                return new List<payment_row_dto>();
+
             var result = source.AsEnumerable();
 
             if (!string.IsNullOrEmpty(selected_month))

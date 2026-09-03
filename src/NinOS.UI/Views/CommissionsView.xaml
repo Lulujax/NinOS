@@ -159,6 +159,24 @@
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
 
+                <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
+                        Margin="8,0,0,0"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding month_report_command}" FontSize="12.5">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
                 <Button Content="Pago de comision" Background="#2E7D32" Foreground="White"
                         FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
                         Command="{Binding add_commission_payment_command}" FontSize="12.5">
@@ -221,6 +239,9 @@
                                         <DataTrigger Binding="{Binding status}" Value="Pagada">
                                             <Setter Property="Foreground" Value="#2E7D32"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Parcial">
+                                            <Setter Property="Foreground" Value="#EF6C00"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding status}" Value="Pendiente">
                                             <Setter Property="Foreground" Value="#F57C00"/>
                                         </DataTrigger>
@@ -271,6 +292,9 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding status}" Value="Pagada">
                                             <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Parcial">
+                                            <Setter Property="Foreground" Value="#EF6C00"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding status}" Value="Pendiente">
                                             <Setter Property="Foreground" Value="#F57C00"/>
@@ -323,6 +347,9 @@
                                         <DataTrigger Binding="{Binding status}" Value="Pagada">
                                             <Setter Property="Foreground" Value="#2E7D32"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Parcial">
+                                            <Setter Property="Foreground" Value="#EF6C00"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding status}" Value="Pendiente">
                                             <Setter Property="Foreground" Value="#F57C00"/>
                                         </DataTrigger>
@@ -373,6 +400,9 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding status}" Value="Pagada">
                                             <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Parcial">
+                                            <Setter Property="Foreground" Value="#EF6C00"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding status}" Value="Pendiente">
                                             <Setter Property="Foreground" Value="#F57C00"/>

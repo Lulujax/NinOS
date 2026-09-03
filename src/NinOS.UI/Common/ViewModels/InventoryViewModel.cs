@@ -593,7 +593,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (string.IsNullOrWhiteSpace(new_code) || string.IsNullOrWhiteSpace(new_name) || string.IsNullOrWhiteSpace(new_category))
             {
-                ErrorMessage = "Código, nombre y categoría son obligatorios.";
+                ErrorMessage = "Tienes que llenar los campos obligatorios.";
                 return;
             }
 
@@ -654,6 +654,12 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_save_promotion(object? parameter)
         {
+            if (string.IsNullOrWhiteSpace(new_promo_price))
+            {
+                ErrorMessage = "Tienes que llenar los campos obligatorios.";
+                return;
+            }
+
             if (!decimal.TryParse((new_promo_price ?? string.Empty).Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsed_price) || parsed_price < 0)
             {
                 ErrorMessage = "El precio de la promoción debe ser un número mayor o igual a 0.";
@@ -697,7 +703,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     if (_selected_promo_product == null)
                     {
-                        ErrorMessage = "Seleccione el producto para la promoción.";
+                        ErrorMessage = "Tienes que llenar los campos obligatorios.";
                         return;
                     }
 
@@ -712,7 +718,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     if (builder_items.Count == 0 || string.IsNullOrWhiteSpace(new_promo_name))
                     {
-                        ErrorMessage = "Agregue productos y asigne un nombre al Kit/Combo.";
+                        ErrorMessage = "Tienes que llenar los campos obligatorios.";
                         return;
                     }
 

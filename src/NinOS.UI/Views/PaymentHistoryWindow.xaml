@@ -11,18 +11,18 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="HISTORIAL DE PAGOS REGISTRADOS" FontWeight="Bold" FontSize="16" Foreground="#2E7D32" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="0" Text="HISTORIAL DE PAGOS REGISTRADOS" FontWeight="Bold" FontSize="19" Foreground="#2E7D32" HorizontalAlignment="Center" Margin="0,0,0,10"/>
         <DataGrid Grid.Row="1" x:Name="HistoryGrid" AutoGenerateColumns="False"
                   AlternatingRowBackground="#E8F5E9" RowBackground="White"
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="All"
                   HorizontalGridLinesBrush="#A5D6A7" VerticalGridLinesBrush="#A5D6A7"
-                  BorderBrush="#4CAF50" BorderThickness="1" FontSize="12" RowHeight="32">
+                  BorderBrush="#4CAF50" BorderThickness="1" FontSize="15" RowHeight="37">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#2E7D32"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="FontSize" Value="14"/>
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>

@@ -19,11 +19,35 @@ namespace NinOS.UI.Views
         private static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(0x22, 0x8B, 0x22));
         private static readonly Brush FooterGrayBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
 
+        public bool Confirmed { get; private set; }
+        public bool PdfRequested { get; private set; }
+
         public NotePreviewWindow(note_print_dto note)
         {
             InitializeComponent();
             Title = $"Vista Previa - Nota {note.note_number}";
             BuildPreview(note);
+        }
+
+        private void OnCancel(object sender, RoutedEventArgs e)
+        {
+            Confirmed = false;
+            PdfRequested = false;
+            DialogResult = false;
+        }
+
+        private void OnSaveOnly(object sender, RoutedEventArgs e)
+        {
+            Confirmed = true;
+            PdfRequested = false;
+            DialogResult = true;
+        }
+
+        private void OnSavePdf(object sender, RoutedEventArgs e)
+        {
+            Confirmed = true;
+            PdfRequested = true;
+            DialogResult = true;
         }
 
         private void BuildPreview(note_print_dto note)

@@ -89,12 +89,12 @@
                     </Style.Triggers>
                 </Style>
             </StackPanel.Style>
-            <TextBlock Text="Nombre del Kit / Combo" FontWeight="Bold" Margin="0,0,0,5" />
+            <TextBlock FontWeight="Bold" Margin="0,0,0,5"><Run Text="Nombre del Kit / Combo"/><Run Text=" *" Foreground="Red"/></TextBlock>
             <TextBox Text="{Binding new_promo_name, UpdateSourceTrigger=PropertyChanged}" Padding="5" />
         </StackPanel>
 
         <StackPanel Grid.Row="5" Margin="0,0,0,15">
-            <TextBlock Text="Precio Total Promocional ($)" FontWeight="Bold" Margin="0,0,0,5" />
+            <TextBlock FontWeight="Bold" Margin="0,0,0,5"><Run Text="Precio Total Promocional ($)"/><Run Text=" *" Foreground="Red"/></TextBlock>
             <TextBox Text="{Binding new_promo_price, UpdateSourceTrigger=PropertyChanged}" Padding="5" MaxLength="10" PreviewTextInput="OnPricePreview" />
         </StackPanel>
 

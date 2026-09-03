@@ -31,7 +31,14 @@ namespace NinOS.UI.Common.ViewModels
         public string reference_number { get; set; } = string.Empty;
         public DateTime? payout_date { get; set; }
         public bool is_paid { get; set; }
-        public string status => is_paid ? "Pagada" : "Pendiente";
+        public string status
+        {
+            get
+            {
+                if (remaining_amount_usd <= 0.005m) return "Pagada";
+                return paid_amount_usd > 0 ? "Parcial" : "Pendiente";
+            }
+        }
         public decimal remaining_amount_usd => amount_usd - paid_amount_usd;
 
         private bool _is_selected;
@@ -110,6 +117,7 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public ICommand add_commission_payment_command { get; }
+        public ICommand month_report_command { get; }
         public Action<List<commission_row_dto>>? on_request_add_commission_payment_window { get; set; }
         public Action<commission_row_dto>? on_request_commission_history_window { get; set; }
 
@@ -129,6 +137,7 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Todas");
 
             add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
+            month_report_command = new RelayCommand(execute_month_report);
 
             load_all_async();
         }
@@ -176,9 +185,9 @@ namespace NinOS.UI.Common.ViewModels
             var filtered = filter_by_month_and_search(_all_rows_source, _selected_month, query);
 
             if (_selected_filter == "Pendientes")
-                filtered = filtered.Where(n => !n.is_paid).ToList();
+                filtered = filtered.Where(n => n.remaining_amount_usd > 0.005m).ToList();
             else if (_selected_filter == "Pagadas")
-                filtered = filtered.Where(n => n.is_paid).ToList();
+                filtered = filtered.Where(n => n.remaining_amount_usd <= 0.005m).ToList();
 
             update_collection(all_rows, filtered);
             update_collection(sandra_rows, filtered.Where(n => n.seller_name == "Sandra").ToList());
@@ -190,6 +199,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<commission_row_dto> filter_by_month_and_search(List<commission_row_dto> source, string selected_month, string query)
         {
+            if (string.IsNullOrEmpty(selected_month))
+                return new List<commission_row_dto>();
+
             var result = source.AsEnumerable();
 
             if (!string.IsNullOrEmpty(selected_month))
@@ -219,7 +231,7 @@ namespace NinOS.UI.Common.ViewModels
 
             total_sold_usd = list.Sum(n => n.sale_amount_usd);
             total_commission_usd = list.Sum(n => n.amount_usd);
-            total_pending_usd = list.Where(n => !n.is_paid).Sum(n => n.remaining_amount_usd);
+            total_pending_usd = list.Where(n => n.remaining_amount_usd > 0.005m).Sum(n => n.remaining_amount_usd);
         }
 
         private commission_row_dto map_to_row(commission_dto c)
@@ -257,10 +269,10 @@ namespace NinOS.UI.Common.ViewModels
         {
             return _selected_tab_index switch
             {
-                0 => all_rows.Where(r => !r.is_paid).ToList(),
-                1 => sandra_rows.Where(r => !r.is_paid).ToList(),
-                2 => anais_rows.Where(r => !r.is_paid).ToList(),
-                3 => alejandra_rows.Where(r => !r.is_paid).ToList(),
+                0 => all_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
+                1 => sandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
+                2 => anais_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
+                3 => alejandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
                 _ => new List<commission_row_dto>()
             };
         }
@@ -283,17 +295,40 @@ namespace NinOS.UI.Common.ViewModels
             return await _commission_service.get_all_commissions_async();
         }
 
-        public async Task pay_commissions_async(int[] id_commissions, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
+        private async void execute_month_report(object? parameter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_selected_month))
+                {
+                    System.Windows.MessageBox.Show("Seleccione un mes para generar el reporte.", "Reporte de comisiones",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
+                var payments = (await _commission_service.get_commission_payments_by_month_async(_selected_month)).ToList();
+
+                CommissionMonthlyReportPdfGenerator.generate(_selected_month, payments);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        public async Task<bool> pay_commissions_async(int[] id_commissions, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
         {
             try
             {
                 await _commission_service.register_commission_payment_async(id_commissions, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
                 System.Windows.MessageBox.Show("Comision(es) liquidadas exitosamente.", "Exito");
                 load_all_async();
+                return true;
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
+                return false;
             }
         }
 

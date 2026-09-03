@@ -21,28 +21,28 @@
             <StackPanel>
                 <DockPanel LastChildFill="True">
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Producto:" FontSize="12" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ProductNameText" FontSize="14" FontWeight="Bold" Foreground="#1565C0" Margin="6,0,18,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Producto:" FontSize="15" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ProductNameText" FontSize="17" FontWeight="Bold" Foreground="#1565C0" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Código:" FontSize="12" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ProductCodeText" FontSize="12" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Código:" FontSize="15" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ProductCodeText" FontSize="15" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>
 
                 <Border Background="White" BorderBrush="#DEE5EB" BorderThickness="1" CornerRadius="4" Margin="0,8,0,0" Padding="8,6">
                     <DockPanel LastChildFill="False">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="CATEGORÍA:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="ProductCategoryText" FontSize="13" FontWeight="Bold" Foreground="#0D62B5" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="CATEGORÍA:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ProductCategoryText" FontSize="16" FontWeight="Bold" Foreground="#0D62B5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="PRECIO ($):" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="ProductPriceText" FontSize="13" FontWeight="Bold" Foreground="#2E7D32" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="PRECIO ($):" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ProductPriceText" FontSize="16" FontWeight="Bold" Foreground="#2E7D32" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="STOCK:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="ProductStockText" FontSize="13" FontWeight="Bold" Foreground="#E65100" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="STOCK:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ProductStockText" FontSize="16" FontWeight="Bold" Foreground="#E65100" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -54,14 +54,14 @@
                   AlternatingRowBackground="#F5F9FD" RowBackground="White"
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#E0E7EE"
-                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="11" RowHeight="30"
+                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="14" RowHeight="35"
                   EnableRowVirtualization="True">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#0D62B5"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="FontSize" Value="14"/>
                     <Setter Property="Padding" Value="4,0"/>
                 </Style>
             </DataGrid.Resources>
@@ -144,7 +144,7 @@
         <!-- PANEL DE ACCIONES -->
         <DockPanel Grid.Row="2" Margin="0,8,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
-                    FontSize="10" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
+                    FontSize="13" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
         </DockPanel>
     </Grid>
 </Window>

@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using NinOS.Domain.ViewModels;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -175,7 +177,7 @@ namespace NinOS.UI.Views
 
                 if (_to_pay.Count == 0)
                 {
-                    ShowError("Añada al menos una nota para liquidar.");
+                    ShowError("Tienes que llenar los campos obligatorios.");
                     return;
                 }
 
@@ -189,7 +191,7 @@ namespace NinOS.UI.Views
                 decimal rate = ParseDecimal(RateBox.Text);
                 if (rate <= 0)
                 {
-                    ShowError("La tasa BS/USD es obligatoria.");
+                    ShowError("Tienes que llenar los campos obligatorios.");
                     return;
                 }
                 if (rate > 10_000_000m)
@@ -201,7 +203,7 @@ namespace NinOS.UI.Views
                 decimal amount_usd = ParseDecimal(AmountBox.Text);
                 if (amount_usd <= 0)
                 {
-                    ShowError("Ingrese el monto USD.");
+                    ShowError("Tienes que llenar los campos obligatorios.");
                     return;
                 }
                 if (amount_usd > 10_000_000m)
@@ -225,14 +227,14 @@ namespace NinOS.UI.Views
                 decimal amount_bs = ParseDecimal(BsAmountBox.Text);
                 if (amount_bs <= 0)
                 {
-                    ShowError("El monto BS es obligatorio.");
+                    ShowError("Tienes que llenar los campos obligatorios.");
                     return;
                 }
 
                 string reference = ReferenceBox.Text?.Trim() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(reference))
                 {
-                    ShowError("Ingrese la referencia.");
+                    ShowError("Tienes que llenar los campos obligatorios.");
                     return;
                 }
 
@@ -280,7 +282,35 @@ namespace NinOS.UI.Views
                 }
 
                 int[] ids = _to_pay.Select(c => c.id_commission).ToArray();
-                await _vm.pay_commissions_async(ids, amount_usd, rate, payment_type, reference, amount_bs, payment_date, bank_name, observations);
+                bool paid = await _vm.pay_commissions_async(ids, amount_usd, rate, payment_type, reference, amount_bs, payment_date, bank_name, observations);
+
+                if (paid)
+                {
+                    var pdf_result = MessageBox.Show(
+                        "La comision fue liquidada.\n\n¿Desea generar el PDF del comprobante de la comision pagada?",
+                        "Generar PDF",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (pdf_result == MessageBoxResult.Yes)
+                    {
+                        var px = new List<commission_payment_dto>
+                        {
+                            new commission_payment_dto
+                            {
+                                amount_usd = amount_usd,
+                                amount_bs = amount_bs,
+                                exchange_rate = rate,
+                                payment_type = payment_type,
+                                reference_number = reference,
+                                bank_name = bank_name,
+                                notes = observations,
+                                payment_date = payment_date
+                            }
+                        };
+                        CommissionPdfGenerator.generate(_to_pay.First(), px);
+                    }
+                }
 
                 CommissionPaid?.Invoke(this, EventArgs.Empty);
                 Close();

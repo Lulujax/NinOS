@@ -47,7 +47,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="RAZON SOCIAL" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="0" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock FontStyle="Italic" TextAlignment="Center"><Run Text="RAZON SOCIAL"/><Run Text=" *" Foreground="Red"/></TextBlock></Border>
                             <Border Grid.Row="0" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
                                 <ComboBox ItemsSource="{Binding filtered_customers}" SelectedItem="{Binding selected_customer}" DisplayMemberPath="business_name" IsEditable="True" IsTextSearchEnabled="True" TextSearch.TextPath="business_name" BorderThickness="0" Background="Transparent"/>
                             </Border>
@@ -108,7 +108,7 @@
                                         <Grid>
                                             <TextBox Text="{Binding item_search_code, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
                                             <Popup IsOpen="{Binding show_search_popup_code, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
-                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="380" CornerRadius="3" Padding="2">
+                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="3" Padding="2">
                                                     <Border.Effect>
                                                         <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="3"/>
                                                     </Border.Effect>
@@ -131,7 +131,7 @@
                                                                         </Border.InputBindings>
                                                                         <StackPanel Orientation="Horizontal">
                                                                             <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="130" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
                                                                             <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
                                                                             <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
                                                                         </StackPanel>
@@ -147,7 +147,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Header="Descripcion" Width="*">
+                            <DataGridTemplateColumn Header="Descripcion" Width="*" MinWidth="380">
                                 <DataGridTemplateColumn.HeaderStyle>
                                     <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
                                 </DataGridTemplateColumn.HeaderStyle>
@@ -156,7 +156,7 @@
                                         <Grid>
                                             <TextBox Text="{Binding item_search_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
                                             <Popup IsOpen="{Binding show_search_popup_text, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
-                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="380" CornerRadius="3" Padding="2">
+                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="3" Padding="2">
                                                     <Border.Effect>
                                                         <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="3"/>
                                                     </Border.Effect>
@@ -179,7 +179,7 @@
                                                                         </Border.InputBindings>
                                                                         <StackPanel Orientation="Horizontal">
                                                                             <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="130" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
                                                                             <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
                                                                             <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
                                                                         </StackPanel>
@@ -233,7 +233,10 @@
                                 <ColumnDefinition Width="120"/>
                             </Grid.ColumnDefinitions>
                             
-                            <TextBox Grid.Column="0" Text="{Binding conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" TextWrapping="Wrap" AcceptsReturn="True" FontStyle="Italic" FontWeight="Bold" BorderThickness="0,0,1,0" BorderBrush="Black" Padding="5"/>
+                            <Grid Grid.Column="0">
+                                                    <TextBox Text="{Binding conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" TextWrapping="Wrap" AcceptsReturn="True" FontStyle="Italic" FontWeight="Bold" BorderThickness="0,0,1,0" BorderBrush="Black" Padding="5"/>
+                                                    <TextBlock Text="*" Foreground="Red" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,2,0" FontWeight="Bold"/>
+                                                </Grid>
                             <TextBlock Grid.Column="1" Text="Total General" FontStyle="Italic" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             <Border Grid.Column="2" BorderBrush="Black" BorderThickness="1,0,0,0">
                                 <TextBlock Text="{Binding gross_total_usd, StringFormat=N2}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"/>
@@ -273,7 +276,10 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        <TextBox Grid.Row="0" Text="{Binding discount_conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="Black" TextWrapping="Wrap" AcceptsReturn="True" Padding="2" TextAlignment="Center" FontWeight="Bold"/>
+                                        <Grid Grid.Row="0">
+                                            <TextBox Text="{Binding discount_conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="Black" TextWrapping="Wrap" AcceptsReturn="True" Padding="2" TextAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Text="*" Foreground="Red" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,2,0" FontWeight="Bold"/>
+                                        </Grid>
                                         
                                         <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

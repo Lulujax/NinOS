@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -69,6 +70,21 @@ namespace NinOS.UI.Views
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_commission == null) return;
+
+            var payments = HistoryGrid.Items.Cast<commission_payment_dto>().ToList();
+            if (payments.Count == 0)
+            {
+                MessageBox.Show("No hay pagos de comision para imprimir.", "Imprimir",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            CommissionPdfGenerator.generate(_commission, payments);
+        }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {

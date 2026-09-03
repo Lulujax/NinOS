@@ -124,8 +124,8 @@
             </Button>
         </Grid>
 
-        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="NOTAS A PAGAR:" FontSize="10" FontWeight="Bold"
-                   Foreground="#424242" Margin="0,0,0,3"/>
+        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" FontSize="10" FontWeight="Bold"
+                   Foreground="#424242" Margin="0,0,0,3"><Run Text="NOTAS A PAGAR:"/><Run Text=" *" Foreground="Red"/></TextBlock>
 
         <DataGrid Grid.Row="3" Grid.ColumnSpan="2" x:Name="NotesGrid" Style="{StaticResource NotesGridStyle}"
                   Height="160" Margin="0,0,0,6">
@@ -166,7 +166,7 @@
         <TextBox Grid.Row="5" Grid.Column="1" x:Name="RateBox" VerticalContentAlignment="Center" Height="24"
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"/>
 
-        <TextBlock Grid.Row="6" Grid.Column="0" Text="Monto USD:" VerticalAlignment="Center" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Monto USD:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="6" Grid.Column="1" x:Name="AmountBox" VerticalContentAlignment="Center" Height="24"
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"
                  PreviewTextInput="OnPreviewNumeric"/>

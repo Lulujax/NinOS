@@ -269,8 +269,8 @@ namespace NinOS.UI.Views
             BtnRegistrar.IsEnabled = false;
             try
             {
-                if (_selected_note == null) { ShowError("Seleccione una nota."); return; }
-                if (PaymentDatePicker.SelectedDate == null) { ShowError("Seleccione la fecha."); return; }
+                if (_selected_note == null) { ShowError("Tienes que llenar los campos obligatorios."); return; }
+                if (PaymentDatePicker.SelectedDate == null) { ShowError("Tienes que llenar los campos obligatorios."); return; }
 
                 DateTime payDate = PaymentDatePicker.SelectedDate.Value;
 
@@ -294,14 +294,15 @@ namespace NinOS.UI.Views
                 if (_is_bs_mode)
                 {
                     amount_usd = ParseDecimal(AmountBox.Text);
-                    if (amount_usd <= 0) { ShowError("Ingrese el monto en USD."); return; }
+                    bool required_filled = amount_usd > 0 &&
+                                           ParseDecimal(BsAmountBox.Text) > 0 &&
+                                           !string.IsNullOrWhiteSpace(ReferenceBox.Text) &&
+                                           !string.IsNullOrWhiteSpace(BankBox.Text);
+                    if (!required_filled) { ShowError("Tienes que llenar los campos obligatorios."); return; }
                     decimal rate = ParseDecimal(RateBox.Text);
                     decimal bs = ParseDecimal(BsAmountBox.Text);
-                    if (bs <= 0) { ShowError("Ingrese el monto en Bs."); return; }
                     string refInput = ReferenceBox.Text?.Trim() ?? "";
-                    if (string.IsNullOrWhiteSpace(refInput)) { ShowError("Ingrese referencia."); return; }
                     bank = BankBox.Text?.Trim() ?? "";
-                    if (string.IsNullOrWhiteSpace(bank)) { ShowError("Ingrese el banco."); return; }
                     exchange_rate = rate > 0 ? rate : null;
                     amount_bs = bs;
                     payType = "Bolivares";
@@ -310,7 +311,7 @@ namespace NinOS.UI.Views
                 else
                 {
                     decimal usd = ParseDecimal(AmountBox.Text);
-                    if (usd <= 0) { ShowError("Ingrese el monto en USD."); return; }
+                    if (usd <= 0) { ShowError("Tienes que llenar los campos obligatorios."); return; }
                     amount_usd = usd;
                     exchange_rate = null;
                     payType = "Efectivo";

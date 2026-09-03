@@ -21,32 +21,32 @@
             <StackPanel>
                 <DockPanel LastChildFill="True">
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Nota:" FontSize="12" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="NoteNumberText" FontSize="13" FontWeight="Bold" Foreground="#1B5E20" Margin="6,0,18,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Nota:" FontSize="15" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="NoteNumberText" FontSize="16" FontWeight="Bold" Foreground="#1B5E20" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Cliente:" FontSize="12" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="CustomerText" FontSize="12" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Cliente:" FontSize="15" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="CustomerText" FontSize="15" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Vendedora:" FontSize="12" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="SellerText" FontSize="12" Foreground="#424242" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Vendedora:" FontSize="15" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="SellerText" FontSize="15" Foreground="#424242" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>
 
                 <Border Background="White" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="4" Margin="0,8,0,0" Padding="8,6">
                     <DockPanel LastChildFill="False">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="FACTURADO:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TotalFacturadoText" FontSize="14" FontWeight="Bold" Foreground="#1B5E20" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="FACTURADO:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalFacturadoText" FontSize="17" FontWeight="Bold" Foreground="#1B5E20" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="COMISION:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="CommissionText" FontSize="14" FontWeight="Bold" Foreground="#2E7D32" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="COMISION:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CommissionText" FontSize="17" FontWeight="Bold" Foreground="#2E7D32" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
-                            <TextBlock Text="COMISION PENDIENTE:" FontSize="12" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="CommissionPendingText" FontSize="14" FontWeight="Bold" Foreground="#F57C00" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="COMISION PENDIENTE:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CommissionPendingText" FontSize="17" FontWeight="Bold" Foreground="#F57C00" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -57,7 +57,7 @@
         <Border Grid.Row="1" x:Name="NoHistoryBox" Background="#FFF8E1" BorderBrush="#F9A825" BorderThickness="1"
                 CornerRadius="4" Padding="10,6" Margin="0,0,0,8" Visibility="Collapsed">
             <StackPanel>
-                <TextBlock Text="Aun no hay pagos de comision registrados para esta nota." FontSize="12" FontWeight="Bold" Foreground="#E65100"/>
+                <TextBlock Text="Aun no hay pagos de comision registrados para esta nota." FontSize="15" FontWeight="Bold" Foreground="#E65100"/>
             </StackPanel>
         </Border>
 
@@ -66,14 +66,14 @@
                   AlternatingRowBackground="#F7FAF5" RowBackground="White"
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#E4EEDD"
-                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="11" RowHeight="30"
+                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="14" RowHeight="35"
                   EnableRowVirtualization="True">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#2E7D32"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="FontSize" Value="14"/>
                     <Setter Property="Padding" Value="4,0"/>
                 </Style>
             </DataGrid.Resources>
@@ -113,8 +113,10 @@
 
         <!-- PANEL DE ACCIONES -->
         <DockPanel Grid.Row="3" Margin="0,8,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Left" Margin="8,0,0,0" Content="Imprimir PDF" Background="#2E7D32" Foreground="White"
+                    FontSize="13" Padding="10,3" BorderThickness="0" Cursor="Hand" Click="PrintButton_Click"/>
             <Button DockPanel.Dock="Left" Margin="8,0,0,0" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
-                    FontSize="10" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
+                    FontSize="13" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
         </DockPanel>
     </Grid>
 </Window>

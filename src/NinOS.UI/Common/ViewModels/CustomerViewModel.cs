@@ -411,6 +411,12 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
 
+                if (string.IsNullOrWhiteSpace(_newCustomerCode) || string.IsNullOrWhiteSpace(_newBusinessName))
+                {
+                    ErrorMessage = "Tienes que llenar los campos obligatorios.";
+                    return;
+                }
+
                 string fullRif = string.IsNullOrWhiteSpace(_newRifNumber) ? "" : $"{_newRifType}-{_newRifNumber}";
 
                 customer newCustomer = new customer(

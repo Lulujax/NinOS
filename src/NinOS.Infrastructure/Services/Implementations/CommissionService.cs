@@ -295,6 +295,95 @@ return new commission_dto
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<commission_month_payment_dto>> get_commission_payments_by_month_async(string month_year)
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+
+            var commissions = await db.commissions
+                .AsNoTracking()
+                .Where(c => c.amount_usd > 0)
+                .ToListAsync();
+
+            if (commissions.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
+
+            var note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
+            var notes = await db.delivery_notes
+                .AsNoTracking()
+                .Where(n => note_ids.Contains(n.id_delivery_note))
+                .ToDictionaryAsync(n => n.id_delivery_note);
+
+            // Solo comisiones cuyas notas fueron creadas en el mes seleccionado.
+            var commission_ids_ok = commissions
+                .Where(c => notes.TryGetValue(c.id_delivery_note, out var note)
+                            && note.creation_date.Year == target_date.Year
+                            && note.creation_date.Month == target_date.Month)
+                .Select(c => c.id_commission)
+                .Distinct()
+                .ToList();
+
+            if (commission_ids_ok.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
+
+            var payments = await db.commission_payments
+                .AsNoTracking()
+                .Where(p => commission_ids_ok.Contains(p.id_commission))
+                .ToListAsync();
+
+            if (payments.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
+
+            var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
+            var customers = await db.customers
+                .AsNoTracking()
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            var commission_map = commissions.ToDictionary(c => c.id_commission);
+            var seller_ids = commissions.Select(c => c.id_seller).Distinct().ToList();
+            var sellers = await db.sellers
+                .AsNoTracking()
+                .Where(s => seller_ids.Contains(s.id_seller))
+                .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
+
+            return payments
+                .Select(p =>
+                {
+                    commission_map.TryGetValue(p.id_commission, out var commission);
+                    string note_number = string.Empty;
+                    string customer_name = string.Empty;
+                    string seller_name = string.Empty;
+                    if (commission != null)
+                    {
+                        notes.TryGetValue(commission.id_delivery_note, out var note);
+                        if (note != null)
+                        {
+                            note_number = note.note_number;
+                            customers.TryGetValue(note.id_customer, out customer_name);
+                        }
+                        sellers.TryGetValue(commission.id_seller, out seller_name);
+                    }
+                    return new commission_month_payment_dto
+                    {
+                        id_commission_payment = p.id_commission_payment,
+                        id_commission = p.id_commission,
+                        note_number = note_number,
+                        customer_name = customer_name,
+                        seller_name = seller_name ?? string.Empty,
+                        payment_type = p.payment_type,
+                        reference_number = p.reference_number,
+                        bank_name = p.bank_name,
+                        observations = p.observations,
+                        amount_usd = p.amount_usd,
+                        amount_bs = p.amount_bs,
+                        exchange_rate = p.exchange_rate,
+                        payment_date = p.payment_date
+                    };
+                })
+                .OrderBy(p => p.payment_date)
+                .ToList();
+        }
+
         public async Task register_commission_payment_async(int[] commission_ids, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name = "", string observations = "")
         {
             if (commission_ids == null || commission_ids.Length == 0)
@@ -331,9 +420,8 @@ return new commission_dto
                     .ToDictionaryAsync(x => x.Id, x => x.Paid);
 
                 var pending = commissions
-                    .Where(c => !c.is_paid)
                     .Select(c => new { commission = c, pending = c.amount_usd - (paid_map.TryGetValue(c.id_commission, out var paid) ? paid : 0) })
-                    .Where(x => x.pending > 0)
+                    .Where(x => x.pending > 0.005m)
                     .OrderBy(x => x.pending)
                     .ToList();
 

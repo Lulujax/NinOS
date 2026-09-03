@@ -116,7 +116,13 @@ namespace NinOS.UI.Common.ViewModels
                 show_search_popup_code = false;
                 if (_selected_item != null)
                 {
-                    if (_selected_item.available_stock <= 0) throw new InvalidOperationException($"STOCK EN 0: El articulo {_selected_item.name} esta agotado.");
+                    if (_selected_item.available_stock <= 0)
+                    {
+                        _selected_item = null;
+                        on_property_changed(nameof(item_search_code));
+                        on_property_changed(nameof(item_search_text));
+                        return;
+                    }
 
                     unit_price_usd = _selected_item.unit_price_usd;
                     _item_search_code = _selected_item.code;
@@ -196,6 +202,11 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is billable_item item)
             {
+                if (item.available_stock <= 0)
+                {
+                    System.Windows.MessageBox.Show($"El articulo {item.name} esta agotado (stock 0).", "Sin stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
                 selected_item = item;
             }
         }
@@ -203,19 +214,11 @@ namespace NinOS.UI.Common.ViewModels
         private void update_popups()
         {
             bool has_items = available_items.Count > 0;
-            if (!string.IsNullOrWhiteSpace(_item_search_text) || (!string.IsNullOrWhiteSpace(_item_search_code) && string.IsNullOrWhiteSpace(_item_search_text)))
-            {
-                show_search_popup_text = has_items;
-            }
-            if (!string.IsNullOrWhiteSpace(_item_search_code))
-            {
-                show_search_popup_code = has_items;
-            }
-            if (string.IsNullOrWhiteSpace(_item_search_text) && string.IsNullOrWhiteSpace(_item_search_code))
-            {
-                show_search_popup_text = false;
-                show_search_popup_code = false;
-            }
+            bool text_filled = !string.IsNullOrWhiteSpace(_item_search_text);
+            bool code_filled = !string.IsNullOrWhiteSpace(_item_search_code);
+
+            show_search_popup_text = text_filled && has_items;
+            show_search_popup_code = code_filled && has_items;
         }
 
         private void filter_items()
@@ -539,13 +542,13 @@ namespace NinOS.UI.Common.ViewModels
             _is_loading = true;
             try
             {
-                var db_sellers = await _seller_repository.get_all_async();
-                sellers.Clear();
-                foreach (seller s in db_sellers) sellers.Add(s);
-
                 var db_customers = await _customer_service.GetAllCustomersAsync();
                 _all_customers_cache.Clear();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
+
+                var db_sellers = await _seller_repository.get_all_async();
+                sellers.Clear();
+                foreach (seller s in db_sellers) sellers.Add(s);
 
                 if (_selected_seller != null)
                 {
@@ -608,11 +611,11 @@ namespace NinOS.UI.Common.ViewModels
             _is_loading = true;
             try
             {
-                seller[] db_sellers = await _seller_repository.get_all_async();
-                foreach (seller s in db_sellers) sellers.Add(s);
-
                 IEnumerable<customer> db_customers = await _customer_service.GetAllCustomersAsync();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
+
+                seller[] db_sellers = await _seller_repository.get_all_async();
+                foreach (seller s in db_sellers) sellers.Add(s);
 
                 IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
                 foreach (promotion pr in db_promotions)
@@ -783,14 +786,13 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                if (_selected_seller == null) throw new InvalidOperationException("Debe seleccionar un vendedor.");
-                if (_selected_customer == null) throw new InvalidOperationException("Debe seleccionar un cliente.");
-                if (note_details.Count == 0) throw new InvalidOperationException("La nota no puede estar vacia. Agregue productos.");
+                if (_selected_seller == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (_selected_customer == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
-                if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Las condiciones no pueden estar vacias.");
-                if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Las condiciones de descuento no pueden estar vacias.");
-                if (string.IsNullOrWhiteSpace(_discount_percentage_text)) throw new InvalidOperationException("El porcentaje de descuento no puede estar vacio.");
-                decimal validated_discount = decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount)
+                if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                decimal validated_discount = decimal.TryParse(string.IsNullOrWhiteSpace(_discount_percentage_text) ? "0" : _discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount)
                     ? parsed_discount
                     : -1;
                 if (validated_discount < 0 || validated_discount > 100)
@@ -811,13 +813,8 @@ namespace NinOS.UI.Common.ViewModels
                 NinOS.UI.Views.NotePreviewWindow preview_window = new NinOS.UI.Views.NotePreviewWindow(preview) { Owner = System.Windows.Application.Current?.MainWindow };
                 preview_window.ShowDialog();
 
-                System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                    "¿Desea guardar la nota de entrega?",
-                    "Confirmar creación",
-                    System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Question);
-
-                if (result != System.Windows.MessageBoxResult.Yes) return;
+                if (!preview_window.Confirmed) return;
+                bool generate_pdf = preview_window.PdfRequested;
 
                 delivery_note new_note = new delivery_note(
                     _note_number,
@@ -871,6 +868,9 @@ namespace NinOS.UI.Common.ViewModels
                 update_correlative_async();
 
                 OnNoteSaved?.Invoke();
+
+                if (generate_pdf)
+                    NinOS.UI.Common.NotePdfGenerator.generate(preview);
 
                 System.Windows.MessageBox.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }

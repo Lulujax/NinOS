@@ -12,13 +12,13 @@
         <TextBlock Grid.Row="0" Text="Registro de Producto" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
 
         <StackPanel Grid.Row="1" Orientation="Vertical">
-            <TextBlock Text="Código:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBlock FontWeight="SemiBold" Margin="0,0,0,5"><Run Text="Código:"/><Run Text=" *" Foreground="Red"/></TextBlock>
             <TextBox Text="{Binding new_code, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
 
-            <TextBlock Text="Nombre de Producto:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBlock FontWeight="SemiBold" Margin="0,0,0,5"><Run Text="Nombre de Producto:"/><Run Text=" *" Foreground="Red"/></TextBlock>
             <TextBox Text="{Binding new_name, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
 
-            <TextBlock Text="Categoría:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBlock FontWeight="SemiBold" Margin="0,0,0,5"><Run Text="Categoría:"/><Run Text=" *" Foreground="Red"/></TextBlock>
             <ComboBox ItemsSource="{Binding category_options}" SelectedItem="{Binding new_category, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding can_edit_category}" Padding="5" Margin="0,0,0,15"/>
 
             <Grid>

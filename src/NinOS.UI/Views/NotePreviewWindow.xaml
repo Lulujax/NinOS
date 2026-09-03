@@ -7,8 +7,19 @@
         ResizeMode="CanResizeWithGrip"
         Background="White">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel x:Name="NotePanel" Margin="16" Width="700"/>
         </ScrollViewer>
+        <Border Grid.Row="1" Background="#F0F4EC" BorderBrush="#B0B0B0" BorderThickness="0,1,0,0" Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton" Content="Cancelar" Width="110" Height="36" Margin="0,0,8,0" Background="#888888" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnCancel"/>
+                <Button x:Name="SaveOnlyButton" Content="Guardar" Width="130" Height="36" Margin="0,0,8,0" Background="#2196F3" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSaveOnly"/>
+                <Button x:Name="SavePdfButton" Content="Guardar y PDF" Width="140" Height="36" Background="#4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSavePdf"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
