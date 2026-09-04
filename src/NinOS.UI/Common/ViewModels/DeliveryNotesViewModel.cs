@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Threading;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Repositories.Interfaces;
@@ -26,6 +27,8 @@ namespace NinOS.UI.Common.ViewModels
     public class note_detail_row : ViewModelBase
     {
         private readonly List<billable_item> _all_items_ref;
+        private readonly ObservableCollection<note_detail_row>? _owner;
+        private readonly DispatcherTimer _filter_debounce;
         private billable_item? _selected_item;
         private string _item_search_text = string.Empty;
         private string _item_search_code = string.Empty;
@@ -70,9 +73,8 @@ namespace NinOS.UI.Common.ViewModels
                     on_property_changed(nameof(promo_price_usd_text));
                 }
 
-                filter_items();
-                update_popups();
-                calculate_subtotal();
+                _filter_debounce.Stop();
+                _filter_debounce.Start();
             }
         }
 
@@ -94,14 +96,10 @@ namespace NinOS.UI.Common.ViewModels
                     on_property_changed(nameof(item_search_text));
                     on_property_changed(nameof(unit_price_usd));
                     on_property_changed(nameof(promo_price_usd_text));
-                    update_popups();
-                    calculate_subtotal();
-                    return;
                 }
 
-                filter_items();
-                update_popups();
-                calculate_subtotal();
+                _filter_debounce.Stop();
+                _filter_debounce.Start();
             }
         }
 
@@ -116,7 +114,7 @@ namespace NinOS.UI.Common.ViewModels
                 show_search_popup_code = false;
                 if (_selected_item != null)
                 {
-                    if (_selected_item.available_stock <= 0)
+                    if (RemainingStock(_selected_item) <= 0)
                     {
                         _selected_item = null;
                         on_property_changed(nameof(item_search_code));
@@ -128,7 +126,8 @@ namespace NinOS.UI.Common.ViewModels
                     _item_search_code = _selected_item.code;
                     _item_search_text = _selected_item.name;
 
-                    if (_quantity > _selected_item.available_stock) _quantity = _selected_item.available_stock;
+                    int remaining = RemainingStock(_selected_item);
+                    if (_quantity > remaining) _quantity = remaining;
                 }
                 on_property_changed(nameof(item_search_code));
                 on_property_changed(nameof(item_search_text));
@@ -187,27 +186,80 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_subtotal_changed;
 
         public ICommand select_item_command { get; }
+        public ICommand toggle_popup_command { get; }
 
-        public note_detail_row(IEnumerable<billable_item> items)
+        public note_detail_row(IEnumerable<billable_item> items, ObservableCollection<note_detail_row>? owner = null)
         {
             _all_items_ref = items.ToList();
-            available_items = new ObservableCollection<billable_item>(_all_items_ref);
+            _owner = owner;
+            available_items = new ObservableCollection<billable_item>();
             _quantity = 1;
             _unit_price_usd = 0;
             _subtotal_usd = 0;
             select_item_command = new RelayCommand(execute_select_item);
+            toggle_popup_command = new RelayCommand(execute_toggle_popup);
+
+            populate_available(null);
+
+            _filter_debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _filter_debounce.Tick += (s, e) =>
+            {
+                _filter_debounce.Stop();
+                filter_items();
+                update_popups();
+            };
         }
 
         private void execute_select_item(object? parameter)
         {
             if (parameter is billable_item item)
             {
-                if (item.available_stock <= 0)
+                if (IsAlreadyInNote(item))
+                {
+                    System.Windows.MessageBox.Show($"El articulo '{item.name}' ya esta en la nota. Solo puedes colocarlo una vez.", "Item duplicado", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                int remaining = RemainingStock(item);
+                if (remaining <= 0)
                 {
                     System.Windows.MessageBox.Show($"El articulo {item.name} esta agotado (stock 0).", "Sin stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
                 selected_item = item;
+            }
+        }
+
+        private void execute_toggle_popup(object? parameter)
+        {
+            _filter_debounce.Stop();
+
+            string kind = parameter as string ?? string.Empty;
+
+            _item_search_text = string.Empty;
+            _item_search_code = string.Empty;
+            on_property_changed(nameof(item_search_text));
+            on_property_changed(nameof(item_search_code));
+
+            populate_available(null);
+
+            bool has_items = available_items.Count > 0;
+            if (!has_items)
+            {
+                show_search_popup_text = false;
+                show_search_popup_code = false;
+                return;
+            }
+
+            if (string.Equals(kind, "code", StringComparison.OrdinalIgnoreCase))
+            {
+                show_search_popup_code = !show_search_popup_code;
+                show_search_popup_text = false;
+            }
+            else
+            {
+                show_search_popup_text = !show_search_popup_text;
+                show_search_popup_code = false;
             }
         }
 
@@ -243,19 +295,62 @@ namespace NinOS.UI.Common.ViewModels
                 }
             }
 
-            available_items.Clear();
-            if (search_term == null)
+            populate_available(search_term);
+        }
+
+        public bool SameItem(billable_item a, billable_item b)
+        {
+            if (a.id_product > 0 && b.id_product > 0) return a.id_product == b.id_product;
+            if (a.id_promotion > 0 && b.id_promotion > 0) return a.id_promotion == b.id_promotion;
+            return a.code == b.code;
+        }
+
+        private bool IsAlreadyInNote(billable_item item)
+        {
+            if (_owner == null) return false;
+            foreach (note_detail_row r in _owner)
             {
-                foreach (billable_item p in _all_items_ref) available_items.Add(p);
+                if (r == this) continue;
+                if (r.selected_item != null && SameItem(r.selected_item, item)) return true;
             }
-            else
+            return false;
+        }
+
+        private int UsedQuantityInOtherRows(billable_item item)
+        {
+            int used = 0;
+            if (_owner == null) return used;
+            foreach (note_detail_row r in _owner)
             {
-                foreach (billable_item p in _all_items_ref)
+                if (r == this) continue;
+                if (r.selected_item != null && SameItem(r.selected_item, item)) used += r.quantity;
+            }
+            return used;
+        }
+
+        public int RemainingStock(billable_item item)
+        {
+            int remaining = item.available_stock - UsedQuantityInOtherRows(item);
+            return remaining < 0 ? 0 : remaining;
+        }
+
+        private void populate_available(string? search_term)
+        {
+            available_items.Clear();
+            foreach (billable_item p in _all_items_ref)
+            {
+                if (_owner != null && IsAlreadyInNote(p) && _selected_item == null) continue;
+
+                bool matches = true;
+                if (!string.IsNullOrWhiteSpace(search_term))
                 {
                     bool name_match = p.name != null && p.name.Contains(search_term, StringComparison.OrdinalIgnoreCase);
                     bool code_match = p.code != null && p.code.Contains(search_term, StringComparison.OrdinalIgnoreCase);
-                    if (name_match || code_match) available_items.Add(p);
+                    matches = name_match || code_match;
                 }
+                if (!matches) continue;
+
+                available_items.Add(p);
             }
         }
 
@@ -699,7 +794,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                note_detail_row new_row = new note_detail_row(all_items);
+                note_detail_row new_row = new note_detail_row(all_items, note_details);
                 new_row.on_subtotal_changed = recalculate_total;
                 note_details.Add(new_row);
             }
@@ -798,14 +893,26 @@ namespace NinOS.UI.Common.ViewModels
                 if (validated_discount < 0 || validated_discount > 100)
                     throw new InvalidOperationException("El porcentaje de descuento debe estar entre 0 y 100.");
 
-                foreach (note_detail_row row in note_details)
+                for (int i = 0; i < note_details.Count; i++)
                 {
+                    note_detail_row row = note_details[i];
                     if (row.selected_item == null) throw new InvalidOperationException("Hay un renglon sin producto seleccionado.");
                     if (row.quantity <= 0) throw new InvalidOperationException($"La cantidad de '{row.selected_item.name}' debe ser mayor a 0.");
-                    if (row.quantity > row.selected_item.available_stock)
+
+                    for (int j = 0; j < note_details.Count; j++)
+                    {
+                        if (i == j) continue;
+                        if (note_details[j].selected_item != null && row.SameItem(row.selected_item, note_details[j].selected_item))
+                        {
+                            throw new InvalidOperationException($"El articulo '{row.selected_item.name}' esta repetido en la nota. Cada producto solo puede aparecer una vez.");
+                        }
+                    }
+
+                    int available = row.RemainingStock(row.selected_item);
+                    if (row.quantity > available)
                     {
                         throw new InvalidOperationException(
-                            $"Inventario insuficiente para '{row.selected_item.name}'. Tienes {row.selected_item.available_stock} unidades disponibles y colocaste {row.quantity}.");
+                            $"Inventario insuficiente para '{row.selected_item.name}'. Tienes {available} unidades disponibles y colocaste {row.quantity}.");
                     }
                 }
 
@@ -887,6 +994,33 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 System.Windows.MessageBox.Show($"Error al guardar nota: {full_message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        public bool has_pending_data
+        {
+            get
+            {
+                if (note_details.Count > 0) return true;
+                if (!string.IsNullOrWhiteSpace(customer_code_text)) return true;
+                return false;
+            }
+        }
+
+        public void reset_unsaved_note()
+        {
+            foreach (note_detail_row row in note_details)
+            {
+                row.on_subtotal_changed = null;
+            }
+            note_details.Clear();
+            discount_percentage_text = "0";
+            customer_code_text = string.Empty;
+            contact_name_text = string.Empty;
+            _selected_customer = null;
+            on_property_changed(nameof(selected_customer));
+            on_property_changed(nameof(customer_code_text));
+            recalculate_total();
+            update_correlative_async();
         }
     }
 }

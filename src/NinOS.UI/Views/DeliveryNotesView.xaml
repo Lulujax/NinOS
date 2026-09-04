@@ -106,40 +106,53 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
-                                            <TextBox Text="{Binding item_search_code, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
-                                            <Popup IsOpen="{Binding show_search_popup_code, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
-                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="3" Padding="2">
-                                                    <Border.Effect>
-                                                        <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="3"/>
-                                                    </Border.Effect>
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                        <ItemsControl ItemsSource="{Binding available_items}">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
-                                                                        <Border.Style>
-                                                                            <Style TargetType="Border">
-                                                                                <Style.Triggers>
-                                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                                        <Setter Property="Background" Value="#E8F5E9"/>
-                                                                                    </Trigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </Border.Style>
-                                                                        <Border.InputBindings>
-                                                                            <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                                        </Border.InputBindings>
-                                                                        <StackPanel Orientation="Horizontal">
-                                                                            <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
-                                                                        </StackPanel>
-                                                                    </Border>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </ScrollViewer>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="22"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" Text="{Binding item_search_code, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
+                                            <Button Grid.Column="1" Content="&#x25BC;" FontSize="9" Foreground="#555555" Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" ToolTip="Ver todos" Command="{Binding toggle_popup_command}" CommandParameter="code">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="Transparent" Padding="0,0,2,0">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#E0E0E0"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <Popup Grid.ColumnSpan="2" IsOpen="{Binding show_search_popup_code, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False" PopupAnimation="Fade">
+                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="2" Padding="2">
+                                                    <ListBox x:Name="CodeListBox" ItemsSource="{Binding available_items}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Background="White">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border">
+                                                                            <Style.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                                                </Trigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <Border.InputBindings>
+                                                                        <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
+                                                                    </Border.InputBindings>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
                                                 </Border>
                                             </Popup>
                                         </Grid>
@@ -154,40 +167,53 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
-                                            <TextBox Text="{Binding item_search_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
-                                            <Popup IsOpen="{Binding show_search_popup_text, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
-                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="3" Padding="2">
-                                                    <Border.Effect>
-                                                        <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="3"/>
-                                                    </Border.Effect>
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                        <ItemsControl ItemsSource="{Binding available_items}">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
-                                                                        <Border.Style>
-                                                                            <Style TargetType="Border">
-                                                                                <Style.Triggers>
-                                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                                        <Setter Property="Background" Value="#E8F5E9"/>
-                                                                                    </Trigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </Border.Style>
-                                                                        <Border.InputBindings>
-                                                                            <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                                        </Border.InputBindings>
-                                                                        <StackPanel Orientation="Horizontal">
-                                                                            <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                            <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
-                                                                        </StackPanel>
-                                                                    </Border>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </ScrollViewer>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="22"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" Text="{Binding item_search_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" Padding="2" VerticalContentAlignment="Center"/>
+                                            <Button Grid.Column="1" Content="&#x25BC;" FontSize="9" Foreground="#555555" Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" ToolTip="Ver todos" Command="{Binding toggle_popup_command}" CommandParameter="text">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="Transparent" Padding="0,0,2,0">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#E0E0E0"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <Popup Grid.ColumnSpan="2" IsOpen="{Binding show_search_popup_text, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False" PopupAnimation="Fade">
+                                                <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="2" Padding="2">
+                                                    <ListBox x:Name="DescListBox" ItemsSource="{Binding available_items}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Background="White">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border">
+                                                                            <Style.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                                                </Trigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <Border.InputBindings>
+                                                                        <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
+                                                                    </Border.InputBindings>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
                                                 </Border>
                                             </Popup>
                                         </Grid>
