@@ -526,6 +526,90 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
+        <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Juan Luis" FontWeight="SemiBold" FontSize="12.5"/>
+                </TabItem.Header>
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding juan_luis_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellTextWrap}"/>
+                        <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding status}" Value="Pagada">
+                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Pendiente">
+                                            <Setter Property="Foreground" Value="#F57C00"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding sales_observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="ACCIONES" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                                Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
+                                                Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
+                                                Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
+                                                Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
         </TabControl>
 
         <!-- FILA 3: FOOTER - total -->

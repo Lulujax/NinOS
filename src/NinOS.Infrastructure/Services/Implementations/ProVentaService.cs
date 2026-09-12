@@ -1,0 +1,197 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Services.Interfaces;
+
+namespace NinOS.Infrastructure.Services.Implementations
+{
+    public class ProVentaService : IProVentaService
+    {
+        private readonly IServiceScopeFactory _scope_factory;
+
+        public ProVentaService(IServiceScopeFactory scope_factory)
+        {
+            _scope_factory = scope_factory ?? throw new ArgumentNullException(nameof(scope_factory));
+        }
+
+        public async Task<List<pro_venta_month_option>> get_available_months_async()
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var mar_ids = await db_context.note_types
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            var now = DateTime.Now;
+
+            var months = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .Select(n => new { n.creation_date.Year, n.creation_date.Month })
+                .Distinct()
+                .ToListAsync();
+
+            var culture = new System.Globalization.CultureInfo("es-VE");
+
+            return months
+                .Select(m => new DateTime(m.Year, m.Month, 1))
+                .Concat(new[] { new DateTime(now.Year, now.Month, 1) })
+                .Distinct()
+                .OrderByDescending(d => d)
+                .Select(d => new pro_venta_month_option
+                {
+                    value = d,
+                    label = d.ToString("MMMM yyyy", culture)
+                })
+                .ToList();
+        }
+
+        public List<pro_venta_week_info> build_weeks(int year, int month)
+        {
+            var first_day = new DateTime(year, month, 1);
+            var last_day = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+
+            int offset = (((int)first_day.DayOfWeek) + 6) % 7;
+            var monday = first_day.AddDays(-offset);
+
+            var culture = new System.Globalization.CultureInfo("es-VE");
+            var weeks = new List<pro_venta_week_info>();
+            int index = 1;
+
+            for (var start = monday; start <= last_day; start = start.AddDays(7))
+            {
+                var end = start.AddDays(6);
+                weeks.Add(new pro_venta_week_info
+                {
+                    week_index = index++,
+                    start = start,
+                    end = end,
+                    label = $"{start:dd} AL {end:dd} {culture.DateTimeFormat.GetMonthName(end.Month)}"
+                });
+            }
+
+            return weeks;
+        }
+
+        public async Task<pro_venta_weekly_dto> get_weekly_report_async(pro_venta_week_info week)
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var mar_ids = await db_context.note_types
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            var notes = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .ToListAsync();
+
+            var in_week = notes
+                .Where(n => n.creation_date.Date >= week.start.Date && n.creation_date.Date <= week.end.Date)
+                .OrderBy(n => n.creation_date)
+                .ToList();
+
+            var customer_ids = in_week.Select(n => n.id_customer).Distinct().ToList();
+
+            var customers = await db_context.customers
+                .AsNoTracking()
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            var rows = in_week.Select(n =>
+            {
+                customers.TryGetValue(n.id_customer, out string? customer_name);
+                decimal amount = n.adjusted_total_usd;
+                return new pro_venta_weekly_row
+                {
+                    note_number = n.note_number,
+                    customer_name = customer_name ?? string.Empty,
+                    amount = amount,
+                    commission_luis = Math.Round(amount * 0.10m, 2),
+                    gastos_25 = Math.Round(amount * 0.25m, 2),
+                    gastos_15 = Math.Round(amount * 0.15m, 2)
+                };
+            }).ToList();
+
+            return new pro_venta_weekly_dto
+            {
+                relation_number = week.week_index,
+                week_start = week.start,
+                week_end = week.end,
+                city = "MARACAY",
+                rows = rows,
+                total_amount = rows.Sum(r => r.amount),
+                total_commission_luis = rows.Sum(r => r.commission_luis),
+                total_gastos_25 = rows.Sum(r => r.gastos_25),
+                total_gastos_15 = rows.Sum(r => r.gastos_15)
+            };
+        }
+
+        public async Task<List<pro_venta_pending_row>> get_pending_relations_async()
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var mar_ids = await db_context.note_types
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            if (mar_ids.Count == 0)
+                return new List<pro_venta_pending_row>();
+
+            var notes = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value) && n.status == "Pendiente")
+                .OrderBy(n => n.note_number)
+                .ToListAsync();
+
+            if (notes.Count == 0)
+                return new List<pro_venta_pending_row>();
+
+            var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+            var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+
+            var customers = await db_context.customers
+                .AsNoTracking()
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            var payment_totals = await db_context.payments
+                .AsNoTracking()
+                .Where(p => note_ids.Contains(p.id_delivery_note))
+                .GroupBy(p => p.id_delivery_note)
+                .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
+                .ToDictionaryAsync(x => x.Id, x => x.Total);
+
+            var rows = new List<pro_venta_pending_row>();
+            foreach (var n in notes)
+            {
+                customers.TryGetValue(n.id_customer, out string? customer_name);
+                decimal paid = payment_totals.TryGetValue(n.id_delivery_note, out var total) ? total : 0;
+
+                rows.Add(new pro_venta_pending_row
+                {
+                    id_delivery_note = n.id_delivery_note,
+                    note_number = n.note_number,
+                    customer_name = customer_name ?? string.Empty,
+                    amount = n.adjusted_total_usd,
+                    paid_amount_usd = paid,
+                    balance_due_usd = n.adjusted_total_usd - paid,
+                    status = n.status
+                });
+            }
+
+            return rows;
+        }
+    }
+}

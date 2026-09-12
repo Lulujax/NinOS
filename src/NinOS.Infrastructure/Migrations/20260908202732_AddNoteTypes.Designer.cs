@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NinOS.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    partial class NinOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908202732_AddNoteTypes")]
+    partial class AddNoteTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -271,11 +274,6 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("total_amount_usd");
 
-                    b.Property<decimal?>("volume_discount_percentage")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("numeric(18,3)")
-                        .HasColumnName("volume_discount_percentage");
-
                     b.HasKey("id_delivery_note");
 
                     b.HasIndex("id_customer");
@@ -386,11 +384,6 @@ namespace NinOS.Infrastructure.Migrations
                     b.Property<bool>("is_active")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
-
-                    b.Property<decimal?>("mandatory_discount_percentage")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("numeric(18,3)")
-                        .HasColumnName("mandatory_discount_percentage");
 
                     b.Property<string>("name")
                         .IsRequired()

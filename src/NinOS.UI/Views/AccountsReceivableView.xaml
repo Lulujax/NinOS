@@ -772,6 +772,100 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
+
+            <!-- JUAN LUIS -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Juan Luis" FontWeight="SemiBold" FontSize="12.5"/>
+                </TabItem.Header>
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding juan_luis_notes}"
+                          PreviewMouseDoubleClick="DataGrid_PreviewMouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="170"
+                          ElementStyle="{StaticResource CellTextWrap}"/>
+                        <DataGridTemplateColumn Header="MONTO" Width="80"
+                          CellTemplate="{StaticResource MontoCellTemplate}"/>
+                        <DataGridTemplateColumn Header="DCTO" Width="55"
+                          CellTemplate="{StaticResource DctoCellTemplate}"/>
+                        <DataGridTextColumn Header="ABONADO" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+<DataGridTextColumn Header="ULT. PAGO" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="75">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding status}" Value="Pagada">
+                                        <Setter Property="Foreground" Value="#2E7D32"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding status}" Value="Pendiente">
+                                        <Setter Property="Foreground" Value="#F57C00"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding status}" Value="Anulada">
+                                        <Setter Property="Foreground" Value="#9E9E9E"/>
+                                        <Setter Property="FontStyle" Value="Italic"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTemplateColumn Header="OBSERVACION" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="{Binding observations}" ToolTip="{Binding observations}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding observations, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                 TextWrapping="Wrap" VerticalAlignment="Center" Background="#FFFDE7"
+                                                 KeyDown="ObsTextBox_KeyDown" LostKeyboardFocus="ObsTextBox_LostKeyboardFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_editing_observations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="ACCIONES" Width="*" CanUserResize="False">
+                            <DataGridTemplateColumn.HeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTemplateColumn.HeaderStyle>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ActionsCellTemplate}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
         </TabControl>
 
         <!-- FILA 3: FOOTER - 3 totales -->

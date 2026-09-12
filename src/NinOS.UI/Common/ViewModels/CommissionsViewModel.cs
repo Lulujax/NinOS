@@ -73,6 +73,7 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<commission_row_dto> sandra_rows { get; }
         public ObservableCollection<commission_row_dto> anais_rows { get; }
         public ObservableCollection<commission_row_dto> alejandra_rows { get; }
+        public ObservableCollection<commission_row_dto> juan_luis_rows { get; }
 
         public string selected_month
         {
@@ -131,6 +132,7 @@ namespace NinOS.UI.Common.ViewModels
             sandra_rows = new ObservableCollection<commission_row_dto>();
             anais_rows = new ObservableCollection<commission_row_dto>();
             alejandra_rows = new ObservableCollection<commission_row_dto>();
+            juan_luis_rows = new ObservableCollection<commission_row_dto>();
 
             filter_options.Add("Pendientes");
             filter_options.Add("Pagadas");
@@ -193,6 +195,7 @@ namespace NinOS.UI.Common.ViewModels
             update_collection(sandra_rows, filtered.Where(n => n.seller_name == "Sandra").ToList());
             update_collection(anais_rows, filtered.Where(n => n.seller_name == "Anais").ToList());
             update_collection(alejandra_rows, filtered.Where(n => n.seller_name == "Alejandra").ToList());
+            update_collection(juan_luis_rows, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
             recalc_totals();
         }
@@ -226,6 +229,7 @@ namespace NinOS.UI.Common.ViewModels
                 1 => sandra_rows.ToList(),
                 2 => anais_rows.ToList(),
                 3 => alejandra_rows.ToList(),
+                4 => juan_luis_rows.ToList(),
                 _ => new List<commission_row_dto>()
             };
 
@@ -273,6 +277,7 @@ namespace NinOS.UI.Common.ViewModels
                 1 => sandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
                 2 => anais_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
                 3 => alejandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
+                4 => juan_luis_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
                 _ => new List<commission_row_dto>()
             };
         }

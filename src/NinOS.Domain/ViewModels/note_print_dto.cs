@@ -8,12 +8,21 @@ namespace NinOS.Domain.ViewModels
         public int id_delivery_note { get; set; }
         public string note_number { get; set; } = string.Empty;
         public string company_name { get; set; } = string.Empty;
+        public string header_title { get; set; } = string.Empty;
+        public string document_label { get; set; } = "NOTA DE ENTREGA";
+        public string accent_color { get; set; } = "#1B3A2D";
+        public string accent_soft_color { get; set; } = "#F0F4EC";
+        public decimal? promo_discount_percentage { get; set; }
+        public decimal promo_discount_amount { get; set; }
         public DateTime creation_date { get; set; }
         public DateTime due_date { get; set; }
         public string status { get; set; } = string.Empty;
         public decimal gross_total_usd { get; set; }
         public decimal discount_percentage { get; set; }
         public decimal discount_amount { get; set; }
+        public decimal volume_discount_percentage { get; set; }
+        public decimal volume_discount_amount { get; set; }
+        public decimal discounted_total_usd { get; set; }
         public decimal total_amount_usd { get; set; }
         public decimal paid_amount_usd { get; set; }
         public decimal balance_due_usd { get; set; }

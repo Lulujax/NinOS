@@ -96,6 +96,9 @@ namespace NinOS.Domain
         public string? cxc_observations { get; set; }
         public string? sales_observations { get; set; }
         public decimal? discount_percentage { get; set; }
+        public int? note_type_id { get; set; }
+        public decimal? promo_discount_percentage { get; set; }
+        public decimal? volume_discount_percentage { get; set; }
 
         protected delivery_note()
         {

@@ -28,9 +28,12 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var pending_notes = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(n => n.status == "Pendiente")
+                    .Where(n => n.status == "Pendiente"
+                             && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)))
                     .Select(n => new { n.creation_date.Year, n.creation_date.Month })
                     .Distinct()
                     .OrderByDescending(n => n.Year)
@@ -49,8 +52,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var all_notes = await db_context.delivery_notes
                     .AsNoTracking()
+                    .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
                     .Select(n => new { n.creation_date.Year, n.creation_date.Month })
                     .Distinct()
                     .OrderBy(n => n.Year)
@@ -71,9 +77,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                 
                 var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
                 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(dn => dn.status == "Pendiente"
+                              && (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
                               && dn.creation_date.Year == target_date.Year
                               && dn.creation_date.Month == target_date.Month)
                     .ToListAsync();
@@ -143,9 +152,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                 
                 var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"));
                 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(dn => dn.creation_date.Year == target_date.Year
+                    .Where(dn => (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
+                              && dn.creation_date.Year == target_date.Year
                               && dn.creation_date.Month == target_date.Month)
                     .ToListAsync();
 
@@ -252,8 +264,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
+                    .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
                     .ToListAsync();
 
                 if (notes.Count == 0)
@@ -352,9 +367,12 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+
                 var dn = await db_context.delivery_notes
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(n => n.note_number == note_number);
+                    .FirstOrDefaultAsync(n => n.note_number == note_number
+                                           && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)));
 
                 if (dn == null) return null;
 
@@ -434,6 +452,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
 
+                    var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                    bool is_pro_venta = delivery_note.note_type_id != null && mar_ids.Contains(delivery_note.note_type_id.Value);
+
                     decimal gross = await db_context.note_details
                         .AsNoTracking()
                         .Where(d => d.id_delivery_note == id_delivery_note)
@@ -463,7 +484,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         {
                             delivery_note.status = "Pagada";
 
-                            if (existing_commission == null)
+                            if (existing_commission == null && !is_pro_venta)
                             {
                                 existing_commission = new commission(
                                     delivery_note.id_seller,
@@ -594,6 +615,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(s => s.id_seller == note.id_seller);
 
+                note_type? note_type = null;
+                if (note.note_type_id != null)
+                {
+                    note_type = await db_context.note_types
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(t => t.id_note_type == note.note_type_id);
+                }
+
                 var raw_details = await db_context.note_details
                     .AsNoTracking()
                     .Where(d => d.id_delivery_note == note.id_delivery_note)
@@ -633,34 +662,54 @@ namespace NinOS.Infrastructure.Services.Implementations
                         name = promo.name;
                     }
 
+                    decimal net_unit = d.quantity > 0 ? d.subtotal_usd / d.quantity : 0;
+
                     details.Add(new note_detail_print_dto
                     {
                         code = code,
                         name = name,
                         quantity = d.quantity,
                         unit_price_usd = d.unit_price_usd,
-                        promo_price_usd = d.subtotal_usd / d.quantity,
+                        promo_price_usd = net_unit,
                         subtotal_usd = d.subtotal_usd
                     });
                 }
 
                 decimal gross = details.Sum(d => d.subtotal_usd);
-                decimal discount_amt = gross - note.total_amount_usd;
-                decimal discount_pct = gross > 0 ? (discount_amt / gross) * 100m : 0;
-                decimal effective_pct = note.discount_percentage ?? discount_pct;
+                bool is_promo = note_type != null && string.Equals(note_type.calculation_type, "promo", StringComparison.OrdinalIgnoreCase);
+                decimal? promo_pct = is_promo ? note.promo_discount_percentage : null;
+                decimal promo_amt = is_promo && promo_pct != null ? (gross * promo_pct.Value / 100m) : 0;
+                decimal after_promo = gross - promo_amt;
+
+                decimal discount_pct = note.discount_percentage ?? 0;
+                decimal discount_amt = discount_pct > 0 ? (after_promo * discount_pct / 100m) : 0;
+                decimal after_discount = after_promo - discount_amt;
+
+                decimal? volume_pct = note.volume_discount_percentage;
+                decimal volume_amt = volume_pct != null ? (after_discount * volume_pct.Value / 100m) : 0;
+                decimal total_calc = after_discount - volume_amt;
 
                 return new note_print_dto
                 {
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
-                    company_name = "DEFILE _REMBRANT_OLEOS_FLYING_BIOLINE",
+                    company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
+                    header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
+                    document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
+                    accent_color = note_type != null && note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
+                    accent_soft_color = note_type != null && note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC",
+                    promo_discount_percentage = is_promo ? promo_pct : null,
+                    promo_discount_amount = promo_amt,
+                    volume_discount_percentage = volume_pct ?? 0,
+                    volume_discount_amount = volume_amt,
+                    discounted_total_usd = after_discount,
                     creation_date = note.creation_date,
                     due_date = note.creation_date.AddDays(15),
                     status = note.status,
                     gross_total_usd = gross,
-                    discount_percentage = effective_pct,
+                    discount_percentage = discount_pct,
                     discount_amount = discount_amt,
-                    total_amount_usd = note.total_amount_usd,
+                    total_amount_usd = total_calc,
                     paid_amount_usd = paid,
                     balance_due_usd = note.total_amount_usd - paid,
                     seller_name = seller?.full_name ?? string.Empty,
@@ -675,6 +724,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                     details = details
                 };
             }
+        }
+
+        private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)
+        {
+            return db_context.note_types
+                .AsNoTracking()
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
         }
     }
 }

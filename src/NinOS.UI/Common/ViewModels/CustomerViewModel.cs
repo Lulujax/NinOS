@@ -58,6 +58,7 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<CustomerRowDto> AnaisCustomers { get; }
         public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
+        public ObservableCollection<CustomerRowDto> JuanLuisCustomers { get; }
         public ObservableCollection<string> SellerOptions { get; }
         public ObservableCollection<string> RifTypeOptions { get; }
 
@@ -205,7 +206,8 @@ namespace NinOS.UI.Common.ViewModels
             {
                 { "Anais", "3300" },
                 { "Sandra", "3301" },
-                { "Alejandra", "3305" }
+                { "Alejandra", "3305" },
+                { "Juan Luis", "3400" }
             };
 
             _allCustomersSource = new List<CustomerRowDto>();
@@ -215,8 +217,9 @@ namespace NinOS.UI.Common.ViewModels
             AnaisCustomers = new ObservableCollection<CustomerRowDto>();
             SandraCustomers = new ObservableCollection<CustomerRowDto>();
             AlejandraCustomers = new ObservableCollection<CustomerRowDto>();
+            JuanLuisCustomers = new ObservableCollection<CustomerRowDto>();
 
-            SellerOptions = new ObservableCollection<string> { "Sandra", "Anais", "Alejandra" };
+            SellerOptions = new ObservableCollection<string> { "Sandra", "Anais", "Alejandra", "Juan Luis" };
             RifTypeOptions = new ObservableCollection<string> { "J", "V", "E", "P", "G", "C" };
             _newSellerName = "Anais";
             _newRifType = "J";
@@ -347,6 +350,9 @@ namespace NinOS.UI.Common.ViewModels
                 case 3:
                     NewSellerName = "Alejandra";
                     break;
+                case 4:
+                    NewSellerName = "Juan Luis";
+                    break;
                 default:
                     NewSellerName = "Anais";
                     break;
@@ -382,6 +388,7 @@ namespace NinOS.UI.Common.ViewModels
                 UpdateCollection(AnaisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(SandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(AlejandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(JuanLuisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase)).ToList());
             }
             catch (Exception ex)
             {

@@ -401,6 +401,56 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
+
+            <!-- JUAN LUIS -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Juan Luis" FontWeight="SemiBold" FontSize="12.5"/>
+                </TabItem.Header>
+                <DataGrid x:Name="dg_juan_luis" Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding juan_luis_notes}"
+                          MouseDoubleClick="DataGrid_MouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                          ElementStyle="{StaticResource CellTextWrap}"/>
+                        <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DCTO" Binding="{Binding discount_amount, StringFormat=N2}" Width="55"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"
+                          ElementStyle="{StaticResource CellTextCenterWrap}"/>
+                        <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding status}" Value="Pagada">
+                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Pendiente">
+                                            <Setter Property="Foreground" Value="#F57C00"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding status}" Value="Anulada">
+                                            <Setter Property="Foreground" Value="#9E9E9E"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
         </TabControl>
 
         <!-- FILA 3: FOOTER - 3 totales -->

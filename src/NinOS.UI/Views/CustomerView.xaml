@@ -222,6 +222,54 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
+        <TabItem Header="Juan Luis">
+                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding JuanLuisCustomers}" Margin="5" MinRowHeight="40">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
+                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="5"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
+                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="5"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="5"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
+                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

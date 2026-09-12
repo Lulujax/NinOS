@@ -1,0 +1,64 @@
+<Window x:Class="NinOS.UI.Views.ProVentaPaymentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Registrar Pago - Pro Venta" Height="300" Width="440"
+        WindowStartupLocation="CenterOwner" Background="#F5F5F5"
+        ResizeMode="NoResize" FontSize="12">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="90"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Registrar Pago Pro Venta" FontSize="14" FontWeight="Bold"
+                   Foreground="#1565C0" Margin="0,0,0,6"/>
+
+        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#E3F2FD" CornerRadius="3" Padding="8"
+                Margin="0,0,0,10">
+            <TextBlock x:Name="RelationInfoText" FontSize="11" Foreground="#1565C0" TextWrapping="Wrap"/>
+        </Border>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Fecha:" VerticalAlignment="Center" Margin="0,0,0,8"/>
+        <DatePicker Grid.Row="2" Grid.Column="1" x:Name="PaymentDatePicker" Margin="0,0,0,8" FontSize="11"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,8">
+            <Run Text="Monto USD:"/><Run Text="*" Foreground="Red"/>
+        </TextBlock>
+        <TextBox Grid.Row="3" Grid.Column="1" x:Name="AmountBox" Height="26" Width="140"
+                 HorizontalAlignment="Left" FontSize="11" VerticalContentAlignment="Center" Margin="0,0,0,8"/>
+
+        <TextBlock Grid.Row="4" Grid.ColumnSpan="2" x:Name="ErrorText" Foreground="#C62828" FontSize="10"
+                   TextWrapping="Wrap" Margin="0,0,0,4" Visibility="Collapsed"/>
+
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom">
+            <Button Content="Cancelar" Padding="12,5" Background="#E0E0E0" Foreground="#424242"
+                    BorderThickness="0" Cursor="Hand" Click="OnCancelClick" Margin="0,0,6,0" FontSize="11"/>
+            <Button x:Name="BtnRegistrar" Content="Registrar" Padding="12,5" Background="#1565C0" Foreground="White"
+                    BorderThickness="0" Cursor="Hand" Click="OnConfirmClick" FontSize="11" FontWeight="SemiBold">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

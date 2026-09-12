@@ -29,6 +29,9 @@
             <TabItem Header="Inventario">
                 <views:InventoryView DataContext="{Binding inventory_vm}" />
             </TabItem>
+            <TabItem Header="Pro Venta">
+                <views:ProVentaView DataContext="{Binding pro_venta_vm}" />
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

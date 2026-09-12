@@ -6,6 +6,7 @@ namespace NinOS.Infrastructure.Data
     public class NinOSDbContext : DbContext
     {
         public DbSet<seller> sellers { get; set; }
+        public DbSet<note_type> note_types { get; set; }
         public DbSet<customer> customers { get; set; }
         public DbSet<product> products { get; set; }
         public DbSet<delivery_note> delivery_notes { get; set; }
@@ -30,6 +31,28 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.full_name).HasColumnName("full_name").IsRequired().HasMaxLength(150);
                 entity.Property(e => e.seller_code).HasColumnName("seller_code").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.customer_code_prefix).HasColumnName("customer_code_prefix").IsRequired().HasMaxLength(50);
+            });
+
+            model_builder.Entity<note_type>(entity =>
+            {
+                entity.ToTable("note_type");
+                entity.HasKey(e => e.id_note_type);
+                entity.Property(e => e.id_note_type).HasColumnName("id_note_type").UseIdentityByDefaultColumn();
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.code).HasColumnName("code").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired(false);
+                entity.Property(e => e.header_title).HasColumnName("header_title").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.calculation_type).HasColumnName("calculation_type").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.discount_configurable).HasColumnName("discount_configurable").IsRequired();
+                entity.Property(e => e.default_discount_percentage).HasColumnName("default_discount_percentage").IsRequired().HasPrecision(18, 3);
+                entity.Property(e => e.promo_discount_percentage).HasColumnName("promo_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.mandatory_discount_percentage).HasColumnName("mandatory_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.conditions_template).HasColumnName("conditions_template");
+                entity.Property(e => e.discount_conditions_template).HasColumnName("discount_conditions_template");
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired();
+                entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
+
+                entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<customer>(entity =>
@@ -74,9 +97,13 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.cxc_observations).HasColumnName("cxc_observations").HasMaxLength(500);
                 entity.Property(e => e.sales_observations).HasColumnName("sales_observations").HasMaxLength(500);
                 entity.Property(e => e.discount_percentage).HasColumnName("discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.note_type_id).HasColumnName("note_type_id").IsRequired(false);
+                entity.Property(e => e.promo_discount_percentage).HasColumnName("promo_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.volume_discount_percentage).HasColumnName("volume_discount_percentage").HasPrecision(18, 3);
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<note_type>().WithMany().HasForeignKey(e => e.note_type_id).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<note_detail>(entity =>

@@ -11,6 +11,7 @@ namespace NinOS.UI.Common.ViewModels
         private CommissionsViewModel? _commissions_vm;
         private CustomerViewModel? _customer_vm;
         private InventoryViewModel? _inventory_vm;
+        private ProVentaViewModel? _pro_venta_vm;
 
         public DeliveryNotesViewModel? delivery_notes_vm
         {
@@ -54,6 +55,12 @@ namespace NinOS.UI.Common.ViewModels
             set { _inventory_vm = value; on_property_changed(); }
         }
 
+        public ProVentaViewModel? pro_venta_vm
+        {
+            get => _pro_venta_vm;
+            set { _pro_venta_vm = value; on_property_changed(); }
+        }
+
         public MainWindowViewModel(
             DeliveryNotesViewModel deliveryNotesVm,
             AccountsReceivableViewModel accountsReceivableVm,
@@ -61,7 +68,8 @@ namespace NinOS.UI.Common.ViewModels
             PaymentsViewModel paymentsVm,
             CommissionsViewModel commissionsVm,
             CustomerViewModel customerVm,
-            InventoryViewModel inventoryVm)
+            InventoryViewModel inventoryVm,
+            ProVentaViewModel proVentaVm)
         {
             delivery_notes_vm = deliveryNotesVm;
             accounts_receivable_vm = accountsReceivableVm;
@@ -70,6 +78,7 @@ namespace NinOS.UI.Common.ViewModels
             commissions_vm = commissionsVm;
             customer_vm = customerVm;
             inventory_vm = inventoryVm;
+            pro_venta_vm = proVentaVm;
 
             if (delivery_notes_vm != null)
             {
@@ -78,6 +87,7 @@ namespace NinOS.UI.Common.ViewModels
                     accounts_receivable_vm?.refresh_data();
                     delivery_notes_vm?.refresh_data();
                     inventory_vm?.refresh_data();
+                    pro_venta_vm?.refresh_data();
                 };
             }
         }

@@ -24,7 +24,74 @@ namespace NinOS.Infrastructure.Data
                   WHERE dn.discount_percentage IS NULL
                     AND (SELECT COALESCE(SUM(nd.subtotal_usd), 0) FROM note_detail nd WHERE nd.id_delivery_note = dn.id_delivery_note) > 0");
 
-            if (db_context.products.Any() || db_context.customers.Any() || db_context.sellers.Any())
+            const string brand_header = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+
+            var existing_maracay = db_context.note_types.FirstOrDefault(t => t.code == "MAR");
+            if (existing_maracay != null)
+            {
+                bool changed = false;
+                if (existing_maracay.name != "Pro Venta") { existing_maracay.name = "Pro Venta"; changed = true; }
+                if (existing_maracay.header_title != brand_header) { existing_maracay.header_title = brand_header; changed = true; }
+                if (existing_maracay.id_seller != null) { existing_maracay.id_seller = null; changed = true; }
+                if (existing_maracay.mandatory_discount_percentage != null) { existing_maracay.mandatory_discount_percentage = null; changed = true; }
+                if (changed) db_context.SaveChanges();
+            }
+
+            var existing_general = db_context.note_types.FirstOrDefault(t => t.code == "GEN");
+            if (existing_general != null && existing_general.header_title != brand_header)
+            {
+                existing_general.header_title = brand_header;
+                db_context.SaveChanges();
+            }
+
+            if (!db_context.note_types.Any())
+            {
+                var general = new note_type(
+                    "General", "GEN", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 1
+                };
+
+                var pro_venta = new note_type(
+                    "Pro Venta", "MAR", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 2
+                };
+
+                var promo_oleos = new note_type(
+                    "Promo Oleos", "PRO", "DEFILE", "promo", true, 0m,
+                    "DESCUENTO 20% PROMO OLEOS",
+                    "Descuento adicional sobre precio promocional")
+                {
+                    promo_discount_percentage = 20m,
+                    sort_order = 3
+                };
+
+                var canecalon = new note_type(
+                    "Canecalon", "CAN", "CANECALON", "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 4
+                };
+
+                var hair_liss = new note_type(
+                    "Hair Liss", "HLS", "HAIR LISS", "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 5
+                };
+
+                db_context.note_types.AddRange(general, pro_venta, promo_oleos, canecalon, hair_liss);
+                db_context.SaveChanges();
+            }
+
+            if (db_context.sellers.Any() || db_context.customers.Any() || db_context.products.Any())
             {
                 return;
             }

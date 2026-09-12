@@ -10,9 +10,9 @@ namespace NinOS.UI.Views
 {
     public partial class NotePreviewWindow : Window
     {
-        private static readonly Brush PrimaryBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D));
+        private Brush PrimaryBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D));
         private static readonly Brush LabelGrayBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
-        private static readonly Brush LightGrayBrush = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC));
+        private Brush LightGrayBrush = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC));
         private static readonly Brush BorderGrayBrush = new SolidColorBrush(Color.FromRgb(0xB0, 0xB0, 0xB0));
         private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD));
         private static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(0xCC, 0x00, 0x00));
@@ -25,8 +25,23 @@ namespace NinOS.UI.Views
         public NotePreviewWindow(note_print_dto note)
         {
             InitializeComponent();
+            PrimaryBrush = ParseBrush(note.accent_color, new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D)));
+            LightGrayBrush = ParseBrush(note.accent_soft_color, new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC)));
             Title = $"Vista Previa - Nota {note.note_number}";
             BuildPreview(note);
+        }
+
+        private static Brush ParseBrush(string? hex, Brush fallback)
+        {
+            if (string.IsNullOrWhiteSpace(hex)) return fallback;
+            try
+            {
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+            }
+            catch
+            {
+                return fallback;
+            }
         }
 
         private void OnCancel(object sender, RoutedEventArgs e)
@@ -57,11 +72,11 @@ namespace NinOS.UI.Views
             // CABECERA: empresa izquierda, NOTA DE ENTREGA derecha
             var header = new DockPanel { LastChildFill = true };
             var left = new StackPanel();
-            left.Children.Add(MakeText(note.company_name, 22, true, PrimaryBrush));
+            left.Children.Add(MakeText(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title, 22, true, PrimaryBrush));
             left.Children.Add(MakeText("Caracas - Venezuela", 10, false, LabelGrayBrush, new Thickness(0, 2, 0, 0)));
             DockPanel.SetDock(left, Dock.Left);
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
-            right.Children.Add(MakeText("NOTA DE ENTREGA", 16, true, PrimaryBrush));
+            right.Children.Add(MakeText(note.document_label, 16, true, PrimaryBrush));
             right.Children.Add(MakeText($"Nro: {note.note_number}", 11, true, Brushes.Black, new Thickness(0, 2, 0, 0)));
             DockPanel.SetDock(right, Dock.Right);
             header.Children.Add(right);
@@ -125,10 +140,11 @@ namespace NinOS.UI.Views
             totalsBox.Width = 220;
             var totalsCol = new StackPanel();
             totalsCol.Children.Add(MakeTotalsRow("Subtotal:", $"{note.gross_total_usd:N2}", false, Brushes.Black));
+            if (note.promo_discount_amount > 0)
+                totalsCol.Children.Add(MakeTotalsRow($"Promo ({note.promo_discount_percentage:0.##}%):", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
             if (note.discount_amount > 0)
                 totalsCol.Children.Add(MakeTotalsRow($"Descuento ({note.discount_percentage:0.##}%):", $"-{note.discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
-            totalsCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 3, 0, 0)));
-            totalsCol.Children.Add(MakeTotalsRow("TOTAL GENERAL:", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
+            totalsCol.Children.Add(MakeTotalsRow("Total General:", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
             if (note.paid_amount_usd > 0)
                 totalsCol.Children.Add(MakeTotalsRow("Abonado:", $"{note.paid_amount_usd:N2}", false, GreenBrush, new Thickness(0, 2, 0, 0)));
             totalsCol.Children.Add(MakeTotalsRow("Saldo:", $"{note.balance_due_usd:N2}", true, Brushes.Black, new Thickness(0, 2, 0, 0)));
@@ -165,7 +181,7 @@ namespace NinOS.UI.Views
             bankRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             bankRow.Children.Add(MakeSection("DATOS BANCARIOS",
-                "Transferencia:\nBanco: BANCO DE VENEZUELA\nCuenta Corriente: 0134-0134-13-0134123456\nRIF: J-12345678-9\n\nPago Móvil:\nBanco: BANCO DE VENEZUELA\nTelefono: 0414-1234567\nCedula: V-12.345.678"));
+                "Transferencia:\nBanco: BANCO VENEZUELA\nCuenta Corriente: 0102-0868-84-00000-27-407\nCedula: 6.266.986\n\nPago Móvil:\nBanco: BANCO VENEZUELA\nTelefono: 0414.598.68.65\nCedula: 6.266.986"));
 
             var manualBox = MakeBox(new Thickness(0));
             var manualCol = new StackPanel();
@@ -187,6 +203,21 @@ namespace NinOS.UI.Views
             sigCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 40, 0, 0)));
             signatureBox.Child = sigCol;
             p.Children.Add(signatureBox);
+
+            // DESCUENTO POR VOLUMEN + TOTAL A PAGAR
+            if (note.volume_discount_amount > 0)
+            {
+                var volumeBox = MakeBox(padding: new Thickness(6));
+                volumeBox.Width = 220;
+                volumeBox.HorizontalAlignment = HorizontalAlignment.Right;
+                volumeBox.Margin = new Thickness(0, 8, 0, 0);
+                var volumeCol = new StackPanel();
+                volumeCol.Children.Add(MakeTotalsRow($"Descuento por volumen ({note.volume_discount_percentage:0.##}%):", $"-{note.volume_discount_amount:N2}", false, RedBrush));
+                volumeCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 3, 0, 0)));
+                volumeCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR:", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
+                volumeBox.Child = volumeCol;
+                p.Children.Add(volumeBox);
+            }
 
             // PIE
             p.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 10, 0, 0)));

@@ -82,6 +82,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(n => note_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
 
+            var mar_ids = await get_pro_venta_type_ids_async(db);
+            var mar_note_ids = notes.Values
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .Select(n => n.id_delivery_note)
+                .ToHashSet();
+
+            if (mar_note_ids.Count > 0)
+            {
+                commissions = commissions.Where(c => !mar_note_ids.Contains(c.id_delivery_note)).ToList();
+                if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
+
+                note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
+                notes = await db.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToDictionaryAsync(n => n.id_delivery_note);
+            }
+
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
             var customers = await db.customers
                 .AsNoTracking()
@@ -135,6 +153,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .Where(n => note_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
+
+            var mar_ids = await get_pro_venta_type_ids_async(db);
+            var mar_note_ids = notes.Values
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .Select(n => n.id_delivery_note)
+                .ToHashSet();
+
+            if (mar_note_ids.Count > 0)
+            {
+                commissions = commissions.Where(c => !mar_note_ids.Contains(c.id_delivery_note)).ToList();
+                if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
+
+                note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
+                notes = await db.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToDictionaryAsync(n => n.id_delivery_note);
+            }
 
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
             var customers = await db.customers
@@ -214,6 +250,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .Where(n => note_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
+
+            var mar_ids = await get_pro_venta_type_ids_async(db);
+            var mar_note_ids = notes.Values
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .Select(n => n.id_delivery_note)
+                .ToHashSet();
+
+            if (mar_note_ids.Count > 0)
+            {
+                commissions = commissions.Where(c => !mar_note_ids.Contains(c.id_delivery_note)).ToList();
+                if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
+
+                note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
+                notes = await db.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToDictionaryAsync(n => n.id_delivery_note);
+            }
 
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
             var customers = await db.customers
@@ -468,6 +522,15 @@ return new commission_dto
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)
+        {
+            return db_context.note_types
+                .AsNoTracking()
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
         }
     }
 }

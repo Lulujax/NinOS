@@ -30,6 +30,7 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<accounts_receivable_dto> sandra_notes { get; }
         public ObservableCollection<accounts_receivable_dto> anais_notes { get; }
         public ObservableCollection<accounts_receivable_dto> alejandra_notes { get; }
+        public ObservableCollection<accounts_receivable_dto> juan_luis_notes { get; }
 
         public string selected_month
         {
@@ -77,6 +78,7 @@ namespace NinOS.UI.Common.ViewModels
             sandra_notes = new ObservableCollection<accounts_receivable_dto>();
             anais_notes = new ObservableCollection<accounts_receivable_dto>();
             alejandra_notes = new ObservableCollection<accounts_receivable_dto>();
+            juan_luis_notes = new ObservableCollection<accounts_receivable_dto>();
 
             filter_options.Add("Todas");
             filter_options.Add("Por Cobrar");
@@ -149,6 +151,7 @@ namespace NinOS.UI.Common.ViewModels
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
             update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
             update_collection(alejandra_notes, filtered.Where(n => n.seller_name == "Alejandra").ToList());
+            update_collection(juan_luis_notes, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
             recalc_totals();
         }
@@ -184,6 +187,7 @@ namespace NinOS.UI.Common.ViewModels
                 1 => sandra_notes.ToList(),
                 2 => anais_notes.ToList(),
                 3 => alejandra_notes.ToList(),
+                4 => juan_luis_notes.ToList(),
                 _ => new List<accounts_receivable_dto>()
             };
 

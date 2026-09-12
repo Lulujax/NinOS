@@ -21,7 +21,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             _scope_factory = scope_factory;
         }
 
-        public async Task register_payment_async(payment new_payment)
+        public async Task register_payment_async(payment new_payment, bool is_pro_venta = false)
         {
             if (new_payment == null) throw new ArgumentNullException(nameof(new_payment));
 
@@ -35,6 +35,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
                 if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
+
+                var mar_ids = await get_pro_venta_type_ids_async(_db_context);
+                if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
+                    throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
 
                 new_payment.amount_bs = new_payment.amount_bs < 0 ? 0 : new_payment.amount_bs;
                 if (string.IsNullOrEmpty(new_payment.bank_name)) new_payment.bank_name = "";
@@ -55,17 +59,20 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (total_paid_usd >= target_note.adjusted_total_usd && target_note.status != "Pagada")
                 {
                     target_note.status = "Pagada";
-                    
-                    decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
-                    commission new_commission = new commission(
-                        target_note.id_seller,
-                        target_note.id_delivery_note,
-                        0.10m,
-                        generated_amount_usd,
-                        false,
-                        null);
 
-                    await _db_context.commissions.AddAsync(new_commission);
+                    if (!is_pro_venta)
+                    {
+                        decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
+                        commission new_commission = new commission(
+                            target_note.id_seller,
+                            target_note.id_delivery_note,
+                            0.10m,
+                            generated_amount_usd,
+                            false,
+                            null);
+
+                        await _db_context.commissions.AddAsync(new_commission);
+                    }
                 }
 
                 await _db_context.SaveChangesAsync();
@@ -81,7 +88,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task update_payment_async(payment updated_payment)
+        public async Task update_payment_async(payment updated_payment, bool is_pro_venta = false)
         {
             if (updated_payment == null) throw new ArgumentNullException(nameof(updated_payment));
 
@@ -96,6 +103,10 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 delivery_note target_note = await _db_context.delivery_notes.FindAsync(existing.id_delivery_note);
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
+
+                var mar_ids = await get_pro_venta_type_ids_async(_db_context);
+                if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
+                    throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
 
                 existing.id_delivery_note = updated_payment.id_delivery_note;
                 existing.payment_date = updated_payment.payment_date;
@@ -127,7 +138,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         target_note.status = "Pagada";
 
-                        if (existing_commission == null)
+                        if (!is_pro_venta && existing_commission == null)
                         {
                             decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
                             commission new_commission = new commission(
@@ -145,7 +156,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     if (target_note.status == "Pagada") target_note.status = "Pendiente";
 
-                    if (existing_commission != null)
+                    if (!is_pro_venta && existing_commission != null)
                     {
                         _db_context.commissions.Remove(existing_commission);
                     }
@@ -223,6 +234,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(n => note_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
 
+            var mar_ids = await get_pro_venta_type_ids_async(db);
+            var mar_note_ids = notes.Values
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
+                .Select(n => n.id_delivery_note)
+                .ToHashSet();
+
+            if (mar_note_ids.Count > 0)
+            {
+                payments = payments.Where(p => !mar_note_ids.Contains(p.id_delivery_note)).ToList();
+                if (payments.Count == 0) return Enumerable.Empty<payment_dto>();
+
+                note_ids = payments.Select(p => p.id_delivery_note).Distinct().ToList();
+                notes = await db.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToDictionaryAsync(n => n.id_delivery_note);
+            }
+
             var seller_ids = notes.Values.Select(n => n.id_seller).Distinct().ToList();
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
 
@@ -267,6 +296,15 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             var all = await get_payments_by_month_async(month_year);
             return all.Where(p => p.id_seller == id_seller);
+        }
+
+        private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)
+        {
+            return db_context.note_types
+                .AsNoTracking()
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
         }
     }
 }

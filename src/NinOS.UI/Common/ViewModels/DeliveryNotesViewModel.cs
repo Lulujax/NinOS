@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using NinOS.Domain;
@@ -38,6 +39,7 @@ namespace NinOS.UI.Common.ViewModels
         private decimal _subtotal_usd;
         private bool _show_search_popup_text;
         private bool _show_search_popup_code;
+        private decimal _promo_price_unit;
 
         public ObservableCollection<billable_item> available_items { get; }
 
@@ -181,6 +183,11 @@ namespace NinOS.UI.Common.ViewModels
                 _subtotal_usd = value;
                 on_property_changed();
             }
+        }
+
+        public decimal promo_price_usd
+        {
+            get { return _promo_price_unit; }
         }
 
         public Action? on_subtotal_changed;
@@ -364,7 +371,10 @@ namespace NinOS.UI.Common.ViewModels
                 effective_price = promo_price;
             }
 
+            _promo_price_unit = effective_price;
+
             subtotal_usd = _quantity * effective_price;
+
             on_subtotal_changed?.Invoke();
         }
     }
@@ -375,10 +385,13 @@ namespace NinOS.UI.Common.ViewModels
         private readonly ICustomerService _customer_service;
         private readonly IInventoryService _inventory_service;
         private readonly IGenericRepository<seller> _seller_repository;
+        private readonly IGenericRepository<note_type> _note_type_repository;
         private bool _is_loading;
 
         private List<customer> _all_customers_cache;
+        private List<note_type> _all_note_types_cache;
         private seller? _selected_seller;
+        private note_type? _selected_note_type;
         private customer? _selected_customer;
         private string _note_number = string.Empty;
         private DateTime _creation_date = DateTime.UtcNow;
@@ -387,7 +400,13 @@ namespace NinOS.UI.Common.ViewModels
         private decimal _gross_total_usd;
         private string _discount_percentage_text = "0";
         private decimal _discount_amount;
+        private decimal _discounted_total_usd;
         private decimal _total_amount_usd;
+        private string _header_title = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+        private string _promo_discount_percentage_text = string.Empty;
+        private decimal _promo_discount_amount;
+        private string _volume_discount_percentage_text = string.Empty;
+        private decimal _volume_discount_amount;
         
         private string _conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
@@ -397,6 +416,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _contact_name_text = string.Empty;
 
         public ObservableCollection<seller> sellers { get; }
+        public ObservableCollection<note_type> note_type_options { get; }
         public ObservableCollection<customer> filtered_customers { get; }
         public ObservableCollection<billable_item> all_items { get; }
         public ObservableCollection<note_detail_row> note_details { get; }
@@ -413,26 +433,175 @@ namespace NinOS.UI.Common.ViewModels
             set
             {
                 if (_selected_seller == value) return;
-                _selected_seller = value;
-                on_property_changed();
-                
-                filtered_customers.Clear();
-                selected_customer = null;
 
-                if (_selected_seller != null)
+                if (value != null && has_pending_data)
                 {
-                    IEnumerable<customer> match = _all_customers_cache.Where(c => 
-                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.customer_code_prefix)) || 
-                        c.seller_name == _selected_seller.full_name);
+                    MessageBoxResult result = MessageBox.Show(
+                        "Hay datos sin guardar en la nota actual. Si cambias de vendedora se descartarán y el stock será liberado.\n\n¿Desea continuar?",
+                        "Descartar cambios",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
 
-                    foreach (customer c in match)
+                    if (result != MessageBoxResult.Yes)
                     {
-                        filtered_customers.Add(c);
+                        on_property_changed(nameof(selected_seller));
+                        return;
                     }
+
+                    reset_unsaved_note();
                 }
-                
-                update_correlative_async();
+
+                ApplySeller(value);
+
+                RefreshNoteTypeOptions();
+
+                _selected_note_type = null;
+                ApplyNoteType(null);
+                on_property_changed(nameof(selected_note_type));
+                on_property_changed(nameof(has_selection));
             }
+        }
+
+        public note_type? selected_note_type
+        {
+            get { return _selected_note_type; }
+            set
+            {
+                if (_selected_note_type == value) return;
+
+                if (value != null && has_pending_data)
+                {
+                    MessageBoxResult result = MessageBox.Show(
+                        "Hay datos sin guardar en la nota actual. Si cambias el tipo de nota se descartarán y el stock será liberado.\n\n¿Desea continuar?",
+                        "Descartar cambios",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        on_property_changed(nameof(selected_note_type));
+                        return;
+                    }
+
+                    reset_unsaved_note();
+                }
+
+                ApplyNoteType(value);
+                on_property_changed(nameof(has_selection));
+            }
+        }
+
+        public bool has_selection
+        {
+            get { return _selected_seller != null && _selected_note_type != null; }
+        }
+
+        private void ApplyNoteType(note_type? nt)
+        {
+            _selected_note_type = nt;
+            on_property_changed(nameof(selected_note_type));
+            on_property_changed(nameof(has_promo_discount));
+            on_property_changed(nameof(document_label));
+            on_property_changed(nameof(is_pro_venta));
+            on_property_changed(nameof(note_accent_color));
+            on_property_changed(nameof(note_soft_color));
+            on_property_changed(nameof(note_payment_bg));
+            on_property_changed(nameof(note_guardar_color));
+
+            if (nt == null)
+            {
+                header_title = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+                conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
+                discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
+                volume_discount_percentage_text = string.Empty;
+                recalculate_total();
+                return;
+            }
+
+            header_title = string.IsNullOrWhiteSpace(nt.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : nt.header_title;
+            if (!string.IsNullOrWhiteSpace(nt.conditions_template))
+            {
+                conditions_text = nt.conditions_template;
+            }
+            if (!string.IsNullOrWhiteSpace(nt.discount_conditions_template))
+            {
+                discount_conditions_text = nt.discount_conditions_template;
+            }
+            discount_percentage_text = CleanPercent(nt.default_discount_percentage);
+            promo_discount_percentage_text = nt.promo_discount_percentage.HasValue ? CleanPercent(nt.promo_discount_percentage.Value) : string.Empty;
+            volume_discount_percentage_text = string.Empty;
+        }
+
+        private static string CleanPercent(decimal value)
+        {
+            return value.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        public string document_label
+        {
+            get { return _selected_note_type != null && _selected_note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA"; }
+        }
+
+        public bool is_pro_venta
+        {
+            get { return _selected_note_type != null && _selected_note_type.code == "MAR"; }
+        }
+
+        public string note_accent_color
+        {
+            get { return is_pro_venta ? "#1565C0" : "#1B3A2D"; }
+        }
+
+        public string note_soft_color
+        {
+            get { return is_pro_venta ? "#E3F2FD" : "#F5F9F6"; }
+        }
+
+        public string note_payment_bg
+        {
+            get { return is_pro_venta ? "#BBDEFB" : "#DCE6C8"; }
+        }
+
+        public string note_guardar_color
+        {
+            get { return is_pro_venta ? "#2196F3" : "#4CAF50"; }
+        }
+
+        private void RefreshNoteTypeOptions()
+        {
+            note_type_options.Clear();
+            if (_selected_seller == null) return;
+
+            foreach (note_type nt in _all_note_types_cache
+                .Where(t => t.is_active)
+                .OrderBy(t => t.sort_order))
+            {
+                note_type_options.Add(nt);
+            }
+        }
+
+        private void ApplySeller(seller? s)
+        {
+            _selected_seller = s;
+            on_property_changed(nameof(selected_seller));
+            on_property_changed(nameof(has_selection));
+
+            filtered_customers.Clear();
+            selected_customer = null;
+
+            if (s != null)
+            {
+                IEnumerable<customer> match = _all_customers_cache.Where(c =>
+                    (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.customer_code_prefix)) ||
+                    c.seller_name == s.full_name);
+
+                foreach (customer c in match)
+                {
+                    filtered_customers.Add(c);
+                }
+            }
+
+            update_correlative_async();
         }
 
         public customer? selected_customer
@@ -534,6 +703,50 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public decimal discounted_total_usd
+        {
+            get { return _discounted_total_usd; }
+            private set
+            {
+                if (_discounted_total_usd == value) return;
+                _discounted_total_usd = value;
+                on_property_changed();
+            }
+        }
+
+        public string volume_discount_percentage_text
+        {
+            get { return _volume_discount_percentage_text; }
+            set
+            {
+                if (_volume_discount_percentage_text == value) return;
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    string normalized = value.Replace(",", ".");
+                    if (!decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed) || parsed < 0 || parsed > 100)
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+
+                _volume_discount_percentage_text = value;
+                on_property_changed();
+                recalculate_total();
+            }
+        }
+
+        public decimal volume_discount_amount
+        {
+            get { return _volume_discount_amount; }
+            private set
+            {
+                if (_volume_discount_amount == value) return;
+                _volume_discount_amount = value;
+                on_property_changed();
+            }
+        }
+
         public decimal total_amount_usd
         {
             get { return _total_amount_usd; }
@@ -543,6 +756,55 @@ namespace NinOS.UI.Common.ViewModels
                 _total_amount_usd = value;
                 on_property_changed();
             }
+        }
+
+        public string header_title
+        {
+            get { return _header_title; }
+            private set
+            {
+                if (_header_title == value) return;
+                _header_title = value;
+                on_property_changed();
+            }
+        }
+
+        public string promo_discount_percentage_text
+        {
+            get { return _promo_discount_percentage_text; }
+            set
+            {
+                if (_promo_discount_percentage_text == value) return;
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    string normalized = value.Replace(",", ".");
+                    if (!decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed) || parsed < 0 || parsed > 100)
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+
+                _promo_discount_percentage_text = value;
+                on_property_changed();
+                recalculate_total();
+            }
+        }
+
+        public decimal promo_discount_amount
+        {
+            get { return _promo_discount_amount; }
+            private set
+            {
+                if (_promo_discount_amount == value) return;
+                _promo_discount_amount = value;
+                on_property_changed();
+            }
+        }
+
+        public bool has_promo_discount
+        {
+            get { return _selected_note_type != null && string.Equals(_selected_note_type.calculation_type, "promo", StringComparison.OrdinalIgnoreCase); }
         }
 
         public string conditions_text
@@ -606,20 +868,25 @@ namespace NinOS.UI.Common.ViewModels
             IDeliveryNoteService delivery_note_service,
             ICustomerService customer_service,
             IInventoryService inventory_service,
-            IGenericRepository<seller> seller_repository)
+            IGenericRepository<seller> seller_repository,
+            IGenericRepository<note_type> note_type_repository)
         {
             if (delivery_note_service == null) throw new ArgumentNullException(nameof(delivery_note_service));
             if (customer_service == null) throw new ArgumentNullException(nameof(customer_service));
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
             if (seller_repository == null) throw new ArgumentNullException(nameof(seller_repository));
+            if (note_type_repository == null) throw new ArgumentNullException(nameof(note_type_repository));
 
             _delivery_note_service = delivery_note_service;
             _customer_service = customer_service;
             _inventory_service = inventory_service;
             _seller_repository = seller_repository;
+            _note_type_repository = note_type_repository;
 
             _all_customers_cache = new List<customer>();
+            _all_note_types_cache = new List<note_type>();
             sellers = new ObservableCollection<seller>();
+            note_type_options = new ObservableCollection<note_type>();
             filtered_customers = new ObservableCollection<customer>();
             all_items = new ObservableCollection<billable_item>();
             note_details = new ObservableCollection<note_detail_row>();
@@ -644,6 +911,12 @@ namespace NinOS.UI.Common.ViewModels
                 var db_sellers = await _seller_repository.get_all_async();
                 sellers.Clear();
                 foreach (seller s in db_sellers) sellers.Add(s);
+
+                var db_note_types = await _note_type_repository.get_all_async();
+                _all_note_types_cache.Clear();
+                foreach (note_type nt in db_note_types) _all_note_types_cache.Add(nt);
+
+                RefreshNoteTypeOptions();
 
                 if (_selected_seller != null)
                 {
@@ -689,6 +962,13 @@ namespace NinOS.UI.Common.ViewModels
                         available_stock = p.stock_quantity
                     });
                 }
+
+                if (_selected_seller != null)
+                {
+                    seller? reconnected = sellers.FirstOrDefault(s => s.id_seller == _selected_seller.id_seller);
+                    _selected_seller = reconnected ?? _selected_seller;
+                    on_property_changed(nameof(selected_seller));
+                }
             }
             catch (Exception ex)
             {
@@ -711,6 +991,9 @@ namespace NinOS.UI.Common.ViewModels
 
                 seller[] db_sellers = await _seller_repository.get_all_async();
                 foreach (seller s in db_sellers) sellers.Add(s);
+
+                note_type[] db_note_types = await _note_type_repository.get_all_async();
+                foreach (note_type nt in db_note_types) _all_note_types_cache.Add(nt);
 
                 IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
                 foreach (promotion pr in db_promotions)
@@ -823,17 +1106,44 @@ namespace NinOS.UI.Common.ViewModels
             }
             gross_total_usd = sum;
 
+            decimal running = gross_total_usd;
+
+            decimal promo_pct = 0;
+            if (has_promo_discount)
+            {
+                string normalized_promo = string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", ".");
+                if (decimal.TryParse(normalized_promo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo))
+                {
+                    promo_pct = parsed_promo;
+                }
+            }
+            promo_discount_amount = running * (promo_pct / 100m);
+            running -= promo_discount_amount;
+
             string normalized_discount = string.IsNullOrWhiteSpace(_discount_percentage_text) ? "0" : _discount_percentage_text.Replace(",", ".");
             if (decimal.TryParse(normalized_discount, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount))
             {
-                discount_amount = gross_total_usd * (parsed_discount / 100m);
+                discount_amount = running * (parsed_discount / 100m);
             }
             else
             {
                 discount_amount = 0;
             }
+            running -= discount_amount;
+            discounted_total_usd = running;
 
-            total_amount_usd = gross_total_usd - discount_amount;
+            string normalized_volume = string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", ".");
+            if (decimal.TryParse(normalized_volume, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_volume))
+            {
+                volume_discount_amount = running * (parsed_volume / 100m);
+            }
+            else
+            {
+                volume_discount_amount = 0;
+            }
+            running -= volume_discount_amount;
+
+            total_amount_usd = running;
         }
 
         private note_print_dto build_preview_dto()
@@ -856,20 +1166,28 @@ namespace NinOS.UI.Common.ViewModels
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,
                 discount_conditions_text = _discount_conditions_text,
-                company_name = "DEFILE _REMBRANT_OLEOS_FLYING_BIOLINE"
+                company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
+                header_title = string.IsNullOrWhiteSpace(_header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : _header_title,
+                promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo) ? parsed_promo : null,
+                promo_discount_amount = promo_discount_amount,
+                volume_discount_percentage = string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? 0 : (decimal.TryParse(_volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0),
+                volume_discount_amount = volume_discount_amount,
+                discounted_total_usd = discounted_total_usd,
+                document_label = document_label,
+                accent_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
+                accent_soft_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC"
             };
 
             foreach (note_detail_row row in note_details)
             {
                 if (row.selected_item == null) continue;
-                decimal effective = row.subtotal_usd / (row.quantity > 0 ? row.quantity : 1);
                 dto.details.Add(new note_detail_print_dto
                 {
                     code = row.selected_item.code,
                     name = row.selected_item.name,
                     quantity = row.quantity,
                     unit_price_usd = row.unit_price_usd,
-                    promo_price_usd = effective,
+                    promo_price_usd = row.promo_price_usd,
                     subtotal_usd = row.subtotal_usd
                 });
             }
@@ -934,6 +1252,9 @@ namespace NinOS.UI.Common.ViewModels
                 );
                 new_note.discount_percentage = string.IsNullOrWhiteSpace(_discount_percentage_text) ? null
                     : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : null);
+                new_note.note_type_id = _selected_note_type?.id_note_type;
+                new_note.promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal pp) ? pp : null;
+                new_note.volume_discount_percentage = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : null;
 
                 List<note_detail> domain_details = new List<note_detail>();
                 foreach (note_detail_row row in note_details)
@@ -971,9 +1292,12 @@ namespace NinOS.UI.Common.ViewModels
 
                 note_details.Clear();
                 discount_percentage_text = "0";
+                promo_discount_percentage_text = (has_promo_discount && _selected_note_type?.promo_discount_percentage != null)
+                    ? CleanPercent(_selected_note_type.promo_discount_percentage.Value)
+                    : string.Empty;
+                volume_discount_percentage_text = string.Empty;
                 recalculate_total();
                 update_correlative_async();
-
                 OnNoteSaved?.Invoke();
 
                 if (generate_pdf)
@@ -1014,6 +1338,10 @@ namespace NinOS.UI.Common.ViewModels
             }
             note_details.Clear();
             discount_percentage_text = "0";
+            promo_discount_percentage_text = (has_promo_discount && _selected_note_type?.promo_discount_percentage != null)
+                ? CleanPercent(_selected_note_type.promo_discount_percentage.Value)
+                : string.Empty;
+            volume_discount_percentage_text = string.Empty;
             customer_code_text = string.Empty;
             contact_name_text = string.Empty;
             _selected_customer = null;
