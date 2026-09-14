@@ -148,63 +148,72 @@ namespace NinOS.UI.Views
             p.Children.Add(MakeText("DETALLE DE PRODUCTOS", 9, true, PrimaryBrush, new Thickness(0, 8, 0, 0)));
             p.Children.Add(MakeDetailTable(note));
 
-            // TOTALES (caja derecha 220)
-            var totalsWrap = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
-            var totalsBox = MakeBox(padding: new Thickness(6));
-            totalsBox.Width = 220;
-            var totalsCol = new StackPanel();
-            totalsCol.Children.Add(MakeTotalsRow("Subtotal:", $"{note.gross_total_usd:N2}", false, Brushes.Black));
+            // ---- Fila 1: condicion de pago + primer Total General ----
+            var totalRow1 = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+
+            var condBox = MakeBox(new Thickness(6));
+            var condCol = new StackPanel();
+            condCol.Children.Add(MakeText(note.conditions_text, 9, false, Brushes.Black));
+            condBox.Child = condCol;
+            totalRow1.Children.Add(condBox);
+
+            var tgBox = MakeBox(new Thickness(6));
+            var tgCol = new StackPanel();
+            tgCol.Children.Add(MakeText("Total General", 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
+            tgCol.Children.Add(MakeText($"{note.gross_total_usd:N2}", 14, true, PrimaryBrush, null, HorizontalAlignment.Center));
+            tgBox.Child = tgCol;
+            Grid.SetColumn(tgBox, 2);
+            totalRow1.Children.Add(tgBox);
+            p.Children.Add(totalRow1);
+
+            // ---- Fila 2: DATOS PARA PAGO (3 columnas: desglose | firma | datos de pago) ----
+            var payBox = MakeBox(new Thickness(0));
+            payBox.Margin = new Thickness(0, 8, 0, 0);
+            var payStack = new StackPanel();
+            var bankHeaderBox = new Border { Background = LightGrayBrush, Padding = new Thickness(5), BorderBrush = BorderGrayBrush, BorderThickness = new Thickness(0, 0, 0, 1) };
+            var bankHeaderCol = new StackPanel();
+            bankHeaderCol.Children.Add(MakeText("DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE", 10, true, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderCol.Children.Add(MakeText("TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderCol.Children.Add(MakeText("NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA - 13.046.042", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderCol.Children.Add(MakeText("PAGO MOVIL", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderCol.Children.Add(MakeText("BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA - 13.046.042", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderBox.Child = bankHeaderCol;
+            payStack.Children.Add(bankHeaderBox);
+
+            var payRow = new Grid();
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+
+            // columna izquierda: desglose
+            var leftBox = MakeBox(new Thickness(6));
+            var leftCol = new StackPanel();
+            leftCol.Children.Add(MakeText(note.discount_conditions_text, 8, true, Brushes.Black, null, HorizontalAlignment.Center));
+            leftCol.Children.Add(MakeTotalsRow("sub total", $"{note.gross_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
             if (note.promo_discount_amount > 0)
-                totalsCol.Children.Add(MakeTotalsRow($"Promo ({note.promo_discount_percentage:0.##}%):", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
-            if (note.discount_amount > 0)
-                totalsCol.Children.Add(MakeTotalsRow($"Descuento ({note.discount_percentage:0.##}%):", $"-{note.discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
-            totalsCol.Children.Add(MakeTotalsRow("Total General:", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
-            if (note.paid_amount_usd > 0)
-                totalsCol.Children.Add(MakeTotalsRow("Abonado:", $"{note.paid_amount_usd:N2}", false, GreenBrush, new Thickness(0, 2, 0, 0)));
-            totalsCol.Children.Add(MakeTotalsRow("Saldo:", $"{note.balance_due_usd:N2}", true, Brushes.Black, new Thickness(0, 2, 0, 0)));
-            totalsBox.Child = totalsCol;
-            DockPanel.SetDock(totalsBox, Dock.Right);
-            totalsWrap.Children.Add(totalsBox);
-            totalsWrap.Children.Add(new TextBlock());
-            p.Children.Add(totalsWrap);
+                leftCol.Children.Add(MakeTotalsRow($"{note.promo_discount_percentage:0.##}% PROMO", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
+            decimal disc_pdf = note.discount_amount > 0 ? note.discount_amount : 0;
+            leftCol.Children.Add(MakeTotalsRow($"{note.discount_percentage:0.##}%", (note.discount_amount > 0 ? "-" : "") + $"{disc_pdf:N2}", false, note.discount_amount > 0 ? RedBrush : FooterGrayBrush, new Thickness(0, 2, 0, 0)));
+            leftCol.Children.Add(MakeTotalsRow("Total General", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
+            leftBox.Child = leftCol;
+            payRow.Children.Add(leftBox);
 
-            bool has_conditions = !string.IsNullOrWhiteSpace(note.conditions_text);
-            bool has_discount_conditions = !string.IsNullOrWhiteSpace(note.discount_conditions_text);
+            // columna media: firma
+            var midBox = new Border { Padding = new Thickness(6) };
+            var midCol = new StackPanel();
+            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 14, 0, 0), HorizontalAlignment.Center));
+            midCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 36, 0, 0)));
+            midBox.Child = midCol;
+            Grid.SetColumn(midBox, 2);
+            payRow.Children.Add(midBox);
 
-            if (has_conditions || has_discount_conditions)
-            {
-                // CONDICIONES DE PAGO + DESCUENTO
-                var condRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
-                condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                if (has_conditions && has_discount_conditions)
-                    condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-                if (has_conditions)
-                    condRow.Children.Add(MakeSection("CONDICIONES DE PAGO", note.conditions_text));
-                if (has_discount_conditions)
-                {
-                    var discBox = MakeBox(new Thickness(6));
-                    var discCol = new StackPanel();
-                    discCol.Children.Add(MakeText("DESCUENTO", 9, true, PrimaryBrush));
-                    discCol.Children.Add(MakeText(note.discount_conditions_text, 8, false, new SolidColorBrush(Color.FromRgb(0xCC, 0x66, 0x00)), new Thickness(0, 3, 0, 0)));
-                    discBox.Child = discCol;
-                    Grid.SetColumn(discBox, has_conditions ? 2 : 0);
-                    condRow.Children.Add(discBox);
-                }
-                p.Children.Add(condRow);
-            }
-
-            // DATOS BANCARIOS + DATOS PARA PAGO
-            var bankRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
-            bankRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            bankRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            bankRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            bankRow.Children.Add(MakeSection("DATOS BANCARIOS",
-                "Transferencia:\nBanco: BANCO MERCANTIL\nCuenta Corriente: 0105-0120-23-11200-92426\nCedula: 13.046.042\n\nPago Móvil:\nBanco: BANCO MERCANTIL\nTelefono: 0424.496.01.02\nCedula: 13.046.042"));
-
-            var manualBox = MakeBox(new Thickness(0));
+            // columna derecha: datos para pago
+            var manualBox = MakeBox(new Thickness(6));
             var manualCol = new StackPanel();
             manualCol.Children.Add(MakeText("DATOS PARA PAGO", 8, true, PrimaryBrush));
             manualCol.Children.Add(MakeManualRow("Fecha de pago:"));
@@ -212,33 +221,28 @@ namespace NinOS.UI.Views
             manualCol.Children.Add(MakeManualRow("Nro Referencia:"));
             manualCol.Children.Add(MakeManualRow("Banco:"));
             manualBox.Child = manualCol;
-            Grid.SetColumn(manualBox, 2);
-            bankRow.Children.Add(manualBox);
-            p.Children.Add(bankRow);
+            Grid.SetColumn(manualBox, 4);
+            payRow.Children.Add(manualBox);
 
-            // FIRMA
-            var signatureBox = MakeBox(padding: new Thickness(10));
-            signatureBox.Margin = new Thickness(0, 10, 0, 0);
-            var sigCol = new StackPanel();
-            sigCol.Children.Add(MakeText("FECHA  /  FIRMA Y SELLO DEL CLIENTE", 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
-            sigCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 40, 0, 0)));
-            signatureBox.Child = sigCol;
-            p.Children.Add(signatureBox);
+            payStack.Children.Add(payRow);
+            payBox.Child = payStack;
+            p.Children.Add(payBox);
 
-            // DESCUENTO POR VOLUMEN + TOTAL A PAGAR
-            if (note.volume_discount_amount > 0)
-            {
-                var volumeBox = MakeBox(padding: new Thickness(6));
-                volumeBox.Width = 220;
-                volumeBox.HorizontalAlignment = HorizontalAlignment.Right;
-                volumeBox.Margin = new Thickness(0, 8, 0, 0);
-                var volumeCol = new StackPanel();
-                volumeCol.Children.Add(MakeTotalsRow($"Descuento por volumen ({note.volume_discount_percentage:0.##}%):", $"-{note.volume_discount_amount:N2}", false, RedBrush));
-                volumeCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 3, 0, 0)));
-                volumeCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR:", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
-                volumeBox.Child = volumeCol;
-                p.Children.Add(volumeBox);
-            }
+            // ---- Fila 3: Descuento por volumen + TOTAL A PAGAR ----
+            decimal vol_pdf = note.volume_discount_amount > 0 ? note.volume_discount_amount : 0;
+            var volBox = MakeBox(new Thickness(0));
+            volBox.Width = 460;
+            volBox.HorizontalAlignment = HorizontalAlignment.Left;
+            volBox.Margin = new Thickness(0, 8, 0, 0);
+            var volCol = new StackPanel();
+            volCol.Children.Add(MakeTotalsRow($"Descuento por volumen {note.volume_discount_percentage:0.##}%", (note.volume_discount_amount > 0 ? "-" : "") + $"{vol_pdf:N2}", true, note.volume_discount_amount > 0 ? RedBrush : FooterGrayBrush));
+            volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+            volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
+            if (note.paid_amount_usd > 0)
+                volCol.Children.Add(MakeTotalsRow("Abonado:", $"{note.paid_amount_usd:N2}", false, GreenBrush, new Thickness(0, 3, 0, 0)));
+            volCol.Children.Add(MakeTotalsRow("Saldo:", $"{note.balance_due_usd:N2}", true, Brushes.Black, new Thickness(0, 3, 0, 0)));
+            volBox.Child = volCol;
+            p.Children.Add(volBox);
 
             // PIE
             p.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 10, 0, 0)));
