@@ -295,10 +295,10 @@
                             <Border Grid.Row="0" Background="{Binding note_payment_bg}" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel HorizontalAlignment="Center">
                                     <TextBlock Text="DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="TRANSFERENCIA _ BANCO VENEZUELA  CUENTA CORRIENTE" TextDecorations="Underline" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="NRO DE CUENTA _ 0102-0868-84-00000-27-407  /  CEDULA – 6.266.986" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE" TextDecorations="Underline" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA – 13.046.042" HorizontalAlignment="Center"/>
                                     <TextBlock Text="PAGO MOVIL" TextDecorations="Underline" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
 

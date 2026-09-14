@@ -100,9 +100,10 @@ namespace NinOS.UI.Views
             infoGrid.RowDefinitions.Add(new RowDefinition());
             infoGrid.RowDefinitions.Add(new RowDefinition());
 
-            var infoRow1 = MakeInfoRow(
+            var infoRow1 = MakeInfoRowWithCode(
                 MakeInfoCell("Razon Social", note.customer_business_name),
-                MakeInfoCell("RIF", note.customer_rif, 120));
+                MakeInfoCell("Codigo", note.customer_code),
+                MakeInfoCell("RIF", note.customer_rif));
             Grid.SetRow(infoRow1, 0);
             infoGrid.Children.Add(infoRow1);
 
@@ -126,6 +127,19 @@ namespace NinOS.UI.Views
                 MakeInfoCell("Telefono", note.customer_phone));
             Grid.SetRow(infoRow3, 4);
             infoGrid.Children.Add(infoRow3);
+
+            if (!string.IsNullOrWhiteSpace(note.customer_contact) || !string.IsNullOrWhiteSpace(note.credit_days_text))
+            {
+                var divider3 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
+                Grid.SetRow(divider3, 5);
+                infoGrid.Children.Add(divider3);
+
+                var infoRow4 = MakeInfoRow(
+                    MakeInfoCell("Contacto", note.customer_contact),
+                    MakeInfoCell("Dias de Credito", note.credit_days_text));
+                Grid.SetRow(infoRow4, 6);
+                infoGrid.Children.Add(infoRow4);
+            }
 
             infoBox.Child = infoGrid;
             p.Children.Add(infoBox);
@@ -154,25 +168,32 @@ namespace NinOS.UI.Views
             totalsWrap.Children.Add(new TextBlock());
             p.Children.Add(totalsWrap);
 
-            // CONDICIONES DE PAGO + DESCUENTO
-            var condRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
-            condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
-                condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            bool has_conditions = !string.IsNullOrWhiteSpace(note.conditions_text);
+            bool has_discount_conditions = !string.IsNullOrWhiteSpace(note.discount_conditions_text);
 
-            condRow.Children.Add(MakeSection("CONDICIONES DE PAGO", note.conditions_text));
-            if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
+            if (has_conditions || has_discount_conditions)
             {
-                var discBox = MakeBox(new Thickness(6));
-                var discCol = new StackPanel();
-                discCol.Children.Add(MakeText("DESCUENTO", 9, true, PrimaryBrush));
-                discCol.Children.Add(MakeText(note.discount_conditions_text, 8, false, new SolidColorBrush(Color.FromRgb(0xCC, 0x66, 0x00)), new Thickness(0, 3, 0, 0)));
-                discBox.Child = discCol;
-                Grid.SetColumn(discBox, 2);
-                condRow.Children.Add(discBox);
+                // CONDICIONES DE PAGO + DESCUENTO
+                var condRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+                condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                if (has_conditions && has_discount_conditions)
+                    condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                condRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                if (has_conditions)
+                    condRow.Children.Add(MakeSection("CONDICIONES DE PAGO", note.conditions_text));
+                if (has_discount_conditions)
+                {
+                    var discBox = MakeBox(new Thickness(6));
+                    var discCol = new StackPanel();
+                    discCol.Children.Add(MakeText("DESCUENTO", 9, true, PrimaryBrush));
+                    discCol.Children.Add(MakeText(note.discount_conditions_text, 8, false, new SolidColorBrush(Color.FromRgb(0xCC, 0x66, 0x00)), new Thickness(0, 3, 0, 0)));
+                    discBox.Child = discCol;
+                    Grid.SetColumn(discBox, has_conditions ? 2 : 0);
+                    condRow.Children.Add(discBox);
+                }
+                p.Children.Add(condRow);
             }
-            p.Children.Add(condRow);
 
             // DATOS BANCARIOS + DATOS PARA PAGO
             var bankRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
@@ -181,7 +202,7 @@ namespace NinOS.UI.Views
             bankRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             bankRow.Children.Add(MakeSection("DATOS BANCARIOS",
-                "Transferencia:\nBanco: BANCO VENEZUELA\nCuenta Corriente: 0102-0868-84-00000-27-407\nCedula: 6.266.986\n\nPago Móvil:\nBanco: BANCO VENEZUELA\nTelefono: 0414.598.68.65\nCedula: 6.266.986"));
+                "Transferencia:\nBanco: BANCO MERCANTIL\nCuenta Corriente: 0105-0120-23-11200-92426\nCedula: 13.046.042\n\nPago Móvil:\nBanco: BANCO MERCANTIL\nTelefono: 0424.496.01.02\nCedula: 13.046.042"));
 
             var manualBox = MakeBox(new Thickness(0));
             var manualCol = new StackPanel();
@@ -285,6 +306,20 @@ namespace NinOS.UI.Views
             r.Children.Add(cell1);
             Grid.SetColumn(cell2, 1);
             r.Children.Add(cell2);
+            return r;
+        }
+
+        private Grid MakeInfoRowWithCode(StackPanel cell1, StackPanel cell2, StackPanel cell3)
+        {
+            var r = new Grid();
+            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
+            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            r.Children.Add(cell1);
+            Grid.SetColumn(cell2, 1);
+            r.Children.Add(cell2);
+            Grid.SetColumn(cell3, 2);
+            r.Children.Add(cell3);
             return r;
         }
 

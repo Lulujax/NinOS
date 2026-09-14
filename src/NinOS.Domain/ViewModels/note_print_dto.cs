@@ -31,7 +31,9 @@ namespace NinOS.Domain.ViewModels
         public string customer_business_name { get; set; } = string.Empty;
         public string customer_rif { get; set; } = string.Empty;
         public string customer_phone { get; set; } = string.Empty;
+        public string customer_contact { get; set; } = string.Empty;
         public string customer_delivery_address { get; set; } = string.Empty;
+        public string credit_days_text { get; set; } = string.Empty;
         public string fiscal_address { get; set; } = string.Empty;
         public string conditions_text { get; set; } = string.Empty;
         public string discount_conditions_text { get; set; } = string.Empty;

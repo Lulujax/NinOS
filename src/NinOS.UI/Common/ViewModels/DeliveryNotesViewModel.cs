@@ -1162,6 +1162,8 @@ namespace NinOS.UI.Common.ViewModels
                 customer_business_name = _selected_customer?.business_name ?? string.Empty,
                 customer_rif = _selected_customer?.rif ?? string.Empty,
                 customer_phone = _selected_customer?.phone_number ?? string.Empty,
+                customer_contact = _contact_name_text,
+                credit_days_text = _credit_days_text,
                 customer_delivery_address = _selected_customer?.effective_delivery_address ?? string.Empty,
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,

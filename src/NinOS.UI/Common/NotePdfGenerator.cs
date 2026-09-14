@@ -3,6 +3,7 @@ using NinOS.Domain.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Linq;
 
 namespace NinOS.UI.Common
 {
@@ -32,7 +33,7 @@ namespace NinOS.UI.Common
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4);
+                    page.Size(PageSizes.Letter);
                     page.MarginVertical(20);
                     page.MarginHorizontal(25);
                     page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9));
@@ -77,6 +78,11 @@ namespace NinOS.UI.Common
                                     c.Item().Text("Razon Social").FontSize(7).Bold().FontColor("#555555");
                                     c.Item().PaddingTop(1).Text(note.customer_business_name).FontSize(10);
                                 });
+                                r.ConstantItem(80).Column(c =>
+                                {
+                                    c.Item().Text("Codigo").FontSize(7).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_code).FontSize(10);
+                                });
                                 r.ConstantItem(120).Column(c =>
                                 {
                                     c.Item().Text("RIF").FontSize(7).Bold().FontColor("#555555");
@@ -120,45 +126,70 @@ namespace NinOS.UI.Common
                                     c.Item().PaddingTop(1).Text(note.customer_phone).FontSize(10);
                                 });
                             });
-                        });
 
-                        col.Item().PaddingTop(8).Text("DETALLE DE PRODUCTOS").FontSize(9).Bold().FontColor(PrimaryColor);
-
-                        col.Item().PaddingTop(3).Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                            if (!string.IsNullOrWhiteSpace(note.customer_contact) || !string.IsNullOrWhiteSpace(note.credit_days_text))
                             {
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(3);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                            });
+                                grid.Item().PaddingTop(4).LineHorizontal(0.25f).LineColor("#DDDDDD");
 
-                            table.Header(header =>
-                            {
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("CANT.").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(8);
-                                header.Cell().Background(PrimaryColor).Padding(4).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(8);
-                            });
-
-                            bool alternate = false;
-                            foreach (var d in note.details)
-                            {
-                                string bg = alternate ? AccentBg : Colors.White;
-                                table.Cell().Background(bg).Padding(3).Text(d.quantity.ToString()).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.code).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.name).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.unit_price_usd.ToString("N2")).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.promo_price_usd.ToString("N2")).FontSize(9);
-                                table.Cell().Background(bg).Padding(3).Text(d.subtotal_usd.ToString("N2")).FontSize(9);
-                                alternate = !alternate;
+                                grid.Item().PaddingTop(3).Row(r =>
+                                {
+                                    r.RelativeItem().Column(c =>
+                                    {
+                                        c.Item().Text("Contacto").FontSize(7).Bold().FontColor("#555555");
+                                        c.Item().PaddingTop(1).Text(note.customer_contact).FontSize(10);
+                                    });
+                                    r.RelativeItem().Column(c =>
+                                    {
+                                        c.Item().Text("Dias de Credito").FontSize(7).Bold().FontColor("#555555");
+                                        c.Item().PaddingTop(1).Text(note.credit_days_text).FontSize(10);
+                                    });
+                                });
                             }
                         });
+
+                        var detail_chunks = note.details.Chunk(20).ToList();
+                        for (int ci = 0; ci < detail_chunks.Count; ci++)
+                        {
+                            if (ci > 0) col.Item().PageBreak();
+
+                            col.Item().PaddingTop(8).Text(ci == 0 ? "DETALLE DE PRODUCTOS" : "DETALLE DE PRODUCTOS (CONTINUACION)").FontSize(9).Bold().FontColor(PrimaryColor);
+
+                            col.Item().PaddingTop(3).Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(3);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(1.2f);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("CANT.").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(4).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(8);
+                                });
+
+                                bool alternate = false;
+                                foreach (var d in detail_chunks[ci])
+                                {
+                                    string bg = alternate ? AccentBg : Colors.White;
+                                    table.Cell().Background(bg).Padding(3).Text(d.quantity.ToString()).FontSize(9);
+                                    table.Cell().Background(bg).Padding(3).Text(d.code).FontSize(9);
+                                    table.Cell().Background(bg).Padding(3).Text(d.name).FontSize(9);
+                                    table.Cell().Background(bg).Padding(3).Text(d.unit_price_usd.ToString("N2")).FontSize(9);
+                                    table.Cell().Background(bg).Padding(3).Text(d.promo_price_usd.ToString("N2")).FontSize(9);
+                                    table.Cell().Background(bg).Padding(3).Text(d.subtotal_usd.ToString("N2")).FontSize(9);
+                                    alternate = !alternate;
+                                }
+                            });
+                        }
 
                         col.Item().PaddingTop(8).Row(row =>
                         {
@@ -213,24 +244,33 @@ namespace NinOS.UI.Common
                             });
                         });
 
-                        col.Item().PaddingTop(8).Row(row =>
-                        {
-                            row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(cond =>
-                            {
-                                cond.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
-                                cond.Item().PaddingTop(3).Text(note.conditions_text).FontSize(9);
-                            });
+                        bool has_conditions = !string.IsNullOrWhiteSpace(note.conditions_text);
+                        bool has_discount_conditions = !string.IsNullOrWhiteSpace(note.discount_conditions_text);
 
-                            if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
+                        if (has_conditions || has_discount_conditions)
+                        {
+                            col.Item().PaddingTop(8).Row(row =>
                             {
-                                row.ConstantItem(10);
-                                row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(disc =>
+                                if (has_conditions)
                                 {
-                                    disc.Item().Text("DESCUENTO").FontSize(9).Bold().FontColor(PrimaryColor);
-                                    disc.Item().PaddingTop(3).Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
-                                });
-                            }
-                        });
+                                    row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(cond =>
+                                    {
+                                        cond.Item().Text("CONDICIONES DE PAGO").FontSize(9).Bold().FontColor(PrimaryColor);
+                                        cond.Item().PaddingTop(3).Text(note.conditions_text).FontSize(9);
+                                    });
+                                }
+
+                                if (has_discount_conditions)
+                                {
+                                    if (has_conditions) row.ConstantItem(10);
+                                    row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(disc =>
+                                    {
+                                        disc.Item().Text("DESCUENTO").FontSize(9).Bold().FontColor(PrimaryColor);
+                                        disc.Item().PaddingTop(3).Text(note.discount_conditions_text).FontSize(8).FontColor("#CC6600");
+                                    });
+                                }
+                            });
+                        }
 
                         col.Item().PaddingTop(6).Row(row =>
                         {
@@ -238,13 +278,13 @@ namespace NinOS.UI.Common
                             {
                                 bank.Item().Text("DATOS BANCARIOS").FontSize(8).Bold().FontColor(PrimaryColor);
                                 bank.Item().PaddingTop(3).Text("Transferencia:").FontSize(8).Bold();
-                                bank.Item().Text("Banco: BANCO VENEZUELA").FontSize(8);
-                                bank.Item().Text("Cuenta Corriente: 0102-0868-84-00000-27-407").FontSize(8);
-                                bank.Item().Text("Cedula: 6.266.986").FontSize(8);
+                                bank.Item().Text("Banco: BANCO MERCANTIL").FontSize(8);
+                                bank.Item().Text("Cuenta Corriente: 0105-0120-23-11200-92426").FontSize(8);
+                                bank.Item().Text("Cedula: 13.046.042").FontSize(8);
                                 bank.Item().PaddingTop(4).Text("Pago Móvil:").FontSize(8).Bold();
-                                bank.Item().Text("Banco: BANCO VENEZUELA").FontSize(8);
-                                bank.Item().Text("Telefono: 0414.598.68.65").FontSize(8);
-                                bank.Item().Text("Cedula: 6.266.986").FontSize(8);
+                                bank.Item().Text("Banco: BANCO MERCANTIL").FontSize(8);
+                                bank.Item().Text("Telefono: 0424.496.01.02").FontSize(8);
+                                bank.Item().Text("Cedula: 13.046.042").FontSize(8);
                             });
 
                             row.ConstantItem(10);

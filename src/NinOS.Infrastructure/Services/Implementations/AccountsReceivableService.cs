@@ -717,6 +717,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_business_name = customer?.business_name ?? string.Empty,
                     customer_rif = customer?.rif ?? string.Empty,
                     customer_phone = customer?.phone_number ?? string.Empty,
+                    customer_contact = customer?.contact_name ?? string.Empty,
                     customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
                     conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
