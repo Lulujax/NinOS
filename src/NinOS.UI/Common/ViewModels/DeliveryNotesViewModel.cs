@@ -1073,10 +1073,17 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private const int MAX_NOTE_ITEMS = 20;
+
         private void execute_add_item(object? parameter)
         {
             try
             {
+                if (note_details.Count >= MAX_NOTE_ITEMS)
+                {
+                    System.Windows.MessageBox.Show($"La nota de entrega solo puede tener un maximo de {MAX_NOTE_ITEMS} items.", "Limite", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
                 note_detail_row new_row = new note_detail_row(all_items, note_details);
                 new_row.on_subtotal_changed = recalculate_total;
                 note_details.Add(new_row);
@@ -1204,6 +1211,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_seller == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (_selected_customer == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (note_details.Count > MAX_NOTE_ITEMS) throw new InvalidOperationException($"La nota de entrega no puede tener mas de {MAX_NOTE_ITEMS} items.");
                 if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
                 if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");

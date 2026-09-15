@@ -29,13 +29,23 @@ namespace NinOS.UI.Common
 
             if (save_dialog.ShowDialog() != true) return;
 
+            generate_to_file(note, save_dialog.FileName);
+        }
+
+        public static void generate_to_file(note_print_dto note, string output_path)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            PrimaryColor = string.IsNullOrWhiteSpace(note.accent_color) ? "#1B3A2D" : note.accent_color;
+            AccentBg = string.IsNullOrWhiteSpace(note.accent_soft_color) ? "#F0F4EC" : note.accent_soft_color;
+
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.Letter);
-                    page.MarginVertical(20);
-                    page.MarginHorizontal(25);
+                    page.MarginVertical(10);
+                    page.MarginHorizontal(20);
                     page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9));
 
                     page.Header().Column(col =>
@@ -55,10 +65,10 @@ namespace NinOS.UI.Common
                             });
                         });
 
-                        col.Item().PaddingTop(8).LineHorizontal(1.5f).LineColor(PrimaryColor);
+                        col.Item().PaddingTop(6).LineHorizontal(1.5f).LineColor(PrimaryColor);
                     });
 
-                    page.Content().PaddingVertical(8).Column(col =>
+                    page.Content().PaddingVertical(4).Column(col =>
                     {
                         col.Item().Row(row =>
                         {
@@ -69,81 +79,91 @@ namespace NinOS.UI.Common
                             });
                         });
 
-                        col.Item().PaddingTop(6).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(grid =>
+col.Item().PaddingTop(4).Border(0.5f).BorderColor(LightBorder).Padding(3).Column(grid =>
                         {
                             grid.Item().Row(r =>
                             {
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Razon Social").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.customer_business_name).FontSize(10);
+                                    c.Item().Text("Razon Social").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_business_name).FontSize(8);
                                 });
                                 r.ConstantItem(80).Column(c =>
                                 {
-                                    c.Item().Text("Codigo").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.customer_code).FontSize(10);
+                                    c.Item().Text("Codigo").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_code).FontSize(8);
                                 });
                                 r.ConstantItem(120).Column(c =>
                                 {
-                                    c.Item().Text("RIF").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.customer_rif).FontSize(10);
+                                    c.Item().Text("RIF").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_rif).FontSize(8);
                                 });
                             });
 
-                            grid.Item().PaddingTop(4).LineHorizontal(0.25f).LineColor("#DDDDDD");
+                            grid.Item().PaddingTop(1).LineHorizontal(0.25f).LineColor("#DDDDDD");
 
-                            grid.Item().PaddingTop(3).Row(r =>
+                            grid.Item().PaddingTop(1).Row(r =>
                             {
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Domicilio Fiscal").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.fiscal_address).FontSize(10);
+                                    c.Item().Text("Domicilio Fiscal").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.fiscal_address).FontSize(8);
                                 });
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Direccion de Entrega").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.customer_delivery_address).FontSize(10);
+                                    c.Item().Text("Direccion de Entrega").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_delivery_address).FontSize(8);
                                 });
                             });
 
-                            grid.Item().PaddingTop(4).LineHorizontal(0.25f).LineColor("#DDDDDD");
+                            grid.Item().PaddingTop(1).LineHorizontal(0.25f).LineColor("#DDDDDD");
 
-                            grid.Item().PaddingTop(3).Row(r =>
+                            grid.Item().PaddingTop(1).Row(r =>
                             {
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Fecha Emision").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.creation_date.ToString("dd/MM/yyyy")).FontSize(10);
+                                    c.Item().Text("Fecha Emision").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.creation_date.ToString("dd/MM/yyyy")).FontSize(8);
                                 });
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Fecha Vencimiento").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.due_date.ToString("dd/MM/yyyy")).FontSize(10);
+                                    c.Item().Text("Fecha Vencimiento").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.due_date.ToString("dd/MM/yyyy")).FontSize(8);
                                 });
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("Telefono").FontSize(7).Bold().FontColor("#555555");
-                                    c.Item().PaddingTop(1).Text(note.customer_phone).FontSize(10);
+                                    c.Item().Text("Telefono").FontSize(6f).Bold().FontColor("#555555");
+                                    c.Item().PaddingTop(1).Text(note.customer_phone).FontSize(8);
                                 });
                             });
 
-                            if (!string.IsNullOrWhiteSpace(note.customer_contact) || !string.IsNullOrWhiteSpace(note.credit_days_text))
-                            {
-                                grid.Item().PaddingTop(4).LineHorizontal(0.25f).LineColor("#DDDDDD");
+                            bool has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
+                            bool has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text);
 
-                                grid.Item().PaddingTop(3).Row(r =>
+                            if (has_contacto || has_credit_days)
+                            {
+                                grid.Item().PaddingTop(1).LineHorizontal(0.25f).LineColor("#DDDDDD");
+
+                                grid.Item().PaddingTop(1).Row(r =>
                                 {
-                                    r.RelativeItem().Column(c =>
+                                    if (has_contacto)
                                     {
-                                        c.Item().Text("Contacto").FontSize(7).Bold().FontColor("#555555");
-                                        c.Item().PaddingTop(1).Text(note.customer_contact).FontSize(10);
-                                    });
-                                    r.RelativeItem().Column(c =>
+                                        r.RelativeItem().Column(c =>
+                                        {
+                                            c.Item().Text("Contacto").FontSize(6f).Bold().FontColor("#555555");
+                                            c.Item().PaddingTop(1).Text(note.customer_contact).FontSize(8);
+                                        });
+                                    }
+                                    if (has_credit_days)
                                     {
-                                        c.Item().Text("Dias de Credito").FontSize(7).Bold().FontColor("#555555");
-                                        c.Item().PaddingTop(1).Text(note.credit_days_text).FontSize(10);
-                                    });
-                                });
+                                        if (has_contacto) r.ConstantItem(10);
+                                        r.RelativeItem().Column(c =>
+                                        {
+                                            c.Item().Text("Dias de Credito").FontSize(6f).Bold().FontColor("#555555");
+                                            c.Item().PaddingTop(1).Text(note.credit_days_text).FontSize(8);
+                                        });
+                                    }
+});
                             }
                         });
 
@@ -152,9 +172,9 @@ namespace NinOS.UI.Common
                         {
                             if (ci > 0) col.Item().PageBreak();
 
-                            col.Item().PaddingTop(8).Text(ci == 0 ? "DETALLE DE PRODUCTOS" : "DETALLE DE PRODUCTOS (CONTINUACION)").FontSize(9).Bold().FontColor(PrimaryColor);
+                            col.Item().PaddingTop(4).Text($"DETALLE DE PRODUCTOS ({ci + 1}/{detail_chunks.Count})").FontSize(9).Bold().FontColor(PrimaryColor);
 
-                            col.Item().PaddingTop(3).Table(table =>
+                            col.Item().PaddingTop(1).Table(table =>
                             {
                                 table.ColumnsDefinition(columns =>
                                 {
@@ -168,24 +188,24 @@ namespace NinOS.UI.Common
 
                                 table.Header(header =>
                                 {
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("CANT.").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(PrimaryColor).Padding(4).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(8);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("CANT.").FontColor(Colors.White).Bold().FontSize(6.5f);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(6.5f);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(6.5f);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(6.5f);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(6.5f);
+                                    header.Cell().Background(PrimaryColor).Padding(0.5f).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(6.5f);
                                 });
 
                                 bool alternate = false;
                                 foreach (var d in detail_chunks[ci])
                                 {
                                     string bg = alternate ? AccentBg : Colors.White;
-                                    table.Cell().Background(bg).Padding(3).Text(d.quantity.ToString()).FontSize(9);
-                                    table.Cell().Background(bg).Padding(3).Text(d.code).FontSize(9);
-                                    table.Cell().Background(bg).Padding(3).Text(d.name).FontSize(9);
-                                    table.Cell().Background(bg).Padding(3).Text(d.unit_price_usd.ToString("N2")).FontSize(9);
-                                    table.Cell().Background(bg).Padding(3).Text(d.promo_price_usd.ToString("N2")).FontSize(9);
-                                    table.Cell().Background(bg).Padding(3).Text(d.subtotal_usd.ToString("N2")).FontSize(9);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.quantity.ToString()).FontSize(7);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.code).FontSize(7);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.name).FontSize(7);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.unit_price_usd.ToString("N2")).FontSize(7);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.promo_price_usd.ToString("N2")).FontSize(7);
+                                    table.Cell().Background(bg).Padding(0.5f).Text(d.subtotal_usd.ToString("N2")).FontSize(7);
                                     alternate = !alternate;
                                 }
                             });
@@ -194,151 +214,145 @@ namespace NinOS.UI.Common
                         col.Item().ShowEntire().Column(inner =>
                         {
                             // ---- Fila 1: condicion de pago + primer Total General ----
-                            inner.Item().PaddingTop(8).Row(row =>
+                            inner.Item().PaddingTop(4).Row(row =>
                             {
-                                row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(6).Column(cond =>
+                                row.AutoItem().Border(0.5f).BorderColor(LightBorder).Padding(4).Column(cond =>
                                 {
-                                    cond.Item().Text(note.conditions_text).FontSize(9).Bold().Italic();
+                                    cond.Item().Text(note.conditions_text).FontSize(8).Bold().Italic();
                                 });
 
-                                row.ConstantItem(10);
+                                row.RelativeItem();
 
-                                row.ConstantItem(130).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(tg =>
+                                row.ConstantItem(130).Border(0.5f).BorderColor(LightBorder).Padding(4).Column(tg =>
                                 {
-                                    tg.Item().AlignCenter().Text("Total General").FontSize(9).Bold();
-                                    tg.Item().AlignCenter().Text($"{note.gross_total_usd:N2}").FontSize(14).Bold().FontColor(PrimaryColor);
+                                    tg.Item().AlignCenter().Text("Total General").FontSize(8).Bold();
+                                    tg.Item().AlignCenter().Text($"{note.gross_total_usd:N2}").FontSize(12).Bold().FontColor(PrimaryColor);
                                 });
                             });
 
                             // ---- Fila 2: DATOS PARA PAGO (3 columnas) ----
-                            inner.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(pay =>
+                            inner.Item().PaddingTop(4).Border(0.5f).BorderColor(LightBorder).Column(pay =>
                             {
-                                pay.Item().Background(AccentBg).Padding(5).Column(bank_header =>
+                                pay.Item().Column(bank_header =>
                                 {
-                                    bank_header.Item().AlignCenter().Text("DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE").FontSize(10).Bold();
-                                    bank_header.Item().AlignCenter().Text("TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE").FontSize(8).Underline();
-                                    bank_header.Item().AlignCenter().Text("NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA - 13.046.042").FontSize(8);
-                                    bank_header.Item().AlignCenter().Text("PAGO MOVIL").FontSize(8).Underline();
-                                    bank_header.Item().AlignCenter().Text("BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA - 13.046.042").FontSize(8);
+                                    bank_header.Item().Background(PrimaryColor).Padding(3).AlignCenter().Text("FORMAS DE PAGO").FontSize(9).Bold().FontColor(Colors.White);
+
+                                    bank_header.Item().PaddingTop(2).Row(r =>
+                                    {
+                                        r.RelativeItem().Column(c =>
+                                        {
+                                            c.Item().Text("TRANSFERENCIA").FontSize(7).Bold().FontColor(PrimaryColor);
+                                            c.Item().PaddingTop(1).Text("BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(7);
+                                            c.Item().PaddingTop(1).Text("NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(7);
+                                            c.Item().PaddingTop(1).Text("CEDULA  _  13.046.042").FontSize(7);
+                                        });
+
+                                        r.ConstantItem(16);
+
+                                        r.RelativeItem().Column(c =>
+                                        {
+                                            c.Item().Text("PAGO MOVIL").FontSize(7).Bold().FontColor(PrimaryColor);
+                                            c.Item().PaddingTop(1).Text("BANCO MERCANTIL").FontSize(7);
+                                            c.Item().PaddingTop(1).Text("NRO TELEFONO  _  0424.496.01.02").FontSize(7);
+                                            c.Item().PaddingTop(1).Text("CEDULA  _  13.046.042").FontSize(7);
+                                        });
+                                    });
+
+                                    bank_header.Item().PaddingTop(2).LineHorizontal(0.5f).LineColor(LightBorder);
                                 });
 
                                 pay.Item().PaddingTop(1).Row(row =>
                                 {
-                                    row.ConstantItem(210).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(left =>
+                                    row.ConstantItem(190).Border(0.5f).BorderColor(LightBorder).Padding(4).Column(left =>
                                     {
                                         left.Item().Row(r =>
                                         {
-                                            r.RelativeItem().Text(note.discount_conditions_text).FontSize(8).Bold().AlignCenter();
+                                            r.RelativeItem().Text(note.discount_conditions_text).FontSize(7).Bold().AlignCenter();
                                         });
 
-                                        left.Item().PaddingTop(4).Row(r =>
+                                        left.Item().PaddingTop(2).Row(r =>
                                         {
-                                            r.RelativeItem().Text("sub total").FontSize(9).Bold();
-                                            r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(9).Bold().FontColor(PrimaryColor);
+                                            r.RelativeItem().Text("sub total").FontSize(8).Bold();
+                                            r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(8).Bold().FontColor(PrimaryColor);
                                         });
 
                                         if (note.promo_discount_amount > 0)
                                         {
-                                            left.Item().PaddingTop(2).Row(r =>
+                                            left.Item().PaddingTop(1).Row(r =>
                                             {
-                                                r.RelativeItem().Text($"{note.promo_discount_percentage:0.##}% PROMO").FontSize(9);
-                                                r.RelativeItem().AlignRight().Text($"-{note.promo_discount_amount:N2}").FontSize(9).FontColor("#CC0000");
+                                                r.RelativeItem().Text($"{note.promo_discount_percentage:0.##}% PROMO").FontSize(8);
+                                                r.RelativeItem().AlignRight().Text($"-{note.promo_discount_amount:N2}").FontSize(8).FontColor("#CC0000");
                                             });
                                         }
 
+                                        left.Item().PaddingTop(1).Row(r =>
+                                        {
+                                            r.RelativeItem().Text($"{note.discount_percentage:0.##}%").FontSize(8);
+                                            r.RelativeItem().AlignRight().Text(note.discount_amount > 0 ? $"-{note.discount_amount:N2}" : $"{note.discount_amount:N2}").FontSize(8).FontColor(note.discount_amount > 0 ? "#CC0000" : "#666666");
+                                        });
+
                                         left.Item().PaddingTop(2).Row(r =>
                                         {
-                                            r.RelativeItem().Text($"{note.discount_percentage:0.##}%").FontSize(9);
-                                            r.RelativeItem().AlignRight().Text(note.discount_amount > 0 ? $"-{note.discount_amount:N2}" : $"{note.discount_amount:N2}").FontSize(9).FontColor(note.discount_amount > 0 ? "#CC0000" : "#666666");
-                                        });
-
-                                        left.Item().PaddingTop(3).Row(r =>
-                                        {
-                                            r.RelativeItem().Text("Total General").FontSize(10).Bold();
-                                            r.RelativeItem().AlignRight().Text($"{note.discounted_total_usd:N2}").FontSize(10).Bold().FontColor(PrimaryColor);
+                                            r.RelativeItem().Text("Total General").FontSize(9).Bold();
+                                            r.RelativeItem().AlignRight().Text($"{note.discounted_total_usd:N2}").FontSize(9).Bold().FontColor(PrimaryColor);
                                         });
                                     });
 
-                                    row.ConstantItem(10);
+                                    row.ConstantItem(8);
 
-                                    row.RelativeItem().PaddingTop(14).Column(mid =>
+                                    row.RelativeItem().PaddingTop(6).Column(mid =>
                                     {
-                                        mid.Item().AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(8).Italic().FontColor("#555555");
-                                        mid.Item().PaddingTop(36).LineHorizontal(0.5f).LineColor(LightBorder);
+                                        mid.Item().AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(7).Italic().FontColor("#555555");
+                                        mid.Item().PaddingTop(24).LineHorizontal(0.5f).LineColor(LightBorder);
                                     });
 
-                                    row.ConstantItem(10);
+                                    row.ConstantItem(8);
 
-                                    row.ConstantItem(210).Border(0.5f).BorderColor(LightBorder).Padding(6).Column(manual =>
+                                    row.ConstantItem(200).Border(0.5f).BorderColor(LightBorder).Padding(4).Column(manual =>
                                     {
-                                        manual.Item().Text("DATOS PARA PAGO").FontSize(8).Bold().FontColor(PrimaryColor);
-                                        manual.Item().PaddingTop(8).Row(r =>
-                                        {
-                                            r.RelativeItem().Text("Fecha de pago:").FontSize(8);
-                                            r.RelativeItem().Text("____________________").FontSize(8);
-                                        });
+                                        manual.Item().Text("DATOS PARA PAGO").FontSize(7).Bold().FontColor(PrimaryColor).AlignCenter();
                                         manual.Item().PaddingTop(4).Row(r =>
                                         {
-                                            r.RelativeItem().Text("Monto Bs:").FontSize(8);
-                                            r.RelativeItem().Text("____________________").FontSize(8);
+                                            r.RelativeItem().Text("Fecha de pago:").FontSize(7);
+                                            r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
                                         });
-                                        manual.Item().PaddingTop(4).Row(r =>
+                                        manual.Item().PaddingTop(2).Row(r =>
                                         {
-                                            r.RelativeItem().Text("Nro Referencia:").FontSize(8);
-                                            r.RelativeItem().Text("____________________").FontSize(8);
+                                            r.RelativeItem().Text("Monto Bs:").FontSize(7);
+                                            r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
                                         });
-                                        manual.Item().PaddingTop(4).Row(r =>
+                                        manual.Item().PaddingTop(2).Row(r =>
                                         {
-                                            r.RelativeItem().Text("Banco:").FontSize(8);
-                                            r.RelativeItem().Text("____________________").FontSize(8);
+                                            r.RelativeItem().Text("Nro Referencia:").FontSize(7);
+                                            r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                        });
+                                        manual.Item().PaddingTop(2).Row(r =>
+                                        {
+                                            r.RelativeItem().Text("Banco:").FontSize(7);
+                                            r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
                                         });
                                     });
                                 });
                             });
 
-                            // ---- Fila 3: Descuento por volumen + TOTAL A PAGAR ----
-                            inner.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Width(460).Column(vol =>
+                            // ---- Fila 3: Descuento por volumen con su TOTAL A PAGAR debajo ----
+                            inner.Item().PaddingTop(4).Border(0.5f).BorderColor(LightBorder).Width(300).Column(vol =>
                             {
-                                if (note.volume_discount_amount > 0)
+                                vol.Item().Padding(4).Column(c =>
                                 {
-                                    vol.Item().Row(r =>
+                                    c.Item().Row(r =>
                                     {
-                                        r.RelativeItem().Text($"Descuento por volumen {note.volume_discount_percentage:0.##}%").FontSize(11).Bold();
-                                        r.ConstantItem(140).AlignRight().Text($"-{note.volume_discount_amount:N2}").FontSize(13).Bold().FontColor("#CC0000");
+                                        r.RelativeItem().Text($"Descuento por volumen {note.volume_discount_percentage:0.##}%").FontSize(9).Bold().FontColor(note.volume_discount_amount > 0 ? Colors.Black : "#666666");
+                                        r.RelativeItem().AlignRight().Text(note.volume_discount_amount > 0 ? $"-{note.volume_discount_amount:N2}" : $"{note.volume_discount_amount:N2}").FontSize(11).Bold().FontColor(note.volume_discount_amount > 0 ? "#CC0000" : "#666666");
                                     });
 
-                                    vol.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(LightBorder);
-                                }
-                                else
-                                {
-                                    vol.Item().Row(r =>
+                                    c.Item().PaddingTop(3).LineHorizontal(0.5f).LineColor(LightBorder);
+
+                                    c.Item().PaddingTop(3).Row(r =>
                                     {
-                                        r.RelativeItem().Text($"Descuento por volumen {note.volume_discount_percentage:0.##}%").FontSize(11).Bold().FontColor("#666666");
-                                        r.ConstantItem(140).AlignRight().Text($"{note.volume_discount_amount:N2}").FontSize(11).Bold().FontColor("#666666");
+                                        r.RelativeItem().Text("TOTAL A PAGAR").FontSize(12).Bold();
+                                        r.RelativeItem().AlignRight().Text($"{note.total_amount_usd:N2}").FontSize(12).Bold().FontColor(PrimaryColor);
                                     });
-
-                                    vol.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(LightBorder);
-                                }
-
-                                vol.Item().PaddingTop(4).Row(r =>
-                                {
-                                    r.RelativeItem().Text("TOTAL A PAGAR").FontSize(14).Bold();
-                                    r.ConstantItem(140).AlignRight().Text($"{note.total_amount_usd:N2}").FontSize(14).Bold().FontColor(PrimaryColor);
-                                });
-
-                                if (note.paid_amount_usd > 0)
-                                {
-                                    vol.Item().PaddingTop(3).Row(r =>
-                                    {
-                                        r.RelativeItem().Text("Abonado:").FontSize(9);
-                                        r.ConstantItem(140).AlignRight().Text($"{note.paid_amount_usd:N2}").FontSize(9).FontColor("#228B22");
-                                    });
-                                }
-
-                                vol.Item().PaddingTop(3).Row(r =>
-                                {
-                                    r.RelativeItem().Text("Saldo:").FontSize(9).Bold();
-                                    r.ConstantItem(140).AlignRight().Text($"{note.balance_due_usd:N2}").FontSize(9).Bold();
                                 });
                             });
                         });
@@ -361,7 +375,7 @@ namespace NinOS.UI.Common
                 });
             });
 
-            document.GeneratePdf(save_dialog.FileName);
+            document.GeneratePdf(output_path);
         }
     }
 }

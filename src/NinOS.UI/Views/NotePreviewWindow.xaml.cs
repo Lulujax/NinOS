@@ -128,15 +128,18 @@ namespace NinOS.UI.Views
             Grid.SetRow(infoRow3, 4);
             infoGrid.Children.Add(infoRow3);
 
-            if (!string.IsNullOrWhiteSpace(note.customer_contact) || !string.IsNullOrWhiteSpace(note.credit_days_text))
+            bool preview_has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
+            bool preview_has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text);
+
+            if (preview_has_contacto || preview_has_credit_days)
             {
                 var divider3 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
                 Grid.SetRow(divider3, 5);
                 infoGrid.Children.Add(divider3);
 
                 var infoRow4 = MakeInfoRow(
-                    MakeInfoCell("Contacto", note.customer_contact),
-                    MakeInfoCell("Dias de Credito", note.credit_days_text));
+                    preview_has_contacto ? MakeInfoCell("Contacto", note.customer_contact) : null,
+                    preview_has_credit_days ? MakeInfoCell("Dias de Credito", note.credit_days_text) : null);
                 Grid.SetRow(infoRow4, 6);
                 infoGrid.Children.Add(infoRow4);
             }
@@ -150,8 +153,8 @@ namespace NinOS.UI.Views
 
             // ---- Fila 1: condicion de pago + primer Total General ----
             var totalRow1 = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
 
             var condBox = MakeBox(new Thickness(6));
@@ -173,22 +176,41 @@ namespace NinOS.UI.Views
             var payBox = MakeBox(new Thickness(0));
             payBox.Margin = new Thickness(0, 8, 0, 0);
             var payStack = new StackPanel();
-            var bankHeaderBox = new Border { Background = LightGrayBrush, Padding = new Thickness(5), BorderBrush = BorderGrayBrush, BorderThickness = new Thickness(0, 0, 0, 1) };
+            var bankHeaderBox = new Border { Background = PrimaryBrush, Padding = new Thickness(5), BorderBrush = BorderGrayBrush, BorderThickness = new Thickness(1) };
             var bankHeaderCol = new StackPanel();
-            bankHeaderCol.Children.Add(MakeText("DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE", 10, true, Brushes.Black, null, HorizontalAlignment.Center));
-            bankHeaderCol.Children.Add(MakeText("TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
-            bankHeaderCol.Children.Add(MakeText("NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA - 13.046.042", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
-            bankHeaderCol.Children.Add(MakeText("PAGO MOVIL", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
-            bankHeaderCol.Children.Add(MakeText("BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA - 13.046.042", 8, false, Brushes.Black, null, HorizontalAlignment.Center));
+            bankHeaderCol.Children.Add(MakeText("FORMAS DE PAGO", 10, true, Brushes.White, null, HorizontalAlignment.Center));
             bankHeaderBox.Child = bankHeaderCol;
             payStack.Children.Add(bankHeaderBox);
 
+            var bankDataGrid = new Grid { Margin = new Thickness(0, 5, 0, 0) };
+            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var transferCol = new StackPanel();
+            transferCol.Children.Add(MakeText("TRANSFERENCIA", 8, true, PrimaryBrush));
+            transferCol.Children.Add(MakeText("BANCO MERCANTIL  _  CUENTA CORRIENTE", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
+            transferCol.Children.Add(MakeText("NRO DE CUENTA  _  0105-0120-23-11200-92426", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            transferCol.Children.Add(MakeText("CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            bankDataGrid.Children.Add(transferCol);
+
+            var pagoMovilCol = new StackPanel();
+            pagoMovilCol.Children.Add(MakeText("PAGO MOVIL", 8, true, PrimaryBrush));
+            pagoMovilCol.Children.Add(MakeText("BANCO MERCANTIL", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
+            pagoMovilCol.Children.Add(MakeText("NRO TELEFONO  _  0424.496.01.02", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            pagoMovilCol.Children.Add(MakeText("CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            Grid.SetColumn(pagoMovilCol, 2);
+            bankDataGrid.Children.Add(pagoMovilCol);
+
+            payStack.Children.Add(bankDataGrid);
+            payStack.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+
             var payRow = new Grid();
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
             payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
 
             // columna izquierda: desglose
             var leftBox = MakeBox(new Thickness(6));
@@ -228,19 +250,16 @@ namespace NinOS.UI.Views
             payBox.Child = payStack;
             p.Children.Add(payBox);
 
-            // ---- Fila 3: Descuento por volumen + TOTAL A PAGAR ----
+            // ---- Fila 3: Descuento por volumen con su TOTAL A PAGAR debajo ----
             decimal vol_pdf = note.volume_discount_amount > 0 ? note.volume_discount_amount : 0;
-            var volBox = MakeBox(new Thickness(0));
-            volBox.Width = 460;
+            var volBox = MakeBox(new Thickness(6));
+            volBox.Width = 300;
             volBox.HorizontalAlignment = HorizontalAlignment.Left;
             volBox.Margin = new Thickness(0, 8, 0, 0);
             var volCol = new StackPanel();
             volCol.Children.Add(MakeTotalsRow($"Descuento por volumen {note.volume_discount_percentage:0.##}%", (note.volume_discount_amount > 0 ? "-" : "") + $"{vol_pdf:N2}", true, note.volume_discount_amount > 0 ? RedBrush : FooterGrayBrush));
             volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
             volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-            if (note.paid_amount_usd > 0)
-                volCol.Children.Add(MakeTotalsRow("Abonado:", $"{note.paid_amount_usd:N2}", false, GreenBrush, new Thickness(0, 3, 0, 0)));
-            volCol.Children.Add(MakeTotalsRow("Saldo:", $"{note.balance_due_usd:N2}", true, Brushes.Black, new Thickness(0, 3, 0, 0)));
             volBox.Child = volCol;
             p.Children.Add(volBox);
 
@@ -269,15 +288,14 @@ namespace NinOS.UI.Views
             return box;
         }
 
-        private DockPanel MakeManualRow(string label)
+        private Grid MakeManualRow(string label)
         {
-            var dp = new DockPanel { Margin = new Thickness(0, 4, 0, 0), LastChildFill = true };
-            var lbl = MakeText(label, 8, false, Brushes.Black);
-            DockPanel.SetDock(lbl, Dock.Left);
-            var line = MakeText("____________________", 8, false, Brushes.Black, null, HorizontalAlignment.Right);
-            dp.Children.Add(line);
-            dp.Children.Add(lbl);
-            return dp;
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.Children.Add(MakeText(label, 8, false, Brushes.Black));
+            g.Children.Add(MakeText("____________________", 8, false, Brushes.Black, null, HorizontalAlignment.Right));
+            return g;
         }
 
         private DockPanel MakeTotalsRow(string left, string right, bool bold, Brush? foreground, Thickness? margin = null)
@@ -302,14 +320,27 @@ namespace NinOS.UI.Views
             };
         }
 
-        private Grid MakeInfoRow(StackPanel cell1, StackPanel cell2)
+        private Grid MakeInfoRow(StackPanel? cell1, StackPanel? cell2)
         {
             var r = new Grid();
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.Children.Add(cell1);
-            Grid.SetColumn(cell2, 1);
-            r.Children.Add(cell2);
+            if (cell1 != null && cell2 != null)
+            {
+                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                r.Children.Add(cell1);
+                Grid.SetColumn(cell2, 1);
+                r.Children.Add(cell2);
+            }
+            else if (cell1 != null)
+            {
+                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                r.Children.Add(cell1);
+            }
+            else
+            {
+                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                r.Children.Add(cell2!);
+            }
             return r;
         }
 
