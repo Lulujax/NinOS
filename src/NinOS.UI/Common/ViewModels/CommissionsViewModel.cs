@@ -26,6 +26,14 @@ namespace NinOS.UI.Common.ViewModels
         public decimal sale_amount_usd { get; set; }
         public decimal amount_usd { get; set; }
         public decimal paid_amount_usd { get; set; }
+        public DateTime dispatch_date { get; set; }                    // FECHA DE LA NOTA DE ENTREGA
+        public decimal invoiced_amount { get; set; }                   // MONTO FACTURADO
+        public decimal early_payment_discount { get; set; }            // DESCUENTO PRONTO PAGO QUE ES EL PRECIO CON LOS DESCUENTOS APLICADOS AUN NO TRABAJREMOS ESTO PERO MANTEN LA IDEA AQUI DEBE SALIR CUANTO ES EL MONTO DEL DESCUENTO EN USD
+        public decimal volume_discount { get; set; }                   // DESCUENTO POR VOLUMEN PARA LO DE ARRIBA
+        public decimal commission_10 { get; set; }                     // 10% COMISIÓN
+        public decimal updated_balance { get; set; }                   // SALDO ACTUALIZADO POR COBRAR
+        public DateTime? commission_cancelled_date { get; set; }       // FECHA COMISIÓN PAGADA
+        public decimal updated_receivable { get; set; }                // POR COBRAR ACTUALIZADO
         public decimal amount_bs { get; set; }
         public decimal exchange_rate { get; set; }
         public string reference_number { get; set; } = string.Empty;
@@ -340,6 +348,17 @@ namespace NinOS.UI.Common.ViewModels
         public async Task<IEnumerable<commission_payment_dto>> get_commission_payments_async(int id_commission)
         {
             return await _commission_service.get_commission_payments_async(id_commission);
+        }
+
+        public async Task update_commission_payment_async(int id_commission_payment, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
+        {
+            await _commission_service.update_commission_payment_async(id_commission_payment, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
+            load_all_async();
+        }
+
+        public async Task<commission_receipt_dto?> get_commission_receipt_async(int[] commission_ids, string reference_number)
+        {
+            return await _commission_service.get_commission_receipt_async(commission_ids, reference_number);
         }
     }
 }

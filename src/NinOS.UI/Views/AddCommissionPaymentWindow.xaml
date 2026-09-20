@@ -169,7 +169,7 @@
         <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Monto USD:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="6" Grid.Column="1" x:Name="AmountBox" VerticalContentAlignment="Center" Height="24"
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"
-                 PreviewTextInput="OnPreviewNumeric"/>
+                 IsReadOnly="True" IsTabStop="False" Background="#EEEEEE" Foreground="#757575"/>
 
         <TextBlock Grid.Row="7" Grid.Column="0" Text="Monto BS:" VerticalAlignment="Center" Margin="0,0,0,5"/>
         <TextBox Grid.Row="7" Grid.Column="1" x:Name="BsAmountBox" VerticalContentAlignment="Center" Height="24"

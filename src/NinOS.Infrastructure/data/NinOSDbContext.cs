@@ -100,6 +100,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.note_type_id).HasColumnName("note_type_id").IsRequired(false);
                 entity.Property(e => e.promo_discount_percentage).HasColumnName("promo_discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.volume_discount_percentage).HasColumnName("volume_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.original_discount_percentage).HasColumnName("original_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.original_volume_discount_percentage).HasColumnName("original_volume_discount_percentage").HasPrecision(18, 3);
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);

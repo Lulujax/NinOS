@@ -94,6 +94,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand add_to_builder_command { get; }
         public ICommand remove_from_builder_command { get; }
         public ICommand edit_promotion_command { get; }
+        public ICommand generate_price_list_command { get; }
         
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
@@ -236,6 +237,7 @@ namespace NinOS.UI.Common.ViewModels
             add_to_builder_command = new RelayCommand(execute_add_to_builder);
             remove_from_builder_command = new RelayCommand(execute_remove_from_builder);
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
+            generate_price_list_command = new RelayCommand(execute_generate_price_list);
             
             new_category = "Defile";
             
@@ -542,6 +544,74 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 
                 on_request_add_promotion_window?.Invoke();
+            }
+        }
+
+        private void execute_generate_price_list(object? parameter)
+        {
+            try
+            {
+                var items = new List<price_list_item>();
+
+                foreach (product p in _all_products_source)
+                {
+                    if (string.IsNullOrWhiteSpace(p.product_code) || string.IsNullOrWhiteSpace(p.name)) continue;
+                    if (p.unit_price_usd <= 0) continue;
+
+                    items.Add(new price_list_item
+                    {
+                        product_code = p.product_code,
+                        name = p.name,
+                        brand = p.category,
+                        unit_price_usd = p.unit_price_usd
+                    });
+                }
+
+                foreach (promotion promo in _all_promotions_source)
+                {
+                    if (promo.items == null || promo.items.Count == 0) continue;
+                    if (promo.items.Any(i => i.product == null || i.quantity_required <= 0)) continue;
+
+                    string raw = promo.promotion_code ?? string.Empty;
+
+                    // Las ofertas temporales (C-PROMO-) no son precios de lista estandar.
+                    if (raw.StartsWith("C-PROMO-", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    // Solo kits y combos (productos empaquetados con precio fijo).
+                    bool is_kit = raw.StartsWith("C-KIT-", StringComparison.OrdinalIgnoreCase);
+                    bool is_combo = raw.StartsWith("C-COMBO-", StringComparison.OrdinalIgnoreCase);
+                    if (!is_kit && !is_combo) continue;
+
+                    if (promo.unit_price_usd <= 0) continue;
+
+                    string code = is_kit
+                        ? "KIT-" + raw.Substring("C-KIT-".Length)
+                        : "COMBO-" + raw.Substring("C-COMBO-".Length);
+
+                    var brands = promo.items
+                        .Select(i => string.IsNullOrWhiteSpace(i.product!.category) ? "Otros" : i.product!.category!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    if (brands.Count == 0) brands.Add("Otros");
+
+                    foreach (string brand in brands)
+                    {
+                        items.Add(new price_list_item
+                        {
+                            product_code = code,
+                            name = promo.name,
+                            brand = brand,
+                            unit_price_usd = promo.unit_price_usd
+                        });
+                    }
+                }
+
+                PriceListPdfGenerator.generate(items);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"No se pudo generar la lista de precios: {ex.Message}";
             }
         }
 

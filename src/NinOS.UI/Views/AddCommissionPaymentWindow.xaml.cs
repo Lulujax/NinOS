@@ -218,9 +218,13 @@ namespace NinOS.UI.Views
                     ShowError("El total pendiente es demasiado grande.");
                     return;
                 }
-                if (amount_usd > total_pending)
+
+                // No se permite pagar por partes: el monto debe ser el total de las comisiones seleccionadas.
+                AmountBox.Text = total_pending.ToString("0.##", CultureInfo.InvariantCulture);
+                amount_usd = total_pending;
+                if (total_pending <= 0)
                 {
-                    ShowError($"El monto USD ({amount_usd:0.##}) supera el total pendiente seleccionado ({total_pending:0.##}).");
+                    ShowError("No hay saldo pendiente en las comisiones seleccionadas.");
                     return;
                 }
 
@@ -287,28 +291,23 @@ namespace NinOS.UI.Views
                 if (paid)
                 {
                     var pdf_result = MessageBox.Show(
-                        "La comision fue liquidada.\n\n¿Desea generar el PDF del comprobante de la comision pagada?",
+                        "La comision fue liquidada.\n\n¿Desea generar el PDF del comprobante de pago de comision?",
                         "Generar PDF",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Question);
 
                     if (pdf_result == MessageBoxResult.Yes)
                     {
-                        var px = new List<commission_payment_dto>
+                        var receipt = await _vm.get_commission_receipt_async(ids, reference);
+                        if (receipt == null || receipt.rows.Count == 0)
                         {
-                            new commission_payment_dto
-                            {
-                                amount_usd = amount_usd,
-                                amount_bs = amount_bs,
-                                exchange_rate = rate,
-                                payment_type = payment_type,
-                                reference_number = reference,
-                                bank_name = bank_name,
-                                notes = observations,
-                                payment_date = payment_date
-                            }
-                        };
-                        CommissionPdfGenerator.generate(_to_pay.First(), px);
+                            MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            CommissionPdfGenerator.generate(receipt);
+                        }
                     }
                 }
 

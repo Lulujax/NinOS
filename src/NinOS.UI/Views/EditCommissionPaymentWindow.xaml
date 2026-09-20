@@ -1,0 +1,112 @@
+<Window x:Class="NinOS.UI.Views.EditCommissionPaymentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Editar Pago de Comision" Height="470" Width="480" MinHeight="440" MinWidth="440"
+        WindowStartupLocation="CenterOwner" Background="#F5F5F5"
+        ResizeMode="CanResize" FontSize="12" PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Foreground" Value="#424242"/>
+        </Style>
+    </Window.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Editar Pago de Comision" FontSize="14"
+                       FontWeight="Bold" Foreground="#2E7D32" Margin="0,0,0,6"/>
+
+            <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#E8F5E9" CornerRadius="3" Padding="8" Margin="0,0,0,10">
+                <TextBlock x:Name="InfoText" FontSize="11" Foreground="#1B5E20" FontWeight="Bold" TextWrapping="Wrap"/>
+            </Border>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}"><Run Text="Tipo:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <ComboBox Grid.Row="2" Grid.Column="1" x:Name="TypeCombo" Width="170" HorizontalAlignment="Left"
+                      Height="26" Margin="0,0,0,6" FontSize="11">
+                <ComboBoxItem Content="Pago Movil"/>
+                <ComboBoxItem Content="Transferencia"/>
+                <ComboBoxItem Content="Efectivo"/>
+                <ComboBoxItem Content="Punto de Venta"/>
+                <ComboBoxItem Content="Zelle"/>
+                <ComboBoxItem Content="PayPal"/>
+                <ComboBoxItem Content="Otro"/>
+            </ComboBox>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}"><Run Text="Monto USD:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <TextBox Grid.Row="3" Grid.Column="1" x:Name="AmountBox" VerticalContentAlignment="Center" Height="24"
+                     Width="130" HorizontalAlignment="Left" Margin="0,0,0,6" FontSize="11"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Tasa BS/USD:"/>
+            <TextBox Grid.Row="4" Grid.Column="1" x:Name="RateBox" VerticalContentAlignment="Center" Height="24"
+                     Width="130" HorizontalAlignment="Left" Margin="0,0,0,6" FontSize="11"/>
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Monto BS:"/>
+            <TextBox Grid.Row="5" Grid.Column="1" x:Name="BsAmountBox" VerticalContentAlignment="Center" Height="24"
+                     Width="130" HorizontalAlignment="Left" Margin="0,0,0,6" FontSize="11"/>
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Fecha:"/>
+            <DatePicker Grid.Row="6" Grid.Column="1" x:Name="PaymentDatePicker" Width="170" HorizontalAlignment="Left"
+                        Height="26" Margin="0,0,0,6" FontSize="11"/>
+
+            <TextBlock Grid.Row="7" Grid.Column="0" Style="{StaticResource FieldLabel}"><Run Text="Referencia:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <TextBox Grid.Row="7" Grid.Column="1" x:Name="ReferenceBox" VerticalContentAlignment="Center" Height="24"
+                     Width="170" HorizontalAlignment="Left" Margin="0,0,0,6" MaxLength="50" FontSize="11"/>
+
+            <TextBlock Grid.Row="8" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Banco:"/>
+            <TextBox Grid.Row="8" Grid.Column="1" x:Name="BankBox" VerticalContentAlignment="Center" Height="24"
+                     Width="170" HorizontalAlignment="Left" Margin="0,0,0,6" MaxLength="100" FontSize="11"/>
+
+            <TextBlock Grid.Row="9" Grid.Column="0" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" Text="Obs.:"/>
+            <TextBox Grid.Row="9" Grid.Column="1" x:Name="ObsBox" Height="40" AcceptsReturn="True" TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto" MaxLength="500" FontSize="11" Margin="0,0,0,6"/>
+
+            <TextBlock Grid.Row="10" Grid.ColumnSpan="2" x:Name="ErrorText" Foreground="#C62828" FontSize="10"
+                       TextWrapping="Wrap" Margin="0,0,0,4" Visibility="Collapsed"/>
+
+            <StackPanel Grid.Row="12" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom" Margin="0,8,0,0">
+                <Button Content="Cancelar" Padding="10,4" Background="#E0E0E0" Foreground="#424242"
+                        BorderThickness="0" Cursor="Hand" Click="OnCancelClick" Margin="0,0,6,0" FontSize="11"/>
+                <Button x:Name="BtnSave" Content="Guardar" Padding="10,4" Background="#2E7D32" Foreground="White"
+                        BorderThickness="0" Cursor="Hand" Click="OnSaveClick" FontSize="11" FontWeight="SemiBold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#43A047"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="bd" Property="Background" Value="#A5D6A7"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Window>

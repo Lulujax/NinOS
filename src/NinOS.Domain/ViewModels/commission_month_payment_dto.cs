@@ -18,7 +18,16 @@ namespace NinOS.Domain.ViewModels
         public decimal exchange_rate { get; set; }
         public DateTime payment_date { get; set; }
 
+        public DateTime? dispatch_date { get; set; }
+        public DateTime? note_payment_date { get; set; }
+        public decimal invoiced_amount { get; set; }
+        public decimal paid_amount { get; set; }
+        public decimal early_payment_discount { get; set; }
+        public decimal commission_10 { get; set; }
+
         public string fecha_display => payment_date.ToString("dd/MM/yyyy");
         public string monto_display => amount_usd.ToString("N2");
+
+        public bool is_paid => payment_date != default(DateTime);
     }
 }

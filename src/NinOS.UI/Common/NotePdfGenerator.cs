@@ -181,24 +181,24 @@ namespace NinOS.UI.Common
 
                             table.Header(header =>
                             {
-                                header.Cell().Background(PrimaryColor).Padding(0.8f).Text("CANT.").FontColor(Colors.White).Bold().FontSize(9.5f);
+                                header.Cell().Background(PrimaryColor).Padding(0.8f).AlignCenter().Text("CANT.").FontColor(Colors.White).Bold().FontSize(9.5f);
                                 header.Cell().Background(PrimaryColor).Padding(0.8f).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(9.5f);
                                 header.Cell().Background(PrimaryColor).Padding(0.8f).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(9.5f);
-                                header.Cell().Background(PrimaryColor).Padding(0.8f).Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(9.5f);
-                                header.Cell().Background(PrimaryColor).Padding(0.8f).Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(9.5f);
-                                header.Cell().Background(PrimaryColor).Padding(0.8f).Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(9.5f);
+                                header.Cell().Background(PrimaryColor).Padding(0.8f).AlignCenter().Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(9.5f);
+                                header.Cell().Background(PrimaryColor).Padding(0.8f).AlignCenter().Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(9.5f);
+                                header.Cell().Background(PrimaryColor).Padding(0.8f).AlignCenter().Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(9.5f);
                             });
 
                             bool alternate = false;
                             foreach (var d in note.details)
                             {
                                 string bg = alternate ? AccentBg : Colors.White;
-                                table.Cell().Background(bg).Padding(0.8f).Text(d.quantity.ToString()).FontSize(9.5f);
+                                table.Cell().Background(bg).Padding(0.8f).AlignCenter().Text(d.quantity.ToString()).FontSize(9.5f);
                                 table.Cell().Background(bg).Padding(0.8f).Text(d.code).FontSize(9.5f);
                                 table.Cell().Background(bg).Padding(0.8f).Text(d.name).FontSize(9.5f);
-                                table.Cell().Background(bg).Padding(0.8f).Text(d.unit_price_usd.ToString("N2")).FontSize(9.5f);
-                                table.Cell().Background(bg).Padding(0.8f).Text(d.promo_price_usd.ToString("N2")).FontSize(9.5f);
-                                table.Cell().Background(bg).Padding(0.8f).Text(d.subtotal_usd.ToString("N2")).FontSize(9.5f);
+                                table.Cell().Background(bg).Padding(0.8f).AlignCenter().Text(d.unit_price_usd.ToString("N2")).FontSize(9.5f);
+                                table.Cell().Background(bg).Padding(0.8f).AlignCenter().Text(d.promo_price_usd.ToString("N2")).FontSize(9.5f);
+                                table.Cell().Background(bg).Padding(0.8f).AlignCenter().Text(d.subtotal_usd.ToString("N2")).FontSize(9.5f);
                                 alternate = !alternate;
                             }
                         });
@@ -208,10 +208,13 @@ namespace NinOS.UI.Common
                             // ---- Fila 1: condicion de pago + primer Total General ----
                             inner.Item().PaddingTop(2).Row(row =>
                             {
-                                row.AutoItem().Border(0.5f).BorderColor(LightBorder).Padding(3).Column(cond =>
+                                if (!string.IsNullOrWhiteSpace(note.conditions_text))
                                 {
-                                    cond.Item().Text(note.conditions_text).FontSize(8).Bold().Italic();
-                                });
+                                    row.AutoItem().Border(0.5f).BorderColor(LightBorder).Padding(3).Column(cond =>
+                                    {
+                                        cond.Item().Text(note.conditions_text).FontSize(8).Bold().Italic();
+                                    });
+                                }
 
                                 row.RelativeItem();
 
@@ -257,10 +260,13 @@ namespace NinOS.UI.Common
                                 {
                                     row.ConstantItem(190).Border(0.5f).BorderColor(LightBorder).Padding(3).Column(left =>
                                     {
-                                        left.Item().Row(r =>
+                                        if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
                                         {
-                                            r.RelativeItem().Text(note.discount_conditions_text).FontSize(7).Bold().AlignCenter();
-                                        });
+                                            left.Item().Row(r =>
+                                            {
+                                                r.RelativeItem().Text(note.discount_conditions_text).FontSize(7).Bold().AlignCenter();
+                                            });
+                                        }
 
                                         left.Item().PaddingTop(2).Row(r =>
                                         {
@@ -295,7 +301,7 @@ namespace NinOS.UI.Common
                                     row.RelativeItem().PaddingTop(2).Column(mid =>
                                     {
                                         mid.Item().AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(7).Italic().FontColor("#555555");
-                                        mid.Item().PaddingTop(14).LineHorizontal(0.5f).LineColor(LightBorder);
+                                        mid.Item().PaddingTop(30).LineHorizontal(0.5f).LineColor(LightBorder);
                                     });
 
                                     row.ConstantItem(8);

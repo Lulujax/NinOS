@@ -237,6 +237,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         gross_total_usd = gross,
                         discount_amount = discount,
                         discount_percentage = dn.discount_percentage,
+                        volume_discount_percentage = dn.volume_discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
                         balance_due_usd = dn.adjusted_total_usd - paid,
@@ -346,6 +347,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         gross_total_usd = gross,
                         discount_amount = discount,
                         discount_percentage = dn.discount_percentage,
+                        volume_discount_percentage = dn.volume_discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
                         balance_due_usd = dn.adjusted_total_usd - paid,
@@ -401,6 +403,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     gross_total_usd = detail_sum,
                     discount_amount = detail_sum - dn.adjusted_total_usd,
                     discount_percentage = dn.discount_percentage,
+                    volume_discount_percentage = dn.volume_discount_percentage,
                     status = dn.status,
                     paid_amount_usd = paid,
                     balance_due_usd = dn.adjusted_total_usd - paid,
@@ -438,7 +441,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage = null)
+        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage = null, decimal? volume_discount_percentage = null)
         {
             using (var scope = _scope_factory.CreateScope())
             {
@@ -465,10 +468,10 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     delivery_note.adjusted_total_usd = adjusted;
 
-                    if (discount_percentage.HasValue)
-                        delivery_note.discount_percentage = discount_percentage.Value >= 0 ? discount_percentage.Value : null;
-                    else if (gross > 0)
-                        delivery_note.discount_percentage = (gross - adjusted) / gross * 100m;
+                    // CxC trabaja un único DCTO (discount_percentage). El volumen de trabajo se limpia;
+                    // el detalle original queda congelado en original_discount_percentage/original_volume_discount_percentage.
+                    delivery_note.discount_percentage = discount_percentage;
+                    delivery_note.volume_discount_percentage = volume_discount_percentage;
 
                     decimal total_paid = await db_context.payments
                         .AsNoTracking()
@@ -681,11 +684,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal promo_amt = is_promo && promo_pct != null ? (gross * promo_pct.Value / 100m) : 0;
                 decimal after_promo = gross - promo_amt;
 
-                decimal discount_pct = note.discount_percentage ?? 0;
+                // El PDF/vista previa usan los valores originales congelados, no los editados en CxC.
+                decimal discount_pct = note.original_discount_percentage ?? note.discount_percentage ?? 0;
                 decimal discount_amt = discount_pct > 0 ? (after_promo * discount_pct / 100m) : 0;
                 decimal after_discount = after_promo - discount_amt;
 
-                decimal? volume_pct = note.volume_discount_percentage;
+                decimal? volume_pct = note.original_volume_discount_percentage ?? note.volume_discount_percentage;
                 decimal volume_amt = volume_pct != null ? (after_discount * volume_pct.Value / 100m) : 0;
                 decimal total_calc = after_discount - volume_amt;
 

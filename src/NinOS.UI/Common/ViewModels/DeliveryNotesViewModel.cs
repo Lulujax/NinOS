@@ -1260,11 +1260,18 @@ namespace NinOS.UI.Common.ViewModels
                     "Pendiente",
                     _total_amount_usd
                 );
-                new_note.discount_percentage = string.IsNullOrWhiteSpace(_discount_percentage_text) ? null
-                    : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : null);
+                decimal cond_pct = string.IsNullOrWhiteSpace(_discount_percentage_text) ? 0
+                    : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : 0);
+                decimal vol_pct = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0;
+
                 new_note.note_type_id = _selected_note_type?.id_note_type;
                 new_note.promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal pp) ? pp : null;
-                new_note.volume_discount_percentage = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : null;
+
+                // CxC trabaja un único DCTO; el detalle separado (condición + volumen) queda congelado para el PDF.
+                new_note.discount_percentage = cond_pct + vol_pct;
+                new_note.volume_discount_percentage = null;
+                new_note.original_discount_percentage = cond_pct;
+                new_note.original_volume_discount_percentage = vol_pct;
 
                 List<note_detail> domain_details = new List<note_detail>();
                 foreach (note_detail_row row in note_details)

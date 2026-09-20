@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common;
@@ -71,7 +72,7 @@ namespace NinOS.UI.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        private async void PrintButton_Click(object sender, RoutedEventArgs e)
         {
             if (_commission == null) return;
 
@@ -83,7 +84,34 @@ namespace NinOS.UI.Views
                 return;
             }
 
-            CommissionPdfGenerator.generate(_commission, payments);
+            string reference = payments[0].reference_number;
+            var receipt = await _commissions_vm.get_commission_receipt_async(new[] { _commission.id_commission }, reference);
+            if (receipt == null || receipt.rows.Count == 0)
+            {
+                MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            CommissionPdfGenerator.generate(receipt);
+        }
+
+        private async void EditButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is commission_payment_dto payment)
+            {
+                try
+                {
+                    var window = new EditCommissionPaymentWindow(_commissions_vm, payment, _commission.note_number, _commission.seller_name);
+                    window.Owner = Window.GetWindow(this);
+                    window.PaymentUpdated += async (_, _) => await LoadAsync();
+                    window.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al abrir edicion: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)

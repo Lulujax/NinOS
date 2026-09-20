@@ -51,11 +51,17 @@ namespace NinOS.UI.Common.ViewModels
             set { _is_editing_observations = value; on_property_changed(); }
         }
 
+        public decimal? discount_condition_percentage { get; set; }
+        public decimal? discount_volume_percentage { get; set; }
+
         private bool _is_editing;
         private string _edit_monto_text = string.Empty;
         private string _edit_dcto_text = string.Empty;
         private bool _syncing;
         public bool edited_dcto_directly;
+
+        private decimal _edit_base_total;
+        public decimal edit_result_condition_pct { get; private set; }
 
         public bool is_editing
         {
@@ -71,14 +77,6 @@ namespace NinOS.UI.Common.ViewModels
                 if (_edit_monto_text == value) return;
                 _edit_monto_text = value;
                 on_property_changed();
-                if (!_syncing && gross_total_usd > 0)
-                {
-                    _syncing = true;
-                    edited_dcto_directly = false;
-                    decimal monto = accounts_receivable_row_dto.parse_numeric(value);
-                    edit_dcto_text = monto <= 0 ? "" : $"{((gross_total_usd - monto) / gross_total_usd * 100):0.###}";
-                    _syncing = false;
-                }
             }
         }
 
@@ -90,15 +88,45 @@ namespace NinOS.UI.Common.ViewModels
                 if (_edit_dcto_text == value) return;
                 _edit_dcto_text = value;
                 on_property_changed();
-                if (!_syncing && gross_total_usd > 0)
+                if (!_syncing)
                 {
                     _syncing = true;
                     edited_dcto_directly = true;
-                    decimal pct = accounts_receivable_row_dto.parse_numeric(value);
-                    edit_monto_text = pct < 0 ? "" : $"{gross_total_usd * (1 - pct / 100):0.###}";
+                    apply_dcto_to_monto();
                     _syncing = false;
                 }
             }
+        }
+
+        public void begin_edit()
+        {
+            // En CxC el DCTO de trabajo es un único valor: condición + volumen (si aún no se ha compactado).
+            decimal cond = (discount_condition_percentage ?? 0) + (discount_volume_percentage ?? 0);
+            decimal total = total_amount_usd;
+
+            decimal denom = 1 - cond / 100m;
+            _edit_base_total = denom > 0.0000001m
+                ? total / denom
+                : (gross_total_usd > 0 ? gross_total_usd : total);
+            edit_result_condition_pct = cond;
+
+            _edit_monto_text = $"{total:0.##}";
+            _edit_dcto_text = cond > 0 ? $"{cond:0.###}" : "0";
+            on_property_changed(nameof(edit_monto_text));
+            on_property_changed(nameof(edit_dcto_text));
+            edited_dcto_directly = false;
+        }
+
+        private void apply_dcto_to_monto()
+        {
+            decimal dcto = parse_numeric(_edit_dcto_text);
+            if (dcto < 0) dcto = 0;
+            if (dcto > 100) dcto = 100;
+
+            edit_result_condition_pct = dcto;
+
+            decimal monto = _edit_base_total * (1 - dcto / 100m);
+            edit_monto_text = $"{Math.Max(0, monto):0.###}";
         }
 
         public static decimal parse_numeric(string text)
@@ -370,8 +398,10 @@ namespace NinOS.UI.Common.ViewModels
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
-                discount_percentage_text = n.discount_percentage.HasValue
-                    ? $"{n.discount_percentage.Value:0.##}%"
+                discount_condition_percentage = n.discount_percentage,
+                discount_volume_percentage = n.volume_discount_percentage,
+                discount_percentage_text = (n.discount_percentage.HasValue || n.volume_discount_percentage.HasValue)
+                    ? $"{((n.discount_percentage ?? 0) + (n.volume_discount_percentage ?? 0)):0.##}%"
                     : (n.gross_total_usd > 0 ? $"{((n.discount_amount / n.gross_total_usd) * 100):0.##}%" : "0%"),
                 paid_amount_usd = n.paid_amount_usd,
                 balance_due_usd = n.balance_due_usd,
@@ -444,10 +474,8 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not accounts_receivable_row_dto note) return;
             foreach (var row in _all_notes_source) row.is_editing = false;
-            note.edit_monto_text = $"{note.total_amount_usd:0.##}";
-            note.edit_dcto_text = note.gross_total_usd > 0 && note.discount_amount > 0 ? $"{note.discount_amount / note.gross_total_usd * 100:0.###}" : "0";
+            note.begin_edit();
             note.is_editing = true;
-            note.edited_dcto_directly = false;
         }
 
         private void execute_cancel_edit(object? parameter)
@@ -461,24 +489,20 @@ namespace NinOS.UI.Common.ViewModels
             if (note.status == "Anulada") { note.is_editing = false; return; }
             try
             {
-                decimal gross = note.gross_total_usd;
                 decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);
                 if (monto < 0) throw new InvalidOperationException("El monto no puede ser negativo.");
-                decimal dcto_entered = accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text);
+                decimal dcto_entered = string.IsNullOrWhiteSpace(note.edit_dcto_text)
+                    ? 0
+                    : accounts_receivable_row_dto.parse_numeric(note.edit_dcto_text);
                 if (dcto_entered < 0 || dcto_entered > 100)
                     throw new InvalidOperationException("El porcentaje de descuento debe estar entre 0 y 100.");
-                decimal adjusted = monto > 0 ? monto : gross * (1 - Math.Max(0, dcto_entered) / 100);
-                adjusted = Math.Min(gross, Math.Max(0, adjusted));
 
-                decimal? discount_pct;
-                if (note.edited_dcto_directly && dcto_entered >= 0)
-                    discount_pct = dcto_entered;
-                else if (gross > 0)
-                    discount_pct = (gross - adjusted) / gross * 100m;
-                else
-                    discount_pct = null;
+                decimal adjusted = Math.Max(0, monto);
 
-                await _receivable_service.update_note_total_async(note.id_delivery_note, adjusted, discount_pct);
+                // CxC trabaja un único DCTO: se guarda en discount_percentage y se limpia el volumen de trabajo.
+                decimal dcto = note.edit_result_condition_pct;
+
+                await _receivable_service.update_note_total_async(note.id_delivery_note, adjusted, dcto, null);
 
                 note.is_editing = false;
                 await load_all_async();

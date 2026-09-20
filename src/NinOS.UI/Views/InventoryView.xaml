@@ -27,6 +27,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock FontWeight="Bold" Margin="0,0,10,0" Text="Buscar Producto o Combo:" VerticalAlignment="Center"/>
                     <TextBox FontSize="14" Padding="6" Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}" Width="300"/>
+                    <Button Background="#1B3A2D" Command="{Binding generate_price_list_command}" Content="Lista de Precios" Cursor="Hand" FontWeight="Bold" Foreground="White" Margin="10,0,0,0" Padding="15,8"/>
                 </StackPanel>
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>

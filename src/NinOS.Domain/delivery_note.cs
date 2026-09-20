@@ -99,6 +99,9 @@ namespace NinOS.Domain
         public int? note_type_id { get; set; }
         public decimal? promo_discount_percentage { get; set; }
         public decimal? volume_discount_percentage { get; set; }
+        // Valores originales congelados al crear la nota. Solo los usa el PDF/vista previa.
+        public decimal? original_discount_percentage { get; set; }
+        public decimal? original_volume_discount_percentage { get; set; }
 
         protected delivery_note()
         {
