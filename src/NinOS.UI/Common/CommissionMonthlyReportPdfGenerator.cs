@@ -129,12 +129,12 @@ namespace NinOS.UI.Common
                         h("FECHA\nDESPACHO");
                         h("NRO");
                         h("CLIENTE", left: true);
-                        h("MONTO\nFACTURADO");
+                        h("MONTO\nFACTURADO $");
                         h("FECHA DE\nPAGO");
-                        h("MONTO\nPAGADO");
+                        h("MONTO\nPAGADO $");
                         h("PRONTO\nPAGO");
-                        h("COMISION\n10%");
-                        h("TOTAL\nCOMISION");
+                        h("COMISION\n10% $");
+                        h("TOTAL\nCOMISION $");
                         h("PAGO\nCOMISION");
                     });
 
@@ -189,14 +189,14 @@ namespace NinOS.UI.Common
                     {
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("SUB TOTAL").FontSize(9).Bold().FontColor("#555555");
+                            r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#555555");
                             r.ConstantItem(120).AlignRight().Text(Money(sub_total)).FontSize(10).Bold();
                         });
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
 
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("COMISION PAGADA").FontSize(9).Bold().FontColor(PrimaryColor);
+                            r.RelativeItem().Text("COMISION PAGADA $").FontSize(9).Bold().FontColor(PrimaryColor);
                             r.ConstantItem(120).AlignRight().Text(Money(sub_total)).FontSize(12).Bold().FontColor(PrimaryColor);
                         });
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
@@ -239,7 +239,7 @@ namespace NinOS.UI.Common
                                         .Text(p.reference_number ?? string.Empty).FontSize(8);
                                     payTable.Cell().Border(0.5f).BorderColor(LightBorder)
                                         .PaddingVertical(4).PaddingHorizontal(4).AlignCenter()
-                                        .Text(Money(p.amount_bs)).FontSize(8);
+                                        .Text(MoneyBs(p.amount_bs)).FontSize(8);
                                     payTable.Cell().Border(0.5f).BorderColor(LightBorder)
                                         .PaddingVertical(4).PaddingHorizontal(4).AlignCenter()
                                         .Text(Money(p.amount_usd)).FontSize(8);
@@ -255,7 +255,7 @@ namespace NinOS.UI.Common
                                     .Text($"TOTAL COMISION {month_cap.ToUpperInvariant()}").FontColor(Colors.White).Bold().FontSize(8);
                                 payTable.Cell().Border(0.5f).BorderColor(LightBorder)
                                     .PaddingVertical(4).PaddingHorizontal(4).AlignCenter()
-                                    .Text(Money(total_paid_bs)).Bold().FontSize(8);
+                                    .Text(MoneyBs(total_paid_bs)).Bold().FontSize(8);
                                 payTable.Cell().Border(0.5f).BorderColor(LightBorder)
                                     .PaddingVertical(4).PaddingHorizontal(4).AlignCenter()
                                     .Text(Money(total_paid_usd)).Bold().FontSize(8);
@@ -284,7 +284,9 @@ namespace NinOS.UI.Common
             });
         }
 
-        private static string Money(decimal value) => value.ToString("#,##0.00", Ve);
+        private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);
+
+        private static string MoneyBs(decimal value) => "Bs " + value.ToString("#,##0.00", Ve);
 
         private static string DateDMon(DateTime value)
         {
