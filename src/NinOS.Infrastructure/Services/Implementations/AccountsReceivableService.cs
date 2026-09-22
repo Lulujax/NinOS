@@ -106,8 +106,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
@@ -179,24 +179,24 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
                 var note_ids_with_payments = payment_totals.Keys.ToList();
                 var last_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids_with_payments.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
+                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                     .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
                 var note_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
                     .OrderBy(p => p.payment_date)
-                    .GroupBy(p => p.id_delivery_note)
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
                 var gross_totals = new Dictionary<int, decimal>();
@@ -290,24 +290,24 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
                 var note_ids_with_payments = payment_totals.Keys.ToList();
                 var last_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids_with_payments.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
+                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                     .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
                 var note_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
                     .OrderBy(p => p.payment_date)
-                    .GroupBy(p => p.id_delivery_note)
+                    .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
                 var note_detail_map = await db_context.note_details

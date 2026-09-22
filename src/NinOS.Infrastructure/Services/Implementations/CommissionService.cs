@@ -186,8 +186,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var note_ids_with_payments = await db.payments
                 .AsNoTracking()
-                .Where(p => note_ids.Contains(p.id_delivery_note))
-                .GroupBy(p => p.id_delivery_note)
+                .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                .GroupBy(p => p.id_delivery_note!.Value)
                 .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                 .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
@@ -427,8 +427,8 @@ return new commission_dto
 
             var note_last_payments = await db.payments
                 .AsNoTracking()
-                .Where(p => note_ids.Contains(p.id_delivery_note))
-                .GroupBy(p => p.id_delivery_note)
+                .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                .GroupBy(p => p.id_delivery_note!.Value)
                 .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                 .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
@@ -547,8 +547,8 @@ return new commission_dto
 
             var note_last_payments = await db.payments
                 .AsNoTracking()
-                .Where(p => note_ids.Contains(p.id_delivery_note))
-                .GroupBy(p => p.id_delivery_note)
+                .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                .GroupBy(p => p.id_delivery_note!.Value)
                 .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                 .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 

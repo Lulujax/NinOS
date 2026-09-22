@@ -75,13 +75,16 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                await _vm.register_relation_payment_async(_row.id_relacion, amount_usd, PaymentDatePicker.SelectedDate.Value);
+                await _vm.register_relation_payment_async(_row.id_relacion, amount_usd, PaymentDatePicker.SelectedDate.Value, ObservationsBox.Text);
 
                 Close();
             }
             catch (Exception ex)
             {
                 ShowError($"Error: {ex.Message}");
+            }
+            finally
+            {
                 BtnRegistrar.IsEnabled = true;
             }
         }

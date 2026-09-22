@@ -10,21 +10,18 @@ using QuestPDF.Infrastructure;
 
 namespace NinOS.UI.Common
 {
-    public static class MonthlyReportPdfGenerator
+    public static class PaymentsReportPdfGenerator
     {
         private static readonly string PrimaryColor = "#1B3A2D";
         private static readonly string LightBorder = "#B0B0B0";
         private static readonly string AccentBg = "#F0F4EC";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        public static void generate(monthly_report_dto report)
+        public static void generate(string month, List<payment_dto> payments)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            string file_name = string.IsNullOrWhiteSpace(report.report_name)
-                ? $"reporte {report.month}.pdf"
-                : $"reporte {report.report_name} {report.month}.pdf";
-            file_name = file_name.ToUpperInvariant();
+            string file_name = $"REPORTE PAGOS {month}.pdf".ToUpperInvariant();
 
             var save_dialog = new SaveFileDialog
             {
@@ -35,11 +32,10 @@ namespace NinOS.UI.Common
 
             if (save_dialog.ShowDialog() != true) return;
 
-            var month_cap = Capitalize(report.month);
-            var rows = report.rows ?? new List<monthly_report_row_dto>();
+            var month_cap = Capitalize(month);
 
-            var grouped = rows
-                .GroupBy(r => string.IsNullOrWhiteSpace(r.seller_name) ? "SIN VENDEDOR" : r.seller_name.Trim())
+            var grouped = payments
+                .GroupBy(p => string.IsNullOrWhiteSpace(p.seller_name) ? "SIN VENDEDOR" : p.seller_name.Trim())
                 .OrderBy(g => g.Key)
                 .ToList();
 
@@ -47,13 +43,13 @@ namespace NinOS.UI.Common
             {
                 if (grouped.Count == 0)
                 {
-                    container.Page(page => BuildSellerPage(page, report, month_cap, null, null));
+                    container.Page(page => BuildSellerPage(page, month_cap, null, null));
                     return;
                 }
 
                 foreach (var g in grouped)
                 {
-                    container.Page(page => BuildSellerPage(page, report, month_cap, g.Key, g.ToList()));
+                    container.Page(page => BuildSellerPage(page, month_cap, g.Key, g.ToList()));
                 }
             });
 
@@ -62,10 +58,9 @@ namespace NinOS.UI.Common
 
         private static void BuildSellerPage(
             PageDescriptor page,
-            monthly_report_dto report,
             string month_cap,
             string? seller_name,
-            List<monthly_report_row_dto>? seller_rows)
+            List<payment_dto>? seller_rows)
         {
             page.Size(PageSizes.Letter);
             page.MarginLeft(1, Unit.Centimetre);
@@ -78,7 +73,7 @@ namespace NinOS.UI.Common
             {
                 col.Item().Row(row =>
                 {
-                    row.RelativeItem().Text(report.title).FontSize(13).Bold().FontColor(PrimaryColor);
+                    row.RelativeItem().Text("PAGOS REALIZADOS DEL MES").FontSize(13).Bold().FontColor(PrimaryColor);
                     row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#666666");
                 });
                 col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
@@ -88,13 +83,11 @@ namespace NinOS.UI.Common
             {
                 if (seller_name == null)
                 {
-                    col.Item().Text(report.empty_text).FontSize(11).FontColor("#888888");
+                    col.Item().Text("No hubo pagos en el mes seleccionado.").FontSize(11).FontColor("#888888");
                     return;
                 }
 
-                var srows = seller_rows ?? new List<monthly_report_row_dto>();
-                var detail_header = string.IsNullOrWhiteSpace(report.detail_column_header) ? "DETALLE" : report.detail_column_header;
-                var status_header = string.IsNullOrWhiteSpace(report.status_column_header) ? "ESTADO" : report.status_column_header;
+                var srows = seller_rows ?? new List<payment_dto>();
 
                 col.Item().Row(row =>
                 {
@@ -109,12 +102,14 @@ namespace NinOS.UI.Common
                 {
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.RelativeColumn(1.15f);
-                        columns.RelativeColumn(1.05f);
-                        columns.RelativeColumn(3.1f);
-                        columns.RelativeColumn(1.25f);
-                        columns.RelativeColumn(1.25f);
-                        columns.RelativeColumn(1.15f);
+                        columns.RelativeColumn(1.05f);   // FECHA
+                        columns.RelativeColumn(0.95f);   // NOTA
+                        columns.RelativeColumn(2.6f);    // CLIENTE
+                        columns.RelativeColumn(1.35f);   // BANCO
+                        columns.RelativeColumn(1.25f);   // NRO REF
+                        columns.RelativeColumn(0.95f);   // TIPO
+                        columns.RelativeColumn(1.05f);   // MONTO $
+                        columns.RelativeColumn(1.05f);   // MONTO BS
                     });
 
                     table.Header(header =>
@@ -127,11 +122,13 @@ namespace NinOS.UI.Common
                         }
 
                         h("FECHA");
-                        h("DOCUMENTO");
+                        h("NOTA");
                         h("CLIENTE", left: true);
+                        h("BANCO");
+                        h("NRO REF");
+                        h("TIPO");
                         h("MONTO $");
-                        h(detail_header);
-                        h(status_header);
+                        h("MONTO BS");
                     });
 
                     bool alternate = false;
@@ -139,29 +136,29 @@ namespace NinOS.UI.Common
                     {
                         string bg = alternate ? AccentBg : Colors.White;
 
-                        void cell(string text, bool left = false, string color = "#333333", bool bold = false)
+                        void cell(string text, bool left = false)
                         {
                             var c = table.Cell().Background(bg).BorderBottom(0.4f).BorderColor(LightBorder)
                                 .PaddingVertical(2).PaddingHorizontal(1.5f);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontSize(7.5f).FontColor(color);
-                            if (bold) t.Bold();
+                            t.FontSize(7.5f);
                         }
 
-                        cell(r.fecha_display);
-                        cell(r.document_number);
+                        cell(r.payment_date.ToString("d/M/yyyy"));
+                        cell(r.note_number);
                         cell(r.customer_name, left: true);
+                        cell(r.bank_name);
+                        cell(r.reference_number);
+                        cell(r.payment_type);
                         cell(Money(r.amount_usd));
-                        cell(r.detail_text);
-                        cell(r.status, color: StatusColor(r.status), bold: true);
+                        cell(r.amount_bs > 0 ? MoneyBs(r.amount_bs) : "-");
 
                         alternate = !alternate;
                     }
                 });
 
-                decimal seller_total = srows.Sum(x => x.amount_usd);
-                decimal seller_paid = srows.Sum(x => x.paid_amount_usd);
-                decimal seller_balance = srows.Sum(x => x.balance_due_usd);
+                decimal sub_total_usd = srows.Sum(p => p.amount_usd);
+                decimal sub_total_bs = srows.Sum(p => p.amount_bs);
 
                 col.Item().PaddingTop(10).Row(outerRow =>
                 {
@@ -172,29 +169,18 @@ namespace NinOS.UI.Common
                         bottom.Item().Padding(4).Row(r =>
                         {
                             r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#555555");
-                            r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(10).Bold();
+                            r.ConstantItem(120).AlignRight().Text(Money(sub_total_usd)).FontSize(10).Bold();
                         });
-
-                        if (report.show_paid_balance_summary)
+                        bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
                         {
-                            bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
-                            bottom.Item().Padding(4).Row(r =>
-                            {
-                                r.RelativeItem().Text("ABONADO $").FontSize(9).Bold().FontColor("#2E7D32");
-                                r.ConstantItem(120).AlignRight().Text(Money(seller_paid)).FontSize(10).Bold().FontColor("#2E7D32");
-                            });
-                            bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
-                            {
-                                r.RelativeItem().Text("SALDO $").FontSize(9).Bold().FontColor("#C62828");
-                                r.ConstantItem(120).AlignRight().Text(Money(seller_balance)).FontSize(10).Bold().FontColor("#C62828");
-                            });
-                        }
-
+                            r.RelativeItem().Text("SUB TOTAL BS").FontSize(9).Bold().FontColor("#555555");
+                            r.ConstantItem(120).AlignRight().Text(MoneyBs(sub_total_bs)).FontSize(10).Bold();
+                        });
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
-                            r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(12).Bold().FontColor(PrimaryColor);
+                            r.RelativeItem().Text("TOTAL PAGADO $").FontSize(9).Bold().FontColor(PrimaryColor);
+                            r.ConstantItem(120).AlignRight().Text(Money(sub_total_usd)).FontSize(12).Bold().FontColor(PrimaryColor);
                         });
                     });
                 });
@@ -205,7 +191,7 @@ namespace NinOS.UI.Common
                 col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                 col.Item().PaddingTop(2).Row(row =>
                 {
-                    row.RelativeItem().Text(report.title).FontSize(7).FontColor("#888888");
+                    row.RelativeItem().Text("Reporte de pagos del mes").FontSize(7).FontColor("#888888");
                     row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#888888");
                     row.RelativeItem().AlignRight().Text(t =>
                     {
@@ -220,18 +206,12 @@ namespace NinOS.UI.Common
 
         private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);
 
+        private static string MoneyBs(decimal value) => "Bs " + value.ToString("#,##0.00", Ve);
+
         private static string Capitalize(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return text;
             return char.ToUpper(text[0]) + text.Substring(1);
-        }
-
-        private static string StatusColor(string status)
-        {
-            if (string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)) return "#C62828";
-            if (string.Equals(status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)) return "#E65100";
-            if (string.Equals(status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)) return "#2E7D32";
-            return "#333333";
         }
     }
 }

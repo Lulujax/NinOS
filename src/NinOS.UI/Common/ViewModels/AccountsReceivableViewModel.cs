@@ -560,6 +560,7 @@ namespace NinOS.UI.Common.ViewModels
                     report_name = "cuentas por cobrar",
                     detail_column_header = "SALDO",
                     show_paid_balance_summary = true,
+                    empty_text = "Sin cuentas por cobrar para el mes seleccionado.",
                     rows = month_rows
                         .OrderBy(n => n.creation_date)
                         .Select(n => new monthly_report_row_dto

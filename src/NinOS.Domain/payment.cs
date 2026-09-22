@@ -5,7 +5,8 @@ namespace NinOS.Domain
     public class payment
     {
         private int _id_payment;
-        private int _id_delivery_note;
+        private int? _id_delivery_note;
+        private int? _id_relacion;
         private DateTime _payment_date;
         private decimal _amount_usd;
         private decimal _amount_bs;
@@ -27,14 +28,16 @@ namespace NinOS.Domain
             }
         }
 
-        public int id_delivery_note
+        public int? id_delivery_note
         {
             get { return _id_delivery_note; }
-            set
-            {
-                if (value <= 0) throw new ArgumentException();
-                _id_delivery_note = value;
-            }
+            set { _id_delivery_note = value; }
+        }
+
+        public int? id_relacion
+        {
+            get { return _id_relacion; }
+            set { _id_relacion = value; }
         }
 
         public DateTime payment_date
@@ -113,9 +116,10 @@ namespace NinOS.Domain
         {
         }
 
-        public payment(int id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal? exchange_rate, string payment_type = "", string reference_number = "", string bank_name = "", string observations = "")
+        public payment(int? id_delivery_note, DateTime payment_date, decimal amount_usd, decimal amount_bs, decimal? exchange_rate, string payment_type = "", string reference_number = "", string bank_name = "", string observations = "", int? id_relacion = null)
         {
             this.id_delivery_note = id_delivery_note;
+            this.id_relacion = id_relacion;
             this.payment_date = payment_date;
             this.amount_usd = amount_usd;
             this.amount_bs = amount_bs;

@@ -32,9 +32,11 @@ namespace NinOS.UI.Common
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4.Landscape());
-                    page.MarginVertical(18);
-                    page.MarginHorizontal(22);
+                    page.Size(PageSizes.Letter);
+                    page.MarginLeft(1, Unit.Centimetre);
+                    page.MarginTop(1, Unit.Centimetre);
+                    page.MarginRight(1, Unit.Centimetre);
+                    page.MarginBottom(1, Unit.Centimetre);
                     page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(8));
 
                     page.Content().Column(col =>
@@ -59,10 +61,10 @@ namespace NinOS.UI.Common
                             {
                                 header.Cell().Background(Accent).Padding(3).Text("NRO NOTA CLIENTE").Bold().FontColor(Colors.White);
                                 header.Cell().Background(Accent).Padding(3).Text("CLIENTE").Bold().FontColor(Colors.White);
-                                header.Cell().Background(Accent).Padding(3).AlignRight().Text("MONTO NOTA").Bold().FontColor(Colors.White);
-                                header.Cell().Background(Accent).Padding(3).AlignRight().Text("COMISION LUIS 10%").Bold().FontColor(Colors.White);
-                                header.Cell().Background(Accent).Padding(3).AlignRight().Text("GASTOS OPERATIVOS 25%").Bold().FontColor(Colors.White);
-                                header.Cell().Background(Accent).Padding(3).AlignRight().Text("GASTOS ADMINISTRATIVOS 15%").Bold().FontColor(Colors.White);
+                                header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO NOTA").Bold().FontColor(Colors.White);
+                                header.Cell().Background(Accent).Padding(3).AlignCenter().Text("COMISION LUIS 10%").Bold().FontColor(Colors.White);
+                                header.Cell().Background(Accent).Padding(3).AlignCenter().Text("GASTOS OPERATIVOS 25%").Bold().FontColor(Colors.White);
+                                header.Cell().Background(Accent).Padding(3).AlignCenter().Text("GASTOS ADMINISTRATIVOS 15%").Bold().FontColor(Colors.White);
                             });
 
                             bool alternate = false;
@@ -73,10 +75,10 @@ namespace NinOS.UI.Common
 
                                 table.Cell().Background(bg).Padding(2).Text(r.note_number);
                                 table.Cell().Background(bg).Padding(2).Text(r.customer_name);
-                                table.Cell().Background(bg).Padding(2).AlignRight().Text(r.amount.ToString("N2"));
-                                table.Cell().Background(bg).Padding(2).AlignRight().Text(r.commission_luis.ToString("N2"));
-                                table.Cell().Background(bg).Padding(2).AlignRight().Text(r.gastos_25.ToString("N2"));
-                                table.Cell().Background(bg).Padding(2).AlignRight().Text(r.gastos_15.ToString("N2"));
+                                table.Cell().Background(bg).Padding(2).AlignCenter().Text(r.amount.ToString("N2"));
+                                table.Cell().Background(bg).Padding(2).AlignCenter().Text(r.commission_luis.ToString("N2"));
+                                table.Cell().Background(bg).Padding(2).AlignCenter().Text(r.gastos_25.ToString("N2"));
+                                table.Cell().Background(bg).Padding(2).AlignCenter().Text(r.gastos_15.ToString("N2"));
                             }
                         });
 
@@ -96,10 +98,10 @@ namespace NinOS.UI.Common
 
                                 totals.Cell().Background(SoftAccent).Padding(2).Text("TOTAL").Bold();
                                 totals.Cell().Background(SoftAccent);
-                                totals.Cell().Background(SoftAccent).Padding(2).AlignRight().Text(dto.total_amount.ToString("N2")).Bold();
-                                totals.Cell().Background(SoftAccent).Padding(2).AlignRight().Text(dto.total_commission_luis.ToString("N2")).Bold();
-                                totals.Cell().Background(SoftAccent).Padding(2).AlignRight().Text(dto.total_gastos_25.ToString("N2")).Bold();
-                                totals.Cell().Background(SoftAccent).Padding(2).AlignRight().Text(dto.total_gastos_15.ToString("N2")).Bold();
+                                totals.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_amount.ToString("N2")).Bold();
+                                totals.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_commission_luis.ToString("N2")).Bold();
+                                totals.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_gastos_25.ToString("N2")).Bold();
+                                totals.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_gastos_15.ToString("N2")).Bold();
                             });
                         }
 
@@ -114,13 +116,13 @@ namespace NinOS.UI.Common
                             });
 
                             liquidation.Cell().Background(SoftAccent).Padding(3).Text("TOTAL COBRADO (NOTAS MENOS COMISION LUIS G)").Bold();
-                            liquidation.Cell().Background(SoftAccent).Padding(3).AlignRight().Text(total_cobrado.ToString("N2")).Bold();
+                            liquidation.Cell().Background(SoftAccent).Padding(3).AlignCenter().Text(total_cobrado.ToString("N2")).Bold();
 
                             liquidation.Cell().Background(Yellow).Padding(3).Text("NOTA DE ENTREGA POR PAGAR A PRO VENTA").Bold();
-                            liquidation.Cell().Background(Yellow).Padding(3).AlignRight().Text(nota_por_pagar.ToString("N2")).Bold();
+                            liquidation.Cell().Background(Yellow).Padding(3).AlignCenter().Text(nota_por_pagar.ToString("N2")).Bold();
 
                             liquidation.Cell().BorderTop(0.5f).Background(SoftAccent).Padding(3).Text("DIFERENCIAL").Bold();
-                            liquidation.Cell().BorderTop(0.5f).Background(SoftAccent).Padding(3).AlignRight().Text(diferencial.ToString("N2")).Bold();
+                            liquidation.Cell().BorderTop(0.5f).Background(SoftAccent).Padding(3).AlignCenter().Text(diferencial.ToString("N2")).Bold();
                         });
                     });
                 });

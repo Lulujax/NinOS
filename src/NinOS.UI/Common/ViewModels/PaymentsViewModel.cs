@@ -321,30 +321,7 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 var payments = (await _payment_service.get_payments_by_month_async(_selected_month)).ToList();
-
-                var report = new monthly_report_dto
-                {
-                    title = "PAGOS - DETALLE DEL MES",
-                    month = _selected_month,
-                    report_name = "pagos",
-                    detail_column_header = "BANCO / REFERENCIA",
-                    status_column_header = "TIPO",
-                    rows = payments
-                        .OrderBy(p => p.payment_date)
-                        .Select(p => new monthly_report_row_dto
-                        {
-                            date = p.payment_date,
-                            document_number = p.note_number,
-                            customer_name = p.customer_name,
-                            seller_name = p.seller_name,
-                            amount_usd = p.amount_usd,
-                            detail_text = $"{p.bank_name} / {p.reference_number}".Trim(' ', '/'),
-                            status = p.payment_type
-                        })
-                        .ToList()
-                };
-
-                MonthlyReportPdfGenerator.generate(report);
+                PaymentsReportPdfGenerator.generate(_selected_month, payments);
             }
             catch (Exception ex)
             {

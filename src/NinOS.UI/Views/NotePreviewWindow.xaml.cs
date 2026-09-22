@@ -133,6 +133,9 @@ namespace NinOS.UI.Views
 
             if (preview_has_contacto || preview_has_credit_days)
             {
+                infoGrid.RowDefinitions.Add(new RowDefinition());
+                infoGrid.RowDefinitions.Add(new RowDefinition());
+
                 var divider3 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
                 Grid.SetRow(divider3, 5);
                 infoGrid.Children.Add(divider3);
@@ -426,6 +429,9 @@ namespace NinOS.UI.Views
                 Margin = new Thickness(0, 3, 0, 0),
                 ItemsSource = new ObservableCollection<object>(note.details)
             };
+
+            // La vista previa de la nota es un documento, sin filtros de columna.
+            DataGridExtensions.DataGridFilter.SetIsAutoFilterEnabled(dg, false);
 
             var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, PrimaryBrush));

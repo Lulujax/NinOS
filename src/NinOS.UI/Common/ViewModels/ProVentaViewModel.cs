@@ -35,9 +35,11 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand relation_pdf_command { get; }
         public ICommand pay_relation_command { get; }
         public ICommand note_pdf_command { get; }
+        public ICommand note_preview_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
+        public Action<pro_venta_weekly_row>? on_request_note_preview;
 
         public ProVentaViewModel(
             IProVentaService pro_venta_service,
@@ -53,6 +55,7 @@ namespace NinOS.UI.Common.ViewModels
             relation_pdf_command = new RelayCommand(execute_relation_pdf);
             pay_relation_command = new RelayCommand(execute_pay_relation);
             note_pdf_command = new RelayCommand(execute_note_pdf);
+            note_preview_command = new RelayCommand(execute_note_preview);
         }
 
         public int selected_report_index
@@ -298,6 +301,17 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private void execute_note_preview(object? parameter)
+        {
+            if (parameter is pro_venta_weekly_row row)
+                on_request_note_preview?.Invoke(row);
+        }
+
+        public async Task<note_print_dto> get_printable_note_async(int id_delivery_note)
+        {
+            return await _accounts_receivable_service.get_printable_note_async(id_delivery_note);
+        }
+
         public async Task print_relation_pdf_async(pro_venta_relation_row row)
         {
             try
@@ -320,14 +334,32 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date)
+        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date, string observations)
         {
-            await _payment_service.register_relation_payment_async(id_relacion, amount_usd, payment_date);
+            await _payment_service.register_relation_payment_async(id_relacion, amount_usd, payment_date, observations);
             MessageBox.Show("Pago registrado exitosamente.", "Exito");
 
             await load_pending_async();
             await load_paid_async();
             refresh_weeks_async();
+        }
+
+        public async Task<IEnumerable<payment_dto>> get_relation_payments_async(int id_relacion)
+        {
+            return await _payment_service.get_payments_by_relation_async(id_relacion);
+        }
+
+        public async Task<List<pro_venta_weekly_row>> get_relation_notes_async(int id_relacion)
+        {
+            return await _pro_venta_service.get_relation_notes_async(id_relacion);
+        }
+
+        public async Task update_relation_payment_async(int id_payment, decimal amount_usd, DateTime payment_date, string observations)
+        {
+            await _payment_service.update_relation_payment_async(id_payment, amount_usd, payment_date, observations);
+
+            await load_pending_async();
+            await load_paid_async();
         }
     }
 }

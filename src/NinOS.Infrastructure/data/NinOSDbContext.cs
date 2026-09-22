@@ -134,7 +134,8 @@ namespace NinOS.Infrastructure.Data
                 entity.ToTable("payment");
                 entity.HasKey(e => e.id_payment);
                 entity.Property(e => e.id_payment).HasColumnName("id_payment").UseIdentityByDefaultColumn();
-                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
+                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired(false);
+                entity.Property(e => e.id_relacion).HasColumnName("id_relacion").IsRequired(false);
                 entity.Property(e => e.payment_date).HasColumnName("payment_date").IsRequired();
                 entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired().HasPrecision(18, 2);
@@ -147,6 +148,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.updated_at).HasColumnName("updated_at");
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<relacion>().WithMany().HasForeignKey(e => e.id_relacion).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<commission>(entity =>

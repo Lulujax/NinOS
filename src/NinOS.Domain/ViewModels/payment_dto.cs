@@ -6,6 +6,7 @@ namespace NinOS.Domain.ViewModels
     {
         public int id_payment { get; set; }
         public int id_delivery_note { get; set; }
+        public int? id_relacion { get; set; }
         public string note_number { get; set; } = string.Empty;
         public string customer_name { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;

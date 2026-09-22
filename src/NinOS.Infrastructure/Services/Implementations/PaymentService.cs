@@ -88,7 +88,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date)
+        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date, string observations = "")
         {
             if (id_relacion <= 0) throw new ArgumentException(nameof(id_relacion));
             if (amount_usd <= 0) throw new InvalidOperationException("El monto debe ser mayor a 0.");
@@ -96,60 +96,34 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scope_factory.CreateScope();
             var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            using var transaction = await _db_context.Database.BeginTransactionAsync();
-            try
-            {
-                var notes = await _db_context.delivery_notes
-                    .Where(n => n.id_relacion == id_relacion && n.status != "Anulada")
-                    .OrderBy(n => n.note_number)
-                    .ToListAsync();
+            bool relation_exists = await _db_context.relaciones.AnyAsync(r => r.id_relacion == id_relacion);
+            if (!relation_exists) throw new InvalidOperationException("La relacion no existe.");
 
-                if (notes.Count == 0) throw new InvalidOperationException("La relacion no tiene notas.");
+            payment new_payment = new payment(
+                null, payment_date, amount_usd, 0, null,
+                "Efectivo", $"REL-{id_relacion}", "", observations ?? "", id_relacion);
 
-                decimal remaining = amount_usd;
-                foreach (var note in notes)
-                {
-                    if (remaining <= 0) break;
+            await _db_context.payments.AddAsync(new_payment);
+            await _db_context.SaveChangesAsync();
+        }
 
-                    decimal already_paid = await _db_context.payments
-                        .Where(p => p.id_delivery_note == note.id_delivery_note)
-                        .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+        public async Task update_relation_payment_async(int id_payment, decimal amount_usd, DateTime payment_date, string observations)
+        {
+            if (amount_usd <= 0) throw new InvalidOperationException("El monto debe ser mayor a 0.");
 
-                    decimal balance = note.adjusted_total_usd - already_paid;
-                    if (balance <= 0) continue;
+            using var scope = _scope_factory.CreateScope();
+            var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                    decimal applied = Math.Min(remaining, balance);
-                    payment new_payment = new payment(
-                        note.id_delivery_note, payment_date, applied, 0, null,
-                        "Efectivo", $"REL-{id_relacion}", "", "Pago Relacion Pro Venta");
+            payment? existing = await _db_context.payments.FindAsync(id_payment);
+            if (existing == null) throw new InvalidOperationException("El pago no existe.");
+            if (existing.id_relacion == null) throw new InvalidOperationException("El pago no pertenece a una relacion.");
 
-                    await _db_context.payments.AddAsync(new_payment);
-                    remaining -= applied;
-                }
+            existing.amount_usd = amount_usd;
+            existing.payment_date = payment_date;
+            existing.observations = observations ?? "";
+            existing.updated_at = DateTime.UtcNow;
 
-                await _db_context.SaveChangesAsync();
-
-                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
-                var payment_totals = await _db_context.payments
-                    .Where(p => note_ids.Contains(p.id_delivery_note))
-                    .GroupBy(p => p.id_delivery_note)
-                    .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
-                    .ToDictionaryAsync(x => x.Id, x => x.Total);
-
-                foreach (var note in notes)
-                {
-                    decimal paid = payment_totals.TryGetValue(note.id_delivery_note, out var total) ? total : 0;
-                    note.status = paid >= note.adjusted_total_usd ? "Pagada" : "Pendiente";
-                }
-
-                await _db_context.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            await _db_context.SaveChangesAsync();
         }
 
         public async Task update_payment_async(payment updated_payment, bool is_pro_venta = false)
@@ -257,7 +231,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             return payments.Select(p => new payment_dto
             {
                 id_payment = p.id_payment,
-                id_delivery_note = p.id_delivery_note,
+                id_delivery_note = p.id_delivery_note ?? 0,
                 note_number = note?.note_number ?? string.Empty,
                 customer_name = customer?.business_name ?? string.Empty,
                 seller_name = seller?.full_name ?? string.Empty,
@@ -274,6 +248,35 @@ namespace NinOS.Infrastructure.Services.Implementations
                 notes = p.observations,
                 total_note_usd = note?.adjusted_total_usd ?? 0,
                 balance_due_usd = (note?.adjusted_total_usd ?? 0) - payments.Sum(x => x.amount_usd)
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<payment_dto>> get_payments_by_relation_async(int id_relacion)
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var payments = await db.payments
+                .AsNoTracking()
+                .Where(p => p.id_relacion == id_relacion)
+                .OrderByDescending(p => p.payment_date)
+                .ToListAsync();
+
+            return payments.Select(p => new payment_dto
+            {
+                id_payment = p.id_payment,
+                id_delivery_note = p.id_delivery_note ?? 0,
+                id_relacion = p.id_relacion,
+                payment_date = p.payment_date,
+                created_at = p.created_at,
+                updated_at = p.updated_at,
+                amount_usd = p.amount_usd,
+                amount_bs = p.amount_bs,
+                exchange_rate = p.exchange_rate,
+                payment_type = p.payment_type,
+                bank_name = p.bank_name,
+                reference_number = p.reference_number,
+                notes = p.observations
             }).ToList();
         }
 
@@ -306,7 +309,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             if (mar_note_ids.Count > 0)
             {
-                payments = payments.Where(p => !mar_note_ids.Contains(p.id_delivery_note)).ToList();
+                payments = payments.Where(p => p.id_delivery_note == null || !mar_note_ids.Contains(p.id_delivery_note.Value)).ToList();
                 if (payments.Count == 0) return Enumerable.Empty<payment_dto>();
 
                 note_ids = payments.Select(p => p.id_delivery_note).Distinct().ToList();
@@ -330,13 +333,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             return payments.Select(p =>
             {
-                notes.TryGetValue(p.id_delivery_note, out var note);
+                delivery_note? note = p.id_delivery_note != null && notes.TryGetValue(p.id_delivery_note.Value, out var n) ? n : null;
                 string seller_name = note != null && sellers.TryGetValue(note.id_seller, out var sn) ? sn : string.Empty;
                 string customer_name = note != null && customers.TryGetValue(note.id_customer, out var cn) ? cn : string.Empty;
                 return new payment_dto
                 {
                     id_payment = p.id_payment,
-                    id_delivery_note = p.id_delivery_note,
+                    id_delivery_note = p.id_delivery_note ?? 0,
+                    id_relacion = p.id_relacion,
                     note_number = note?.note_number ?? string.Empty,
                     customer_name = customer_name,
                     seller_name = seller_name,

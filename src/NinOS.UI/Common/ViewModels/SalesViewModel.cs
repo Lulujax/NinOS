@@ -250,6 +250,7 @@ namespace NinOS.UI.Common.ViewModels
                     report_name = "ventas",
                     detail_column_header = "ABONADO",
                     show_paid_balance_summary = true,
+                    empty_text = "Sin ventas para el mes seleccionado.",
                     rows = month_rows
                         .OrderBy(n => n.creation_date)
                         .Select(n => new monthly_report_row_dto
