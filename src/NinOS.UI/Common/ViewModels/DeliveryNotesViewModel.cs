@@ -1305,7 +1305,22 @@ namespace NinOS.UI.Common.ViewModels
                     ));
                 }
 
-                await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
+                int save_attempts = 0;
+                while (true)
+                {
+                    save_attempts++;
+                    try
+                    {
+                        await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
+                        break;
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message == "CORRELATIVO_DUPLICADO" && save_attempts <= 3)
+                    {
+                        string regenerated = await _delivery_note_service.generate_correlative_async(_selected_seller.id_seller);
+                        new_note.note_number = regenerated;
+                        note_number = regenerated;
+                    }
+                }
 
                 note_details.Clear();
                 discount_percentage_text = "0";

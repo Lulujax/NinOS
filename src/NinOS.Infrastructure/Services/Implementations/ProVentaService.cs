@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -113,6 +114,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal amount = n.adjusted_total_usd;
                 return new pro_venta_weekly_row
                 {
+                    id_delivery_note = n.id_delivery_note,
                     note_number = n.note_number,
                     customer_name = customer_name ?? string.Empty,
                     amount = amount,
@@ -122,9 +124,22 @@ namespace NinOS.Infrastructure.Services.Implementations
                 };
             }).ToList();
 
+            relacion? relation = await db_context.relaciones
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.week_start == week.start.Date);
+
+            if (relation == null && in_week.Count > 0)
+            {
+                int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
+                relacion new_relation = new relacion(next_number, week.start.Date, week.start.Date.AddDays(6));
+                db_context.relaciones.Add(new_relation);
+                await db_context.SaveChangesAsync();
+                relation = new_relation;
+            }
+
             return new pro_venta_weekly_dto
             {
-                relation_number = week.week_index,
+                relation_number = relation?.relation_number ?? 0,
                 week_start = week.start,
                 week_end = week.end,
                 city = "MARACAY",
@@ -136,7 +151,17 @@ namespace NinOS.Infrastructure.Services.Implementations
             };
         }
 
-        public async Task<List<pro_venta_pending_row>> get_pending_relations_async()
+        public Task<List<pro_venta_relation_row>> get_pending_relations_async()
+        {
+            return build_relation_rows_async(only_pending: true);
+        }
+
+        public Task<List<pro_venta_relation_row>> get_paid_relations_async()
+        {
+            return build_relation_rows_async(only_pending: false);
+        }
+
+        private async Task<List<pro_venta_relation_row>> build_relation_rows_async(bool only_pending)
         {
             using var scope = _scope_factory.CreateScope();
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
@@ -147,24 +172,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToListAsync();
 
             if (mar_ids.Count == 0)
-                return new List<pro_venta_pending_row>();
+                return new List<pro_venta_relation_row>();
 
             var notes = await db_context.delivery_notes
                 .AsNoTracking()
-                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value) && n.status == "Pendiente")
-                .OrderBy(n => n.note_number)
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value)
+                         && n.status != "Anulada" && n.id_relacion != null)
                 .ToListAsync();
 
             if (notes.Count == 0)
-                return new List<pro_venta_pending_row>();
+                return new List<pro_venta_relation_row>();
 
             var note_ids = notes.Select(n => n.id_delivery_note).ToList();
-            var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
-
-            var customers = await db_context.customers
-                .AsNoTracking()
-                .Where(c => customer_ids.Contains(c.id_customer))
-                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
 
             var payment_totals = await db_context.payments
                 .AsNoTracking()
@@ -173,25 +192,39 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                 .ToDictionaryAsync(x => x.Id, x => x.Total);
 
-            var rows = new List<pro_venta_pending_row>();
-            foreach (var n in notes)
-            {
-                customers.TryGetValue(n.id_customer, out string? customer_name);
-                decimal paid = payment_totals.TryGetValue(n.id_delivery_note, out var total) ? total : 0;
+            var relation_ids = notes.Select(n => n.id_relacion!.Value).Distinct().ToList();
+            var relations = await db_context.relaciones
+                .AsNoTracking()
+                .Where(r => relation_ids.Contains(r.id_relacion))
+                .ToDictionaryAsync(r => r.id_relacion);
 
-                rows.Add(new pro_venta_pending_row
+            var rows = new List<pro_venta_relation_row>();
+            foreach (var group in notes.GroupBy(n => n.id_relacion!.Value))
+            {
+                if (!relations.TryGetValue(group.Key, out var relation)) continue;
+
+                decimal amount = group.Sum(n => n.adjusted_total_usd);
+                decimal paid = group.Sum(n => payment_totals.TryGetValue(n.id_delivery_note, out var total) ? total : 0);
+                decimal balance = amount - paid;
+                bool is_fully_paid = balance <= 0.005m;
+
+                if (only_pending == is_fully_paid) continue;
+
+                rows.Add(new pro_venta_relation_row
                 {
-                    id_delivery_note = n.id_delivery_note,
-                    note_number = n.note_number,
-                    customer_name = customer_name ?? string.Empty,
-                    amount = n.adjusted_total_usd,
+                    id_relacion = relation.id_relacion,
+                    relation_number = relation.relation_number,
+                    week_start = relation.week_start,
+                    week_end = relation.week_end,
+                    amount = amount,
                     paid_amount_usd = paid,
-                    balance_due_usd = n.adjusted_total_usd - paid,
-                    status = n.status
+                    balance_due_usd = balance < 0 ? 0 : balance,
+                    status = is_fully_paid ? "Pagada" : "Pendiente",
+                    note_count = group.Count()
                 });
             }
 
-            return rows;
+            return rows.OrderBy(r => r.relation_number).ToList();
         }
     }
 }

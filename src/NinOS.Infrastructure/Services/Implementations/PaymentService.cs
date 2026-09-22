@@ -88,6 +88,70 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date)
+        {
+            if (id_relacion <= 0) throw new ArgumentException(nameof(id_relacion));
+            if (amount_usd <= 0) throw new InvalidOperationException("El monto debe ser mayor a 0.");
+
+            using var scope = _scope_factory.CreateScope();
+            var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            using var transaction = await _db_context.Database.BeginTransactionAsync();
+            try
+            {
+                var notes = await _db_context.delivery_notes
+                    .Where(n => n.id_relacion == id_relacion && n.status != "Anulada")
+                    .OrderBy(n => n.note_number)
+                    .ToListAsync();
+
+                if (notes.Count == 0) throw new InvalidOperationException("La relacion no tiene notas.");
+
+                decimal remaining = amount_usd;
+                foreach (var note in notes)
+                {
+                    if (remaining <= 0) break;
+
+                    decimal already_paid = await _db_context.payments
+                        .Where(p => p.id_delivery_note == note.id_delivery_note)
+                        .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+
+                    decimal balance = note.adjusted_total_usd - already_paid;
+                    if (balance <= 0) continue;
+
+                    decimal applied = Math.Min(remaining, balance);
+                    payment new_payment = new payment(
+                        note.id_delivery_note, payment_date, applied, 0, null,
+                        "Efectivo", $"REL-{id_relacion}", "", "Pago Relacion Pro Venta");
+
+                    await _db_context.payments.AddAsync(new_payment);
+                    remaining -= applied;
+                }
+
+                await _db_context.SaveChangesAsync();
+
+                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+                var payment_totals = await _db_context.payments
+                    .Where(p => note_ids.Contains(p.id_delivery_note))
+                    .GroupBy(p => p.id_delivery_note)
+                    .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
+                    .ToDictionaryAsync(x => x.Id, x => x.Total);
+
+                foreach (var note in notes)
+                {
+                    decimal paid = payment_totals.TryGetValue(note.id_delivery_note, out var total) ? total : 0;
+                    note.status = paid >= note.adjusted_total_usd ? "Pagada" : "Pendiente";
+                }
+
+                await _db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task update_payment_async(payment updated_payment, bool is_pro_venta = false)
         {
             if (updated_payment == null) throw new ArgumentNullException(nameof(updated_payment));

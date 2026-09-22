@@ -97,6 +97,7 @@ namespace NinOS.Domain
         public string? sales_observations { get; set; }
         public decimal? discount_percentage { get; set; }
         public int? note_type_id { get; set; }
+        public int? id_relacion { get; set; }
         public decimal? promo_discount_percentage { get; set; }
         public decimal? volume_discount_percentage { get; set; }
         // Valores originales congelados al crear la nota. Solo los usa el PDF/vista previa.

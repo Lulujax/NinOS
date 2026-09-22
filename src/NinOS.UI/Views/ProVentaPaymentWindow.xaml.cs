@@ -9,16 +9,16 @@ namespace NinOS.UI.Views
     public partial class ProVentaPaymentWindow : Window
     {
         private readonly ProVentaViewModel _vm;
-        private readonly pro_venta_pending_row _row;
+        private readonly pro_venta_relation_row _row;
 
-        public ProVentaPaymentWindow(ProVentaViewModel vm, pro_venta_pending_row row)
+        public ProVentaPaymentWindow(ProVentaViewModel vm, pro_venta_relation_row row)
         {
             InitializeComponent();
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             _row = row ?? throw new ArgumentNullException(nameof(row));
 
-            RelationInfoText.Text = $"{row.note_number} - {row.customer_name}\n" +
-                $"MONTO NOTA: {row.amount:N2}  |  ABONADO: {row.paid_amount_usd:N2}  |  SALDO PENDIENTE: {row.balance_due_usd:N2}";
+            RelationInfoText.Text = $"{row.relation_label}\n" +
+                $"MONTO: {row.amount:N2}  |  ABONADO: {row.paid_amount_usd:N2}  |  SALDO PENDIENTE: {row.balance_due_usd:N2}";
 
             PaymentDatePicker.SelectedDate = DateTime.Now;
         }
@@ -64,7 +64,7 @@ namespace NinOS.UI.Views
                 }
 
                 MessageBoxResult result = MessageBox.Show(
-                    $"Relacion: {_row.note_number}\nMonto: {amount_usd:N2}\n\nDesea registrar este pago?",
+                    $"Relacion: {_row.relation_label}\nMonto: {amount_usd:N2}\n\nDesea registrar este pago?",
                     "Confirmar pago",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
@@ -75,7 +75,7 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                await _vm.register_payment_async(_row.id_delivery_note, _row.note_number, amount_usd, PaymentDatePicker.SelectedDate.Value);
+                await _vm.register_relation_payment_async(_row.id_relacion, amount_usd, PaymentDatePicker.SelectedDate.Value);
 
                 Close();
             }

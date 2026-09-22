@@ -52,6 +52,7 @@
                             <ColumnDefinition Width="1.3*"/>
                             <ColumnDefinition Width="1.1*"/>
                             <ColumnDefinition Width="1.1*"/>
+                            <ColumnDefinition Width="0.9*"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" BorderBrush="#1565C0" BorderThickness="1,1,1,1" Background="#1565C0" Padding="4">
                             <TextBlock Text="NRO NOTA CLIENTE" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
@@ -71,6 +72,9 @@
                         <Border Grid.Column="5" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
                             <TextBlock Text="GASTOS ADM. 15%" FontWeight="Bold" Foreground="White" TextAlignment="Right"/>
                         </Border>
+                        <Border Grid.Column="6" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="PDF" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
                     </Grid>
 
                     <ItemsControl ItemsSource="{Binding report_rows}">
@@ -84,6 +88,7 @@
                                         <ColumnDefinition Width="1.3*"/>
                                         <ColumnDefinition Width="1.1*"/>
                                         <ColumnDefinition Width="1.1*"/>
+                                        <ColumnDefinition Width="0.9*"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" BorderBrush="#B0B0B0" BorderThickness="1,0,1,1" Padding="4">
                                         <TextBlock Text="{Binding note_number}" TextWrapping="Wrap"/>
@@ -103,6 +108,13 @@
                                     <Border Grid.Column="5" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
                                         <TextBlock Text="{Binding gastos_15, StringFormat=N2}" TextAlignment="Right"/>
                                     </Border>
+                                    <Border Grid.Column="6" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
+                                        <Button Content="PDF" Padding="6,2" FontSize="10" Cursor="Hand"
+                                                Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
+                                                Foreground="#424242" HorizontalAlignment="Center"
+                                                Command="{Binding DataContext.note_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Border>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -116,6 +128,7 @@
                             <ColumnDefinition Width="1.3*"/>
                             <ColumnDefinition Width="1.1*"/>
                             <ColumnDefinition Width="1.1*"/>
+                            <ColumnDefinition Width="0.9*"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" BorderBrush="#1565C0" BorderThickness="1,1,1,1" Background="#E3F2FD" Padding="4">
                             <TextBlock Text="TOTAL" FontWeight="Bold" TextAlignment="Left"/>
@@ -133,6 +146,7 @@
                         <Border Grid.Column="5" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD" Padding="4">
                             <TextBlock Text="{Binding total_gastos_15, StringFormat=N2}" FontWeight="Bold" TextAlignment="Right"/>
                         </Border>
+                        <Border Grid.Column="6" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
                     </Grid>
                 </StackPanel>
 
@@ -230,7 +244,7 @@
                                         <ColumnDefinition Width="2.2*"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" BorderBrush="#B0B0B0" BorderThickness="1,0,1,1" Padding="4">
-                                        <TextBlock Text="{Binding note_number}" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding relation_label}" TextWrapping="Wrap" HorizontalAlignment="Center"/>
                                     </Border>
                                     <Border Grid.Column="1" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
                                         <TextBlock Text="{Binding amount, StringFormat=N2}" TextAlignment="Right"/>
@@ -243,19 +257,14 @@
                                     </Border>
                                     <Border Grid.Column="4" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="Vista Previa" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
-                                                    BorderBrush="#E0E0E0" Foreground="#424242"
-                                                    Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"/>
                                             <Button Content="PDF" Padding="6,2" Margin="2" FontSize="10"
                                                     Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
                                                     BorderBrush="#E0E0E0" Foreground="#424242"
-                                                    Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Command="{Binding DataContext.relation_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                             <Button Content="Abonar / Pagar" Padding="6,2" Margin="2" FontSize="10"
                                                     Cursor="Hand" FontWeight="SemiBold" Foreground="White"
-                                                    Command="{Binding DataContext.pay_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Command="{Binding DataContext.pay_relation_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
@@ -302,11 +311,98 @@
             </StackPanel>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="1" Margin="20"
-                    Visibility="{Binding is_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
-            <TextBlock Text="Modulo en desarrollo: se implementara con el registro de pagos de las notas Pro Venta."
-                       Foreground="#888888" Margin="0,8,0,0"/>
-        </StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding is_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
+
+                <TextBlock Text="No hay relaciones pagadas." Foreground="#888888" HorizontalAlignment="Center"
+                           Margin="0,20,0,0"
+                           Visibility="{Binding paid_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <StackPanel Width="900" Visibility="{Binding has_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="0.9*"/>
+                            <ColumnDefinition Width="2.2*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" BorderBrush="#1565C0" BorderThickness="1,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="RELACION NRO" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Column="1" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="MONTO POR PAGAR" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Column="2" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="SALDO COMPLETO" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Column="3" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="ESTADO" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Column="4" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#1565C0" Padding="4">
+                            <TextBlock Text="ACCIONES" FontWeight="Bold" Foreground="White" TextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding paid_rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="0.9*"/>
+                                        <ColumnDefinition Width="2.2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" BorderBrush="#B0B0B0" BorderThickness="1,0,1,1" Padding="4">
+                                        <TextBlock Text="{Binding relation_label}" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="1" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
+                                        <TextBlock Text="{Binding amount, StringFormat=N2}" TextAlignment="Right"/>
+                                    </Border>
+                                    <Border Grid.Column="2" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
+                                        <TextBlock Text="{Binding balance_due_usd, StringFormat=N2}" TextAlignment="Right"/>
+                                    </Border>
+                                    <Border Grid.Column="3" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
+                                        <TextBlock Text="{Binding status}" TextAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="4" BorderBrush="#B0B0B0" BorderThickness="0,0,1,1" Padding="4">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="PDF" Padding="6,2" Margin="2" FontSize="10"
+                                                    Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
+                                                    BorderBrush="#E0E0E0" Foreground="#424242"
+                                                    Command="{Binding DataContext.relation_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="0.9*"/>
+                            <ColumnDefinition Width="2.2*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" BorderBrush="#1565C0" BorderThickness="1,1,1,1" Background="#E3F2FD" Padding="4">
+                            <TextBlock Text="TOTAL" FontWeight="Bold" TextAlignment="Left"/>
+                        </Border>
+                        <Border Grid.Column="1" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD" Padding="4">
+                            <TextBlock Text="{Binding paid_total_amount, StringFormat=N2}" FontWeight="Bold" TextAlignment="Right"/>
+                        </Border>
+                        <Border Grid.Column="2" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
+                        <Border Grid.Column="3" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
+                        <Border Grid.Column="4" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>

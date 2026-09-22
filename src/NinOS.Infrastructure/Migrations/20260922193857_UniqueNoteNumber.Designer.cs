@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NinOS.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    partial class NinOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922193857_UniqueNoteNumber")]
+    partial class UniqueNoteNumber
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -236,10 +239,6 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id_customer");
 
-                    b.Property<int?>("id_relacion")
-                        .HasColumnType("integer")
-                        .HasColumnName("id_relacion");
-
                     b.Property<int>("id_seller")
                         .HasColumnType("integer")
                         .HasColumnName("id_seller");
@@ -293,8 +292,6 @@ namespace NinOS.Infrastructure.Migrations
                     b.HasKey("id_delivery_note");
 
                     b.HasIndex("id_customer");
-
-                    b.HasIndex("id_relacion");
 
                     b.HasIndex("id_seller");
 
@@ -611,38 +608,6 @@ namespace NinOS.Infrastructure.Migrations
                     b.ToTable("promotion_item", (string)null);
                 });
 
-            modelBuilder.Entity("NinOS.Domain.relacion", b =>
-                {
-                    b.Property<int>("id_relacion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_relacion");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_relacion"));
-
-                    b.Property<int>("relation_number")
-                        .HasColumnType("integer")
-                        .HasColumnName("relation_number");
-
-                    b.Property<DateTime>("week_end")
-                        .HasColumnType("date")
-                        .HasColumnName("week_end");
-
-                    b.Property<DateTime>("week_start")
-                        .HasColumnType("date")
-                        .HasColumnName("week_start");
-
-                    b.HasKey("id_relacion");
-
-                    b.HasIndex("relation_number")
-                        .IsUnique();
-
-                    b.HasIndex("week_start")
-                        .IsUnique();
-
-                    b.ToTable("relacion", (string)null);
-                });
-
             modelBuilder.Entity("NinOS.Domain.seller", b =>
                 {
                     b.Property<int>("id_seller")
@@ -706,11 +671,6 @@ namespace NinOS.Infrastructure.Migrations
                         .HasForeignKey("id_customer")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("NinOS.Domain.relacion", null)
-                        .WithMany()
-                        .HasForeignKey("id_relacion")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("NinOS.Domain.seller", null)
                         .WithMany()

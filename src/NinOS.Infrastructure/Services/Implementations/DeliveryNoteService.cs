@@ -113,8 +113,28 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                     }
 
+                    if (new_note.note_type_id != null)
+                    {
+                        bool is_mar = await _db_context.note_types
+                            .AsNoTracking()
+                            .AnyAsync(t => t.id_note_type == new_note.note_type_id.Value && t.code == "MAR");
+
+                        if (is_mar)
+                        {
+                            relacion relation = await get_or_create_week_relation_async(_db_context, new_note.creation_date);
+                            new_note.id_relacion = relation.id_relacion;
+                        }
+                    }
+
                     await _db_context.delivery_notes.AddAsync(new_note);
-                    await _db_context.SaveChangesAsync();
+                    try
+                    {
+                        await _db_context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (is_unique_note_number_violation(ex))
+                    {
+                        throw new InvalidOperationException("CORRELATIVO_DUPLICADO");
+                    }
 
                     foreach (note_detail detail in details_list)
                     {
@@ -130,6 +150,46 @@ namespace NinOS.Infrastructure.Services.Implementations
                     await transaction.RollbackAsync();
                     throw;
                 }
+            }
+        }
+
+        private static bool is_unique_note_number_violation(DbUpdateException ex)
+        {
+            Exception? base_exception = ex.GetBaseException();
+            string message = base_exception?.Message ?? string.Empty;
+            return message.Contains("23505")
+                || message.Contains("IX_delivery_note_note_number")
+                || message.Contains("duplicate key");
+        }
+
+        private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime date)
+        {
+            int offset = ((int)date.Date.DayOfWeek + 6) % 7;
+            DateTime week_start = date.Date.AddDays(-offset);
+
+            relacion? existing = await db_context.relaciones
+                .FirstOrDefaultAsync(r => r.week_start == week_start);
+            if (existing != null) return existing;
+
+            int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
+
+            relacion relation = new relacion(next_number, week_start, week_start.AddDays(6));
+            db_context.relaciones.Add(relation);
+
+            try
+            {
+                await db_context.SaveChangesAsync();
+                return relation;
+            }
+            catch (DbUpdateException)
+            {
+                // Otra transaccion pudo crear la relacion de esta semana: se reintenta leyendo.
+                db_context.Entry(relation).State = EntityState.Detached;
+
+                relacion? created = await db_context.relaciones
+                    .FirstOrDefaultAsync(r => r.week_start == week_start);
+                if (created != null) return created;
+                throw;
             }
         }
     }

@@ -24,6 +24,7 @@ namespace NinOS.Domain.ViewModels
 
     public class pro_venta_weekly_row
     {
+        public int id_delivery_note { get; set; }
         public string note_number { get; set; } = string.Empty;
         public string customer_name { get; set; } = string.Empty;
         public decimal amount { get; set; }
@@ -32,15 +33,19 @@ namespace NinOS.Domain.ViewModels
         public decimal gastos_15 { get; set; }
     }
 
-    public class pro_venta_pending_row
+    public class pro_venta_relation_row
     {
-        public int id_delivery_note { get; set; }
-        public string note_number { get; set; } = string.Empty;
-        public string customer_name { get; set; } = string.Empty;
+        public int id_relacion { get; set; }
+        public int relation_number { get; set; }
+        public DateTime week_start { get; set; }
+        public DateTime week_end { get; set; }
         public decimal amount { get; set; }
         public decimal paid_amount_usd { get; set; }
         public decimal balance_due_usd { get; set; }
         public string status { get; set; } = string.Empty;
+        public int note_count { get; set; }
+
+        public string relation_label => $"NRO {relation_number} ({week_start:dd/MM} AL {week_end:dd/MM})";
     }
 
     public class pro_venta_weekly_dto

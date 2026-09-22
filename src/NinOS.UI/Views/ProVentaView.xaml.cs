@@ -26,19 +26,9 @@ namespace NinOS.UI.Views
         {
             if (DataContext is not ProVentaViewModel view_model) return;
 
-            view_model.on_request_preview_window = async (row) =>
+            view_model.on_request_relation_pdf = async (row) =>
             {
-                try
-                {
-                    note_print_dto printable = await view_model.get_printable_note_async(row.id_delivery_note);
-                    NotePreviewWindow preview = new NotePreviewWindow(printable);
-                    preview.Owner = Window.GetWindow(this);
-                    preview.ShowDialog();
-                }
-                catch (System.Exception ex)
-                {
-                    MessageBox.Show($"Error al cargar la nota: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                await view_model.print_relation_pdf_async(row);
             };
 
             view_model.on_request_payment_window = (row) =>

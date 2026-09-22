@@ -116,6 +116,7 @@ namespace NinOS.UI.Common.ViewModels
             juan_luis_notes = new ObservableCollection<payment_row_dto>();
 
             filter_options.Add("Pagadas");
+            filter_options.Add("Pendientes");
             filter_options.Add("Todas");
 
             add_payment_command = new RelayCommand(execute_add_payment);
@@ -134,7 +135,7 @@ namespace NinOS.UI.Common.ViewModels
                 _is_loading = true;
 
                 var raw = await _receivable_service.get_all_notes_async();
-                var all_rows = raw.Where(n => n.status == "Pagada").Select(map_to_row).ToList();
+                var all_rows = raw.Where(n => n.status != "Anulada").Select(map_to_row).ToList();
 
                 var unique_months = all_rows
                     .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
@@ -165,12 +166,14 @@ namespace NinOS.UI.Common.ViewModels
         private void apply_filters()
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
 
-            if (_selected_filter == "Pendientes")
-                filtered = filtered.Where(n => n.status == "Pendiente").ToList();
-            else if (_selected_filter == "Pagadas")
-                filtered = filtered.Where(n => n.status == "Pagada").ToList();
+            IEnumerable<payment_row_dto> source = _all_notes_source;
+            if (_selected_filter == "Pagadas")
+                source = source.Where(n => n.status == "Pagada");
+            else if (_selected_filter == "Pendientes")
+                source = source.Where(n => n.status == "Pendiente");
+
+            var filtered = filter_by_month_and_search(source.ToList(), _selected_month, query);
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());

@@ -16,6 +16,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<commission_payment> commission_payments { get; set; }
         public DbSet<promotion> promotions { get; set; }
         public DbSet<promotion_item> promotion_items { get; set; }
+        public DbSet<relacion> relaciones { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -88,6 +89,7 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_delivery_note);
                 entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").UseIdentityByDefaultColumn();
                 entity.Property(e => e.note_number).HasColumnName("note_number").IsRequired().HasMaxLength(50);
+                entity.HasIndex(e => e.note_number).IsUnique();
                 entity.Property(e => e.creation_date).HasColumnName("creation_date").IsRequired();
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired();
@@ -98,6 +100,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.sales_observations).HasColumnName("sales_observations").HasMaxLength(500);
                 entity.Property(e => e.discount_percentage).HasColumnName("discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.note_type_id).HasColumnName("note_type_id").IsRequired(false);
+                entity.Property(e => e.id_relacion).HasColumnName("id_relacion").IsRequired(false);
                 entity.Property(e => e.promo_discount_percentage).HasColumnName("promo_discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.volume_discount_percentage).HasColumnName("volume_discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.original_discount_percentage).HasColumnName("original_discount_percentage").HasPrecision(18, 3);
@@ -106,6 +109,7 @@ namespace NinOS.Infrastructure.Data
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<note_type>().WithMany().HasForeignKey(e => e.note_type_id).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<relacion>().WithMany().HasForeignKey(e => e.id_relacion).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<note_detail>(entity =>
@@ -211,6 +215,18 @@ namespace NinOS.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.id_product)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            model_builder.Entity<relacion>(entity =>
+            {
+                entity.ToTable("relacion");
+                entity.HasKey(e => e.id_relacion);
+                entity.Property(e => e.id_relacion).HasColumnName("id_relacion").UseIdentityByDefaultColumn();
+                entity.Property(e => e.relation_number).HasColumnName("relation_number").IsRequired();
+                entity.HasIndex(e => e.relation_number).IsUnique();
+                entity.Property(e => e.week_start).HasColumnName("week_start").HasColumnType("date").IsRequired();
+                entity.HasIndex(e => e.week_start).IsUnique();
+                entity.Property(e => e.week_end).HasColumnName("week_end").HasColumnType("date").IsRequired();
             });
         }
     }

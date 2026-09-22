@@ -155,12 +155,6 @@
 
             <!-- Mes + Filtro + Boton registrar -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="110"
-                          ItemsSource="{Binding pending_months}"
-                          SelectedItem="{Binding selected_month}"
-                          FontSize="12.5" Height="26"
-                          HorizontalContentAlignment="Center"/>
-
                 <ComboBox Width="110" Margin="0,0,8,0" Style="{StaticResource BlueComboBox}"
                           ItemsSource="{Binding filter_options}"
                           SelectedItem="{Binding selected_filter}">
@@ -179,6 +173,12 @@
                         </Style>
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
+
+                <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="110"
+                          ItemsSource="{Binding pending_months}"
+                          SelectedItem="{Binding selected_month}"
+                          FontSize="12.5" Height="26"
+                          HorizontalContentAlignment="Center"/>
 
                 <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
                         FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"

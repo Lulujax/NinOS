@@ -473,6 +473,13 @@ namespace NinOS.UI.Common.ViewModels
         private void execute_start_edit(object? parameter)
         {
             if (parameter is not accounts_receivable_row_dto note) return;
+            if (note.status == "Pagada")
+            {
+                System.Windows.MessageBox.Show("Esta nota ya esta pagada y no puede editarse.", "Editar Nota",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+            if (note.status == "Anulada") return;
             foreach (var row in _all_notes_source) row.is_editing = false;
             note.begin_edit();
             note.is_editing = true;
@@ -486,7 +493,7 @@ namespace NinOS.UI.Common.ViewModels
         private async void execute_apply_edit(object? parameter)
         {
             if (parameter is not accounts_receivable_row_dto note) return;
-            if (note.status == "Anulada") { note.is_editing = false; return; }
+            if (note.status == "Anulada" || note.status == "Pagada") { note.is_editing = false; return; }
             try
             {
                 decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);

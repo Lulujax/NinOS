@@ -80,6 +80,53 @@ namespace NinOS.Infrastructure.Data
                 db_context.SaveChanges();
             }
 
+            // Backfill: asigna una relacion semanal (correlativo global) a las notas Pro Venta existentes.
+            var mar_type_ids = db_context.note_types
+                .Where(t => t.code == "MAR")
+                .Select(t => t.id_note_type)
+                .ToList();
+
+            if (mar_type_ids.Count > 0)
+            {
+                var mar_notes = db_context.delivery_notes
+                    .Where(n => n.note_type_id != null && mar_type_ids.Contains(n.note_type_id.Value))
+                    .ToList();
+
+                var week_starts = mar_notes
+                    .Select(n => monday_of(n.creation_date))
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToList();
+
+                bool created_any = false;
+                int next_number = (db_context.relaciones.Max(r => (int?)r.relation_number) ?? 0) + 1;
+
+                foreach (var wk in week_starts)
+                {
+                    if (db_context.relaciones.Any(r => r.week_start == wk)) continue;
+
+                    db_context.relaciones.Add(new relacion(next_number, wk, wk.AddDays(6)));
+                    next_number++;
+                    created_any = true;
+                }
+                if (created_any) db_context.SaveChanges();
+
+                if (mar_notes.Any(n => n.id_relacion == null))
+                {
+                    var relation_by_week = db_context.relaciones
+                        .ToDictionary(r => r.week_start, r => r.id_relacion);
+
+                    foreach (var n in mar_notes)
+                    {
+                        if (relation_by_week.TryGetValue(monday_of(n.creation_date), out int id_relacion))
+                        {
+                            n.id_relacion = id_relacion;
+                        }
+                    }
+                    db_context.SaveChanges();
+                }
+            }
+
             if (db_context.sellers.Any() || db_context.customers.Any() || db_context.products.Any())
             {
                 return;
@@ -460,6 +507,12 @@ namespace NinOS.Infrastructure.Data
 
                 db_context.SaveChanges();
             }
+        }
+
+        private static DateTime monday_of(DateTime date)
+        {
+            int offset = ((int)date.DayOfWeek + 6) % 7;
+            return date.Date.AddDays(-offset);
         }
     }
 }

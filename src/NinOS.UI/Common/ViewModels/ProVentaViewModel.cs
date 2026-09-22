@@ -27,16 +27,17 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<pro_venta_month_option> available_months { get; } = new();
         public List<pro_venta_week_info> weeks { get; private set; } = new();
         public ObservableCollection<pro_venta_weekly_row> report_rows { get; } = new();
-        public ObservableCollection<pro_venta_pending_row> pending_rows { get; } = new();
+        public ObservableCollection<pro_venta_relation_row> pending_rows { get; } = new();
+        public ObservableCollection<pro_venta_relation_row> paid_rows { get; } = new();
 
         public ICommand print_command { get; }
         public ICommand refresh_command { get; }
-        public ICommand preview_note_command { get; }
-        public ICommand print_pdf_command { get; }
-        public ICommand pay_note_command { get; }
+        public ICommand relation_pdf_command { get; }
+        public ICommand pay_relation_command { get; }
+        public ICommand note_pdf_command { get; }
 
-        public Action<pro_venta_pending_row>? on_request_preview_window;
-        public Action<pro_venta_pending_row>? on_request_payment_window;
+        public Action<pro_venta_relation_row>? on_request_relation_pdf;
+        public Action<pro_venta_relation_row>? on_request_payment_window;
 
         public ProVentaViewModel(
             IProVentaService pro_venta_service,
@@ -49,9 +50,9 @@ namespace NinOS.UI.Common.ViewModels
 
             print_command = new RelayCommand(_ => print_report());
             refresh_command = new RelayCommand(_ => refresh_data());
-            preview_note_command = new RelayCommand(execute_preview_note);
-            print_pdf_command = new RelayCommand(execute_print_pdf);
-            pay_note_command = new RelayCommand(execute_pay_note);
+            relation_pdf_command = new RelayCommand(execute_relation_pdf);
+            pay_relation_command = new RelayCommand(execute_pay_relation);
+            note_pdf_command = new RelayCommand(execute_note_pdf);
         }
 
         public int selected_report_index
@@ -124,6 +125,10 @@ namespace NinOS.UI.Common.ViewModels
         public decimal pending_total_amount => pending_rows.Sum(r => r.amount);
         public decimal pending_total_balance => pending_rows.Sum(r => r.balance_due_usd);
 
+        public bool has_paid => paid_rows.Count > 0;
+        public bool paid_empty => !has_paid;
+        public decimal paid_total_amount => paid_rows.Sum(r => r.amount);
+
         public void initialize()
         {
             refresh_data();
@@ -151,6 +156,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 await load_pending_async();
+                await load_paid_async();
             }
             catch (Exception ex)
             {
@@ -170,6 +176,24 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(pending_empty));
                 on_property_changed(nameof(pending_total_amount));
                 on_property_changed(nameof(pending_total_balance));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "error");
+            }
+        }
+
+        public async Task load_paid_async()
+        {
+            try
+            {
+                var rows = await _pro_venta_service.get_paid_relations_async();
+                paid_rows.Clear();
+                foreach (var row in rows) paid_rows.Add(row);
+
+                on_property_changed(nameof(has_paid));
+                on_property_changed(nameof(paid_empty));
+                on_property_changed(nameof(paid_total_amount));
             }
             catch (Exception ex)
             {
@@ -247,24 +271,25 @@ namespace NinOS.UI.Common.ViewModels
             ProVentaPdfGenerator.generate(_report, nota_por_pagar);
         }
 
-        private void execute_preview_note(object? parameter)
+        private void execute_relation_pdf(object? parameter)
         {
-            if (parameter is pro_venta_pending_row row)
-                on_request_preview_window?.Invoke(row);
+            if (parameter is pro_venta_relation_row row)
+                on_request_relation_pdf?.Invoke(row);
         }
 
-        private void execute_pay_note(object? parameter)
+        private void execute_pay_relation(object? parameter)
         {
-            if (parameter is pro_venta_pending_row row)
+            if (parameter is pro_venta_relation_row row)
                 on_request_payment_window?.Invoke(row);
         }
 
-        private async void execute_print_pdf(object? parameter)
+        private async void execute_note_pdf(object? parameter)
         {
-            if (parameter is not pro_venta_pending_row row) return;
+            if (parameter is not pro_venta_weekly_row row) return;
+
             try
             {
-                note_print_dto printable = await get_printable_note_async(row.id_delivery_note);
+                note_print_dto printable = await _accounts_receivable_service.get_printable_note_async(row.id_delivery_note);
                 NotePdfGenerator.generate(printable);
             }
             catch (Exception ex)
@@ -273,21 +298,35 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public async Task<note_print_dto> get_printable_note_async(int id_delivery_note)
+        public async Task print_relation_pdf_async(pro_venta_relation_row row)
         {
-            return await _accounts_receivable_service.get_printable_note_async(id_delivery_note);
+            try
+            {
+                var week = new pro_venta_week_info
+                {
+                    week_index = row.relation_number,
+                    start = row.week_start,
+                    end = row.week_end,
+                    label = $"{row.week_start:dd} AL {row.week_end:dd}"
+                };
+
+                var report = await _pro_venta_service.get_weekly_report_async(week);
+                decimal nota_por_pagar = Math.Round(report.total_amount - report.total_gastos_25 - report.total_gastos_15, 2);
+                ProVentaPdfGenerator.generate(report, nota_por_pagar);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        public async Task register_payment_async(int id_delivery_note, string note_number, decimal amount_usd, DateTime payment_date)
+        public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date)
         {
-            payment new_payment = new payment(
-                id_delivery_note, payment_date,
-                amount_usd, 0, null, "Efectivo", $"EF-{note_number}", "", "Pago Pro Venta");
-
-            await _payment_service.register_payment_async(new_payment, is_pro_venta: true);
+            await _payment_service.register_relation_payment_async(id_relacion, amount_usd, payment_date);
             MessageBox.Show("Pago registrado exitosamente.", "Exito");
 
             await load_pending_async();
+            await load_paid_async();
             refresh_weeks_async();
         }
     }
