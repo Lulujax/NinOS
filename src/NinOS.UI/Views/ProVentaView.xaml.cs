@@ -23,13 +23,12 @@ namespace NinOS.UI.Views
             DataContextChanged += (_, _) => SetupEvents();
         }
 
-        private void RelationRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void RelationGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (e.ClickCount != 2) return;
             if (IsInsideButton(e.OriginalSource as DependencyObject)) return;
 
-            if (sender is FrameworkElement fe
-                && fe.DataContext is pro_venta_relation_row row
+            if (sender is DataGrid dg
+                && dg.SelectedItem is pro_venta_relation_row row
                 && DataContext is ProVentaViewModel vm)
             {
                 ProVentaHistoryWindow window = new ProVentaHistoryWindow(vm, row) { Owner = Window.GetWindow(this) };
