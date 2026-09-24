@@ -16,26 +16,37 @@ namespace NinOS.UI
     public partial class App : Application
     {
         private ServiceProvider? _service_provider;
-        private static readonly string _startup_log_path = Path.Combine(AppContext.BaseDirectory, "ninos-ui-startup.log");
+        private static readonly string _error_log_path = Path.Combine(AppContext.BaseDirectory, "ninos-ui-error.log");
 
         public App()
         {
             DispatcherUnhandledException += (s, e) =>
             {
-                log_startup_message("DispatcherUnhandledException", e.Exception);
+                log_error("DispatcherUnhandledException", e.Exception);
+                e.Handled = true;
+                try
+                {
+                    MessageBox.Show(
+                        $"Ocurrió un error inesperado. Se guardó el detalle en:\n{_error_log_path}\n\nDetalle: {e.Exception.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+                catch { /* el mensaje es solo informativo */ }
             };
 
             AppDomain.CurrentDomain.UnhandledException += (s, e) =>
             {
                 if (e.ExceptionObject is Exception exception)
                 {
-                    log_startup_message("AppDomain.UnhandledException", exception);
+                    log_error("AppDomain.UnhandledException", exception);
                 }
             };
 
             TaskScheduler.UnobservedTaskException += (s, e) =>
             {
-                log_startup_message("TaskScheduler.UnobservedTaskException", e.Exception);
+                log_error("TaskScheduler.UnobservedTaskException", e.Exception);
+                e.SetObserved();
             };
         }
 
@@ -101,6 +112,7 @@ namespace NinOS.UI
 
                             log_startup_message("Before MainWindow resolve");
                             MainWindow main_window = _service_provider!.GetRequiredService<MainWindow>();
+                            Application.Current.MainWindow = main_window;
                             log_startup_message("Before MainWindow show");
                             main_window.Show();
                             main_window.Activate();
@@ -131,7 +143,19 @@ namespace NinOS.UI
                 log_entry += Environment.NewLine + exception;
             }
 
-            File.AppendAllText(_startup_log_path, log_entry + Environment.NewLine + Environment.NewLine);
+            File.AppendAllText(_error_log_path, log_entry + Environment.NewLine + Environment.NewLine);
+        }
+
+        private static void log_error(string source, Exception exception)
+        {
+            string entry =
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {source}{Environment.NewLine}" +
+                $"Mensaje: {exception.Message}{Environment.NewLine}" +
+                $"Stack Trace:{Environment.NewLine}{exception}" +
+                $"{Environment.NewLine}-----------------------------";
+
+            try { File.AppendAllText(_error_log_path, entry + Environment.NewLine); }
+            catch { /* el logging nunca debe derribar la app */ }
         }
 
         private void configure_services(ServiceCollection services)

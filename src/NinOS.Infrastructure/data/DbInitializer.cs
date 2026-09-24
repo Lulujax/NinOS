@@ -48,6 +48,33 @@ namespace NinOS.Infrastructure.Data
                 db_context.SaveChanges();
             }
 
+            // Tipos obsoletos (Promo Oleos, Canecalon, Hair Liss): se eliminan.
+            // Las notas que los usan pasan a tipo General.
+            var removed_type_codes = new[] { "PRO", "CAN", "HLS" };
+            var removed_types = db_context.note_types
+                .Where(t => removed_type_codes.Contains(t.code))
+                .ToList();
+            if (removed_types.Count > 0)
+            {
+                int? general_type_id = db_context.note_types
+                    .Where(t => t.code == "GEN")
+                    .Select(t => (int?)t.id_note_type)
+                    .FirstOrDefault();
+
+                var removed_type_ids = removed_types.Select(t => t.id_note_type).ToHashSet();
+                var notes_of_removed_types = db_context.delivery_notes
+                    .Where(n => n.note_type_id != null && removed_type_ids.Contains(n.note_type_id.Value))
+                    .ToList();
+                foreach (var note in notes_of_removed_types)
+                {
+                    note.note_type_id = general_type_id;
+                }
+                if (notes_of_removed_types.Count > 0) db_context.SaveChanges();
+
+                db_context.note_types.RemoveRange(removed_types);
+                db_context.SaveChanges();
+            }
+
             if (!db_context.note_types.Any())
             {
                 var general = new note_type(
@@ -66,32 +93,15 @@ namespace NinOS.Infrastructure.Data
                     sort_order = 2
                 };
 
-                var promo_oleos = new note_type(
-                    "Promo Oleos", "PRO", "DEFILE", "promo", true, 0m,
-                    "DESCUENTO 20% PROMO OLEOS",
-                    "Descuento adicional sobre precio promocional")
+                var promocion = new note_type(
+                    "Promocion", "PRM", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
                 {
-                    promo_discount_percentage = 20m,
                     sort_order = 3
                 };
 
-                var canecalon = new note_type(
-                    "Canecalon", "CAN", "CANECALON", "standard", true, 10m,
-                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
-                    "Descuento 10% SOLO\nCONTADO")
-                {
-                    sort_order = 4
-                };
-
-                var hair_liss = new note_type(
-                    "Hair Liss", "HLS", "HAIR LISS", "standard", true, 10m,
-                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
-                    "Descuento 10% SOLO\nCONTADO")
-                {
-                    sort_order = 5
-                };
-
-                db_context.note_types.AddRange(general, pro_venta, promo_oleos, canecalon, hair_liss);
+                db_context.note_types.AddRange(general, pro_venta, promocion);
                 db_context.SaveChanges();
             }
 

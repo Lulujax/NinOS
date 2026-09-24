@@ -608,10 +608,16 @@ namespace NinOS.UI.Common.ViewModels
                 .Where(t => t.is_active)
                 .OrderBy(t => t.sort_order))
             {
-                // Pro Venta solo puede crearla Juan Luis.
-                if (nt.code == "MAR" && !is_juan_luis) continue;
-                // Promocion es para los demas vendedores.
-                if (nt.code == "PRM" && is_juan_luis) continue;
+                if (is_juan_luis)
+                {
+                    // Juan Luis solo puede crear notas Pro Venta.
+                    if (nt.code != "MAR") continue;
+                }
+                else
+                {
+                    // Las demas vendedoras solo crean General o Promocion.
+                    if (nt.code != "GEN" && nt.code != "PRM") continue;
+                }
                 note_type_options.Add(nt);
             }
         }
@@ -1219,6 +1225,7 @@ namespace NinOS.UI.Common.ViewModels
                 volume_discount_amount = volume_discount_amount,
                 discounted_total_usd = discounted_total_usd,
                 document_label = document_label,
+                is_pro_venta = _selected_note_type != null && _selected_note_type.code == "MAR",
                 accent_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
                 accent_soft_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC"
             };

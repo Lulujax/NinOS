@@ -337,6 +337,8 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(n => n.status == "Pendiente").ToList();
             else if (_selected_filter == "Anuladas")
                 filtered = filtered.Where(n => n.status == "Anulada").ToList();
+            else if (_selected_filter == "Todas")
+                filtered = filtered.Where(n => n.status != "Pagada").ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());

@@ -631,6 +631,11 @@ namespace NinOS.UI.Common.ViewModels
                 await _inventory_service.delete_product_async(dto.product_ref);
                 load_initial_data_async();
             }
+            catch (InvalidOperationException ex)
+            {
+                ErrorMessage = ex.Message;
+                MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             catch (Exception ex)
             {
                 ErrorMessage = $"No se pudo eliminar el producto: {ex.Message}";
@@ -652,6 +657,11 @@ namespace NinOS.UI.Common.ViewModels
             {
                 await _inventory_service.delete_promotion_async(dto.promo_ref);
                 load_initial_data_async();
+            }
+            catch (InvalidOperationException ex)
+            {
+                ErrorMessage = ex.Message;
+                MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {

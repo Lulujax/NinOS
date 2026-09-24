@@ -58,6 +58,15 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                bool has_note_details = await db_context.note_details.AnyAsync(d => d.id_product == product_to_delete.id_product);
+                if (has_note_details)
+                    throw new InvalidOperationException("Este producto tiene notas de venta asociadas y no puede eliminarse. Solo puede editarse.");
+
+                bool has_promotion_items = await db_context.promotion_items.AnyAsync(i => i.id_product == product_to_delete.id_product);
+                if (has_promotion_items)
+                    throw new InvalidOperationException("Este producto forma parte de promociones y no puede eliminarse. Solo puede editarse.");
+
                 db_context.products.Remove(product_to_delete);
                 await db_context.SaveChangesAsync();
             }
@@ -123,6 +132,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                bool has_note_details = await db_context.note_details.AnyAsync(d => d.id_promotion == promotion_to_delete.id_promotion);
+                if (has_note_details)
+                    throw new InvalidOperationException("Esta promoción tiene notas de venta asociadas y no puede eliminarse. Solo puede editarse.");
+
                 db_context.promotions.Remove(promotion_to_delete);
                 await db_context.SaveChangesAsync();
             }

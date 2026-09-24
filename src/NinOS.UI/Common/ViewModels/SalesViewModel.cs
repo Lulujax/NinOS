@@ -151,12 +151,12 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<accounts_receivable_dto> filter_by_month_and_search(List<accounts_receivable_dto> source, string selected_month, string query)
         {
-            var result = source.AsEnumerable();
+            if (string.IsNullOrEmpty(selected_month))
+                return new List<accounts_receivable_dto>();
 
-            if (!string.IsNullOrEmpty(selected_month))
-                result = result.Where(n =>
-                    new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
-                        .ToString("MMMM yyyy", new CultureInfo("es-VE")) == selected_month);
+            var result = source.AsEnumerable().Where(n =>
+                new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
+                    .ToString("MMMM yyyy", new CultureInfo("es-VE")) == selected_month);
 
             if (!string.IsNullOrEmpty(query))
             {
