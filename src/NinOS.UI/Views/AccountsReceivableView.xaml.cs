@@ -196,5 +196,14 @@ namespace NinOS.UI.Views
             if (DataContext is AccountsReceivableViewModel vm)
                 await vm.save_observations_async(row, text);
         }
+
+        private async void DispatchDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not DatePicker picker) return;
+            if (picker.DataContext is not accounts_receivable_row_dto row) return;
+            if (row.dispatch_date == picker.SelectedDate) return;
+            if (DataContext is AccountsReceivableViewModel vm)
+                await vm.save_dispatch_date_async(row, picker.SelectedDate);
+        }
     }
 }

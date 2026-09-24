@@ -167,11 +167,9 @@ namespace NinOS.UI.Common.ViewModels
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
 
-            IEnumerable<payment_row_dto> source = _all_notes_source;
-            if (_selected_filter == "Pagadas")
-                source = source.Where(n => n.status == "Pagada");
-            else if (_selected_filter == "Pendientes")
-                source = source.Where(n => n.status == "Pendiente");
+            // Mostrar notas abonadas (pendiente con abono) o pagadas completas.
+            IEnumerable<payment_row_dto> source = _all_notes_source
+                .Where(n => n.status == "Pagada" || n.paid_amount_usd > 0);
 
             var filtered = filter_by_month_and_search(source.ToList(), _selected_month, query);
 
@@ -186,9 +184,6 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<payment_row_dto> filter_by_month_and_search(List<payment_row_dto> source, string selected_month, string query)
         {
-            if (string.IsNullOrEmpty(selected_month))
-                return new List<payment_row_dto>();
-
             var result = source.AsEnumerable();
 
             if (!string.IsNullOrEmpty(selected_month))

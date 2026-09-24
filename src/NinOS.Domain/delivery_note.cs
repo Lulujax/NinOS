@@ -95,6 +95,8 @@ namespace NinOS.Domain
 
         public string? cxc_observations { get; set; }
         public string? sales_observations { get; set; }
+        // Fecha en que la nota realmente se despacha (ingresada manualmente, no es la fecha de emision).
+        public DateTime? dispatch_date { get; set; }
         public decimal? discount_percentage { get; set; }
         public int? note_type_id { get; set; }
         public int? id_relacion { get; set; }

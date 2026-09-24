@@ -33,6 +33,21 @@ namespace NinOS.Infrastructure.Data
                 db_context.SaveChanges();
             }
 
+            // Tipo "Promocion": disponible para los vendedores que no son Juan Luis. Por ahora identico a General.
+            var existing_promocion = db_context.note_types.FirstOrDefault(t => t.code == "PRM");
+            if (existing_promocion == null)
+            {
+                var promocion = new note_type(
+                    "Promocion", "PRM", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 6
+                };
+                db_context.note_types.Add(promocion);
+                db_context.SaveChanges();
+            }
+
             if (!db_context.note_types.Any())
             {
                 var general = new note_type(

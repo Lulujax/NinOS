@@ -10,6 +10,7 @@ namespace NinOS.Domain.ViewModels
         public string company_name { get; set; } = string.Empty;
         public string header_title { get; set; } = string.Empty;
         public string document_label { get; set; } = "NOTA DE ENTREGA";
+        public bool is_pro_venta { get; set; }
         public string accent_color { get; set; } = "#1B3A2D";
         public string accent_soft_color { get; set; } = "#F0F4EC";
         public decimal? promo_discount_percentage { get; set; }

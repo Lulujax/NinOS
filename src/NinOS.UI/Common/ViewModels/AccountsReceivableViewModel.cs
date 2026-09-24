@@ -21,6 +21,7 @@ namespace NinOS.UI.Common.ViewModels
         public string seller_name { get; set; } = string.Empty;
         public int id_seller { get; set; }
         public DateTime creation_date { get; set; }
+        public DateTime? dispatch_date { get; set; }
         public decimal total_amount_usd { get; set; }
         public decimal gross_total_usd { get; set; }
         public decimal discount_amount { get; set; }
@@ -395,6 +396,7 @@ namespace NinOS.UI.Common.ViewModels
                 seller_name = n.seller_name,
                 id_seller = n.id_seller,
                 creation_date = n.creation_date,
+                dispatch_date = n.dispatch_date,
                 total_amount_usd = n.total_amount_usd,
                 gross_total_usd = n.gross_total_usd,
                 discount_amount = n.discount_amount,
@@ -537,6 +539,20 @@ namespace NinOS.UI.Common.ViewModels
             {
                 note.observations = note.saved_observations ?? string.Empty;
                 System.Windows.MessageBox.Show($"No se pudo guardar la observación: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        public async Task save_dispatch_date_async(accounts_receivable_row_dto note, DateTime? date)
+        {
+            if (date == note.dispatch_date) return;
+            try
+            {
+                await _receivable_service.update_note_dispatch_date_async(note.id_delivery_note, date);
+                note.dispatch_date = date;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"No se pudo guardar la fecha de despacho: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

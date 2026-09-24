@@ -49,25 +49,70 @@ namespace NinOS.UI
             try
             {
                 log_startup_message("OnStartup begin");
-                ServiceCollection service_collection = new ServiceCollection();
-                configure_services(service_collection);
-                _service_provider = service_collection.BuildServiceProvider();
 
-                log_startup_message("Before DbInitializer");
-                using (var scope = _service_provider.CreateScope())
+                SplashWindow splash = new SplashWindow { Topmost = true };
+                splash.ShowWithAnimation();
+                DateTime started_at = DateTime.Now;
+
+                System.Threading.Tasks.Task.Run(() =>
                 {
-                    var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                    DbInitializer.initialize(db_context);
-                }
-                log_startup_message("After DbInitializer");
+                    ServiceCollection service_collection = new ServiceCollection();
+                    configure_services(service_collection);
+                    _service_provider = service_collection.BuildServiceProvider();
 
-                log_startup_message("Before MainWindow resolve");
-                MainWindow main_window = _service_provider.GetRequiredService<MainWindow>();
-                log_startup_message("Before MainWindow show");
-                main_window.Show();
-                
-                base.OnStartup(e);
-                log_startup_message("OnStartup end");
+                    log_startup_message("Before DbInitializer");
+                    using (var scope = _service_provider.CreateScope())
+                    {
+                        var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                        DbInitializer.initialize(db_context);
+                    }
+                    log_startup_message("After DbInitializer");
+                }).ContinueWith(previous =>
+                {
+                    if (previous.IsFaulted)
+                    {
+                        Exception exception = previous.Exception?.GetBaseException() ?? new Exception("Error de arranque");
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            log_startup_message("OnStartup exception", exception);
+                            MessageBox.Show(exception.Message + "\n" + exception.InnerException?.Message, "error");
+                            Current.Shutdown();
+                        });
+                        return;
+                    }
+
+                    log_startup_message("After DbInitializer");
+
+                    DateTime ready_at = DateTime.Now;
+                    int remaining_ms = Math.Max(0, (2 * 1000) - (int)((ready_at - started_at).TotalMilliseconds));
+
+                    System.Windows.Threading.DispatcherTimer ready_timer = new System.Windows.Threading.DispatcherTimer();
+                    ready_timer.Interval = TimeSpan.FromMilliseconds(remaining_ms);
+                    ready_timer.Tick += (s, args) =>
+                    {
+                        ready_timer.Stop();
+                        splash.SetReady();
+
+                        System.Windows.Threading.DispatcherTimer build_timer = new System.Windows.Threading.DispatcherTimer();
+                        build_timer.Interval = TimeSpan.FromMilliseconds(400);
+                        build_timer.Tick += (s2, args2) =>
+                        {
+                            build_timer.Stop();
+
+                            log_startup_message("Before MainWindow resolve");
+                            MainWindow main_window = _service_provider!.GetRequiredService<MainWindow>();
+                            log_startup_message("Before MainWindow show");
+                            main_window.Show();
+                            main_window.Activate();
+                            splash.CloseWithAnimation();
+                            base.OnStartup(e);
+                            log_startup_message("OnStartup end");
+                        };
+                        build_timer.Start();
+                    };
+                    ready_timer.Start();
+                }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+
             }
             catch (Exception ex)
             {

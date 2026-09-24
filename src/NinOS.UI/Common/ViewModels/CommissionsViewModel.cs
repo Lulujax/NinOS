@@ -126,7 +126,7 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public ICommand add_commission_payment_command { get; }
-        public ICommand month_report_command { get; }
+        public ICommand print_commission_pdf_command { get; }
         public Action<List<commission_row_dto>>? on_request_add_commission_payment_window { get; set; }
         public Action<commission_row_dto>? on_request_commission_history_window { get; set; }
 
@@ -147,7 +147,7 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Todas");
 
             add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
-            month_report_command = new RelayCommand(execute_month_report);
+            print_commission_pdf_command = new RelayCommand(execute_print_commission_pdf);
 
             load_all_async();
         }
@@ -308,24 +308,35 @@ namespace NinOS.UI.Common.ViewModels
             return await _commission_service.get_all_commissions_async();
         }
 
-        private async void execute_month_report(object? parameter)
+        private async void execute_print_commission_pdf(object? parameter)
         {
+            if (parameter is not commission_row_dto row) return;
+
             try
             {
-                if (string.IsNullOrWhiteSpace(_selected_month))
+                var payments = (await _commission_service.get_commission_payments_async(row.id_commission)).ToList();
+                if (payments.Count == 0)
                 {
-                    System.Windows.MessageBox.Show("Seleccione un mes para generar el reporte.", "Reporte de comisiones",
+                    System.Windows.MessageBox.Show("No hay pagos de comision para imprimir.", "Imprimir",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
 
-                var payments = (await _commission_service.get_commission_payments_by_month_async(_selected_month)).ToList();
+                string reference = payments[0].reference_number;
+                // Un mismo pago (referencia) puede cubrir varias notas; el comprobante las incluye todas.
+                var receipt = await _commission_service.get_commission_receipt_async(new[] { row.id_commission }, reference);
+                if (receipt == null || receipt.rows.Count == 0)
+                {
+                    System.Windows.MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
 
-                CommissionMonthlyReportPdfGenerator.generate(_selected_month, payments);
+                CommissionPdfGenerator.generate(receipt);
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

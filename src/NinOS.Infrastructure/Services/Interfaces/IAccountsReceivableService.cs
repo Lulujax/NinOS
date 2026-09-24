@@ -17,6 +17,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<accounts_receivable_dto?> search_note_by_number_async(string note_number);
         Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage = null, decimal? volume_discount_percentage = null);
         Task update_note_cxc_observations_async(int id_delivery_note, string? observations);
+        Task update_note_dispatch_date_async(int id_delivery_note, DateTime? dispatch_date);
         Task update_note_sales_observations_async(int id_delivery_note, string? observations);
         Task<IEnumerable<seller>> get_sellers_async();
         Task annul_delivery_note_async(int id_delivery_note);

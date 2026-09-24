@@ -374,126 +374,6 @@ return new commission_dto
             await db.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<commission_month_payment_dto>> get_commission_payments_by_month_async(string month_year)
-        {
-            using var scope = _scope_factory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-
-            var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-
-            var commissions = await db.commissions
-                .AsNoTracking()
-                .Where(c => c.amount_usd > 0)
-                .ToListAsync();
-
-            if (commissions.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
-
-            var note_ids = commissions.Select(c => c.id_delivery_note).Distinct().ToList();
-            var notes = await db.delivery_notes
-                .AsNoTracking()
-                .Where(n => note_ids.Contains(n.id_delivery_note))
-                .ToDictionaryAsync(n => n.id_delivery_note);
-
-            // Solo comisiones cuyas notas fueron creadas en el mes seleccionado.
-            var commission_ids_ok = commissions
-                .Where(c => notes.TryGetValue(c.id_delivery_note, out var note)
-                            && note.creation_date.Year == target_date.Year
-                            && note.creation_date.Month == target_date.Month)
-                .Select(c => c.id_commission)
-                .Distinct()
-                .ToList();
-
-            if (commission_ids_ok.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
-
-            var payments = await db.commission_payments
-                .AsNoTracking()
-                .Where(p => commission_ids_ok.Contains(p.id_commission))
-                .ToListAsync();
-
-            if (payments.Count == 0) return Enumerable.Empty<commission_month_payment_dto>();
-
-            var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
-            var customers = await db.customers
-                .AsNoTracking()
-                .Where(c => customer_ids.Contains(c.id_customer))
-                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
-
-            var commission_map = commissions.ToDictionary(c => c.id_commission);
-            var seller_ids = commissions.Select(c => c.id_seller).Distinct().ToList();
-            var sellers = await db.sellers
-                .AsNoTracking()
-                .Where(s => seller_ids.Contains(s.id_seller))
-                .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
-
-            var note_last_payments = await db.payments
-                .AsNoTracking()
-                .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
-                .GroupBy(p => p.id_delivery_note!.Value)
-                .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
-                .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
-
-            var note_gross = await db.note_details
-                .AsNoTracking()
-                .Where(d => note_ids.Contains(d.id_delivery_note))
-                .GroupBy(d => d.id_delivery_note)
-                .Select(g => new { Id = g.Key, Gross = g.Sum(d => d.subtotal_usd) })
-                .ToDictionaryAsync(x => x.Id, x => x.Gross);
-
-            // Una fila por nota (comision). Al agrupar por comision evita duplicar notas
-            // que recibieron varios abonos de comision.
-            var grouped_payments = payments
-                .GroupBy(p => p.id_commission)
-                .ToDictionary(g => g.Key, g => g.OrderBy(p => p.payment_date).ToList());
-
-            return commission_map.Values
-                .Where(c => grouped_payments.ContainsKey(c.id_commission))
-                .Select(c =>
-                {
-                    notes.TryGetValue(c.id_delivery_note, out var note);
-                    var note_payments = grouped_payments[c.id_commission];
-                    note_last_payments.TryGetValue(c.id_delivery_note, out DateTime raw_note_payment_date);
-
-                    string note_number = string.Empty;
-                    string customer_name = string.Empty;
-                    string seller_name = string.Empty;
-                    if (note != null)
-                    {
-                        note_number = note.note_number;
-                        customers.TryGetValue(note.id_customer, out customer_name);
-                    }
-                    sellers.TryGetValue(c.id_seller, out seller_name);
-
-                    decimal invoiced = note_gross.TryGetValue(c.id_delivery_note, out var gross) ? gross : (note?.total_amount_usd ?? 0m);
-                    decimal paid = note?.adjusted_total_usd ?? 0m;
-                    decimal pronto = invoiced > paid ? invoiced - paid : 0m;
-
-                    return new commission_month_payment_dto
-                    {
-                        id_commission_payment = note_payments[0].id_commission_payment,
-                        id_commission = c.id_commission,
-                        note_number = note_number,
-                        customer_name = customer_name,
-                        seller_name = seller_name ?? string.Empty,
-                        payment_type = note_payments[0].payment_type,
-                        reference_number = note_payments[0].reference_number,
-                        bank_name = note_payments[0].bank_name,
-                        observations = note_payments[0].observations,
-                        amount_usd = note_payments.Sum(p => p.amount_usd),
-                        amount_bs = note_payments.Sum(p => p.amount_bs),
-                        exchange_rate = note_payments[0].exchange_rate,
-                        payment_date = note_payments[^1].payment_date,
-                        dispatch_date = note?.creation_date,
-                        note_payment_date = raw_note_payment_date == default ? (DateTime?)null : raw_note_payment_date,
-                        invoiced_amount = invoiced,
-                        paid_amount = paid,
-                        early_payment_discount = pronto,
-                        commission_10 = Math.Round(paid * 0.10m, 2)
-                    };
-                })
-                .OrderBy(p => p.payment_date)
-                .ToList();
-        }
-
         public async Task<commission_receipt_dto?> get_commission_receipt_async(int[] commission_ids, string reference_number)
         {
             if (commission_ids == null || commission_ids.Length == 0) return null;
@@ -501,12 +381,17 @@ return new commission_dto
             using var scope = _scope_factory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            var query = db.commission_payments
-                .AsNoTracking()
-                .Where(p => commission_ids.Contains(p.id_commission));
+            IQueryable<commission_payment> query = db.commission_payments.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(reference_number))
+            {
+                // Un mismo pago (misma referencia) puede cubrir varias notas: se incluyen todas.
                 query = query.Where(p => p.reference_number == reference_number);
+            }
+            else
+            {
+                query = query.Where(p => commission_ids.Contains(p.id_commission));
+            }
 
             var batch_payments = await query.ToListAsync();
 

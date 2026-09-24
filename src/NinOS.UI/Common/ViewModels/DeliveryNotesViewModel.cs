@@ -507,6 +507,11 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(note_soft_color));
             on_property_changed(nameof(note_payment_bg));
             on_property_changed(nameof(note_guardar_color));
+            on_property_changed(nameof(payment_header_label));
+            on_property_changed(nameof(payment_transfer_label));
+            on_property_changed(nameof(payment_account_label));
+            on_property_changed(nameof(payment_movil_bank_label));
+            on_property_changed(nameof(payment_movil_phone_label));
 
             if (nt == null)
             {
@@ -567,15 +572,46 @@ namespace NinOS.UI.Common.ViewModels
             get { return is_pro_venta ? "#2196F3" : "#4CAF50"; }
         }
 
+        public string payment_header_label
+        {
+            get { return is_pro_venta ? "DATOS PARA PAGOS NOTAS DE DESPACHO DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : "DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE"; }
+        }
+
+        public string payment_transfer_label
+        {
+            get { return is_pro_venta ? "TRANSFERENCIA _ BANCO VENEZUELA  CUENTA CORRIENTE" : "TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE"; }
+        }
+
+        public string payment_account_label
+        {
+            get { return is_pro_venta ? "NRO DE CUENTA _ 0102-0868-84-00000-27-407  /  CEDULA – 6.266.986" : "NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA – 13.046.042"; }
+        }
+
+        public string payment_movil_bank_label
+        {
+            get { return is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL"; }
+        }
+
+        public string payment_movil_phone_label
+        {
+            get { return is_pro_venta ? "BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986" : "BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042"; }
+        }
+
         private void RefreshNoteTypeOptions()
         {
             note_type_options.Clear();
             if (_selected_seller == null) return;
 
+            bool is_juan_luis = string.Equals(_selected_seller.full_name, "Juan Luis", StringComparison.OrdinalIgnoreCase);
+
             foreach (note_type nt in _all_note_types_cache
                 .Where(t => t.is_active)
                 .OrderBy(t => t.sort_order))
             {
+                // Pro Venta solo puede crearla Juan Luis.
+                if (nt.code == "MAR" && !is_juan_luis) continue;
+                // Promocion es para los demas vendedores.
+                if (nt.code == "PRM" && is_juan_luis) continue;
                 note_type_options.Add(nt);
             }
         }

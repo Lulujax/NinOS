@@ -192,16 +192,16 @@ namespace NinOS.UI.Views
 
             var transferCol = new StackPanel();
             transferCol.Children.Add(MakeText("TRANSFERENCIA", 8, true, PrimaryBrush));
-            transferCol.Children.Add(MakeText("BANCO MERCANTIL  _  CUENTA CORRIENTE", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
-            transferCol.Children.Add(MakeText("NRO DE CUENTA  _  0105-0120-23-11200-92426", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            transferCol.Children.Add(MakeText("CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            transferCol.Children.Add(MakeText(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
+            transferCol.Children.Add(MakeText(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            transferCol.Children.Add(MakeText(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
             bankDataGrid.Children.Add(transferCol);
 
             var pagoMovilCol = new StackPanel();
             pagoMovilCol.Children.Add(MakeText("PAGO MOVIL", 8, true, PrimaryBrush));
-            pagoMovilCol.Children.Add(MakeText("BANCO MERCANTIL", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
-            pagoMovilCol.Children.Add(MakeText("NRO TELEFONO  _  0424.496.01.02", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            pagoMovilCol.Children.Add(MakeText("CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
+            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
+            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
             Grid.SetColumn(pagoMovilCol, 2);
             bankDataGrid.Children.Add(pagoMovilCol);
 
@@ -429,9 +429,6 @@ namespace NinOS.UI.Views
                 Margin = new Thickness(0, 3, 0, 0),
                 ItemsSource = new ObservableCollection<object>(note.details)
             };
-
-            // La vista previa de la nota es un documento, sin filtros de columna.
-            DataGridExtensions.DataGridFilter.SetIsAutoFilterEnabled(dg, false);
 
             var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, PrimaryBrush));

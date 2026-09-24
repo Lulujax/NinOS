@@ -12,6 +12,7 @@ namespace NinOS.Domain.ViewModels
         public int id_seller { get; set; }
         public string seller_name { get; set; } = string.Empty;
         public DateTime creation_date { get; set; }
+        public DateTime? dispatch_date { get; set; }
         public decimal total_amount_usd { get; set; }
         public decimal gross_total_usd { get; set; }
         public decimal discount_amount { get; set; }

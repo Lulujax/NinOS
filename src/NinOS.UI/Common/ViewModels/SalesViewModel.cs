@@ -140,13 +140,6 @@ namespace NinOS.UI.Common.ViewModels
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
             var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
 
-            if (_selected_filter == "Por Cobrar")
-                filtered = filtered.Where(n => n.status == "Pendiente").ToList();
-            else if (_selected_filter == "Pagadas")
-                filtered = filtered.Where(n => n.status == "Pagada").ToList();
-            else if (_selected_filter == "Anuladas")
-                filtered = filtered.Where(n => n.status == "Anulada").ToList();
-
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
             update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
@@ -158,9 +151,6 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<accounts_receivable_dto> filter_by_month_and_search(List<accounts_receivable_dto> source, string selected_month, string query)
         {
-            if (string.IsNullOrEmpty(selected_month))
-                return new List<accounts_receivable_dto>();
-
             var result = source.AsEnumerable();
 
             if (!string.IsNullOrEmpty(selected_month))

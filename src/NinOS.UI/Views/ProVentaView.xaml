@@ -1,7 +1,6 @@
 <UserControl x:Class="NinOS.UI.Views.ProVentaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:dgx="urn:tom-englert.de/DataGridExtensions"
              Background="White">
     <UserControl.Resources>
         <Style x:Key="CenterCellStyle" TargetType="TextBlock">
@@ -25,7 +24,17 @@
             <Setter Property="Background" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="AlternatingRowBackground" Value="#E3F2FD"/>
-            <Setter Property="dgx:DataGridFilter.IsAutoFilterEnabled" Value="True"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#1565C0"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="4"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 

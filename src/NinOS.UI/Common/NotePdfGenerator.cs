@@ -237,9 +237,9 @@ namespace NinOS.UI.Common
                                         r.RelativeItem().Column(c =>
                                         {
                                             c.Item().Text("TRANSFERENCIA").FontSize(7).Bold().FontColor(PrimaryColor);
-                                            c.Item().PaddingTop(1).Text("BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(7);
-                                            c.Item().PaddingTop(1).Text("NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(7);
-                                            c.Item().PaddingTop(1).Text("CEDULA  _  13.046.042").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(7);
                                         });
 
                                         r.ConstantItem(16);
@@ -247,9 +247,9 @@ namespace NinOS.UI.Common
                                         r.RelativeItem().Column(c =>
                                         {
                                             c.Item().Text("PAGO MOVIL").FontSize(7).Bold().FontColor(PrimaryColor);
-                                            c.Item().PaddingTop(1).Text("BANCO MERCANTIL").FontSize(7);
-                                            c.Item().PaddingTop(1).Text("NRO TELEFONO  _  0424.496.01.02").FontSize(7);
-                                            c.Item().PaddingTop(1).Text("CEDULA  _  13.046.042").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02").FontSize(7);
+                                            c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(7);
                                         });
                                     });
 

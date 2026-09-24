@@ -125,6 +125,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
+                        dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
                         status = dn.status,
                         paid_amount_usd = paid,
@@ -233,6 +234,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
+                        dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
@@ -343,6 +345,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
                         creation_date = dn.creation_date,
+                        dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
                         gross_total_usd = gross,
                         discount_amount = discount,
@@ -423,6 +426,22 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
 
                 delivery_note.cxc_observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
+                await db_context.SaveChangesAsync();
+            }
+        }
+
+        public async Task update_note_dispatch_date_async(int id_delivery_note, DateTime? dispatch_date)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var delivery_note = await db_context.delivery_notes
+                    .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
+                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+
+                delivery_note.dispatch_date = dispatch_date?.Kind == DateTimeKind.Utc
+                    ? dispatch_date
+                    : dispatch_date?.ToUniversalTime();
                 await db_context.SaveChangesAsync();
             }
         }
@@ -700,6 +719,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
                     document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
+                    is_pro_venta = note_type != null && note_type.code == "MAR",
                     accent_color = note_type != null && note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
                     accent_soft_color = note_type != null && note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC",
                     promo_discount_percentage = is_promo ? promo_pct : null,
