@@ -18,6 +18,7 @@
             <Setter Property="CanUserDeleteRows" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="20"/>
         </Style>
@@ -94,19 +95,12 @@
         </Grid.RowDefinitions>
 
         <!-- FILA 0: HEADER - titulo + busqueda + mes + filtro -->
-        <Grid Grid.Row="0" Margin="0,0,0,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="260"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0" Text="VENTAS" FontSize="16.5" FontWeight="Bold"
-                       Foreground="#00897B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+        <WrapPanel Grid.Row="0" Margin="0,0,0,6">
+            <TextBlock Text="VENTAS" FontSize="16.5" FontWeight="Bold"
+                       Foreground="#00897B" VerticalAlignment="Center" Margin="0,0,12,6"/>
 
             <!-- Busqueda -->
-            <Grid Grid.Column="1" Margin="0,0,8,0">
+            <Grid Width="260" Margin="0,0,8,6" VerticalAlignment="Center">
                 <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
                     <Grid>
                         <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
@@ -131,15 +125,14 @@
             </Grid>
 
             <!-- Mes + Filtro -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="110"
+                <ComboBox x:Name="cmb_month" Margin="0,0,8,6" MinWidth="110" VerticalAlignment="Center"
                           ItemsSource="{Binding pending_months}"
                           SelectedItem="{Binding selected_month}"
                           FontSize="12.5" Height="26"
                           HorizontalContentAlignment="Center"/>
 
                 <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
-                        Margin="8,0,0,0"
+                        Margin="0,0,0,6" VerticalAlignment="Center"
                         FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
                         Command="{Binding month_report_command}" FontSize="12.5">
                     <Button.Template>
@@ -155,8 +148,7 @@
                         </ControlTemplate>
                     </Button.Template>
                 </Button>
-            </StackPanel>
-        </Grid>
+        </WrapPanel>
 
         <!-- FILA 1: TABS DE VENDEDORAS -->
         <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4">
@@ -593,13 +585,144 @@
             </TabItem>
         </TabControl>
 
-        <!-- FILA 3: FOOTER - total -->
-        <Border Grid.Row="3" Background="#00897B" Padding="10,5" CornerRadius="0,0,4,4">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <TextBlock Text="TOTAL VENTA:" Foreground="#B2DFDB" FontSize="12.5" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding total_sales_usd, StringFormat=F2}" Foreground="White" FontSize="14.5"
-                           FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
-            </StackPanel>
+        <!-- FILA 3: FOOTER - total + meta + progreso -->
+        <Border Grid.Row="3" Background="#00897B" Padding="12,7" CornerRadius="0,0,4,4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Fila 1: total venta + meta -->
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="TOTAL VENTA:" Foreground="#B2DFDB" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding total_sales_usd, StringFormat=F2}" Foreground="White" FontSize="15"
+                                   FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Meta (editable) -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding goal_label_display}" Foreground="#B2DFDB" FontSize="12.5" VerticalAlignment="Center"/>
+                        <TextBlock Foreground="White" FontSize="13" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="5,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{Binding sales_goal_usd, StringFormat=F2}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding sales_goal_usd}" Value="{x:Null}">
+                                            <Setter Property="Text" Value="Sin meta"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Botones define/edita -->
+                        <Button Margin="10,0,0,0" Padding="8,3" BorderThickness="0" Cursor="Hand"
+                                FontSize="11.5" Foreground="White" Background="#1B3A2D" FontWeight="SemiBold"
+                                Command="{Binding edit_goal_command}">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Content" Value="Editar meta"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding is_editing_goal}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding is_month_selected}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding sales_goal_usd}" Value="{x:Null}">
+                                            <Setter Property="Content" Value="Definir meta"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <!-- Editor de meta -->
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding is_editing_goal}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding is_month_selected}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBox x:Name="txt_goal" Text="{Binding goal_edit_text, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="90" Height="24" Margin="10,0,0,0" FontSize="12.5"
+                                     VerticalContentAlignment="Center" Background="White"
+                                     KeyDown="GoalTextBox_KeyDown"/>
+                            <Button Content="Guardar" Margin="5,0,0,0" Padding="8,2" BorderThickness="0" Cursor="Hand"
+                                    FontSize="11.5" Foreground="White" Background="#2E7D32" FontWeight="SemiBold"
+                                    Command="{Binding save_goal_command}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#388E3C"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Fila 2: barra de progreso + estado -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ProgressBar Grid.Column="0" Height="10" Value="{Binding goal_progress_percent, Mode=OneWay}"
+                                 Maximum="100" Background="#0D5A4B" Foreground="#FFD54F">
+                        <ProgressBar.Style>
+                            <Style TargetType="ProgressBar">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding sales_goal_usd}" Value="{x:Null}">
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ProgressBar.Style>
+                    </ProgressBar>
+
+                    <TextBlock Grid.Column="1" Text="{Binding goal_status_text}" FontSize="11.5"
+                               Foreground="#E0F2F1" VerticalAlignment="Center" Margin="10,0,0,0" TextAlignment="Right"/>
+                </Grid>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

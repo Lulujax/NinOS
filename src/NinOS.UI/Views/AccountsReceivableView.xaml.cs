@@ -47,14 +47,18 @@ namespace NinOS.UI.Views
                 {
                     if (viewModel.selected_note == null) return;
 
-                    string message = $"Esta seguro de anular la nota {viewModel.selected_note.note_number}?\nEl stock sera restituido.";
-                    MessageBoxImage icon = MessageBoxImage.Question;
-
                     if (viewModel.selected_note.paid_amount_usd > 0)
                     {
-                        message += $"\n\nADVERTENCIA: Esta nota tiene pagos registrados ({viewModel.selected_note.paid_amount_usd:N2} USD).\nSi la anula, esos pagos quedaran asociados a una nota anulada.";
-                        icon = MessageBoxImage.Warning;
+                        MessageBox.Show(
+                            $"No se puede anular la nota {viewModel.selected_note.note_number}.\nTiene abonos registrados ({viewModel.selected_note.paid_amount_usd:N2} USD). Elimine primero los pagos.",
+                            "Anulacion bloqueada",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                        return;
                     }
+
+                    string message = $"Esta seguro de anular la nota {viewModel.selected_note.note_number}?\nEl stock sera restituido.";
+                    MessageBoxImage icon = MessageBoxImage.Question;
 
                     MessageBoxResult result = MessageBox.Show(
                         message,

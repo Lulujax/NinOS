@@ -40,6 +40,7 @@ namespace NinOS.UI.Common.ViewModels
         private bool _show_search_popup_text;
         private bool _show_search_popup_code;
         private decimal _promo_price_unit;
+        private decimal _promo_discount_per_unit;
 
         public ObservableCollection<billable_item> available_items { get; }
 
@@ -188,6 +189,19 @@ namespace NinOS.UI.Common.ViewModels
         public decimal promo_price_usd
         {
             get { return _promo_price_unit; }
+        }
+
+        public decimal promo_discount_per_unit_usd
+        {
+            get { return _promo_discount_per_unit; }
+        }
+
+        public Func<bool>? is_promo_provider;
+        public Func<decimal>? promo_percentage_provider;
+
+        public bool is_promo_mode
+        {
+            get { return is_promo_provider?.Invoke() ?? false; }
         }
 
         public Action? on_subtotal_changed;
@@ -361,19 +375,46 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public void recalculate_row()
+        {
+            calculate_subtotal();
+        }
+
         private void calculate_subtotal()
         {
-            decimal effective_price = _unit_price_usd;
-
-            string normalized_promo = _promo_price_usd_text.Replace(",", ".");
-            if (decimal.TryParse(normalized_promo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal promo_price) && promo_price > 0)
+            if (is_promo_provider?.Invoke() ?? false)
             {
-                effective_price = promo_price;
+                decimal pct = promo_percentage_provider?.Invoke() ?? 0;
+                if (pct < 0) pct = 0;
+                if (pct > 100) pct = 100;
+
+                decimal unit = _unit_price_usd;
+                decimal discount = unit * pct / 100m;
+                decimal effective = unit - discount;
+                if (effective < 0) effective = 0;
+
+                _promo_discount_per_unit = discount;
+                _promo_price_unit = effective;
+                subtotal_usd = _quantity * effective;
+            }
+            else
+            {
+                decimal effective_price = _unit_price_usd;
+
+                string normalized_promo = _promo_price_usd_text.Replace(",", ".");
+                if (decimal.TryParse(normalized_promo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal promo_price) && promo_price > 0)
+                {
+                    effective_price = promo_price;
+                }
+
+                _promo_price_unit = effective_price;
+                _promo_discount_per_unit = 0;
+                subtotal_usd = _quantity * effective_price;
             }
 
-            _promo_price_unit = effective_price;
-
-            subtotal_usd = _quantity * effective_price;
+            on_property_changed(nameof(promo_price_usd));
+            on_property_changed(nameof(promo_discount_per_unit_usd));
+            on_property_changed(nameof(is_promo_mode));
 
             on_subtotal_changed?.Invoke();
         }
@@ -412,6 +453,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
 
         private string _credit_days_text = "21 dias de credito";
+        private string _promo_title_text = "PROMOCION OLEOS MAYO Y JUNIO";
         private string _customer_code_text = string.Empty;
         private string _contact_name_text = string.Empty;
 
@@ -501,6 +543,8 @@ namespace NinOS.UI.Common.ViewModels
             _selected_note_type = nt;
             on_property_changed(nameof(selected_note_type));
             on_property_changed(nameof(has_promo_discount));
+            on_property_changed(nameof(is_promo));
+            on_property_changed(nameof(promo_column_header));
             on_property_changed(nameof(document_label));
             on_property_changed(nameof(is_pro_venta));
             on_property_changed(nameof(note_accent_color));
@@ -535,6 +579,15 @@ namespace NinOS.UI.Common.ViewModels
             discount_percentage_text = CleanPercent(nt.default_discount_percentage);
             promo_discount_percentage_text = nt.promo_discount_percentage.HasValue ? CleanPercent(nt.promo_discount_percentage.Value) : string.Empty;
             volume_discount_percentage_text = string.Empty;
+
+            if (is_promo)
+            {
+                _discount_conditions_text = string.Empty;
+                on_property_changed(nameof(discount_conditions_text));
+                promo_title_text = "PROMOCION OLEOS MAYO Y JUNIO";
+                foreach (note_detail_row row in note_details) row.recalculate_row();
+                recalculate_total();
+            }
         }
 
         private static string CleanPercent(decimal value)
@@ -564,7 +617,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string note_payment_bg
         {
-            get { return is_pro_venta ? "#BBDEFB" : "#DCE6C8"; }
+            get { return is_promo ? "#FFFFFF" : (is_pro_venta ? "#BBDEFB" : "#DCE6C8"); }
         }
 
         public string note_guardar_color
@@ -800,10 +853,29 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public bool is_promo
+        {
+            get { return has_promo_discount; }
+        }
+
+        public string promo_column_header
+        {
+            get
+            {
+                decimal pct = 0;
+                if (has_promo_discount)
+                {
+                    string normalized = string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", ".");
+                    if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed)) pct = parsed;
+                }
+                return $"Descuento {CleanPercent(pct)}%";
+            }
+        }
+
         public string header_title
         {
             get { return _header_title; }
-            private set
+            set
             {
                 if (_header_title == value) return;
                 _header_title = value;
@@ -829,6 +901,8 @@ namespace NinOS.UI.Common.ViewModels
 
                 _promo_discount_percentage_text = value;
                 on_property_changed();
+                foreach (note_detail_row row in note_details) row.recalculate_row();
+                on_property_changed(nameof(promo_column_header));
                 recalculate_total();
             }
         }
@@ -880,6 +954,17 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_credit_days_text == value) return;
                 _credit_days_text = value;
+                on_property_changed();
+            }
+        }
+
+        public string promo_title_text
+        {
+            get { return _promo_title_text; }
+            set
+            {
+                if (_promo_title_text == value) return;
+                _promo_title_text = value;
                 on_property_changed();
             }
         }
@@ -1128,6 +1213,13 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 note_detail_row new_row = new note_detail_row(all_items, note_details);
                 new_row.on_subtotal_changed = recalculate_total;
+                new_row.is_promo_provider = () => has_promo_discount;
+                new_row.promo_percentage_provider = () =>
+                {
+                    string normalized = string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", ".");
+                    if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed)) return parsed;
+                    return 0;
+                };
                 note_details.Add(new_row);
             }
             catch (Exception ex)
@@ -1148,6 +1240,30 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalculate_total()
         {
+            if (has_promo_discount)
+            {
+                decimal full = 0;
+                foreach (note_detail_row row in note_details)
+                {
+                    full += row.quantity * row.unit_price_usd;
+                }
+                gross_total_usd = full;
+
+                string normalized_promo = string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", ".");
+                decimal promo_pct_value = 0;
+                if (decimal.TryParse(normalized_promo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo_pct))
+                {
+                    promo_pct_value = parsed_promo_pct;
+                }
+                decimal promo_amt = full * (promo_pct_value / 100m);
+                promo_discount_amount = promo_amt;
+                discount_amount = 0;
+                volume_discount_amount = 0;
+                discounted_total_usd = full - promo_amt;
+                total_amount_usd = full;
+                return;
+            }
+
             decimal sum = 0;
             foreach (note_detail_row row in note_details)
             {
@@ -1217,6 +1333,7 @@ namespace NinOS.UI.Common.ViewModels
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,
                 discount_conditions_text = _discount_conditions_text,
+                promo_banner_text = has_promo_discount ? _promo_title_text : string.Empty,
                 company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
                 header_title = string.IsNullOrWhiteSpace(_header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : _header_title,
                 promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo) ? parsed_promo : null,
@@ -1226,6 +1343,7 @@ namespace NinOS.UI.Common.ViewModels
                 discounted_total_usd = discounted_total_usd,
                 document_label = document_label,
                 is_pro_venta = _selected_note_type != null && _selected_note_type.code == "MAR",
+                is_promo = has_promo_discount,
                 accent_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
                 accent_soft_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC"
             };
@@ -1240,6 +1358,7 @@ namespace NinOS.UI.Common.ViewModels
                     quantity = row.quantity,
                     unit_price_usd = row.unit_price_usd,
                     promo_price_usd = row.promo_price_usd,
+                    discount_usd = row.promo_discount_per_unit_usd,
                     subtotal_usd = row.subtotal_usd
                 });
             }
@@ -1257,7 +1376,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (note_details.Count > MAX_NOTE_ITEMS) throw new InvalidOperationException($"La nota de entrega no puede tener mas de {MAX_NOTE_ITEMS} items.");
                 if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
                 if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
-                if (string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (!has_promo_discount && string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 decimal validated_discount = decimal.TryParse(string.IsNullOrWhiteSpace(_discount_percentage_text) ? "0" : _discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount)
                     ? parsed_discount
                     : -1;
@@ -1308,6 +1427,7 @@ namespace NinOS.UI.Common.ViewModels
                 decimal vol_pct = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0;
 
                 new_note.note_type_id = _selected_note_type?.id_note_type;
+                new_note.promo_banner = has_promo_discount ? _promo_title_text : null;
                 new_note.promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal pp) ? pp : null;
 
                 // CxC trabaja un único DCTO; el detalle separado (condición + volumen) queda congelado para el PDF.
@@ -1371,6 +1491,11 @@ namespace NinOS.UI.Common.ViewModels
                     ? CleanPercent(_selected_note_type.promo_discount_percentage.Value)
                     : string.Empty;
                 volume_discount_percentage_text = string.Empty;
+                customer_code_text = string.Empty;
+                contact_name_text = string.Empty;
+                _selected_customer = null;
+                on_property_changed(nameof(selected_customer));
+                on_property_changed(nameof(customer_code_text));
                 recalculate_total();
                 update_correlative_async();
                 OnNoteSaved?.Invoke();

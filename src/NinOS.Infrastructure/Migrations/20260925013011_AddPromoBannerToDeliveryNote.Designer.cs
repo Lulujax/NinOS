@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NinOS.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    partial class NinOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260925013011_AddPromoBannerToDeliveryNote")]
+    partial class AddPromoBannerToDeliveryNote
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -653,32 +656,6 @@ namespace NinOS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("relacion", (string)null);
-                });
-
-            modelBuilder.Entity("NinOS.Domain.sales_goal", b =>
-                {
-                    b.Property<int>("id_sales_goal")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_sales_goal");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_sales_goal"));
-
-                    b.Property<decimal>("amount_usd")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount_usd");
-
-                    b.Property<DateTime>("goal_month_start")
-                        .HasColumnType("date")
-                        .HasColumnName("goal_month_start");
-
-                    b.HasKey("id_sales_goal");
-
-                    b.HasIndex("goal_month_start")
-                        .IsUnique();
-
-                    b.ToTable("sales_goal", (string)null);
                 });
 
             modelBuilder.Entity("NinOS.Domain.seller", b =>

@@ -221,9 +221,30 @@ namespace NinOS.UI.Common.ViewModels
             if (!string.IsNullOrEmpty(query))
             {
                 result = result.Where(n =>
-                    (n.note_number?.ToLower().Contains(query) ?? false) ||
-                    (n.customer_name?.ToLower().Contains(query) ?? false) ||
-                    (n.seller_name?.ToLower().Contains(query) ?? false));
+                    SearchText.combine(
+                        n.note_number,
+                        n.customer_name,
+                        n.seller_name,
+                        n.status,
+                        n.reference_number,
+                        n.month_key,
+                        SearchText.date(n.creation_date),
+                        SearchText.date(n.dispatch_date),
+                        SearchText.date(n.commission_cancelled_date),
+                        SearchText.date(n.payout_date),
+                        SearchText.money(n.sale_amount_usd),
+                        SearchText.money(n.amount_usd),
+                        SearchText.money(n.paid_amount_usd),
+                        SearchText.money(n.invoiced_amount),
+                        SearchText.money(n.early_payment_discount),
+                        SearchText.money(n.volume_discount),
+                        SearchText.money(n.commission_10),
+                        SearchText.money(n.updated_balance),
+                        SearchText.money(n.updated_receivable),
+                        SearchText.money(n.amount_bs),
+                        SearchText.money(n.exchange_rate),
+                        SearchText.pct(n.commission_percentage)
+                    ).Contains(query));
             }
 
             return result.ToList();

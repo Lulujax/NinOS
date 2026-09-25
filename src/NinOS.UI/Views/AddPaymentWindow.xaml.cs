@@ -30,6 +30,8 @@ namespace NinOS.UI.Views
         private bool _is_bs_mode = true;
         private bool _is_edit_mode;
         private bool _is_preloaded;
+        // En edicion: saldo de la nota sin descontar este pago (para que el calculo en vivo no lo reste dos veces).
+        private decimal _edit_effective_balance;
         private List<note_combo_item> _all_combo_items = new();
 
         public event EventHandler? PaymentRegistered;
@@ -80,23 +82,31 @@ namespace NinOS.UI.Views
 
         private void SetupEditMode(payment_dto p)
         {
+            decimal note_total = p.total_note_usd;
+            decimal note_balance = p.balance_due_usd;
+            decimal note_paid = note_total - note_balance;
+
             _selected_note = new accounts_receivable_dto
             {
                 id_delivery_note = p.id_delivery_note,
                 note_number = p.note_number,
                 customer_name = p.customer_name,
-                total_amount_usd = p.total_note_usd,
-                paid_amount_usd = p.amount_usd,
-                balance_due_usd = p.balance_due_usd,
+                total_amount_usd = note_total,
+                paid_amount_usd = note_paid,
+                balance_due_usd = note_balance,
                 status = ""
             };
+
+            // El saldo real de la nota ya descuenta este pago; para editar hay que sumarlo de vuelta
+            // y restar recien el nuevo monto (evita el doble descuento).
+            _edit_effective_balance = note_balance + p.amount_usd;
 
             NoteTextBox.Text = $"{p.note_number} - {p.customer_name}";
             NoteTextBox.IsReadOnly = true;
             BtnToggleDropdown.IsEnabled = false;
 
             NoteInfoBorder.Visibility = Visibility.Visible;
-            NoteInfoText.Text = $"{p.note_number} - {p.customer_name}\nTOTAL: {p.total_note_usd:N2}  |  ABONADO: {p.amount_usd:N2}  |  SALDO PENDIENTE: {p.balance_due_usd:N2}";
+            NoteInfoText.Text = $"{p.note_number} - {p.customer_name}\nTOTAL: {note_total:N2}  |  ABONADO: {note_paid:N2}  |  SALDO PENDIENTE: {note_balance:N2}";
 
             if (p.payment_date != default) PaymentDatePicker.SelectedDate = p.payment_date;
 
@@ -246,7 +256,9 @@ namespace NinOS.UI.Views
         private void UpdateEquiv()
         {
             if (_selected_note == null) { EquivText.Text = ""; return; }
-            decimal balance = _selected_note.balance_due_usd;
+            decimal balance = _is_edit_mode
+                ? _edit_effective_balance
+                : _selected_note.balance_due_usd;
             decimal usd = ParseDecimal(AmountBox.Text);
             if (usd > 0)
             {
@@ -346,9 +358,13 @@ namespace NinOS.UI.Views
 
                 if (_is_edit_mode && _edit_payment != null)
                 {
-                    string msg = $"Monto: {amount_usd:N2}\nDesea guardar los cambios de este abono?";
+                    decimal nuevo_saldo_edit = _edit_effective_balance - amount_usd;
+                    string msg = $"Monto: {amount_usd:N2}\n";
+                    msg += nuevo_saldo_edit <= 0
+                        ? "El saldo quedara en 0. La nota se marcara como PAGADA."
+                        : $"Nuevo saldo: {nuevo_saldo_edit:N2}";
                     var edit_result = MessageBox.Show(
-                        msg,
+                        msg + "\n\nDesea guardar los cambios de este abono?",
                         "Confirmar edicion",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Question);

@@ -17,6 +17,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<promotion> promotions { get; set; }
         public DbSet<promotion_item> promotion_items { get; set; }
         public DbSet<relacion> relaciones { get; set; }
+        public DbSet<sales_goal> sales_goals { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -229,6 +230,16 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.week_start).HasColumnName("week_start").HasColumnType("date").IsRequired();
                 entity.HasIndex(e => e.week_start).IsUnique();
                 entity.Property(e => e.week_end).HasColumnName("week_end").HasColumnType("date").IsRequired();
+            });
+
+            model_builder.Entity<sales_goal>(entity =>
+            {
+                entity.ToTable("sales_goal");
+                entity.HasKey(e => e.id_sales_goal);
+                entity.Property(e => e.id_sales_goal).HasColumnName("id_sales_goal").UseIdentityByDefaultColumn();
+                entity.Property(e => e.goal_month_start).HasColumnName("goal_month_start").HasColumnType("date").IsRequired();
+                entity.HasIndex(e => e.goal_month_start).IsUnique();
+                entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
             });
         }
     }

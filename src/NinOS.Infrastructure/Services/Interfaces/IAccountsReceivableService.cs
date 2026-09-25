@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NinOS.Domain;
@@ -22,5 +23,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<seller>> get_sellers_async();
         Task annul_delivery_note_async(int id_delivery_note);
         Task<note_print_dto> get_printable_note_async(int id_delivery_note);
+        Task<decimal?> get_sales_goal_async(DateTime year_month);
+        Task set_sales_goal_async(DateTime year_month, decimal amount_usd);
     }
 }

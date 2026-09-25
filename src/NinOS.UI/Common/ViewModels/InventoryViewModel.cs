@@ -356,13 +356,22 @@ namespace NinOS.UI.Common.ViewModels
         {
             List<product> filtered_products = _all_products_source.Where(p =>
                 string.IsNullOrWhiteSpace(_search_query) ||
-                p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
-                p.product_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+                SearchText.combine(
+                    p.name,
+                    p.product_code,
+                    p.category,
+                    p.stock_quantity.ToString("0.##", CultureInfo.InvariantCulture),
+                    SearchText.money(p.unit_price_usd)
+                ).Contains(_search_query.ToLowerInvariant())).ToList();
 
             List<promotion> filtered_promos = _all_promotions_source.Where(p =>
                 string.IsNullOrWhiteSpace(_search_query) ||
-                p.name.Contains(_search_query, StringComparison.OrdinalIgnoreCase) ||
-                p.promotion_code.Contains(_search_query, StringComparison.OrdinalIgnoreCase)).ToList();
+                SearchText.combine(
+                    p.name,
+                    p.promotion_code,
+                    p.category,
+                    SearchText.money(p.unit_price_usd)
+                ).Contains(_search_query.ToLowerInvariant())).ToList();
 
             todos_list.Clear();
             defile_list.Clear();
@@ -458,9 +467,14 @@ namespace NinOS.UI.Common.ViewModels
             promo_search_results.Clear();
             if (string.IsNullOrWhiteSpace(_promo_search_query)) return;
 
-            IEnumerable<product> results = _all_products_source.Where(p => 
-                p.name.Contains(_promo_search_query, StringComparison.OrdinalIgnoreCase) || 
-                p.product_code.Contains(_promo_search_query, StringComparison.OrdinalIgnoreCase));
+            IEnumerable<product> results = _all_products_source.Where(p =>
+                SearchText.combine(
+                    p.name,
+                    p.product_code,
+                    p.category,
+                    p.stock_quantity.ToString("0.##", CultureInfo.InvariantCulture),
+                    SearchText.money(p.unit_price_usd)
+                ).Contains(_promo_search_query.ToLowerInvariant()));
 
             foreach (product p in results)
             {

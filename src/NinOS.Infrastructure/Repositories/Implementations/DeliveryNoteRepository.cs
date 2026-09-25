@@ -27,22 +27,26 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             
             string prefix = current_seller.seller_code;
 
-            delivery_note? last_note = await _context.delivery_notes
-                .Where(n => n.id_seller == id_seller)
-                .OrderByDescending(n => n.id_delivery_note)
-                .FirstOrDefaultAsync();
+            string prefix_match = prefix + "_";
 
-            int next_number = 1;
-            if (last_note != null && !string.IsNullOrWhiteSpace(last_note.note_number))
+            var seller_notes = await _context.delivery_notes
+                .Where(n => n.id_seller == id_seller)
+                .Select(n => n.note_number)
+                .ToListAsync();
+
+            int max_number = 0;
+            foreach (string note_number in seller_notes)
             {
-                string[] parts = last_note.note_number.Split('_');
-                if (parts.Length > 0 && int.TryParse(parts.Last(), out int last_number))
+                if (string.IsNullOrWhiteSpace(note_number) || !note_number.StartsWith(prefix_match, StringComparison.OrdinalIgnoreCase)) continue;
+
+                string[] parts = note_number.Split('_');
+                if (parts.Length > 0 && int.TryParse(parts.Last(), out int parsed) && parsed > max_number)
                 {
-                    next_number = last_number + 1;
+                    max_number = parsed;
                 }
             }
 
-            return $"{prefix}_{next_number:D3}";
+            return $"{prefix}_{max_number + 1:D3}";
         }
     }
 }

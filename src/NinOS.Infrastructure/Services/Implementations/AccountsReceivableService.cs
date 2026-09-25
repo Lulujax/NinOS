@@ -211,8 +211,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
-                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd;
-                    decimal discount = gross - dn.adjusted_total_usd;
+                    bool is_promo_note = dn.promo_discount_percentage != null && dn.promo_discount_percentage > 0;
+                    decimal gross = is_promo_note
+                        ? dn.adjusted_total_usd
+                        : (note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd);
+                    decimal discount = is_promo_note ? 0 : gross - dn.adjusted_total_usd;
 
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
@@ -322,8 +325,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                 foreach (var dn in notes)
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
-                    decimal gross = note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd;
-                    decimal discount = gross - dn.adjusted_total_usd;
+                    bool is_promo_note = dn.promo_discount_percentage != null && dn.promo_discount_percentage > 0;
+                    decimal gross = is_promo_note
+                        ? dn.adjusted_total_usd
+                        : (note_detail_map.TryGetValue(dn.id_delivery_note, out var gt) ? gt : dn.adjusted_total_usd);
+                    decimal discount = is_promo_note ? 0 : gross - dn.adjusted_total_usd;
 
                     DateTime? lastDate = last_payments.TryGetValue(dn.id_delivery_note, out var ld) ? ld : null;
 
@@ -394,6 +400,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(d => d.id_delivery_note == dn.id_delivery_note)
                     .SumAsync(d => (decimal?)d.subtotal_usd) ?? dn.total_amount_usd;
 
+                bool is_promo_note = dn.promo_discount_percentage != null && dn.promo_discount_percentage > 0;
+
                 return new accounts_receivable_dto
                 {
                     id_delivery_note = dn.id_delivery_note,
@@ -403,8 +411,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     seller_name = seller?.full_name ?? string.Empty,
                     creation_date = dn.creation_date,
                     total_amount_usd = dn.adjusted_total_usd,
-                    gross_total_usd = detail_sum,
-                    discount_amount = detail_sum - dn.adjusted_total_usd,
+                    gross_total_usd = is_promo_note ? dn.adjusted_total_usd : detail_sum,
+                    discount_amount = is_promo_note ? 0 : detail_sum - dn.adjusted_total_usd,
                     discount_percentage = dn.discount_percentage,
                     volume_discount_percentage = dn.volume_discount_percentage,
                     status = dn.status,
@@ -476,11 +484,17 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     var mar_ids = await get_pro_venta_type_ids_async(db_context);
                     bool is_pro_venta = delivery_note.note_type_id != null && mar_ids.Contains(delivery_note.note_type_id.Value);
+                    bool is_promo_note = delivery_note.promo_discount_percentage != null && delivery_note.promo_discount_percentage > 0;
 
-                    decimal gross = await db_context.note_details
-                        .AsNoTracking()
-                        .Where(d => d.id_delivery_note == id_delivery_note)
-                        .SumAsync(d => (decimal?)d.subtotal_usd) ?? delivery_note.adjusted_total_usd;
+                    decimal gross = is_promo_note
+                        ? await db_context.note_details
+                            .AsNoTracking()
+                            .Where(d => d.id_delivery_note == id_delivery_note)
+                            .SumAsync(d => (decimal?)(d.quantity * d.unit_price_usd)) ?? delivery_note.total_amount_usd
+                        : await db_context.note_details
+                            .AsNoTracking()
+                            .Where(d => d.id_delivery_note == id_delivery_note)
+                            .SumAsync(d => (decimal?)d.subtotal_usd) ?? delivery_note.adjusted_total_usd;
 
                     decimal adjusted = adjusted_total_usd < 0 ? 0 : adjusted_total_usd;
                     if (adjusted > gross) adjusted = gross;
@@ -564,6 +578,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("La nota ya esta anulada.");
 
+                    var has_payments = await db_context.payments
+                        .AnyAsync(p => p.id_delivery_note == id_delivery_note && p.amount_usd > 0);
+
+                    if (has_payments)
+                        throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos. Elimine primero los pagos registrados.");
+
                     var details = await db_context.note_details
                         .Where(d => d.id_delivery_note == id_delivery_note)
                         .ToListAsync();
@@ -645,6 +665,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .FirstOrDefaultAsync(t => t.id_note_type == note.note_type_id);
                 }
 
+                bool is_promo = note_type != null && string.Equals(note_type.calculation_type, "promo", StringComparison.OrdinalIgnoreCase);
+
                 var raw_details = await db_context.note_details
                     .AsNoTracking()
                     .Where(d => d.id_delivery_note == note.id_delivery_note)
@@ -692,13 +714,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                         name = name,
                         quantity = d.quantity,
                         unit_price_usd = d.unit_price_usd,
+                        discount_usd = is_promo ? (d.unit_price_usd - net_unit) : 0,
                         promo_price_usd = net_unit,
                         subtotal_usd = d.subtotal_usd
                     });
                 }
 
                 decimal gross = details.Sum(d => d.subtotal_usd);
-                bool is_promo = note_type != null && string.Equals(note_type.calculation_type, "promo", StringComparison.OrdinalIgnoreCase);
+                if (is_promo) gross = details.Sum(d => d.quantity * d.unit_price_usd);
                 decimal? promo_pct = is_promo ? note.promo_discount_percentage : null;
                 decimal promo_amt = is_promo && promo_pct != null ? (gross * promo_pct.Value / 100m) : 0;
                 decimal after_promo = gross - promo_amt;
@@ -717,9 +740,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
                     company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
+                    promo_banner_text = is_promo ? (string.IsNullOrWhiteSpace(note.promo_banner) ? "PROMOCION OLEOS MAYO Y JUNIO" : note.promo_banner) : string.Empty,
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
                     document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
                     is_pro_venta = note_type != null && note_type.code == "MAR",
+                    is_promo = is_promo,
                     accent_color = note_type != null && note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
                     accent_soft_color = note_type != null && note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC",
                     promo_discount_percentage = is_promo ? promo_pct : null,
@@ -744,8 +769,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_contact = customer?.contact_name ?? string.Empty,
                     customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
-                    conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
-                    discount_conditions_text = "Descuento 10% SOLO\nCONTADO",
+                    conditions_text = is_promo ? "DIAS CREDITO 21 DIAS SIN DESCUENTO" : "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    discount_conditions_text = is_promo ? string.Empty : "Descuento 10% SOLO\nCONTADO",
                     details = details
                 };
             }
@@ -758,6 +783,41 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(t => t.code == "MAR")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
+        }
+
+        public async Task<decimal?> get_sales_goal_async(DateTime year_month)
+        {
+            DateTime month_start = new DateTime(year_month.Year, year_month.Month, 1);
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.sales_goals
+                    .AsNoTracking()
+                    .Where(g => g.goal_month_start == month_start)
+                    .Select(g => (decimal?)g.amount_usd)
+                    .FirstOrDefaultAsync();
+            }
+        }
+
+        public async Task set_sales_goal_async(DateTime year_month, decimal amount_usd)
+        {
+            DateTime month_start = new DateTime(year_month.Year, year_month.Month, 1);
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var existing = await db_context.sales_goals
+                    .FirstOrDefaultAsync(g => g.goal_month_start == month_start);
+
+                if (existing != null)
+                {
+                    existing.amount_usd = amount_usd;
+                }
+                else
+                {
+                    db_context.sales_goals.Add(new sales_goal(month_start, amount_usd));
+                }
+                await db_context.SaveChangesAsync();
+            }
         }
     }
 }

@@ -96,10 +96,23 @@ namespace NinOS.UI.Views
         {
             var p = NotePanel;
 
+            if (note.is_promo && !string.IsNullOrWhiteSpace(note.promo_banner_text))
+            {
+                var bannerBorder = new Border
+                {
+                    BorderBrush = PrimaryBrush,
+                    BorderThickness = new Thickness(2),
+                    Padding = new Thickness(12, 4, 12, 4),
+                    Margin = new Thickness(0, 0, 0, 6)
+                };
+                bannerBorder.Child = MakeText(note.promo_banner_text, 18, true, PrimaryBrush, null, HorizontalAlignment.Center);
+                p.Children.Add(bannerBorder);
+            }
+
             // CABECERA: empresa izquierda, NOTA DE ENTREGA derecha
             var header = new DockPanel { LastChildFill = true };
             var left = new StackPanel();
-            left.Children.Add(MakeText(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title, 22, true, PrimaryBrush));
+            left.Children.Add(MakeText(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title, 22, true, PrimaryBrush, note.is_promo ? new Thickness(0, 4, 0, 0) : null));
             left.Children.Add(MakeText("Caracas - Venezuela", 10, false, LabelGrayBrush, new Thickness(0, 2, 0, 0)));
             DockPanel.SetDock(left, Dock.Left);
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
@@ -156,7 +169,7 @@ namespace NinOS.UI.Views
             infoGrid.Children.Add(infoRow3);
 
             bool preview_has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
-            bool preview_has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text);
+            bool preview_has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text) && !note.is_promo;
 
             if (preview_has_contacto || preview_has_credit_days)
             {
@@ -236,35 +249,38 @@ namespace NinOS.UI.Views
             payStack.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
 
             var payRow = new Grid();
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+            if (note.is_promo)
+            {
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            }
+            else
+            {
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            }
 
-            // columna izquierda: desglose
-            var leftBox = MakeBox(new Thickness(6));
-            var leftCol = new StackPanel();
-            leftCol.Children.Add(MakeText(note.discount_conditions_text, 8, true, Brushes.Black, null, HorizontalAlignment.Center));
-            leftCol.Children.Add(MakeTotalsRow("sub total", $"{note.gross_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-            if (note.promo_discount_amount > 0)
-                leftCol.Children.Add(MakeTotalsRow($"{note.promo_discount_percentage:0.##}% PROMO", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
-            decimal disc_pdf = note.discount_amount > 0 ? note.discount_amount : 0;
-            leftCol.Children.Add(MakeTotalsRow($"{note.discount_percentage:0.##}%", (note.discount_amount > 0 ? "-" : "") + $"{disc_pdf:N2}", false, note.discount_amount > 0 ? RedBrush : FooterGrayBrush, new Thickness(0, 2, 0, 0)));
-            leftCol.Children.Add(MakeTotalsRow("Total General", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
-            leftBox.Child = leftCol;
-            payRow.Children.Add(leftBox);
+            // columna izquierda: desglose (solo notas generales)
+            if (!note.is_promo)
+            {
+                var leftBox = MakeBox(new Thickness(6));
+                var leftCol = new StackPanel();
+                leftCol.Children.Add(MakeText(note.discount_conditions_text, 8, true, Brushes.Black, null, HorizontalAlignment.Center));
+                leftCol.Children.Add(MakeTotalsRow("sub total", $"{note.gross_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
+                if (note.promo_discount_amount > 0)
+                    leftCol.Children.Add(MakeTotalsRow($"{note.promo_discount_percentage:0.##}% PROMO", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
+                decimal disc_pdf = note.discount_amount > 0 ? note.discount_amount : 0;
+                leftCol.Children.Add(MakeTotalsRow($"{note.discount_percentage:0.##}%", (note.discount_amount > 0 ? "-" : "") + $"{disc_pdf:N2}", false, note.discount_amount > 0 ? RedBrush : FooterGrayBrush, new Thickness(0, 2, 0, 0)));
+                leftCol.Children.Add(MakeTotalsRow("Total General", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
+                leftBox.Child = leftCol;
+                payRow.Children.Add(leftBox);
+            }
 
-            // columna media: firma
-            var midBox = new Border { Padding = new Thickness(6) };
-            var midCol = new StackPanel();
-            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 14, 0, 0), HorizontalAlignment.Center));
-            midCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 36, 0, 0)));
-            midBox.Child = midCol;
-            Grid.SetColumn(midBox, 2);
-            payRow.Children.Add(midBox);
-
-            // columna derecha: datos para pago
+            // columna media: datos para pago (relleno manual) + firma al lado
             var manualBox = MakeBox(new Thickness(6));
             var manualCol = new StackPanel();
             manualCol.Children.Add(MakeText("DATOS PARA PAGO", 8, true, PrimaryBrush));
@@ -272,26 +288,38 @@ namespace NinOS.UI.Views
             manualCol.Children.Add(MakeManualRow("Monto Bs:"));
             manualCol.Children.Add(MakeManualRow("Nro Referencia:"));
             manualCol.Children.Add(MakeManualRow("Banco:"));
+            manualCol.Children.Add(MakeManualRow("Equivalente a:"));
             manualBox.Child = manualCol;
-            Grid.SetColumn(manualBox, 4);
+            Grid.SetColumn(manualBox, note.is_promo ? 0 : 2);
             payRow.Children.Add(manualBox);
+
+            var midBox = new Border { Padding = new Thickness(6) };
+            var midCol = new StackPanel();
+            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 14, 0, 0), HorizontalAlignment.Center));
+            midCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 36, 0, 0)));
+            midBox.Child = midCol;
+            Grid.SetColumn(midBox, note.is_promo ? 2 : 4);
+            payRow.Children.Add(midBox);
 
             payStack.Children.Add(payRow);
             payBox.Child = payStack;
             p.Children.Add(payBox);
 
-            // ---- Fila 3: Descuento por volumen con su TOTAL A PAGAR debajo ----
-            decimal vol_pdf = note.volume_discount_amount > 0 ? note.volume_discount_amount : 0;
-            var volBox = MakeBox(new Thickness(6));
-            volBox.Width = 300;
-            volBox.HorizontalAlignment = HorizontalAlignment.Left;
-            volBox.Margin = new Thickness(0, 8, 0, 0);
-            var volCol = new StackPanel();
-            volCol.Children.Add(MakeTotalsRow($"Descuento por volumen {note.volume_discount_percentage:0.##}%", (note.volume_discount_amount > 0 ? "-" : "") + $"{vol_pdf:N2}", true, note.volume_discount_amount > 0 ? RedBrush : FooterGrayBrush));
-            volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
-            volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-            volBox.Child = volCol;
-            p.Children.Add(volBox);
+            // ---- Fila 3: Descuento por volumen con su TOTAL A PAGAR debajo (solo notas generales) ----
+            if (!note.is_promo)
+            {
+                var volBox = MakeBox(new Thickness(6));
+                volBox.Width = 300;
+                volBox.HorizontalAlignment = HorizontalAlignment.Left;
+                volBox.Margin = new Thickness(0, 8, 0, 0);
+                var volCol = new StackPanel();
+                decimal vol_pdf = note.volume_discount_amount > 0 ? note.volume_discount_amount : 0;
+                volCol.Children.Add(MakeTotalsRow($"Descuento por volumen {note.volume_discount_percentage:0.##}%", (note.volume_discount_amount > 0 ? "-" : "") + $"{vol_pdf:N2}", true, note.volume_discount_amount > 0 ? RedBrush : FooterGrayBrush));
+                volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+                volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
+                volBox.Child = volCol;
+                p.Children.Add(volBox);
+            }
 
             // PIE
             p.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 10, 0, 0)));
@@ -469,6 +497,8 @@ namespace NinOS.UI.Views
             dg.Columns.Add(MakeTextColumn("CODIGO", "code", 85));
             dg.Columns.Add(MakeTextColumn("DESCRIPCION", "name", 210));
             dg.Columns.Add(MakeTextColumn("PRECIO U.", "unit_price_usd", 80, "N2"));
+            if (note.is_promo)
+                dg.Columns.Add(MakeTextColumn($"DESCUENTO {note.promo_discount_percentage ?? 0:0.##}%", "discount_usd", 80, "N2"));
             dg.Columns.Add(MakeTextColumn("PRECIO P.", "promo_price_usd", 80, "N2"));
             dg.Columns.Add(MakeTextColumn("SUBTOTAL", "subtotal_usd", 85, "N2"));
 
