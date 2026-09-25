@@ -33,7 +33,7 @@ namespace NinOS.UI.Views
                     try
                     {
                         note_print_dto printable = await viewModel.get_printable_note_async(note.id_delivery_note);
-                        NotePreviewWindow preview = new NotePreviewWindow(printable);
+                        NotePreviewWindow preview = new NotePreviewWindow(printable, view_only: true);
                         preview.Owner = Window.GetWindow(this);
                         preview.ShowDialog();
                     }
@@ -202,6 +202,11 @@ namespace NinOS.UI.Views
             if (sender is not DatePicker picker) return;
             if (picker.DataContext is not accounts_receivable_row_dto row) return;
             if (row.dispatch_date == picker.SelectedDate) return;
+
+            // Evita que el reciclado/virtualizacion del DataGrid (SelectedDate = null temporal)
+            // borre la fecha de despacho ya guardada.
+            if (picker.SelectedDate == null && row.dispatch_date != null) return;
+
             if (DataContext is AccountsReceivableViewModel vm)
                 await vm.save_dispatch_date_async(row, picker.SelectedDate);
         }

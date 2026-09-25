@@ -33,6 +33,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand print_command { get; }
         public ICommand refresh_command { get; }
         public ICommand relation_pdf_command { get; }
+        public ICommand relation_detail_pdf_command { get; }
         public ICommand pay_relation_command { get; }
         public ICommand note_pdf_command { get; }
         public ICommand note_preview_command { get; }
@@ -53,6 +54,7 @@ namespace NinOS.UI.Common.ViewModels
             print_command = new RelayCommand(_ => print_report());
             refresh_command = new RelayCommand(_ => refresh_data());
             relation_pdf_command = new RelayCommand(execute_relation_pdf);
+            relation_detail_pdf_command = new RelayCommand(execute_relation_detail_pdf);
             pay_relation_command = new RelayCommand(execute_pay_relation);
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
@@ -278,6 +280,24 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is pro_venta_relation_row row)
                 on_request_relation_pdf?.Invoke(row);
+        }
+
+        private async void execute_relation_detail_pdf(object? parameter)
+        {
+            if (parameter is not pro_venta_relation_row row) return;
+
+            try
+            {
+                var notes = await _pro_venta_service.get_relation_notes_async(row.id_relacion);
+                var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
+                    .OrderBy(p => p.payment_date)
+                    .ToList();
+                ProVentaDetailPdfGenerator.generate(row, notes, payments);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void execute_pay_relation(object? parameter)

@@ -298,7 +298,7 @@
                                             <Button Content="PDF" Padding="6,2" Margin="2" FontSize="10"
                                                     Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
                                                     BorderBrush="#E0E0E0" Foreground="#424242"
-                                                    Command="{Binding DataContext.relation_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Command="{Binding DataContext.relation_detail_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
                                     </DataTemplate>

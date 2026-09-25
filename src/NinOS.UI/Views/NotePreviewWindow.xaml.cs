@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using NinOS.Domain.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -22,12 +23,25 @@ namespace NinOS.UI.Views
         public bool Confirmed { get; private set; }
         public bool PdfRequested { get; private set; }
 
-        public NotePreviewWindow(note_print_dto note)
+        private readonly note_print_dto _note;
+        private readonly bool _view_only;
+
+        public NotePreviewWindow(note_print_dto note, bool view_only = false)
         {
             InitializeComponent();
+            _note = note;
+            _view_only = view_only;
             PrimaryBrush = ParseBrush(note.accent_color, new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D)));
             LightGrayBrush = ParseBrush(note.accent_soft_color, new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC)));
             Title = $"Vista Previa - Nota {note.note_number}";
+
+            if (_view_only)
+            {
+                CancelButton.Content = "Cerrar";
+                SaveOnlyButton.Visibility = System.Windows.Visibility.Collapsed;
+                SavePdfButton.Content = "PDF";
+            }
+
             BuildPreview(note);
         }
 
@@ -60,6 +74,19 @@ namespace NinOS.UI.Views
 
         private void OnSavePdf(object sender, RoutedEventArgs e)
         {
+            if (_view_only)
+            {
+                try
+                {
+                    NotePdfGenerator.generate(_note);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                return;
+            }
+
             Confirmed = true;
             PdfRequested = true;
             DialogResult = true;

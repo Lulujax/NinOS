@@ -84,7 +84,7 @@
                          VerticalAlignment="Center" Checked="OnPaymentTypeChanged"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Fecha:" VerticalAlignment="Center" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Fecha:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <DatePicker Grid.Row="4" Grid.Column="1" x:Name="PaymentDatePicker" Margin="0,0,0,5" FontSize="11"/>
 
         <StackPanel x:Name="BsPanel" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
@@ -93,7 +93,7 @@
                     <ColumnDefinition Width="70"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Tasa:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0"><Run Text="Tasa:"/></TextBlock>
                 <TextBox x:Name="RateBox" Grid.Column="1" VerticalContentAlignment="Center" Height="24"
                          Width="90" HorizontalAlignment="Left" FontSize="11"/>
             </Grid>
@@ -102,7 +102,7 @@
                     <ColumnDefinition Width="70"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Bs:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0"><Run Text="Bs:"/><Run Text="*" Foreground="Red"/></TextBlock>
                 <TextBox x:Name="BsAmountBox" Grid.Column="1" VerticalContentAlignment="Center" Height="24"
                          Width="90" HorizontalAlignment="Left" FontSize="11"/>
             </Grid>
@@ -127,7 +127,7 @@
                     <ColumnDefinition Width="70"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Ref.:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0"><Run Text="Ref.:"/><Run Text="*" Foreground="Red"/></TextBlock>
                 <TextBox x:Name="ReferenceBox" Grid.Column="1" VerticalContentAlignment="Center" Height="24"
                          Width="160" HorizontalAlignment="Left" MaxLength="50" FontSize="11"/>
             </Grid>
@@ -136,7 +136,7 @@
                     <ColumnDefinition Width="70"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Banco:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0"><Run Text="Banco:"/><Run Text="*" Foreground="Red"/></TextBlock>
                 <TextBox x:Name="BankBox" Grid.Column="1" VerticalContentAlignment="Center" Height="24"
                          Width="160" HorizontalAlignment="Left" MaxLength="100" FontSize="11"/>
             </Grid>

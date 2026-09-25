@@ -67,7 +67,7 @@ namespace NinOS.UI.Views
                 try
                 {
                     note_print_dto printable = await view_model.get_printable_note_async(row.id_delivery_note);
-                    NotePreviewWindow preview = new NotePreviewWindow(printable);
+                    NotePreviewWindow preview = new NotePreviewWindow(printable, view_only: true);
                     preview.Owner = Window.GetWindow(this);
                     preview.ShowDialog();
                 }

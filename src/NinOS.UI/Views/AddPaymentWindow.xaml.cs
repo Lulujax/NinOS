@@ -250,10 +250,35 @@ namespace NinOS.UI.Views
             decimal usd = ParseDecimal(AmountBox.Text);
             if (usd > 0)
             {
-                decimal remaining = usd - balance;
-                EquivText.Text = $"saldo pendiente: {remaining:N2}";
+                decimal remaining = balance - usd;
+                if (remaining <= 0)
+                {
+                    EquivText.Text = "PAGADO (saldo en 0)";
+                    EquivText.Foreground = GreenBrush;
+                }
+                else
+                {
+                    EquivText.Text = $"saldo pendiente: {remaining:N2}";
+                    EquivText.Foreground = RedBrush;
+                }
             }
-            else EquivText.Text = "";
+            else
+            {
+                EquivText.Text = "";
+                EquivText.Foreground = GreenBrush;
+            }
+        }
+
+        private static readonly System.Windows.Media.SolidColorBrush RedBrush =
+            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xC6, 0x28, 0x28));
+        private static readonly System.Windows.Media.SolidColorBrush GreenBrush =
+            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2E, 0x7D, 0x32));
+
+        private string RequiredMessage()
+        {
+            return _is_bs_mode
+                ? "Debes llenar los campos marcados con * (Nota, Fecha, Monto USD, Bs, Ref. y Banco)."
+                : "Debes llenar los campos marcados con * (Nota, Fecha y Monto USD).";
         }
 
         private decimal ParseDecimal(string text)
@@ -269,8 +294,8 @@ namespace NinOS.UI.Views
             BtnRegistrar.IsEnabled = false;
             try
             {
-                if (_selected_note == null) { ShowError("Tienes que llenar los campos obligatorios."); return; }
-                if (PaymentDatePicker.SelectedDate == null) { ShowError("Tienes que llenar los campos obligatorios."); return; }
+                if (_selected_note == null) { ShowError(RequiredMessage()); return; }
+                if (PaymentDatePicker.SelectedDate == null) { ShowError(RequiredMessage()); return; }
 
                 DateTime payDate = PaymentDatePicker.SelectedDate.Value;
 
@@ -298,7 +323,7 @@ namespace NinOS.UI.Views
                                            ParseDecimal(BsAmountBox.Text) > 0 &&
                                            !string.IsNullOrWhiteSpace(ReferenceBox.Text) &&
                                            !string.IsNullOrWhiteSpace(BankBox.Text);
-                    if (!required_filled) { ShowError("Tienes que llenar los campos obligatorios."); return; }
+                    if (!required_filled) { ShowError(RequiredMessage()); return; }
                     decimal rate = ParseDecimal(RateBox.Text);
                     decimal bs = ParseDecimal(BsAmountBox.Text);
                     string refInput = ReferenceBox.Text?.Trim() ?? "";
@@ -311,7 +336,7 @@ namespace NinOS.UI.Views
                 else
                 {
                     decimal usd = ParseDecimal(AmountBox.Text);
-                    if (usd <= 0) { ShowError("Tienes que llenar los campos obligatorios."); return; }
+                    if (usd <= 0) { ShowError(RequiredMessage()); return; }
                     amount_usd = usd;
                     exchange_rate = null;
                     payType = "Efectivo";

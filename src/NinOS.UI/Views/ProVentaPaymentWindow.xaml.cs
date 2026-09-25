@@ -46,14 +46,14 @@ namespace NinOS.UI.Views
 
                 if (PaymentDatePicker.SelectedDate == null)
                 {
-                    ShowError("Tienes que llenar los campos obligatorios.");
+                    ShowError("Debes llenar los campos marcados con * (Fecha y Monto USD).");
                     return;
                 }
 
                 decimal amount_usd = ParseDecimal(AmountBox.Text);
                 if (amount_usd <= 0)
                 {
-                    ShowError("Tienes que llenar los campos obligatorios.");
+                    ShowError("Debes llenar los campos marcados con * (Fecha y Monto USD).");
                     return;
                 }
 
