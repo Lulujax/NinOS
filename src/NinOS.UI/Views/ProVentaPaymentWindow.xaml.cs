@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -63,7 +64,7 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                MessageBoxResult result = MessageBox.Show(
+                MessageBoxResult result = AppDialog.Show(
                     $"Relacion: {_row.relation_label}\nMonto: {amount_usd:N2}\n\nDesea registrar este pago?",
                     "Confirmar pago",
                     MessageBoxButton.YesNo,
@@ -81,7 +82,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                ShowError($"Error: {ex.Message}");
+                ShowError($"Error: {NinOS.UI.Common.ErrorText.Get(ex)}");
             }
             finally
             {

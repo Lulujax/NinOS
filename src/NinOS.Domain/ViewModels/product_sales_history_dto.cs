@@ -19,7 +19,7 @@ namespace NinOS.Domain.ViewModels
 
         public string fecha_display => creation_date.ToString("dd/MM/yyyy");
         public int signed_units => movement_type == "ENTRADA" ? units_sold : -units_sold;
-        public string unidades_display => signed_units >= 0 ? $"+{signed_units}" : signed_units.ToString();
+        public string unidades_display => units_sold.ToString();
         public string precio_display => unit_price_usd.ToString("N2");
         public string subtotal_display => line_subtotal_usd.ToString("N2");
     }

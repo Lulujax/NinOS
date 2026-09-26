@@ -2,6 +2,110 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
+    <UserControl.Resources>
+        <Style x:Key="CompactDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinRowHeight" Value="20"/>
+        </Style>
+        <Style x:Key="CellText" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CellWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="HeaderActionButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowEditButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFF3E0" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFE0B2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#E65100"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFE0B2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowDeleteButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFEBEE" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFCDD2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#C62828"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFCDD2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -18,56 +122,59 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock FontWeight="Bold" Margin="0,0,10,0" Text="Buscar Cliente:" VerticalAlignment="Center"/>
-                    <TextBox FontSize="14" Padding="6" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Width="300"/>
+                    <!-- Buscador con lupa (mismo estilo que los demas modulos) -->
+                    <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
+                        <Grid Width="240">
+                            <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
+                            <TextBox Margin="26,2,8,2" BorderThickness="0" Background="Transparent"
+                                     VerticalContentAlignment="Center" FontSize="12.5"
+                                     Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </Border>
                 </StackPanel>
 
-                <Button Grid.Column="2" Background="#0078D7" Command="{Binding AddCustomerCommand}" Content="Agregar Cliente" Cursor="Hand" FontWeight="Bold" Foreground="White" Padding="20,8"/>
+                <Button Grid.Column="2" Style="{StaticResource HeaderActionButton}" Background="#0078D7"
+                        Command="{Binding AddCustomerCommand}" Content="Agregar Cliente"/>
             </Grid>
         </Border>
 
         <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Todos">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding AllCustomers}" Margin="5" MinRowHeight="40">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding AllCustomers}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
-                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding SellerName}" Header="Vendedor" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Razón Social" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BusinessName}" Style="{StaticResource CellWrap}" ToolTip="{Binding BusinessName}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="105" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="125" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="108" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Dirección Fiscal" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FiscalAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding FiscalAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Dirección Entrega" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EffectiveDeliveryAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding EffectiveDeliveryAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding SellerName}" Header="Vendedor" Width="85" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Acciones" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -77,46 +184,40 @@
             </TabItem>
 
             <TabItem Header="Anais">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding AnaisCustomers}" Margin="5" MinRowHeight="40">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding AnaisCustomers}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
-                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Razón Social" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BusinessName}" Style="{StaticResource CellWrap}" ToolTip="{Binding BusinessName}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="105" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="125" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="108" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Dirección Fiscal" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FiscalAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding FiscalAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Dirección Entrega" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EffectiveDeliveryAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding EffectiveDeliveryAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Acciones" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -126,46 +227,40 @@
             </TabItem>
 
             <TabItem Header="Sandra">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding SandraCustomers}" Margin="5" MinRowHeight="40">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding SandraCustomers}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
-                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Razón Social" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BusinessName}" Style="{StaticResource CellWrap}" ToolTip="{Binding BusinessName}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="105" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="125" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="108" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Dirección Fiscal" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FiscalAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding FiscalAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Dirección Entrega" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EffectiveDeliveryAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding EffectiveDeliveryAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Acciones" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -175,46 +270,40 @@
             </TabItem>
 
             <TabItem Header="Alejandra">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding AlejandraCustomers}" Margin="5" MinRowHeight="40">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding AlejandraCustomers}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
-                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Razón Social" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BusinessName}" Style="{StaticResource CellWrap}" ToolTip="{Binding BusinessName}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="105" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="125" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="108" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Dirección Fiscal" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FiscalAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding FiscalAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Dirección Entrega" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EffectiveDeliveryAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding EffectiveDeliveryAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Acciones" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -223,46 +312,40 @@
                 </DataGrid>
             </TabItem>
         <TabItem Header="Juan Luis">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding JuanLuisCustomers}" Margin="5" MinRowHeight="40">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding JuanLuisCustomers}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding BusinessName}" Header="Razón Social" Width="180">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="150"/>
-                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding FiscalAddress}" Header="Dirección Fiscal" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding EffectiveDeliveryAddress}" Header="Dirección Entrega" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
+                        <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
+                        <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Razón Social" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BusinessName}" Style="{StaticResource CellWrap}" ToolTip="{Binding BusinessName}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Binding="{Binding Rif}" Header="RIF" Width="105" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding ContactName}" Header="Nombre Contacto" Width="125" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTextColumn Binding="{Binding PhoneNumber}" Header="Teléfono" Width="108" ElementStyle="{StaticResource CellWrap}"/>
+                        <DataGridTemplateColumn Header="Dirección Fiscal" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FiscalAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding FiscalAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Dirección Entrega" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EffectiveDeliveryAddress}" Style="{StaticResource CellWrap}" ToolTip="{Binding EffectiveDeliveryAddress}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Acciones" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

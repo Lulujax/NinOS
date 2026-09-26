@@ -1,13 +1,15 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Implementations;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Implementations;
 using NinOS.Infrastructure.Services.Interfaces;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 using NinOS.UI.Views;
 
@@ -26,8 +28,8 @@ namespace NinOS.UI
                 e.Handled = true;
                 try
                 {
-                    MessageBox.Show(
-                        $"Ocurrió un error inesperado. Se guardó el detalle en:\n{_error_log_path}\n\nDetalle: {e.Exception.Message}",
+                    AppDialog.Show(
+                        $"Ocurrió un error inesperado. Se guardó el detalle en:\n{_error_log_path}\n\nDetalle: {ErrorText.Get(e.Exception)}",
                         "Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
@@ -86,7 +88,7 @@ namespace NinOS.UI
                         Dispatcher.BeginInvoke(() =>
                         {
                             log_startup_message("OnStartup exception", exception);
-                            MessageBox.Show(exception.Message + "\n" + exception.InnerException?.Message, "error");
+                            AppDialog.Show(ErrorText.Get(exception) + "\n\nSe guardó el detalle en:\n" + _error_log_path, "error");
                             Current.Shutdown();
                         });
                         return;
@@ -117,6 +119,7 @@ namespace NinOS.UI
                             main_window.Show();
                             main_window.Activate();
                             splash.CloseWithAnimation();
+                            AppLog.Info("Aplicación iniciada correctamente");
                             base.OnStartup(e);
                             log_startup_message("OnStartup end");
                         };
@@ -129,7 +132,7 @@ namespace NinOS.UI
             catch (Exception ex)
             {
                 log_startup_message("OnStartup exception", ex);
-                MessageBox.Show(ex.Message + "\n" + ex.InnerException?.Message, "error");
+                AppDialog.Show(ErrorText.Get(ex) + "\n\nSe guardó el detalle en:\n" + _error_log_path, "error");
                 Current.Shutdown();
             }
         }
@@ -144,6 +147,15 @@ namespace NinOS.UI
             }
 
             File.AppendAllText(_error_log_path, log_entry + Environment.NewLine + Environment.NewLine);
+
+            if (exception != null)
+            {
+                AppLog.Error(message, exception);
+            }
+            else
+            {
+                AppLog.Info(message);
+            }
         }
 
         private static void log_error(string source, Exception exception)
@@ -156,6 +168,8 @@ namespace NinOS.UI
 
             try { File.AppendAllText(_error_log_path, entry + Environment.NewLine); }
             catch { /* el logging nunca debe derribar la app */ }
+
+            AppLog.Error(source, exception);
         }
 
         private void configure_services(ServiceCollection services)

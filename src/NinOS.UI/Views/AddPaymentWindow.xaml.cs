@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -169,7 +170,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                ShowError($"Error al cargar notas: {ex.Message}");
+                ShowError($"Error al cargar notas: {NinOS.UI.Common.ErrorText.Get(ex)}");
             }
         }
 
@@ -188,9 +189,10 @@ namespace NinOS.UI.Views
             }
             else
             {
-                string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
-                FilterNotes(query);
-                NotePopup.IsOpen = NoteListBox.ItemsSource != null;
+                // Al pulsar el triangulo se muestra la lista completa de notas disponibles,
+                // sin usar el texto ya escrito como filtro (el cual ya no coincide con nada).
+                FilterNotes(string.Empty);
+                NotePopup.IsOpen = NoteListBox.Items.Count > 0;
             }
         }
 
@@ -229,12 +231,27 @@ namespace NinOS.UI.Views
 
                 NoteTextBox.Text = item.Display;
                 NotePopup.IsOpen = false;
+                NoteTextBox.IsReadOnly = true;
+                BtnClearNote.Visibility = Visibility.Visible;
 
                 ErrorText.Visibility = Visibility.Collapsed;
                 NoteInfoBorder.Visibility = Visibility.Visible;
                 NoteInfoText.Text = $"{item.Display}\nTOTAL: {item.total_amount_usd:N2}  |  ABONADO: {item.paid_amount_usd:N2}  |  SALDO PENDIENTE: {item.balance_due_usd:N2}";
                 UpdateEquiv();
             }
+        }
+
+        private void OnClearNoteClick(object sender, RoutedEventArgs e)
+        {
+            _selected_note = null;
+            NoteTextBox.IsReadOnly = false;
+            NoteTextBox.Text = "";
+            BtnClearNote.Visibility = Visibility.Collapsed;
+            NoteInfoBorder.Visibility = Visibility.Collapsed;
+            NoteInfoText.Text = "";
+            UpdateEquiv();
+            FilterNotes(string.Empty);
+            NotePopup.IsOpen = NoteListBox.Items.Count > 0;
         }
 
         private void OnPaymentTypeChanged(object sender, RoutedEventArgs e)
@@ -363,7 +380,7 @@ namespace NinOS.UI.Views
                     msg += nuevo_saldo_edit <= 0
                         ? "El saldo quedara en 0. La nota se marcara como PAGADA."
                         : $"Nuevo saldo: {nuevo_saldo_edit:N2}";
-                    var edit_result = MessageBox.Show(
+                    var edit_result = AppDialog.Show(
                         msg + "\n\nDesea guardar los cambios de este abono?",
                         "Confirmar edicion",
                         MessageBoxButton.YesNo,
@@ -383,7 +400,7 @@ namespace NinOS.UI.Views
                     ? "El saldo quedara en 0. La nota se marcara como PAGADA."
                     : $"Nuevo saldo: {nuevo_saldo:N2}";
 
-                var result = MessageBox.Show(
+                var result = AppDialog.Show(
                     nmsg + "\n\nDesea registrar este pago?",
                     "Confirmar pago",
                     MessageBoxButton.YesNo,

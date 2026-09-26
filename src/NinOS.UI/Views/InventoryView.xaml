@@ -7,6 +7,104 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <Style x:Key="CompactDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinRowHeight" Value="20"/>
+        </Style>
+        <Style x:Key="CellText" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="HeaderActionButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowEditButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFF3E0" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFE0B2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#E65100"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFE0B2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowDeleteButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFEBEE" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFCDD2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#C62828"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFCDD2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -26,13 +124,24 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock FontWeight="Bold" Margin="0,0,10,0" Text="Buscar Producto o Combo:" VerticalAlignment="Center"/>
-                    <TextBox FontSize="14" Padding="6" Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}" Width="300"/>
-                    <Button Background="#1B3A2D" Command="{Binding generate_price_list_command}" Content="Lista de Precios" Cursor="Hand" FontWeight="Bold" Foreground="White" Margin="10,0,0,0" Padding="15,8"/>
+                    <!-- Buscador con lupa (mismo estilo que los demas modulos) -->
+                    <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
+                        <Grid Width="240">
+                            <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
+                            <TextBox Margin="26,2,8,2" BorderThickness="0" Background="Transparent"
+                                     VerticalContentAlignment="Center" FontSize="12.5"
+                                     Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </Border>
+                    <Button Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
+                            Command="{Binding generate_price_list_command}" Content="Descargar lista de precios"
+                            Margin="10,0,0,0"/>
                 </StackPanel>
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <Button Grid.Column="3" Background="#0078D7" Command="{Binding open_add_window_command}" Content="{Binding add_button_text}" Cursor="Hand" FontWeight="Bold" Foreground="White" Padding="20,8"/>
+                <Button Grid.Column="3" Style="{StaticResource HeaderActionButton}" Background="#0078D7"
+                        Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
             </Grid>
         </Border>
 
@@ -42,19 +151,12 @@
 
         <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Todos">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding todos_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding todos_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre / Combo" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre / Combo" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
@@ -63,12 +165,12 @@
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                         <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                            <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                            <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                            <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                            <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Button Background="#E0E0E0" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                            <Button Background="#FFCDD2" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                            <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                            <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </DataTemplate>
@@ -79,27 +181,20 @@
             </TabItem>
 
             <TabItem Header="Defile">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding defile_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding defile_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -109,27 +204,20 @@
             </TabItem>
 
             <TabItem Header="Oleos">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding oleos_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding oleos_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -139,27 +227,20 @@
             </TabItem>
 
             <TabItem Header="Rembrandt">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding rembrandt_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding rembrandt_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -169,27 +250,20 @@
             </TabItem>
 
             <TabItem Header="Bioline">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding bioline_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding bioline_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -199,27 +273,20 @@
             </TabItem>
 
             <TabItem Header="Amazonia Secret">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding amazonia_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding amazonia_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -229,27 +296,20 @@
             </TabItem>
 
             <TabItem Header="Kedam">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding kedam_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding kedam_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -259,27 +319,20 @@
             </TabItem>
 
             <TabItem Header="Depil Clear">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding depil_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding depil_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -289,27 +342,20 @@
             </TabItem>
 
             <TabItem Header="Estilista">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding estilista_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding estilista_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -319,27 +365,20 @@
             </TabItem>
 
             <TabItem Header="Cutique">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding cutique_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding cutique_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -349,27 +388,20 @@
             </TabItem>
 
             <TabItem Header="Otros">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding otros_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding otros_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -379,19 +411,12 @@
             </TabItem>
 
             <TabItem Header="Promociones">
-                <DataGrid AlternatingRowBackground="#E3F2FD" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" ItemsSource="{Binding promociones_list}" Margin="5" MinRowHeight="40" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding promociones_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
                         <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre del Combo/Kit" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="Margin" Value="5"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre del Combo/Kit" Width="*"
+                          ElementStyle="{StaticResource CellText}"/>
                         <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
@@ -399,8 +424,8 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Background="#E0E0E0" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar" Cursor="Hand" Margin="0,0,10,0" Padding="10,5"/>
-                                        <Button Background="#FFCDD2" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" Cursor="Hand" Padding="10,5"/>
+                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

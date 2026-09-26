@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -57,7 +59,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al modificar el pago: {ex.Message}", "Error",
+                AppDialog.Show($"Error al modificar el pago: {ErrorText.Get(ex)}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -82,7 +84,9 @@ namespace NinOS.UI.Views
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            var dateLabel = new TextBlock { Text = "Fecha:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
+            var dateLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
+            dateLabel.Inlines.Add(new Run("Fecha:"));
+            dateLabel.Inlines.Add(new Run("*") { Foreground = Brushes.Red });
             Grid.SetRow(dateLabel, 0); Grid.SetColumn(dateLabel, 0);
             grid.Children.Add(dateLabel);
 
@@ -90,7 +94,9 @@ namespace NinOS.UI.Views
             Grid.SetRow(datePicker, 0); Grid.SetColumn(datePicker, 1);
             grid.Children.Add(datePicker);
 
-            var amountLabel = new TextBlock { Text = "Monto USD:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
+            var amountLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
+            amountLabel.Inlines.Add(new Run("Monto USD:"));
+            amountLabel.Inlines.Add(new Run("*") { Foreground = Brushes.Red });
             Grid.SetRow(amountLabel, 1); Grid.SetColumn(amountLabel, 0);
             grid.Children.Add(amountLabel);
 
@@ -140,14 +146,14 @@ namespace NinOS.UI.Views
             {
                 if (datePicker.SelectedDate == null)
                 {
-                    MessageBox.Show("Seleccione una fecha.", "Fecha invalida", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    AppDialog.Show("Seleccione una fecha.", "Fecha invalida", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 string norm = (amountBox.Text ?? string.Empty).Trim().Replace(',', '.');
                 if (!decimal.TryParse(norm, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal value) || value <= 0)
                 {
-                    MessageBox.Show("Ingrese un monto valido mayor a 0.", "Monto invalido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    AppDialog.Show("Ingrese un monto valido mayor a 0.", "Monto invalido", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 

@@ -159,7 +159,7 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 _is_loading = false;
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
+                AppDialog.Show(ErrorText.Get(ex), "Error");
             }
         }
 
@@ -171,7 +171,10 @@ namespace NinOS.UI.Common.ViewModels
             IEnumerable<payment_row_dto> source = _all_notes_source
                 .Where(n => n.status == "Pagada" || n.paid_amount_usd > 0);
 
-            var filtered = filter_by_month_and_search(source.ToList(), _selected_month, query);
+            // Sin mes seleccionado (estado vacio) no mostrar filas.
+            var filtered = string.IsNullOrEmpty(_selected_month)
+                ? new List<payment_row_dto>()
+                : filter_by_month_and_search(source.ToList(), _selected_month, query);
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
@@ -276,14 +279,14 @@ namespace NinOS.UI.Common.ViewModels
                     id_delivery_note, payment_date,
                     amount_usd, amount_bs, exchange_rate, payment_type, reference_number, bank_name, observations);
                 await _payment_service.register_payment_async(new_payment);
-                System.Windows.MessageBox.Show("Pago registrado exitosamente.", "Exito");
+                AppDialog.Show("Pago registrado exitosamente.", "Exito");
                 await Task.Run(async () =>
                 {
                     await System.Threading.Tasks.Task.Delay(100);
                     System.Windows.Application.Current.Dispatcher.Invoke(() => load_all_async());
                 });
             }
-            catch (Exception ex) { System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error"); }
+            catch (Exception ex) { AppDialog.Show(ErrorText.Get(ex), "Error"); }
         }
 
         public async Task<accounts_receivable_dto?> search_note_async(string note_number)
@@ -313,7 +316,7 @@ namespace NinOS.UI.Common.ViewModels
                     System.Windows.Application.Current.Dispatcher.Invoke(() => load_all_async());
                 });
             }
-            catch (Exception ex) { System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error"); }
+            catch (Exception ex) { AppDialog.Show(ErrorText.Get(ex), "Error"); }
         }
 
         public async Task<IEnumerable<string>> get_all_months_async()
@@ -335,7 +338,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
     }

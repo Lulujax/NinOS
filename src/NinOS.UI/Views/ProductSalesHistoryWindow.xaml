@@ -55,23 +55,26 @@
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#E0E7EE"
                   BorderBrush="#C5D3E0" BorderThickness="1" FontSize="14" RowHeight="35"
-                  EnableRowVirtualization="True">
+                  EnableRowVirtualization="True"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#0D62B5"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="FontSize" Value="14"/>
-                    <Setter Property="Padding" Value="4,0"/>
+                    <Setter Property="FontSize" Value="13.5"/>
+                    <Setter Property="Height" Value="34"/>
+                    <Setter Property="Padding" Value="6,0"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="90"/>
-                <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="90"/>
-                <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                <DataGridTextColumn Header="VENDEDORA" Binding="{Binding seller_name}" Width="110"/>
-                <DataGridTextColumn Header="VENDIDO EN" Binding="{Binding sold_as}" Width="90"/>
-                <DataGridTextColumn Header="MOVIMIENTO" Binding="{Binding movement_type}" Width="95">
+                <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="100"/>
+                <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="100" MinWidth="95"/>
+                <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="VENDEDORA" Binding="{Binding seller_name}" Width="120"/>
+                <DataGridTextColumn Header="MOVIMIENTO" Binding="{Binding movement_type}" Width="120">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -87,7 +90,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="UNIDADES" Binding="{Binding unidades_display}" Width="80">
+                <DataGridTextColumn Header="UNIDADES" Binding="{Binding unidades_display}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -103,7 +106,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="PRECIO U." Binding="{Binding precio_display}" Width="85">
+                <DataGridTextColumn Header="PRECIO" Binding="{Binding precio_display}" Width="95">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -111,7 +114,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="SUBTOTAL" Binding="{Binding subtotal_display}" Width="85">
+                <DataGridTextColumn Header="SUBTOTAL" Binding="{Binding subtotal_display}" Width="95">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -119,7 +122,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="85">
+                <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="100">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>

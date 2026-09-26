@@ -20,7 +20,11 @@
             <ComboBoxItem Content="Armar Nuevo Combo" />
         </ComboBox>
 
-        <TextBlock Grid.Row="1" Text="Buscar Producto:" FontWeight="Bold" Margin="0,0,0,5" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,5">
+            <TextBlock Text="Buscar Producto:" FontWeight="Bold"/>
+            <TextBlock Text="*" Foreground="Red" Margin="1,0,0,0"
+                       Visibility="{Binding promo_type_index, Converter={StaticResource IntEqualsToVisibilityConverter}, ConverterParameter=0}"/>
+        </StackPanel>
         <TextBox Grid.Row="2" VerticalAlignment="Top" Text="{Binding promo_search_query, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,5" />
         
         <ListBox Grid.Row="2" ItemsSource="{Binding promo_search_results}" SelectedItem="{Binding selected_promo_product}" Margin="0,35,0,10" Background="#F9F9F9">
@@ -57,6 +61,9 @@
             <DataGrid.Style>
                 <Style TargetType="DataGrid">
                     <Setter Property="Visibility" Value="Visible" />
+                    <Setter Property="CanUserReorderColumns" Value="False" />
+                    <Setter Property="CanUserResizeColumns" Value="False" />
+                    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding promo_type_index}" Value="0">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -67,7 +74,17 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Código" Binding="{Binding product_ref.product_code}" IsReadOnly="True" Width="80" />
                 <DataGridTextColumn Header="Producto" Binding="{Binding product_ref.name}" IsReadOnly="True" Width="*" />
-                <DataGridTextColumn Header="Cant." Binding="{Binding quantity, UpdateSourceTrigger=PropertyChanged}" Width="50" />
+                <DataGridTextColumn Header="Cant." Binding="{Binding quantity, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                    <DataGridTextColumn.HeaderTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Cant."/>
+                                <TextBlock Text="*" Foreground="Red" Margin="1,0,0,0"
+                                           Visibility="{Binding promo_type_index, Converter={StaticResource IntEqualsToVisibilityConverter}, ConverterParameter=not:0}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTextColumn.HeaderTemplate>
+                </DataGridTextColumn>
                 <DataGridTemplateColumn Width="40">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

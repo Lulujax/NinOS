@@ -185,7 +185,7 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 _is_loading = false;
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
+                AppDialog.Show(ErrorText.Get(ex), "Error");
             }
         }
 
@@ -316,7 +316,7 @@ namespace NinOS.UI.Common.ViewModels
             var available = get_available_pending_rows();
             if (available.Count == 0)
             {
-                System.Windows.MessageBox.Show("No hay comisiones pendientes para pagar.", "Pago de comision",
+                AppDialog.Show("No hay comisiones pendientes para pagar.", "Pago de comision",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 return;
             }
@@ -338,7 +338,7 @@ namespace NinOS.UI.Common.ViewModels
                 var payments = (await _commission_service.get_commission_payments_async(row.id_commission)).ToList();
                 if (payments.Count == 0)
                 {
-                    System.Windows.MessageBox.Show("No hay pagos de comision para imprimir.", "Imprimir",
+                    AppDialog.Show("No hay pagos de comision para imprimir.", "Imprimir",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
@@ -348,7 +348,7 @@ namespace NinOS.UI.Common.ViewModels
                 var receipt = await _commission_service.get_commission_receipt_async(new[] { row.id_commission }, reference);
                 if (receipt == null || receipt.rows.Count == 0)
                 {
-                    System.Windows.MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                    AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
@@ -357,7 +357,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -366,13 +366,13 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 await _commission_service.register_commission_payment_async(id_commissions, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
-                System.Windows.MessageBox.Show("Comision(es) liquidadas exitosamente.", "Exito");
+                AppDialog.Show("Comision(es) liquidadas exitosamente.", "Exito");
                 load_all_async();
                 return true;
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
+                AppDialog.Show(ErrorText.Get(ex), "Error");
                 return false;
             }
         }

@@ -34,7 +34,7 @@
         <TextBlock Grid.Row="2" FontWeight="Bold" Margin="0,0,0,5"><Run Text="Razón Social (Negocio/Nombre)"/><Run Text=" *" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="3" Text="{Binding NewBusinessName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" Text="RIF" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="4" Text="Identificación" FontWeight="Bold" Margin="0,0,0,5"/>
         <Grid Grid.Row="5" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="80"/>

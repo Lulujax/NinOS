@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using NinOS.Infrastructure.Logging;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -15,6 +17,7 @@ namespace NinOS.UI.Views
             InitializeComponent();
             _viewModel = viewModel;
             DataContext = viewModel;
+            Closed += (s, e) => AppLog.Info("Aplicación cerrada");
         }
 
         private bool TryGetTabItem(DependencyObject? source, out TabItem? tab_item)
@@ -46,7 +49,7 @@ namespace NinOS.UI.Views
 
             if (_viewModel.delivery_notes_vm?.has_pending_data == true)
             {
-                MessageBoxResult result = MessageBox.Show(
+                MessageBoxResult result = AppDialog.Show(
                     "Hay datos sin guardar en la Nota de Entrega. Si sales de esta pestaña se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?",
                     "Datos sin guardar",
                     MessageBoxButton.YesNo,
@@ -74,21 +77,27 @@ namespace NinOS.UI.Views
             switch (tab_index)
             {
                 case 0:
+                    AppLog.Info("Módulo: Notas de Entrega");
                     _viewModel.delivery_notes_vm?.refresh_data();
                     break;
                 case 1:
+                    AppLog.Info("Módulo: Cuentas por Cobrar");
                     _viewModel.accounts_receivable_vm?.refresh_data();
                     break;
                 case 2:
+                    AppLog.Info("Módulo: Ventas");
                     _viewModel.sales_vm?.refresh_data();
                     break;
                 case 3:
+                    AppLog.Info("Módulo: Pagos");
                     _viewModel.payments_vm?.refresh_data();
                     break;
                 case 4:
+                    AppLog.Info("Módulo: Comisiones");
                     _viewModel.commissions_vm?.refresh_data();
                     break;
                 case 6:
+                    AppLog.Info("Módulo: Inventario");
                     _viewModel.inventory_vm?.refresh_data();
                     break;
             }

@@ -82,7 +82,7 @@ namespace NinOS.UI.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 return;
             }

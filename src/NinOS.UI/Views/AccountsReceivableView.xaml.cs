@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -39,7 +40,7 @@ namespace NinOS.UI.Views
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error al cargar la nota: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        AppDialog.Show($"Error al cargar la nota: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 };
 
@@ -49,7 +50,7 @@ namespace NinOS.UI.Views
 
                     if (viewModel.selected_note.paid_amount_usd > 0)
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(
                             $"No se puede anular la nota {viewModel.selected_note.note_number}.\nTiene abonos registrados ({viewModel.selected_note.paid_amount_usd:N2} USD). Elimine primero los pagos.",
                             "Anulacion bloqueada",
                             MessageBoxButton.OK,
@@ -60,7 +61,7 @@ namespace NinOS.UI.Views
                     string message = $"Esta seguro de anular la nota {viewModel.selected_note.note_number}?\nEl stock sera restituido.";
                     MessageBoxImage icon = MessageBoxImage.Question;
 
-                    MessageBoxResult result = MessageBox.Show(
+                    MessageBoxResult result = AppDialog.Show(
                         message,
                         "Confirmar Anulacion",
                         MessageBoxButton.YesNo,

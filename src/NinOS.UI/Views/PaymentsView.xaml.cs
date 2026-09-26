@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -60,7 +61,7 @@ namespace NinOS.UI.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al cargar historial: {ex.Message}", "Error");
+                    AppDialog.Show($"Error al cargar historial: {ErrorText.Get(ex)}", "Error");
                 }
             }
         }

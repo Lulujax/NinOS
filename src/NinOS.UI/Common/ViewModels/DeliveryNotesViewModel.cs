@@ -237,14 +237,14 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (IsAlreadyInNote(item))
                 {
-                    System.Windows.MessageBox.Show($"El articulo '{item.name}' ya esta en la nota. Solo puedes colocarlo una vez.", "Item duplicado", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    AppDialog.Show($"El articulo '{item.name}' ya esta en la nota. Solo puedes colocarlo una vez.", "Item duplicado", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
 
                 int remaining = RemainingStock(item);
                 if (remaining <= 0)
                 {
-                    System.Windows.MessageBox.Show($"El articulo {item.name} esta agotado (stock 0).", "Sin stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    AppDialog.Show($"El articulo {item.name} esta agotado (stock 0).", "Sin stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
                 selected_item = item;
@@ -478,7 +478,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (value != null && has_pending_data)
                 {
-                    MessageBoxResult result = MessageBox.Show(
+                    MessageBoxResult result = AppDialog.Show(
                         "Hay datos sin guardar en la nota actual. Si cambias de vendedora se descartarán y el stock será liberado.\n\n¿Desea continuar?",
                         "Descartar cambios",
                         MessageBoxButton.YesNo,
@@ -513,7 +513,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (value != null && has_pending_data)
                 {
-                    MessageBoxResult result = MessageBox.Show(
+                    MessageBoxResult result = AppDialog.Show(
                         "Hay datos sin guardar en la nota actual. Si cambias el tipo de nota se descartarán y el stock será liberado.\n\n¿Desea continuar?",
                         "Descartar cambios",
                         MessageBoxButton.YesNo,
@@ -1099,7 +1099,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al actualizar datos: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al actualizar datos: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
             finally
             {
@@ -1174,7 +1174,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al cargar datos: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al cargar datos: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
             finally
             {
@@ -1196,7 +1196,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al generar correlativo: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar correlativo: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -1208,7 +1208,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (note_details.Count >= MAX_NOTE_ITEMS)
                 {
-                    System.Windows.MessageBox.Show($"La nota de entrega solo puede tener un maximo de {MAX_NOTE_ITEMS} items.", "Limite", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    AppDialog.Show($"La nota de entrega solo puede tener un maximo de {MAX_NOTE_ITEMS} items.", "Limite", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
                 note_detail_row new_row = new note_detail_row(all_items, note_details);
@@ -1224,7 +1224,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al agregar item: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al agregar item: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -1477,7 +1477,7 @@ namespace NinOS.UI.Common.ViewModels
                         await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
                         break;
                     }
-                    catch (InvalidOperationException ex) when (ex.Message == "CORRELATIVO_DUPLICADO" && save_attempts <= 3)
+                    catch (InvalidOperationException ex) when (ex.Message.IndexOf("correlativo", StringComparison.OrdinalIgnoreCase) >= 0 && save_attempts <= 3)
                     {
                         string regenerated = await _delivery_note_service.generate_correlative_async(_selected_seller.id_seller);
                         new_note.note_number = regenerated;
@@ -1503,20 +1503,11 @@ namespace NinOS.UI.Common.ViewModels
                 if (generate_pdf)
                     NinOS.UI.Common.NotePdfGenerator.generate(preview);
 
-                System.Windows.MessageBox.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                AppDialog.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                string full_message = ex.Message;
-                if (ex.InnerException != null)
-                {
-                    full_message += Environment.NewLine + "Detalle: " + ex.InnerException.Message;
-                    if (ex.InnerException.InnerException != null)
-                    {
-                        full_message += Environment.NewLine + "Detalle 2: " + ex.InnerException.InnerException.Message;
-                    }
-                }
-                System.Windows.MessageBox.Show($"Error al guardar nota: {full_message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al guardar nota: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

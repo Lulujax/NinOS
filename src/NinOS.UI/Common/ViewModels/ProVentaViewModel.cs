@@ -165,7 +165,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "error");
+                AppDialog.Show(ErrorText.Get(ex), "error");
             }
         }
 
@@ -184,7 +184,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "error");
+                AppDialog.Show(ErrorText.Get(ex), "error");
             }
         }
 
@@ -202,7 +202,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "error");
+                AppDialog.Show(ErrorText.Get(ex), "error");
             }
         }
 
@@ -251,7 +251,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "error");
+                AppDialog.Show(ErrorText.Get(ex), "error");
             }
         }
 
@@ -296,7 +296,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -317,7 +317,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -350,14 +350,14 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date, string observations)
         {
             await _payment_service.register_relation_payment_async(id_relacion, amount_usd, payment_date, observations);
-            MessageBox.Show("Pago registrado exitosamente.", "Exito");
+            AppDialog.Show("Pago registrado exitosamente.", "Exito");
 
             await load_pending_async();
             await load_paid_async();

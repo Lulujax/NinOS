@@ -274,7 +274,7 @@ namespace NinOS.UI.Views
                 else
                     plan += "No quedan saldos pendientes.\n";
 
-                var result = MessageBox.Show(
+                var result = AppDialog.Show(
                     $"VENDEDORA: {seller}\nNOTAS A PAGAR: {_to_pay.Count}\nTOTAL PENDIENTE: {total_pending:0.##}\nA PAGAR: {amount_usd:0.##}\n\n" +
                     plan +
                     "\n¿Confirmar liquidacion de comisiones?",
@@ -290,7 +290,7 @@ namespace NinOS.UI.Views
 
                 if (paid)
                 {
-                    var pdf_result = MessageBox.Show(
+                    var pdf_result = AppDialog.Show(
                         "La comision fue liquidada.\n\n¿Desea generar el PDF del comprobante de pago de comision?",
                         "Generar PDF",
                         MessageBoxButton.YesNo,
@@ -301,7 +301,7 @@ namespace NinOS.UI.Views
                         var receipt = await _vm.get_commission_receipt_async(ids, reference);
                         if (receipt == null || receipt.rows.Count == 0)
                         {
-                            MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                            AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
                                 MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else

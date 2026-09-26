@@ -85,7 +85,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         if (detail.id_product != null)
                         {
                             if (!products.TryGetValue(detail.id_product.Value, out var p))
-                                throw new InvalidOperationException($"Producto con ID {detail.id_product} no encontrado.");
+                                throw new InvalidOperationException("Uno de los productos seleccionados ya no existe. Actualice el detalle de la nota.");
                             if (p.stock_quantity < detail.quantity)
                                 throw new InvalidOperationException($"Stock insuficiente para {p.name}");
                             p.stock_quantity -= detail.quantity;
@@ -93,7 +93,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         else if (detail.id_promotion != null)
                         {
                             if (!promotions.TryGetValue(detail.id_promotion.Value, out var promo))
-                                throw new InvalidOperationException($"Promocion con ID {detail.id_promotion} no encontrada.");
+                                throw new InvalidOperationException("La promoción seleccionada ya no existe. Actualice el detalle de la nota.");
                             if (promo.items == null || promo.items.Count == 0)
                                 throw new InvalidOperationException($"La promocion {promo.name} no tiene productos asignados.");
 
@@ -102,7 +102,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 if (!products.TryGetValue(p_item.id_product, out var p))
                                 {
                                     throw new InvalidOperationException(
-                                        $"La promocion '{promo.name}' referencia el producto ID {p_item.id_product} que ya no existe en el inventario. " +
+                                        $"La promocion '{promo.name}' referencia un producto que ya no existe en el inventario. " +
                                         $"Elimine esta promocion y cree una nueva con productos validos.");
                                 }
                                 int required_qty = detail.quantity * p_item.quantity_required;
@@ -133,7 +133,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
                     catch (DbUpdateException ex) when (is_unique_note_number_violation(ex))
                     {
-                        throw new InvalidOperationException("CORRELATIVO_DUPLICADO");
+                        throw new InvalidOperationException("Ya existe una nota con ese correlativo. Verifique el número e intente de nuevo.");
                     }
 
                     foreach (note_detail detail in details_list)

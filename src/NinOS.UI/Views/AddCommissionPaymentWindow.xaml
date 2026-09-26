@@ -12,6 +12,9 @@
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="22"/>
             <Setter Property="SelectionMode" Value="Single"/>
@@ -162,7 +165,7 @@
             <TextBlock x:Name="SummaryText" FontSize="11" Foreground="#1B5E20" FontWeight="Bold" TextWrapping="Wrap"/>
         </Border>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="Tasa BS/USD:" VerticalAlignment="Center" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Tasa BS/USD:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="5" Grid.Column="1" x:Name="RateBox" VerticalContentAlignment="Center" Height="24"
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"/>
 
@@ -171,7 +174,7 @@
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"
                  IsReadOnly="True" IsTabStop="False" Background="#EEEEEE" Foreground="#757575"/>
 
-        <TextBlock Grid.Row="7" Grid.Column="0" Text="Monto BS:" VerticalAlignment="Center" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Monto BS:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="7" Grid.Column="1" x:Name="BsAmountBox" VerticalContentAlignment="Center" Height="24"
                  Width="120" HorizontalAlignment="Left" Margin="0,0,0,5" FontSize="11"
                  PreviewTextInput="OnPreviewNumeric"/>
@@ -187,7 +190,7 @@
         <DatePicker Grid.Row="9" Grid.Column="1" x:Name="PaymentDatePicker" Width="150" HorizontalAlignment="Left"
                     Height="26" Margin="0,0,0,5" FontSize="11"/>
 
-        <TextBlock Grid.Row="10" Grid.Column="0" Text="Referencia:" VerticalAlignment="Center" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,5"><Run Text="Referencia:"/><Run Text="*" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="10" Grid.Column="1" x:Name="ReferenceBox" VerticalContentAlignment="Center" Height="24"
                  Width="160" HorizontalAlignment="Left" Margin="0,0,0,5" MaxLength="50" FontSize="11"/>
 

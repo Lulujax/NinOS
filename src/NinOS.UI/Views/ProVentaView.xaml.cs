@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -73,7 +74,7 @@ namespace NinOS.UI.Views
                 }
                 catch (System.Exception ex)
                 {
-                    MessageBox.Show($"Error al cargar la nota: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show($"Error al cargar la nota: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             };
 

@@ -431,7 +431,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var delivery_note = await db_context.delivery_notes
                     .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
-                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
 
                 delivery_note.cxc_observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
                 await db_context.SaveChangesAsync();
@@ -445,7 +445,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var delivery_note = await db_context.delivery_notes
                     .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
-                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
 
                 delivery_note.dispatch_date = dispatch_date?.Kind == DateTimeKind.Utc
                     ? dispatch_date
@@ -461,7 +461,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var delivery_note = await db_context.delivery_notes
                     .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
-                if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
 
                 delivery_note.sales_observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
                 await db_context.SaveChangesAsync();
@@ -479,7 +479,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     var delivery_note = await db_context.delivery_notes
                         .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
-                    if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                    if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
 
                     var mar_ids = await get_pro_venta_type_ids_async(db_context);
@@ -575,7 +575,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     var delivery_note = await db_context.delivery_notes
                         .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
 
-                    if (delivery_note == null) throw new ArgumentException($"Nota de entrega con ID {id_delivery_note} no encontrada.");
+                    if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("La nota ya esta anulada.");
 
                     var has_payments = await db_context.payments

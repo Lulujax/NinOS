@@ -261,7 +261,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                ErrorMessage = ErrorText.Get(ex);
             }
             finally
             {
@@ -625,7 +625,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo generar la lista de precios: {ex.Message}";
+                ErrorMessage = $"No se pudo generar la lista de precios: {ErrorText.Get(ex)}";
             }
         }
 
@@ -633,7 +633,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
 
-            MessageBoxResult confirm = MessageBox.Show(
+            MessageBoxResult confirm = AppDialog.Show(
                 $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?",
                 "Confirmar eliminación",
                 MessageBoxButton.YesNo,
@@ -647,12 +647,12 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (InvalidOperationException ex)
             {
-                ErrorMessage = ex.Message;
-                MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ErrorMessage = ErrorText.Get(ex);
+                AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo eliminar el producto: {ex.Message}";
+                ErrorMessage = $"No se pudo eliminar el producto: {ErrorText.Get(ex)}";
             }
         }
 
@@ -660,7 +660,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not inventory_item_dto dto || !dto.is_promotion || dto.promo_ref == null) return;
 
-            MessageBoxResult confirm = MessageBox.Show(
+            MessageBoxResult confirm = AppDialog.Show(
                 $"¿Seguro de eliminar la promoción \"{dto.promo_ref.name}\"?",
                 "Confirmar eliminación",
                 MessageBoxButton.YesNo,
@@ -674,12 +674,12 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (InvalidOperationException ex)
             {
-                ErrorMessage = ex.Message;
-                MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ErrorMessage = ErrorText.Get(ex);
+                AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo eliminar la promoción: {ex.Message}";
+                ErrorMessage = $"No se pudo eliminar la promoción: {ErrorText.Get(ex)}";
             }
         }
 
@@ -726,7 +726,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo guardar el producto: {ex.Message}";
+                ErrorMessage = $"No se pudo guardar el producto: {ErrorText.Get(ex)}";
             }
         }
 
@@ -836,7 +836,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo guardar la promoción: {ex.Message}";
+                ErrorMessage = $"No se pudo guardar la promoción: {ErrorText.Get(ex)}";
             }
         }
     }

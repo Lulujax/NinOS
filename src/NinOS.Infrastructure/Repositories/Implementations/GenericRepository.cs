@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Interfaces;
 
 namespace NinOS.Infrastructure.Repositories.Implementations
@@ -31,6 +32,7 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             
             await _db_set.AddAsync(entity);
             await _db_context.SaveChangesAsync();
+            AppLog.Info($"INSERT {typeof(t_entity).Name}");
         }
 
         public async Task<t_entity?> get_by_id_async(int id)
@@ -59,6 +61,7 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             
             _db_set.Update(entity);
             await _db_context.SaveChangesAsync();
+            AppLog.Info($"UPDATE {typeof(t_entity).Name}");
         }
 
         public async Task delete_async(t_entity entity)
@@ -70,6 +73,7 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             
             _db_set.Remove(entity);
             await _db_context.SaveChangesAsync();
+            AppLog.Info($"DELETE {typeof(t_entity).Name}");
         }
     }
 }

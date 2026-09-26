@@ -53,7 +53,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar historial: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show($"Error al cargar historial: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -79,7 +79,7 @@ namespace NinOS.UI.Views
             var payments = HistoryGrid.Items.Cast<commission_payment_dto>().ToList();
             if (payments.Count == 0)
             {
-                MessageBox.Show("No hay pagos de comision para imprimir.", "Imprimir",
+                AppDialog.Show("No hay pagos de comision para imprimir.", "Imprimir",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -88,7 +88,7 @@ namespace NinOS.UI.Views
             var receipt = await _commissions_vm.get_commission_receipt_async(new[] { _commission.id_commission }, reference);
             if (receipt == null || receipt.rows.Count == 0)
             {
-                MessageBox.Show("No se encontro informacion del comprobante.", "Comprobante",
+                AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -109,7 +109,7 @@ namespace NinOS.UI.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al abrir edicion: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show($"Error al abrir edicion: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

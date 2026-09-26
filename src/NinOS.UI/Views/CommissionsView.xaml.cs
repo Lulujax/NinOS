@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -39,7 +40,7 @@ namespace NinOS.UI.Views
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error al abrir Pago de Comision: {ex.Message}", "Error");
+                        AppDialog.Show($"Error al abrir Pago de Comision: {ErrorText.Get(ex)}", "Error");
                     }
                 };
 
@@ -54,7 +55,7 @@ namespace NinOS.UI.Views
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error al abrir historial: {ex.Message}", "Error");
+                        AppDialog.Show($"Error al abrir historial: {ErrorText.Get(ex)}", "Error");
                     }
                 };
             }
@@ -84,13 +85,13 @@ namespace NinOS.UI.Views
 
             if (row == null)
             {
-                MessageBox.Show("No se pudo identificar la comision seleccionada.", "Historial");
+                AppDialog.Show("No se pudo identificar la comision seleccionada.", "Historial");
                 return;
             }
 
             if (DataContext is not CommissionsViewModel vm)
             {
-                MessageBox.Show("Contexto de comisiones no disponible.", "Historial");
+                AppDialog.Show("Contexto de comisiones no disponible.", "Historial");
                 return;
             }
 
@@ -102,7 +103,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al abrir historial: {ex.Message}", "Error");
+                AppDialog.Show($"Error al abrir historial: {ErrorText.Get(ex)}", "Error");
             }
         }
     }

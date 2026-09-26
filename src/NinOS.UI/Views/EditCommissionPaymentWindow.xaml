@@ -40,7 +40,7 @@
                 <TextBlock x:Name="InfoText" FontSize="11" Foreground="#1B5E20" FontWeight="Bold" TextWrapping="Wrap"/>
             </Border>
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}"><Run Text="Tipo:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Tipo:"/>
             <ComboBox Grid.Row="2" Grid.Column="1" x:Name="TypeCombo" Width="170" HorizontalAlignment="Left"
                       Height="26" Margin="0,0,0,6" FontSize="11">
                 <ComboBoxItem Content="Pago Movil"/>

@@ -220,7 +220,7 @@ namespace NinOS.UI.Common.ViewModels
             JuanLuisCustomers = new ObservableCollection<CustomerRowDto>();
 
             SellerOptions = new ObservableCollection<string> { "Sandra", "Anais", "Alejandra", "Juan Luis" };
-            RifTypeOptions = new ObservableCollection<string> { "J", "V", "E", "P", "G", "C" };
+            RifTypeOptions = new ObservableCollection<string> { "V", "E", "J", "G", "P" };
             _newSellerName = "Anais";
             _newRifType = "J";
 
@@ -260,7 +260,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading sellers: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error loading sellers: {ErrorText.Get(ex)}");
                 }
                 
                 if (customers == null)
@@ -290,7 +290,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error al cargar clientes: {ex.Message}";
+                ErrorMessage = $"Error al cargar clientes: {ErrorText.Get(ex)}";
                 _allCustomersSource = new List<CustomerRowDto>();
             }
             finally
@@ -392,7 +392,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error filtering customers: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error filtering customers: {ErrorText.Get(ex)}");
             }
         }
 
@@ -462,7 +462,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error al guardar: {ex.Message}";
+                ErrorMessage = $"Error al guardar: {ErrorText.Get(ex)}";
             }
             finally
             {
@@ -535,7 +535,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is CustomerRowDto selected && selected.CustomerRef != null)
             {
-                MessageBoxResult confirm = System.Windows.MessageBox.Show(
+                MessageBoxResult confirm = AppDialog.Show(
                     $"Esta seguro de eliminar el cliente \"{selected.BusinessName}\"?",
                     "Confirmar eliminacion",
                     MessageBoxButton.YesNo,
@@ -549,18 +549,18 @@ namespace NinOS.UI.Common.ViewModels
                     ErrorMessage = string.Empty;
                     await _customerService.DeleteCustomerAsync(selected.CustomerRef.id_customer);
                     LoadCustomersAsync();
-                    System.Windows.MessageBox.Show($"Cliente \"{selected.BusinessName}\" eliminado.",
+                    AppDialog.Show($"Cliente \"{selected.BusinessName}\" eliminado.",
                         "Cliente eliminado", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (InvalidOperationException ex)
                 {
-                    ErrorMessage = ex.Message;
-                    System.Windows.MessageBox.Show(ex.Message, "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ErrorMessage = ErrorText.Get(ex);
+                    AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 catch (Exception ex)
                 {
-                    ErrorMessage = $"Error al eliminar: {ex.Message}";
-                    System.Windows.MessageBox.Show($"Error al eliminar el cliente: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ErrorMessage = $"Error al eliminar: {ErrorText.Get(ex)}";
+                    AppDialog.Show($"Error al eliminar el cliente: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally
                 {

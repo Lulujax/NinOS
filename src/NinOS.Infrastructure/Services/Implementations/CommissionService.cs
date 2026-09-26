@@ -44,8 +44,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     commission current_commission = await db.commissions.FindAsync(commission_ids[i]);
                     
-                    if (current_commission == null) throw new InvalidOperationException($"Comision con ID {commission_ids[i]} no encontrada.");
-                    if (current_commission.is_paid) throw new InvalidOperationException($"La comision con ID {commission_ids[i]} ya fue pagada.");
+                    if (current_commission == null) throw new InvalidOperationException("Una de las comisiones seleccionadas ya no existe.");
+                    if (current_commission.is_paid) throw new InvalidOperationException("Ya fue registrado un pago para una de las comisiones seleccionadas.");
 
                     current_commission.is_paid = true;
                     current_commission.payout_date = DateTime.UtcNow;
@@ -513,7 +513,7 @@ return new commission_dto
                 foreach (int id in commission_ids)
                 {
                     var current_commission = await db.commissions.FindAsync(id);
-                    if (current_commission == null) throw new InvalidOperationException($"Comision ID {id} no encontrada.");
+                    if (current_commission == null) throw new InvalidOperationException("La comisión seleccionada ya no existe.");
                     commissions.Add(current_commission);
                 }
 

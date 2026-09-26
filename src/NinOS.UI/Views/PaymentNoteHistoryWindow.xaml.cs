@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -75,7 +76,7 @@ namespace NinOS.UI.Views
                 }
                 catch (System.Exception ex)
                 {
-                    MessageBox.Show($"Error al abrir edicion: {ex.Message}", "Error");
+                    AppDialog.Show($"Error al abrir edicion: {ErrorText.Get(ex)}", "Error");
                 }
             }
         }

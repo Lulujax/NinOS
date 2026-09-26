@@ -219,7 +219,7 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 _is_loading = false;
-                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error");
+                AppDialog.Show(ErrorText.Get(ex), "Error");
             }
         }
 
@@ -336,7 +336,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
             }
         }
@@ -351,7 +351,7 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 note.sales_observations = note.saved_observations ?? string.Empty;
-                System.Windows.MessageBox.Show($"No se pudo guardar la observación: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"No se pudo guardar la observación: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -391,7 +391,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -413,14 +413,14 @@ namespace NinOS.UI.Common.ViewModels
                 DateTime? month = parse_selected_month();
                 if (month == null)
                 {
-                    System.Windows.MessageBox.Show("Seleccione un mes para definir la meta.", "Meta de venta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    AppDialog.Show("Seleccione un mes para definir la meta.", "Meta de venta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
 
                 string normalized = string.IsNullOrWhiteSpace(goal_edit_text) ? "0" : goal_edit_text.Replace(",", ".");
                 if (!decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amount) || amount < 0)
                 {
-                    System.Windows.MessageBox.Show("Ingrese un monto válido para la meta.", "Meta de venta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    AppDialog.Show("Ingrese un monto válido para la meta.", "Meta de venta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
 
@@ -432,7 +432,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al guardar la meta: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppDialog.Show($"Error al guardar la meta: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

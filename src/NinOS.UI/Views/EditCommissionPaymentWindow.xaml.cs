@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Views
 {
@@ -121,7 +122,7 @@ namespace NinOS.UI.Views
             }
             catch (Exception ex)
             {
-                ShowError($"No se pudo guardar el pago: {ex.Message}");
+                ShowError($"No se pudo guardar el pago: {NinOS.UI.Common.ErrorText.Get(ex)}");
             }
             finally
             {

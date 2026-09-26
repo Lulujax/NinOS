@@ -16,9 +16,11 @@
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="CanUserAddRows" Value="False"/>
             <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="20"/>
         </Style>
@@ -125,6 +127,7 @@
             </Grid>
 
             <!-- Mes + Filtro -->
+                <TextBlock VerticalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" Margin="0,0,6,6"><Run Text="Mes:"/><Run Text="*" Foreground="#F44336"/></TextBlock>
                 <ComboBox x:Name="cmb_month" Margin="0,0,8,6" MinWidth="110" VerticalAlignment="Center"
                           ItemsSource="{Binding pending_months}"
                           SelectedItem="{Binding selected_month}"
@@ -610,6 +613,7 @@
                     <!-- Meta (editable) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding goal_label_display}" Foreground="#B2DFDB" FontSize="12.5" VerticalAlignment="Center"/>
+                        <TextBlock Text="*" Foreground="#F44336" FontSize="12.5" FontWeight="Bold" Margin="1,0,0,0" VerticalAlignment="Center"/>
                         <TextBlock Foreground="White" FontSize="13" FontWeight="SemiBold"
                                    VerticalAlignment="Center" Margin="5,0,0,0">
                             <TextBlock.Style>
