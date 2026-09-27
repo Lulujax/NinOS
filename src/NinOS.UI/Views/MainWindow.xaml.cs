@@ -100,6 +100,10 @@ namespace NinOS.UI.Views
                     AppLog.Info("Módulo: Inventario");
                     _viewModel.inventory_vm?.refresh_data();
                     break;
+                case 8:
+                    AppLog.Info("Módulo: Notas de Credito");
+                    _viewModel.credit_notes_vm?.refresh_data();
+                    break;
             }
         }
     }

@@ -67,7 +67,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <TextBox Text="{Binding promo_title_text, UpdateSourceTrigger=PropertyChanged}" FontWeight="Bold" FontSize="20" TextAlignment="Center" BorderThickness="0" Background="Transparent"/>
+                            <TextBlock Text="{Binding promo_title_text}" FontWeight="Bold" FontSize="20" TextAlignment="Center"/>
                         </Border>
                         <TextBlock Text="{Binding header_title}" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" TextDecorations="Underline"/>
                         <TextBlock Text="Caracas venezuela" FontSize="14" HorizontalAlignment="Center"/>
@@ -385,7 +385,7 @@
                                                 </Grid>
                             <TextBlock Grid.Column="1" Text="Total General" FontStyle="Italic" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             <Border Grid.Column="2" BorderBrush="Black" BorderThickness="1,0,0,0">
-                                <TextBlock Text="{Binding gross_total_usd, StringFormat=N2}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding display_total_general, StringFormat=N2}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Border>
                         </Grid>
                     </Border>

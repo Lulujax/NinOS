@@ -17,6 +17,8 @@ namespace NinOS.Domain.ViewModels
         public DateTime creation_date { get; set; }
         public decimal total_amount_usd { get; set; }
         public string status { get; set; } = string.Empty;
+        public string category { get; set; } = string.Empty;
+        public string note_type_name { get; set; } = string.Empty;
 
         // Fecha de la nota de entrega en formato mes y ano, igual que el selector del modulo.
         public string delivery_month_label => creation_date.ToString("MMMM yyyy", new CultureInfo("es-VE"));
@@ -36,6 +38,7 @@ namespace NinOS.Domain.ViewModels
         public decimal adjusted_total_usd { get; set; }
         public decimal already_returned_usd { get; set; }
         public string status { get; set; } = string.Empty;
+        public string note_type { get; set; } = string.Empty;
         public List<credit_note_source_line_dto> lines { get; set; } = new();
     }
 

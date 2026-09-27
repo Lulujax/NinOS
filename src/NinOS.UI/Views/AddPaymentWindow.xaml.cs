@@ -19,7 +19,10 @@ namespace NinOS.UI.Views
         public decimal total_amount_usd { get; set; }
         public decimal paid_amount_usd { get; set; }
         public string status { get; set; } = string.Empty;
-        public string Display => $"{note_number} - {customer_name}";
+        public string note_type { get; set; } = string.Empty;
+        public string Display => string.IsNullOrEmpty(note_type)
+            ? $"{note_number} - {customer_name}"
+            : $"{note_number} - {customer_name} [{note_type}]";
     }
 
     public partial class AddPaymentWindow : Window

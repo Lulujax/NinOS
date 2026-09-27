@@ -7,11 +7,12 @@ namespace NinOS.Domain
         private int _id_credit_note;
         private string _note_number;
         private DateTime _creation_date;
-        private int _id_delivery_note;
+        private int? _id_delivery_note;
         private int _id_seller;
         private int _id_customer;
         private decimal _total_amount_usd;
         private string _status;
+        private string _category;
 
         public int id_credit_note
         {
@@ -43,12 +44,13 @@ namespace NinOS.Domain
             }
         }
 
-        public int id_delivery_note
+        // Nulo para obsequios; anclada a la nota de entrega para devoluciones.
+        public int? id_delivery_note
         {
             get { return _id_delivery_note; }
             set
             {
-                if (value <= 0) throw new ArgumentException();
+                if (value.HasValue && value.Value <= 0) throw new ArgumentException();
                 _id_delivery_note = value;
             }
         }
@@ -94,15 +96,27 @@ namespace NinOS.Domain
             }
         }
 
+        // Devolucion u Obsequio.
+        public string category
+        {
+            get { return _category; }
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
+                _category = value;
+            }
+        }
+
         public string? observations { get; set; }
 
         protected credit_note()
         {
             _note_number = "-";
             _status = "-";
+            _category = "-";
         }
 
-        public credit_note(string note_number, DateTime creation_date, int id_delivery_note, int id_seller, int id_customer, decimal total_amount_usd, string status)
+        public credit_note(string note_number, DateTime creation_date, int? id_delivery_note, int id_seller, int id_customer, decimal total_amount_usd, string status, string category)
         {
             this.note_number = note_number;
             this.creation_date = creation_date;
@@ -111,6 +125,7 @@ namespace NinOS.Domain
             this.id_customer = id_customer;
             this.total_amount_usd = total_amount_usd;
             this.status = status;
+            this.category = category;
         }
     }
 }

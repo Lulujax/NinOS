@@ -108,6 +108,7 @@ namespace NinOS.UI.Common.ViewModels
                     payments_vm?.refresh_data();
                     inventory_vm?.refresh_data();
                     pro_venta_vm?.refresh_data();
+                    credit_notes_vm?.refresh_data();
                 };
             }
         }

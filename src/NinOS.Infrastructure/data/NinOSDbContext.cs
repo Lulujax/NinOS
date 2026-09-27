@@ -252,11 +252,12 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.note_number).HasColumnName("note_number").IsRequired().HasMaxLength(50);
                 entity.HasIndex(e => e.note_number).IsUnique();
                 entity.Property(e => e.creation_date).HasColumnName("creation_date").IsRequired();
-                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
+                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired(false);
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired();
                 entity.Property(e => e.total_amount_usd).HasColumnName("total_amount_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.observations).HasColumnName("observations").HasMaxLength(500);
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Restrict);

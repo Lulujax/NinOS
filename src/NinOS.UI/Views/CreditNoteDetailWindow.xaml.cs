@@ -53,7 +53,10 @@ namespace NinOS.UI.Views
             try
             {
                 var pair = await _vm.get_printable_pair_async(_note);
-                NotePdfGenerator.generate(pair.original, pair.credit);
+                if (pair.original != null)
+                    NotePdfGenerator.generate(pair.original, pair.credit);
+                else
+                    NotePdfGenerator.generate(pair.credit);
             }
             catch (Exception ex)
             {

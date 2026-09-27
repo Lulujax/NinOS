@@ -746,7 +746,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
                     company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
-                    promo_banner_text = is_promo ? (string.IsNullOrWhiteSpace(note.promo_banner) ? "PROMOCION OLEOS MAYO Y JUNIO" : note.promo_banner) : string.Empty,
+                    promo_banner_text = is_promo ? (string.IsNullOrWhiteSpace(note.promo_banner) ? "PROMOCIÓN" : note.promo_banner) : string.Empty,
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
                     document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
                     is_pro_venta = note_type != null && note_type.code == "MAR",

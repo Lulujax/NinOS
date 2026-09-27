@@ -134,15 +134,9 @@ namespace NinOS.UI.Views
             p.Children.Add(header);
             p.Children.Add(MakeLine(2, PrimaryBrush, new Thickness(0, 8, 0, 0)));
 
-            // VENDEDOR
-            var sellerSp = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
-            sellerSp.Children.Add(MakeText("VENDEDOR:", 8, true, LabelGrayBrush));
-            sellerSp.Children.Add(MakeText(note.seller_name, 10, true, Brushes.Black, new Thickness(0, 1, 0, 0)));
-            p.Children.Add(sellerSp);
-
             // CAJA DE DATOS DEL CLIENTE
             var infoBox = MakeBox(padding: new Thickness(6));
-            infoBox.Margin = new Thickness(0, 6, 0, 0);
+            infoBox.Margin = new Thickness(8, 6, 0, 0);
             var infoGrid = new Grid();
             infoGrid.RowDefinitions.Add(new RowDefinition());
             infoGrid.RowDefinitions.Add(new RowDefinition());
@@ -219,7 +213,8 @@ namespace NinOS.UI.Views
             var tgBox = MakeBox(new Thickness(6));
             var tgCol = new StackPanel();
             tgCol.Children.Add(MakeText("Total General", 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
-            tgCol.Children.Add(MakeText($"{note.gross_total_usd:N2}", 14, true, PrimaryBrush, null, HorizontalAlignment.Center));
+            decimal tgValue = note.is_promo ? note.discounted_total_usd : note.gross_total_usd;
+            tgCol.Children.Add(MakeText($"{tgValue:N2}", 14, true, PrimaryBrush, null, HorizontalAlignment.Center));
             tgBox.Child = tgCol;
             Grid.SetColumn(tgBox, 2);
             totalRow1.Children.Add(tgBox);

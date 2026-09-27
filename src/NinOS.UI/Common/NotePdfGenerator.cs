@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using NinOS.Domain.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -15,11 +15,12 @@ namespace NinOS.UI.Common
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
+            bool is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", System.StringComparison.OrdinalIgnoreCase);
             var save_dialog = new SaveFileDialog
             {
-                Title = "Guardar nota de entrega",
+                Title = is_credit ? "Guardar nota de credito" : "Guardar nota de entrega",
                 Filter = "PDF (*.pdf)|*.pdf",
-                FileName = $"NotaEntrega_{note.note_number}.pdf"
+                FileName = is_credit ? $"NotaCredito_{note.note_number}.pdf" : $"NotaEntrega_{note.note_number}.pdf"
             };
 
             if (save_dialog.ShowDialog() != true) return;
@@ -116,15 +117,6 @@ namespace NinOS.UI.Common
 
             page.Content().PaddingVertical(0).Column(col =>
             {
-                col.Item().Row(row =>
-                {
-                    row.RelativeItem().Column(c =>
-                    {
-                        c.Item().Text("VENDEDOR:").FontSize(7).Bold().FontColor("#000000");
-                        c.Item().PaddingTop(1).Text(note.seller_name).FontSize(9.5f).Bold();
-                    });
-                });
-
                 col.Item().PaddingTop(2).Border(0.5f).BorderColor(LightBorder).Padding(1).Column(grid =>
                 {
                     grid.Item().Row(r =>
@@ -278,8 +270,12 @@ namespace NinOS.UI.Common
 
                     row.ConstantItem(130).Border(0.5f).BorderColor(LightBorder).Padding(2).Column(tg =>
                     {
-                        tg.Item().AlignCenter().Text(is_credit ? "TOTAL DEVUELTO" : "Total General").FontSize(8).Bold();
-                        tg.Item().AlignCenter().Text(is_credit ? $"{note.total_amount_usd:N2}" : $"{note.gross_total_usd:N2}").FontSize(12).Bold().FontColor(primary);
+                        string total_label = is_credit
+                            ? (note.conditions_text?.IndexOf("OBSEQUIO", System.StringComparison.OrdinalIgnoreCase) >= 0 ? "TOTAL OBSEQUIADO" : "TOTAL DEVUELTO")
+                            : "Total General";
+                        tg.Item().AlignCenter().Text(total_label).FontSize(8).Bold();
+                        decimal tgValue = is_credit ? note.total_amount_usd : (note.is_promo ? note.discounted_total_usd : note.gross_total_usd);
+                        tg.Item().AlignCenter().Text($"{tgValue:N2}").FontSize(12).Bold().FontColor(primary);
                     });
                 });
 

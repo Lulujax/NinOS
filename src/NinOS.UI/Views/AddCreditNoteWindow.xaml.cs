@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -49,53 +50,499 @@ namespace NinOS.UI.Views
         private credit_note_source_dto? _source;
         private List<note_combo_item> _all_combo_items = new();
 
+        private List<seller> _all_sellers = new();
+        private seller? _selected_seller;
+        private List<customer> _all_customers = new();
+        private List<customer> _seller_customers = new();
+        private customer? _selected_customer;
+
+        private List<product> _available_products = new();
+        private ObservableCollection<credit_note_edit_row> _gift_items = new();
+
         public event EventHandler? CreditNoteCreated;
 
         public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null)
         {
             InitializeComponent();
             _vm = vm;
+            _initializing_months = true;
 
-            if (DateTime.TryParseExact(current_month ?? string.Empty, "MMMM yyyy",
-                    new CultureInfo("es-VE"), DateTimeStyles.None, out DateTime month))
+            Loaded += async (_, _) =>
             {
-                NoteDatePicker.SelectedDate = new DateTime(month.Year, month.Month, 1);
-            }
+                if (CmbCategory.SelectedItem is ComboBoxItem selected)
+                    _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
 
-            Loaded += async (_, _) => await LoadNotesAsync();
+                ApplyCategoryMode();
+
+                await LoadSellersAsync();
+                await LoadMonthsAsync(current_month);
+                _initializing_months = false;
+
+                if (_is_gift)
+                {
+                    await LoadObsequioDataAsync();
+                }
+                else
+                {
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.IsEnabled = false;
+                        NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
+                    }
+                }
+            };
         }
 
-        private async void OnNoteDateChanged(object sender, SelectionChangedEventArgs e)
+        private bool _initializing_months;
+        private bool _is_gift;
+
+        private async Task LoadSellersAsync()
         {
-            await LoadNotesAsync();
+            try
+            {
+                if (_all_sellers.Count == 0)
+                {
+                    _all_sellers = (await _vm.get_sellers_async()).OrderBy(s => s.full_name).ToList();
+                    CmbSeller.ItemsSource = _all_sellers;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private async Task LoadMonthsAsync(string? current_month)
+        {
+            try
+            {
+                var months = (await _vm.get_all_months_async()).ToList();
+
+                CmbMonth.Items.Clear();
+                CmbMonth.Items.Add(string.Empty);
+                foreach (var m in months) CmbMonth.Items.Add(m);
+
+                CmbMonth.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private async void OnMonthSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || _initializing_months) return;
+            try
+            {
+                if (!_is_gift && _selected_seller != null)
+                {
+                    await LoadNotesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private async void OnCategoryChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            if (CmbCategory.SelectedItem is not ComboBoxItem selected) return;
+            _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
+            ApplyCategoryMode();
+            try
+            {
+                if (_is_gift)
+                {
+                    ResetDevolucionState();
+                    await LoadObsequioDataAsync();
+                    if (_selected_seller != null)
+                    {
+                        if (CustomerTextBox != null) CustomerTextBox.IsEnabled = true;
+                        _seller_customers = _all_customers
+                            .Where(c => string.Equals(c.seller_name?.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase))
+                            .OrderBy(c => c.business_name)
+                            .ToList();
+                        FilterCustomers(string.Empty);
+                    }
+                }
+                else
+                {
+                    ResetObsequioState(preserve_seller: true);
+                    if (_selected_seller != null)
+                    {
+                        if (NoteTextBox != null)
+                        {
+                            NoteTextBox.IsEnabled = true;
+                            NoteTextBox.ToolTip = "Escriba el numero de nota o nombre del cliente...";
+                        }
+                        await LoadNotesAsync();
+                    }
+                    else
+                    {
+                        if (NoteTextBox != null)
+                        {
+                            NoteTextBox.IsEnabled = false;
+                            NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void ResetDevolucionState()
+        {
+            _source = null;
+            if (NoteTextBox != null)
+            {
+                NoteTextBox.IsReadOnly = false;
+                NoteTextBox.Text = string.Empty;
+            }
+            if (BtnClearNote != null) BtnClearNote.Visibility = Visibility.Collapsed;
+            if (CustomerText != null) CustomerText.Text = string.Empty;
+            if (SellerText != null) SellerText.Text = string.Empty;
+            if (NoteInfoText != null) NoteInfoText.Text = string.Empty;
+            if (NoteInfoBorder != null) NoteInfoBorder.Visibility = Visibility.Collapsed;
+            if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
+            RecalcTotal();
+            if (NotePopup != null) NotePopup.IsOpen = false;
+        }
+
+        private void ResetObsequioState(bool preserve_seller = false)
+        {
+            if (!preserve_seller)
+            {
+                _selected_seller = null;
+                if (CmbSeller != null) CmbSeller.SelectedItem = null;
+            }
+            _selected_customer = null;
+            _seller_customers.Clear();
+
+            if (CustomerTextBox != null)
+            {
+                CustomerTextBox.IsEnabled = false;
+                CustomerTextBox.IsReadOnly = false;
+                CustomerTextBox.Text = string.Empty;
+            }
+            if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
+            if (CustomerPopup != null) CustomerPopup.IsOpen = false;
+            if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
+
+            if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
+            if (ProductPopup != null) ProductPopup.IsOpen = false;
+            if (ProductListBox != null) ProductListBox.ItemsSource = null;
+
+            foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
+            _gift_items.Clear();
+
+            if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
+            RecalcTotal();
+        }
+
+        private void ApplyCategoryMode()
+        {
+            if (SellerRow == null) return;
+
+            SellerRow.Visibility = Visibility.Visible;
+            if (FechaRow != null) FechaRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+            if (BuscadorRow != null) BuscadorRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+            if (NoteInfoBorder != null) NoteInfoBorder.Visibility = !_is_gift && _source != null ? Visibility.Visible : Visibility.Collapsed;
+            if (BandGrid != null) BandGrid.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+
+            if (ClienteRow != null) ClienteRow.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
+            if (ProductSearchRow != null) ProductSearchRow.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
+
+            if (BandReturnText != null) BandReturnText.Text = _is_gift ? "A OBSEQUIAR" : "A DEVOLVER";
+            if (BandQuantitiesText != null) BandQuantitiesText.Text = _is_gift ? "STOCK DISPONIBLE" : "CANTIDADES DE LA NOTA";
+            if (ColReturn != null) ColReturn.Header = _is_gift ? "A OBSEQUIAR" : "A DEVOLVER";
+            if (ColDelivered != null) ColDelivered.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+            if (ColReturned != null) ColReturned.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+            if (ColAction != null) ColAction.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
+
+            if (TotalLabel != null) TotalLabel.Text = _is_gift ? "TOTAL A OBSEQUIAR (USD):" : "TOTAL A DEVOLVER (USD):";
+            if (HintText != null)
+            {
+                HintText.Text = _is_gift
+                    ? "Busque y agregue los productos a obsequiar. Indique la cantidad de cada uno (no puede superar el STOCK DISPONIBLE)."
+                    : "Escriba arriba la cantidad devuelta de cada producto. No puede superar la columna DISPONIBLE.";
+            }
+        }
+
+        private async Task LoadObsequioDataAsync()
+        {
+            try
+            {
+                await LoadSellersAsync();
+
+                if (_all_customers.Count == 0)
+                {
+                    _all_customers = (await _vm.get_customers_async()).OrderBy(c => c.business_name).ToList();
+                }
+
+                if (_available_products.Count == 0)
+                {
+                    _available_products = (await _vm.get_obsequio_products_async())
+                        .Where(p => p.stock_quantity > 0)
+                        .OrderBy(p => p.name)
+                        .ToList();
+                }
+
+                ItemsGrid.ItemsSource = _gift_items;
+                RecalcTotal();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private async void OnSellerChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            _selected_seller = CmbSeller.SelectedItem as seller;
+
+            if (_is_gift)
+            {
+                _selected_customer = null;
+                if (CustomerTextBox != null)
+                {
+                    CustomerTextBox.IsReadOnly = false;
+                    CustomerTextBox.Text = string.Empty;
+                }
+                if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
+                if (CustomerPopup != null) CustomerPopup.IsOpen = false;
+
+                if (_selected_seller != null)
+                {
+                    if (CustomerTextBox != null) CustomerTextBox.IsEnabled = true;
+                    _seller_customers = _all_customers
+                        .Where(c => string.Equals(c.seller_name?.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(c => c.business_name)
+                        .ToList();
+                    FilterCustomers(string.Empty);
+                }
+                else
+                {
+                    if (CustomerTextBox != null) CustomerTextBox.IsEnabled = false;
+                    _seller_customers.Clear();
+                    if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
+                }
+            }
+            else
+            {
+                ResetDevolucionState();
+                if (_selected_seller != null)
+                {
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.IsEnabled = true;
+                        NoteTextBox.ToolTip = "Escriba el numero de nota o nombre del cliente...";
+                    }
+                    await LoadNotesAsync();
+                }
+                else
+                {
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.IsEnabled = false;
+                        NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
+                    }
+                    _all_combo_items.Clear();
+                    if (NoteListBox != null) NoteListBox.ItemsSource = null;
+                }
+            }
+        }
+
+        private void OnCustomerSearchChanged(object sender, TextChangedEventArgs e)
+        {
+            if (CustomerTextBox == null || CustomerTextBox.IsReadOnly) return;
+            string query = CustomerTextBox.Text?.Trim().ToLower() ?? string.Empty;
+            FilterCustomers(query);
+            if (CustomerPopup != null && CustomerListBox != null)
+            {
+                CustomerPopup.IsOpen = !string.IsNullOrEmpty(query) && CustomerListBox.Items.Count > 0;
+            }
+        }
+
+        private void OnToggleCustomerDropdown(object sender, RoutedEventArgs e)
+        {
+            if (CustomerPopup == null || CustomerListBox == null) return;
+
+            if (CustomerPopup.IsOpen)
+            {
+                CustomerPopup.IsOpen = false;
+            }
+            else
+            {
+                if (_selected_seller == null)
+                {
+                    AppDialog.Show("Seleccione primero un vendedor para ver sus clientes.", "Aviso");
+                    return;
+                }
+                FilterCustomers(string.Empty);
+                CustomerPopup.IsOpen = CustomerListBox.Items.Count > 0;
+            }
+        }
+
+        private void FilterCustomers(string query)
+        {
+            if (CustomerListBox == null) return;
+            if (string.IsNullOrEmpty(query))
+            {
+                CustomerListBox.ItemsSource = _seller_customers;
+            }
+            else
+            {
+                CustomerListBox.ItemsSource = _seller_customers
+                    .Where(c => (c.business_name?.ToLower().Contains(query) ?? false) ||
+                                (c.customer_code?.ToLower().Contains(query) ?? false) ||
+                                (c.rif?.ToLower().Contains(query) ?? false))
+                    .ToList();
+            }
+        }
+
+        private void OnCustomerSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (CustomerListBox?.SelectedItem is customer c)
+            {
+                _selected_customer = c;
+                if (CustomerTextBox != null)
+                {
+                    CustomerTextBox.Text = $"{c.business_name} ({c.customer_code})";
+                    CustomerTextBox.IsReadOnly = true;
+                }
+                if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Visible;
+                if (CustomerPopup != null) CustomerPopup.IsOpen = false;
+                CustomerListBox.SelectedItem = null;
+            }
+        }
+
+        private void OnClearCustomerClick(object sender, RoutedEventArgs e)
+        {
+            _selected_customer = null;
+            if (CustomerTextBox != null)
+            {
+                CustomerTextBox.IsReadOnly = false;
+                CustomerTextBox.Text = string.Empty;
+            }
+            if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
+            FilterCustomers(string.Empty);
+            if (CustomerPopup != null) CustomerPopup.IsOpen = _seller_customers.Count > 0;
+        }
+
+        private void OnProductSearchChanged(object sender, TextChangedEventArgs e)
+        {
+            if (ProductSearchTextBox == null) return;
+            string query = ProductSearchTextBox.Text?.Trim().ToLower() ?? string.Empty;
+            FilterProducts(query);
+            if (ProductPopup != null && ProductListBox != null)
+            {
+                ProductPopup.IsOpen = !string.IsNullOrEmpty(query) && ProductListBox.Items.Count > 0;
+            }
+        }
+
+        private void OnToggleProductDropdown(object sender, RoutedEventArgs e)
+        {
+            if (ProductPopup == null || ProductListBox == null) return;
+            if (ProductPopup.IsOpen)
+            {
+                ProductPopup.IsOpen = false;
+            }
+            else
+            {
+                FilterProducts(string.Empty);
+                ProductPopup.IsOpen = ProductListBox.Items.Count > 0;
+            }
+        }
+
+        private void FilterProducts(string query)
+        {
+            if (ProductListBox == null) return;
+            if (string.IsNullOrEmpty(query))
+            {
+                ProductListBox.ItemsSource = _available_products;
+            }
+            else
+            {
+                ProductListBox.ItemsSource = _available_products
+                    .Where(p => (p.name?.ToLower().Contains(query) ?? false) ||
+                                (p.product_code?.ToLower().Contains(query) ?? false))
+                    .ToList();
+            }
+        }
+
+        private void OnProductSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (ProductListBox?.SelectedItem is product p)
+            {
+                var existing = _gift_items.FirstOrDefault(r => r.id_product == p.id_product);
+                if (existing != null)
+                {
+                    if (existing.return_quantity < existing.remaining_quantity)
+                    {
+                        existing.return_quantity++;
+                    }
+                    else
+                    {
+                        AppDialog.Show($"El producto {p.name} ya esta en la lista y alcanzo el maximo disponible ({existing.remaining_quantity}).", "Aviso");
+                    }
+                }
+                else
+                {
+                    var new_row = new credit_note_edit_row
+                    {
+                        id_product = p.id_product,
+                        code = p.product_code,
+                        name = p.name,
+                        unit_price_usd = p.unit_price_usd,
+                        delivered_quantity = 0,
+                        already_returned_quantity = 0,
+                        remaining_quantity = p.stock_quantity,
+                        return_quantity = 1
+                    };
+                    new_row.PropertyChanged += OnRowPropertyChanged;
+                    _gift_items.Add(new_row);
+                }
+
+                if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
+                if (ProductPopup != null) ProductPopup.IsOpen = false;
+                ProductListBox.SelectedItem = null;
+                RecalcTotal();
+            }
+        }
+
+        private void OnRemoveGiftRowClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is credit_note_edit_row row)
+            {
+                row.PropertyChanged -= OnRowPropertyChanged;
+                _gift_items.Remove(row);
+                RecalcTotal();
+            }
         }
 
         private async Task LoadNotesAsync()
         {
             try
             {
-                var all_notes = new List<accounts_receivable_dto>();
-
-                string month_label = NoteDatePicker.SelectedDate is DateTime picked
-                    ? picked.ToString("MMMM yyyy", new CultureInfo("es-VE"))
-                    : string.Empty;
-
-                if (!string.IsNullOrEmpty(month_label))
+                if (_selected_seller == null)
                 {
-                    var notes = await _vm.get_notes_by_month_async(month_label);
-                    all_notes.AddRange(notes);
-                }
-                else
-                {
-                    var all_months = await _vm.get_all_months_async();
-                    foreach (var month in all_months)
-                    {
-                        var notes = await _vm.get_notes_by_month_async(month);
-                        all_notes.AddRange(notes);
-                    }
+                    _all_combo_items.Clear();
+                    FilterNotes(string.Empty);
+                    return;
                 }
 
-                _all_combo_items = all_notes
+                string month_label = CmbMonth.SelectedItem as string ?? string.Empty;
+
+                var notes = await _vm.get_delivery_notes_for_credit_async(_selected_seller.id_seller, month_label);
+
+                _all_combo_items = notes
                     .Where(n => n.status != "Anulada")
                     .OrderByDescending(n => n.creation_date)
                     .ThenBy(n => n.note_number)
@@ -107,7 +554,8 @@ namespace NinOS.UI.Views
                         balance_due_usd = n.balance_due_usd,
                         total_amount_usd = n.total_amount_usd,
                         paid_amount_usd = n.paid_amount_usd,
-                        status = n.status
+                        status = n.status,
+                        note_type = n.sales_observations
                     }).ToList();
 
                 FilterNotes(string.Empty);
@@ -120,6 +568,7 @@ namespace NinOS.UI.Views
 
         private void OnNoteSearchChanged(object sender, TextChangedEventArgs e)
         {
+            if (_selected_seller == null) return;
             string query = NoteTextBox.Text?.Trim().ToLower() ?? string.Empty;
             FilterNotes(query);
             NotePopup.IsOpen = !string.IsNullOrEmpty(query) && NoteListBox.Items.Count > 0;
@@ -133,8 +582,17 @@ namespace NinOS.UI.Views
             }
             else
             {
+                if (_selected_seller == null)
+                {
+                    AppDialog.Show("Seleccione primero un vendedor para buscar sus notas de entrega.", "Aviso");
+                    return;
+                }
                 FilterNotes(string.Empty);
                 NotePopup.IsOpen = NoteListBox.Items.Count > 0;
+                if (NoteListBox.Items.Count == 0)
+                {
+                    AppDialog.Show("No se encontraron notas de entrega para este vendedor en el periodo indicado.", "Aviso");
+                }
             }
         }
 
@@ -149,7 +607,8 @@ namespace NinOS.UI.Views
             {
                 filtered = _all_combo_items
                     .Where(n => (n.note_number?.ToLower().Contains(query) ?? false) ||
-                                (n.customer_name?.ToLower().Contains(query) ?? false))
+                                (n.customer_name?.ToLower().Contains(query) ?? false) ||
+                                (n.note_type?.ToLower().Contains(query) ?? false))
                     .ToList();
             }
 
@@ -188,7 +647,9 @@ namespace NinOS.UI.Views
 
                 CustomerText.Text = $"{source.customer_name}  ({source.customer_code})";
                 SellerText.Text = "Vendedor: " + source.seller_name;
-                NoteInfoText.Text = $"Nota: {source.note_number}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD   |   Ya devuelto: {source.already_returned_usd:N2} USD";
+                string typeLabel = string.IsNullOrEmpty(item.note_type) ? string.Empty : $"   |   Tipo: {item.note_type}";
+                NoteInfoText.Text = $"Nota: {source.note_number}{typeLabel}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD   |   Ya devuelto: {source.already_returned_usd:N2} USD";
+                NoteInfoBorder.Visibility = Visibility.Visible;
 
                 var rows = source.lines
                     .Where(l => l.remaining_quantity > 0)
@@ -221,15 +682,7 @@ namespace NinOS.UI.Views
 
         private void OnClearNoteClick(object sender, RoutedEventArgs e)
         {
-            _source = null;
-            NoteTextBox.IsReadOnly = false;
-            NoteTextBox.Text = "";
-            BtnClearNote.Visibility = Visibility.Collapsed;
-            CustomerText.Text = "";
-            SellerText.Text = "";
-            NoteInfoText.Text = "";
-            ItemsGrid.ItemsSource = null;
-            RecalcTotal();
+            ResetDevolucionState();
             FilterNotes(string.Empty);
             NotePopup.IsOpen = NoteListBox.Items.Count > 0;
         }
@@ -256,7 +709,8 @@ namespace NinOS.UI.Views
 
         private void RecalcTotal()
         {
-            var rows = (ItemsGrid.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>();
+            if (TotalText == null) return;
+            var rows = (ItemsGrid?.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>();
             TotalText.Text = rows.Sum(r => r.subtotal_usd).ToString("N2");
         }
 
@@ -268,35 +722,92 @@ namespace NinOS.UI.Views
         {
             try
             {
-                if (_source == null)
+                credit_note new_note;
+                List<credit_note_edit_row> rows;
+
+                if (_is_gift)
                 {
-                    AppDialog.Show("Busque primero la nota de entrega a la que corresponde la devolucion.", "Aviso");
-                    return;
+                    if (CmbSeller.SelectedValue is not int id_seller)
+                    {
+                        AppDialog.Show("Seleccione el vendedor que emite la nota de credito.", "Aviso");
+                        return;
+                    }
+                    if (_selected_customer == null)
+                    {
+                        AppDialog.Show("Busque y seleccione el cliente del obsequio.", "Aviso");
+                        return;
+                    }
+
+                    rows = _gift_items.Where(r => r.return_quantity > 0).ToList();
+                    if (rows.Count == 0)
+                    {
+                        AppDialog.Show("Debe agregar al menos un producto a obsequiar con cantidad mayor a cero.", "Aviso");
+                        return;
+                    }
+
+                    foreach (var r in rows)
+                    {
+                        if (r.return_quantity > r.remaining_quantity)
+                        {
+                            AppDialog.Show($"La cantidad a obsequiar de {r.name} ({r.return_quantity}) supera el stock disponible ({r.remaining_quantity}).", "Aviso");
+                            return;
+                        }
+                    }
+
+                    decimal total = rows.Sum(r => r.subtotal_usd);
+
+                    new_note = new credit_note(
+                        note_number: string.Empty,
+                        creation_date: DateTime.UtcNow,
+                        id_delivery_note: null,
+                        id_seller: id_seller,
+                        id_customer: _selected_customer.id_customer,
+                        total_amount_usd: total,
+                        status: "Registrada",
+                        category: "Obsequio")
+                    {
+                        observations = ObsBox.Text?.Trim()
+                    };
                 }
-
-                var rows = ((ItemsGrid.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>())
-                    .Where(r => r.return_quantity > 0)
-                    .ToList();
-
-                if (rows.Count == 0)
+                else
                 {
-                    AppDialog.Show("Debe indicar al menos una cantidad a devolver.", "Aviso");
-                    return;
+                    if (_selected_seller == null)
+                    {
+                        AppDialog.Show("Seleccione el vendedor que emite la nota de credito.", "Aviso");
+                        return;
+                    }
+                    if (_source == null)
+                    {
+                        AppDialog.Show("Busque primero la nota de entrega a la que corresponde la devolucion.", "Aviso");
+                        return;
+                    }
+
+                    rows = ((ItemsGrid.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>())
+                        .Where(r => r.return_quantity > 0)
+                        .ToList();
+
+                    if (rows.Count == 0)
+                    {
+                        AppDialog.Show("Debe indicar al menos una cantidad a devolver.", "Aviso");
+                        return;
+                    }
+
+                    decimal total = rows.Sum(r => r.subtotal_usd);
+                    string correlative = await _vm.generate_credit_correlative_async(_source.id_seller);
+
+                    new_note = new credit_note(
+                        note_number: correlative,
+                        creation_date: _source.creation_date,
+                        id_delivery_note: _source.id_delivery_note,
+                        id_seller: _source.id_seller,
+                        id_customer: _source.id_customer,
+                        total_amount_usd: total,
+                        status: "Registrada",
+                        category: "Devolucion")
+                    {
+                        observations = ObsBox.Text?.Trim()
+                    };
                 }
-
-                decimal total = rows.Sum(r => r.subtotal_usd);
-
-                var new_note = new credit_note(
-                    note_number: _source.note_number,
-                    creation_date: _source.creation_date,
-                    id_delivery_note: _source.id_delivery_note,
-                    id_seller: _source.id_seller,
-                    id_customer: _source.id_customer,
-                    total_amount_usd: total,
-                    status: "Registrada")
-                {
-                    observations = ObsBox.Text?.Trim()
-                };
 
                 var details = rows.Select(r => new credit_note_detail(
                     id_credit_note: 0,
@@ -311,11 +822,16 @@ namespace NinOS.UI.Views
                 if (with_pdf)
                 {
                     var pair = await _vm.get_printable_pair_async(created);
-                    NotePdfGenerator.generate(pair.original, pair.credit);
+                    if (pair.original != null)
+                        NotePdfGenerator.generate(pair.original, pair.credit);
+                    else
+                        NotePdfGenerator.generate(pair.credit);
                 }
 
                 CreditNoteCreated?.Invoke(this, EventArgs.Empty);
-                AppDialog.Show($"Nota de credito {created.note_number} registrada por {total:N2} USD.", "Exito");
+                AppDialog.Show(_is_gift
+                    ? $"Nota de credito {created.note_number} por obsequio registrada por {created.total_amount_usd:N2} USD."
+                    : $"Nota de credito {created.note_number} registrada por {created.total_amount_usd:N2} USD.", "Exito");
                 DialogResult = true;
                 Close();
             }

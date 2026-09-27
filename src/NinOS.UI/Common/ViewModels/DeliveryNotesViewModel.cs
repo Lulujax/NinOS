@@ -453,7 +453,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
 
         private string _credit_days_text = "21 dias de credito";
-        private string _promo_title_text = "PROMOCION OLEOS MAYO Y JUNIO";
+        private string _promo_title_text = "PROMOCIÓN";
         private string _customer_code_text = string.Empty;
         private string _contact_name_text = string.Empty;
 
@@ -544,6 +544,7 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(selected_note_type));
             on_property_changed(nameof(has_promo_discount));
             on_property_changed(nameof(is_promo));
+            on_property_changed(nameof(display_total_general));
             on_property_changed(nameof(promo_column_header));
             on_property_changed(nameof(document_label));
             on_property_changed(nameof(is_pro_venta));
@@ -851,6 +852,11 @@ namespace NinOS.UI.Common.ViewModels
                 _total_amount_usd = value;
                 on_property_changed();
             }
+        }
+
+        public decimal display_total_general
+        {
+            get { return has_promo_discount ? discounted_total_usd : gross_total_usd; }
         }
 
         public bool is_promo
@@ -1260,7 +1266,8 @@ namespace NinOS.UI.Common.ViewModels
                 discount_amount = 0;
                 volume_discount_amount = 0;
                 discounted_total_usd = full - promo_amt;
-                total_amount_usd = full;
+                total_amount_usd = discounted_total_usd;
+                on_property_changed(nameof(display_total_general));
                 return;
             }
 
@@ -1309,6 +1316,7 @@ namespace NinOS.UI.Common.ViewModels
             running -= volume_discount_amount;
 
             total_amount_usd = running;
+            on_property_changed(nameof(display_total_general));
         }
 
         private note_print_dto build_preview_dto()
@@ -1413,13 +1421,14 @@ namespace NinOS.UI.Common.ViewModels
                 if (!preview_window.Confirmed) return;
                 bool generate_pdf = preview_window.PdfRequested;
 
+                string initial_status = _total_amount_usd <= 0 ? "Pagada" : "Pendiente";
                 delivery_note new_note = new delivery_note(
                     _note_number,
                     _creation_date,
                     _selected_seller.id_seller,
                     _selected_customer.id_customer,
                     _total_amount_usd,
-                    "Pendiente",
+                    initial_status,
                     _total_amount_usd
                 );
                 decimal cond_pct = string.IsNullOrWhiteSpace(_discount_percentage_text) ? 0
@@ -1538,7 +1547,10 @@ namespace NinOS.UI.Common.ViewModels
             _selected_customer = null;
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));
+            _promo_title_text = "PROMOCIÓN";
+            on_property_changed(nameof(promo_title_text));
             recalculate_total();
+            on_property_changed(nameof(display_total_general));
             update_correlative_async();
         }
     }

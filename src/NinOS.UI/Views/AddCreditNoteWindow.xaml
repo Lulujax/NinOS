@@ -11,6 +11,10 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -21,21 +25,50 @@
         <TextBlock Grid.Row="0" Text="Nota de Credito" FontSize="14" FontWeight="Bold"
                    Foreground="#C62828" Margin="0,0,0,8"/>
 
-        <!-- FECHA DE LA NOTA DE ENTREGA: va primero y filtra el buscador por el mes elegido -->
+        <!-- CATEGORIA: Devolucion (anclada a nota de entrega) u Obsequio (regala producto) -->
         <Grid Grid.Row="1" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Fecha de la Nota de Entrega:"/><Run Text="*" Foreground="Red"/></TextBlock>
-            <DatePicker x:Name="NoteDatePicker" Grid.Column="1" FontSize="11" Width="150" HorizontalAlignment="Left" Height="26"
-                        SelectedDateChanged="OnNoteDateChanged"/>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Categoria:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <ComboBox x:Name="CmbCategory" Grid.Column="1" FontSize="11" Width="150" HorizontalAlignment="Left" Height="26"
+                      HorizontalContentAlignment="Center" ToolTip="Tipo de nota de credito"
+                      SelectionChanged="OnCategoryChanged">
+                <ComboBoxItem Content="Devolucion" Tag="Devolucion" IsSelected="True"/>
+                <ComboBoxItem Content="Obsequio" Tag="Obsequio"/>
+            </ComboBox>
         </Grid>
 
-        <!-- BUSCADOR DE NOTA: igual que registrar pago / pagar comision -->
-        <Grid Grid.Row="2" Margin="0,0,0,6">
+        <!-- VENDEDOR: se elige primero en ambas categorias (filtra notas en Devolucion o clientes en Obsequio) -->
+        <Grid Grid.Row="2" x:Name="SellerRow" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="110"/>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Vendedor:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <ComboBox x:Name="CmbSeller" Grid.Column="1" FontSize="11" Width="240" HorizontalAlignment="Left" Height="26"
+                      DisplayMemberPath="full_name" SelectedValuePath="id_seller"
+                      HorizontalContentAlignment="Left" ToolTip="Seleccione el vendedor"
+                      SelectionChanged="OnSellerChanged"/>
+        </Grid>
+
+        <!-- FECHA DE LA NOTA DE ENTREGA: desplegable de meses (solo devolucion) -->
+        <Grid Grid.Row="3" x:Name="FechaRow" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Mes de la Nota (Opcional):"/></TextBlock>
+            <ComboBox x:Name="CmbMonth" Grid.Column="1" FontSize="11" Width="150" HorizontalAlignment="Left" Height="26"
+                      HorizontalContentAlignment="Center" ToolTip="Filtrar notas de entrega por mes"
+                      SelectionChanged="OnMonthSelected"/>
+        </Grid>
+
+        <!-- BUSCADOR DE NOTA: busca entre las notas del vendedor seleccionado (solo devolucion) -->
+        <Grid Grid.Row="4" x:Name="BuscadorRow" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Nota de Entrega:"/><Run Text="*" Foreground="Red"/></TextBlock>
@@ -46,11 +79,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="NoteTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
-                         TextChanged="OnNoteSearchChanged"/>
+                         IsEnabled="False" TextChanged="OnNoteSearchChanged" ToolTip="Seleccione primero un vendedor para buscar sus notas..."/>
                 <Button x:Name="BtnToggleDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
                         FontSize="9" Cursor="Hand" Click="OnToggleDropdown"
                         Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
-                        VerticalAlignment="Center" ToolTip="Buscar entre las notas del mes en curso">
+                        VerticalAlignment="Center" ToolTip="Ver notas del vendedor">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="0"
@@ -94,7 +127,18 @@
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Display}" FontSize="11" Padding="4,2"/>
+                                    <Grid Margin="4,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="85"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding note_number}" FontWeight="Bold" FontSize="11" Foreground="#C62828"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding customer_name}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="2" Background="#ECEFF1" CornerRadius="3" Padding="5,1" Margin="6,0,0,0">
+                                            <TextBlock Text="{Binding note_type}" FontSize="10" Foreground="#37474F" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -103,7 +147,157 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="3" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
+        <!-- CLIENTE: solo obsequio (buscador por nombre, codigo o rif de los clientes del vendedor) -->
+        <Grid Grid.Row="5" x:Name="ClienteRow" Visibility="Collapsed" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Cliente:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <Grid Grid.Column="1" Margin="0,0,8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="CustomerTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
+                         IsEnabled="False" TextChanged="OnCustomerSearchChanged" ToolTip="Escriba el nombre o codigo del cliente..."/>
+                <Button x:Name="BtnToggleCustomerDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
+                        FontSize="9" Cursor="Hand" Click="OnToggleCustomerDropdown"
+                        Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
+                        VerticalAlignment="Center" ToolTip="Ver clientes del vendedor">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="0"
+                                    BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#E0E0E0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="BtnClearCustomer" Grid.Column="2" Content="&#x2715;" Width="24" Height="26"
+                        FontSize="9" Cursor="Hand" Click="OnClearCustomerClick" Visibility="Collapsed"
+                        Background="#F5F5F5" Foreground="#C62828" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
+                        VerticalAlignment="Center" ToolTip="Quitar cliente seleccionado">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="0"
+                                    BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#FFCDD2"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Popup x:Name="CustomerPopup" IsOpen="False" AllowsTransparency="True"
+                       PlacementTarget="{Binding ElementName=CustomerTextBox}" Placement="Bottom"
+                       MaxHeight="220" PopupAnimation="Fade" StaysOpen="False"
+                       HorizontalOffset="0">
+                    <Border Background="White" BorderBrush="#BDBDBD" BorderThickness="1"
+                            Width="{Binding ActualWidth, ElementName=CustomerTextBox}">
+                        <ListBox x:Name="CustomerListBox" BorderThickness="0"
+                                 SelectionChanged="OnCustomerSelected"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="4,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding customer_code}" FontWeight="Bold" FontSize="11" Foreground="#C62828"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding business_name}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding rif}" FontSize="10" Foreground="#757575" Margin="8,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
+            </Grid>
+        </Grid>
+
+        <!-- PRODUCTO: solo obsequio (buscador para agregar productos individualmente) -->
+        <Grid Grid.Row="6" x:Name="ProductSearchRow" Visibility="Collapsed" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                <Run Text="Buscar Producto a Obsequiar:"/>
+            </TextBlock>
+            <Grid Grid.Column="1" Margin="0,0,8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="ProductSearchTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
+                         TextChanged="OnProductSearchChanged" ToolTip="Escriba codigo o nombre del producto para agregarlo..."/>
+                <Button x:Name="BtnToggleProductDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
+                        FontSize="9" Cursor="Hand" Click="OnToggleProductDropdown"
+                        Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
+                        VerticalAlignment="Center" ToolTip="Ver todos los productos disponibles con stock">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="0"
+                                    BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#E0E0E0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Popup x:Name="ProductPopup" IsOpen="False" AllowsTransparency="True"
+                       PlacementTarget="{Binding ElementName=ProductSearchTextBox}" Placement="Bottom"
+                       MaxHeight="220" PopupAnimation="Fade" StaysOpen="False"
+                       HorizontalOffset="0">
+                    <Border Background="White" BorderBrush="#BDBDBD" BorderThickness="1"
+                            Width="{Binding ActualWidth, ElementName=ProductSearchTextBox}">
+                        <ListBox x:Name="ProductListBox" BorderThickness="0"
+                                 SelectionChanged="OnProductSelected"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="4,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding product_code}" FontWeight="Bold" FontSize="11" Foreground="#1565C0"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <TextBlock Text="Stock: " FontSize="10" Foreground="#757575"/>
+                                            <TextBlock Text="{Binding stock_quantity}" FontWeight="Bold" FontSize="10.5" Foreground="#2E7D32"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="3" Text="{Binding unit_price_usd, StringFormat={}{0:N2} USD}"
+                                                   FontSize="10" Foreground="#616161" HorizontalAlignment="Right" Margin="8,0,4,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
+            </Grid>
+        </Grid>
+
+        <!-- INFO DE NOTA DE ENTREGA (solo devolucion) -->
+        <Border Grid.Row="7" x:Name="NoteInfoBorder" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
             <StackPanel>
                 <TextBlock x:Name="CustomerText" FontSize="11" Foreground="#C62828" FontWeight="SemiBold"/>
                 <TextBlock x:Name="SellerText" FontSize="11" Foreground="#424242" Margin="0,2,0,0"/>
@@ -112,7 +306,7 @@
         </Border>
 
         <!-- BANDA DE GRUPOS DE COLUMNAS -->
-        <Grid Grid.Row="4" Height="22" Margin="0,0,0,2">
+        <Grid Grid.Row="8" x:Name="BandGrid" Height="22" Margin="0,0,0,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="90"/>
                 <ColumnDefinition Width="*"/>
@@ -128,11 +322,11 @@
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Border>
             <Border Grid.Column="2" Background="#EF6C00" BorderBrush="#EF6C00" BorderThickness="1">
-                <TextBlock Text="A DEVOLVER" FontSize="9" FontWeight="Bold" Foreground="White"
+                <TextBlock x:Name="BandReturnText" Text="A DEVOLVER" FontSize="9" FontWeight="Bold" Foreground="White"
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Border>
             <Border Grid.Column="3" Grid.ColumnSpan="3" Background="#1976D2" BorderBrush="#1976D2" BorderThickness="1">
-                <TextBlock Text="CANTIDADES DE LA NOTA" FontSize="9" FontWeight="Bold" Foreground="White"
+                <TextBlock x:Name="BandQuantitiesText" Text="CANTIDADES DE LA NOTA" FontSize="9" FontWeight="Bold" Foreground="White"
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Border>
             <Border Grid.Column="6" Grid.ColumnSpan="2" Background="#2E7D32" BorderBrush="#2E7D32" BorderThickness="1">
@@ -142,7 +336,7 @@
         </Grid>
 
         <!-- TABLA DE ITEMS -->
-        <DataGrid Grid.Row="5" x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="False"
+        <DataGrid Grid.Row="9" x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                   Background="White" BorderThickness="1" BorderBrush="#BDBDBD"
                   RowHeight="28" FontSize="11" SelectionMode="Single"
@@ -181,7 +375,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTemplateColumn Header="A DEVOLVER" Width="90" HeaderStyle="{StaticResource EditableHeaderStyle}">
+                <DataGridTemplateColumn x:Name="ColReturn" Header="A DEVOLVER" Width="90" HeaderStyle="{StaticResource EditableHeaderStyle}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBox Text="{Binding return_quantity, UpdateSourceTrigger=PropertyChanged}"
@@ -191,7 +385,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="ENTREGADO" Binding="{Binding delivered_quantity}" Width="70" IsReadOnly="True">
+                <DataGridTextColumn x:Name="ColDelivered" Header="ENTREGADO" Binding="{Binding delivered_quantity}" Width="70" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -201,7 +395,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="DEVUELTO" Binding="{Binding already_returned_quantity}" Width="70" IsReadOnly="True">
+                <DataGridTextColumn x:Name="ColReturned" Header="DEVUELTO" Binding="{Binding already_returned_quantity}" Width="70" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -243,18 +437,42 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
+                <DataGridTemplateColumn x:Name="ColAction" Header="ACCION" Width="55" Visibility="Collapsed">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="&#x2715;" Background="#FFCDD2" Foreground="#C62828"
+                                    BorderThickness="0" Width="20" Height="20" Cursor="Hand"
+                                    FontWeight="Bold" FontSize="10" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" ToolTip="Quitar producto del obsequio"
+                                    Click="OnRemoveGiftRowClick" Tag="{Binding}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#EF9A9A"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Grid.Row="6" x:Name="HintText" FontSize="9.5" Foreground="#757575" Margin="2,2,0,0"
+        <TextBlock Grid.Row="10" x:Name="HintText" FontSize="9.5" Foreground="#757575" Margin="2,2,0,0"
                    Text="Escriba arriba la cantidad devuelta de cada producto. No puede superar la columna DISPONIBLE."/>
 
-        <Grid Grid.Row="7" Margin="0,6,0,0">
+        <Grid Grid.Row="11" Margin="0,6,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" FontSize="12" FontWeight="Bold" Foreground="#C62828"
+            <TextBlock Grid.Column="0" x:Name="TotalLabel" FontSize="12" FontWeight="Bold" Foreground="#C62828"
                        VerticalAlignment="Center">
                 <Run Text="TOTAL A DEVOLVER (USD):"/>
             </TextBlock>
@@ -264,7 +482,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="8">
+        <Grid Grid.Row="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="110"/>
                 <ColumnDefinition Width="*"/>
@@ -274,7 +492,7 @@
                      AcceptsReturn="True" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"/>
         </Grid>
 
-        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+        <StackPanel Grid.Row="13" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button x:Name="BtnSavePdf" Content="Guardar y PDF" Height="30" Padding="14,0" Margin="0,0,8,0"
                     Background="#C62828" Foreground="White" BorderThickness="0" Cursor="Hand"
                     FontWeight="SemiBold" Click="OnSavePdfClick"/>

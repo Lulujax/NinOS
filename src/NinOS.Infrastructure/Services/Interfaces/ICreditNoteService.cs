@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NinOS.Domain;
@@ -14,8 +15,10 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<credit_note_dto>> get_credit_notes_by_month_async(string month_year);
         Task<IEnumerable<credit_note_dto>> get_credit_notes_by_month_and_seller_async(string month_year, int id_seller);
         Task<credit_note_source_dto?> get_credit_source_by_note_number_async(string note_number);
+        Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, string? month_year = null);
         Task<credit_note_dto> create_credit_note_async(credit_note new_note, IEnumerable<credit_note_detail> details);
         Task<IEnumerable<credit_note_detail_dto>> get_credit_note_details_async(int id_credit_note);
         Task<note_print_dto> get_printable_credit_note_async(int id_credit_note);
+        Task<credit_note_report_dto> get_credit_note_report_async(DateTime from_date, DateTime to_date, string? category, int? id_seller);
     }
 }

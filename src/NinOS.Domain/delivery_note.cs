@@ -95,7 +95,7 @@ namespace NinOS.Domain
 
         public string? cxc_observations { get; set; }
         public string? sales_observations { get; set; }
-        // Titulo editable de las notas de promocion (ej: "PROMOCION OLEOS MAYO Y JUNIO").
+        // Titulo de las notas de promocion (ej: "PROMOCIÓN").
         public string? promo_banner { get; set; }
         // Fecha en que la nota realmente se despacha (ingresada manualmente, no es la fecha de emision).
         public DateTime? dispatch_date { get; set; }
