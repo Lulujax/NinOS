@@ -44,11 +44,12 @@ namespace NinOS.UI.Common.ViewModels
             get => _selected_month;
             set
             {
+                if (_is_loading) return;
                 if (_selected_month == value) return;
                 _selected_month = value;
                 on_property_changed();
                 update_goal_month_display();
-                if (!_is_loading) apply_filters();
+                apply_filters();
                 _ = load_goal_for_selected_month_async();
             }
         }
@@ -191,6 +192,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
+                var previous_selection = _selected_month;
                 _is_loading = true;
 
                 var raw = await _receivable_service.get_all_notes_async();
@@ -209,8 +211,17 @@ namespace NinOS.UI.Common.ViewModels
 
                 _all_notes_source = all_rows;
 
-                if (!pending_months.Contains(_selected_month)) _selected_month = string.Empty;
+                if (!string.IsNullOrEmpty(previous_selection) && pending_months.Contains(previous_selection))
+                {
+                    _selected_month = previous_selection;
+                }
+                else
+                {
+                    _selected_month = string.Empty;
+                }
+
                 on_property_changed(nameof(selected_month));
+                update_goal_month_display();
 
                 _is_loading = false;
                 apply_filters();

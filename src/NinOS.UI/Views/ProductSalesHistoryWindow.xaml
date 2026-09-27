@@ -1,7 +1,7 @@
 <Window x:Class="NinOS.UI.Views.ProductSalesHistoryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Historial de Ventas del Producto"
+        Title="Historial del Producto"
         Width="1000" Height="560"
         WindowStartupLocation="CenterOwner"
         WindowState="Maximized"
@@ -72,6 +72,8 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="100"/>
                 <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="100" MinWidth="95"/>
+                <DataGridTextColumn Header="DOCUMENTO" Binding="{Binding documento_display}" Width="120"/>
+                <DataGridTextColumn Header="MOTIVO" Binding="{Binding motivo_display}" Width="130"/>
                 <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="180"/>
                 <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="120"/>
                 <DataGridTextColumn Header="MOVIMIENTO" Binding="{Binding movement_type}" Width="120">

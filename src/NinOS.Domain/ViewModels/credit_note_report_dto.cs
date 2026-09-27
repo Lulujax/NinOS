@@ -13,6 +13,8 @@ namespace NinOS.Domain.ViewModels
         public override string ToString() => label;
     }
 
+    // Opcion del menu de reporte de notas de credito: el valor real del periodo
+    // (GENERAL o el mes en formato "MMMM yyyy") y el texto que se ve.
     // Fila del detalle del reporte: una nota de credito del periodo.
     public class credit_note_report_row_dto
     {
@@ -29,6 +31,7 @@ namespace NinOS.Domain.ViewModels
         public string fecha_display => creation_date.ToString("dd/MM/yyyy", new CultureInfo("es-VE"));
         public string categoria_display => string.IsNullOrWhiteSpace(category) ? "-" : category.Trim();
         public string entrega_display => string.IsNullOrWhiteSpace(source_note_number) ? "OBSEQUIO" : source_note_number;
+        public string monto_display => total_amount_usd.ToString("N2", new CultureInfo("es-VE"));
         public bool es_obsequio => string.Equals(category?.Trim(), "Obsequio", StringComparison.OrdinalIgnoreCase);
         public bool esta_anulada => string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
     }

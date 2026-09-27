@@ -616,17 +616,38 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         if (detail.id_product != null && products.TryGetValue(detail.id_product.Value, out var product))
                         {
-                            product.stock_quantity += detail.quantity;
+                            stock_movement_writer.registrar_entrada(
+                                db_context, product, detail.quantity,
+                                stock_movement.RazonAnulacion, stock_movement.DocumentoEntrega, delivery_note.note_number,
+                                DateTime.UtcNow, detail.unit_price_usd,
+                                estado_documento: "Anulada",
+                                id_entrega: delivery_note.id_delivery_note,
+                                id_vendedor: delivery_note.id_seller,
+                                id_cliente: delivery_note.id_customer,
+                                vendido_como: stock_movement_writer.VendidoProducto);
                         }
                         else if (detail.id_promotion != null && promotions.TryGetValue(detail.id_promotion.Value, out var promotion))
                         {
                             if (promotion.items != null)
                             {
+                                decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
+
                                 foreach (var promo_item in promotion.items)
                                 {
                                     if (products.TryGetValue(promo_item.id_product, out var promo_product))
                                     {
-                                        promo_product.stock_quantity += detail.quantity * promo_item.quantity_required;
+                                        stock_movement_writer.registrar_entrada(
+                                            db_context, promo_product, detail.quantity * promo_item.quantity_required,
+                                            stock_movement.RazonAnulacion, stock_movement.DocumentoEntrega, delivery_note.note_number,
+                                            DateTime.UtcNow, precio_por_unidad,
+                                            estado_documento: "Anulada",
+                                            id_entrega: delivery_note.id_delivery_note,
+                                            id_vendedor: delivery_note.id_seller,
+                                            id_cliente: delivery_note.id_customer,
+                                            id_promocion: detail.id_promotion,
+                                            unidades_promocion: detail.quantity,
+                                            vendido_como: stock_movement_writer.VendidoPromocion,
+                                            descripcion_linea: promotion.name);
                                     }
                                 }
                             }

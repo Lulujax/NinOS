@@ -1,48 +1,74 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
+    // Alimenta el mini menu de reporte de la pestana Notas de Credito:
+    // el usuario elige el periodo (general o mensual) y la categoria, y descarga el PDF.
     public class CreditNotesReportViewModel : ViewModelBase
     {
         public const string PeriodGeneral = "GENERAL";
 
-        private const string CategoryAll = "Todas";
+        private const string CategoryBoth = "Ambos";
         private const string CategoryGift = "Obsequio";
-        private const string CategoryReturn = "Devolucion";
+        private const string CategoryReturns = "Devoluciones";
+
+        // Como la columna guarda la categoria sin tilde.
+        private const string StoredGift = "Obsequio";
+        private const string StoredReturn = "Devolucion";
 
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
         private readonly ICreditNoteService _credit_note_service;
 
-        private string _selected_period = PeriodGeneral;
-        private string _selected_category = CategoryAll;
+        private bool _is_general = true;
+        private bool _is_mensual;
+        private string _selected_month = string.Empty;
+        private string _selected_category = CategoryBoth;
         private bool _is_loading;
-        private credit_note_report_dto _report = new credit_note_report_dto();
 
-        public ObservableCollection<string> period_options { get; }
+        public ObservableCollection<string> month_options { get; }
         public ObservableCollection<string> category_options { get; }
 
-        public ICommand refresh_command { get; }
-        public ICommand export_pdf_command { get; }
-
-        public string selected_period
+        // Los dos checkboxes son excluyentes: al marcar uno se desmarca el otro.
+        public bool is_general
         {
-            get => _selected_period;
+            get => _is_general;
             set
             {
-                if (_selected_period == value) return;
-                _selected_period = value;
+                if (_is_general == value) return;
+                _is_general = value;
+                if (value) _is_mensual = false;
                 on_property_changed();
-                reload();
+                on_property_changed(nameof(is_mensual));
+            }
+        }
+
+        public bool is_mensual
+        {
+            get => _is_mensual;
+            set
+            {
+                if (_is_mensual == value) return;
+                _is_mensual = value;
+                if (value) _is_general = false;
+                on_property_changed();
+                on_property_changed(nameof(is_general));
+            }
+        }
+
+        public string selected_month
+        {
+            get => _selected_month;
+            set
+            {
+                if (_selected_month == value) return;
+                _selected_month = value;
+                on_property_changed();
             }
         }
 
@@ -54,153 +80,63 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_category == value) return;
                 _selected_category = value;
                 on_property_changed();
-                reload();
             }
         }
 
-        public credit_note_report_dto report
+        public bool is_loading
         {
-            get => _report;
+            get => _is_loading;
             private set
             {
-                _report = value;
+                if (_is_loading == value) return;
+                _is_loading = value;
                 on_property_changed();
-                on_property_changed(nameof(has_data));
-                on_property_changed(nameof(period_label));
-                on_property_changed(nameof(show_day_bars));
             }
         }
-
-        public bool has_data => _report.has_data;
-        public bool is_loading => _is_loading;
-
-        // El desglose diario solo tiene sentido cuando el reporte es de un mes.
-        public bool show_day_bars => _report.by_day.Count > 0;
-
-        public string period_label => string.IsNullOrWhiteSpace(_report.period_label) ? "Sin periodo" : _report.period_label;
 
         public CreditNotesReportViewModel(ICreditNoteService credit_note_service)
         {
             _credit_note_service = credit_note_service ?? throw new ArgumentNullException(nameof(credit_note_service));
 
-            period_options = new ObservableCollection<string> { PeriodGeneral };
-            category_options = new ObservableCollection<string> { CategoryAll, CategoryGift, CategoryReturn };
-
-            refresh_command = new RelayCommand(_ => reload());
-            export_pdf_command = new RelayCommand(_ => execute_export_pdf());
-
-            _ = initialize_async();
+            category_options = new ObservableCollection<string> { CategoryBoth, CategoryGift, CategoryReturns };
+            month_options = new ObservableCollection<string>();
         }
 
-        // Permite que el mini menu del boton abra el reporte en un periodo concreto.
-        public void select_period(string? period)
-        {
-            string wanted = string.IsNullOrWhiteSpace(period) ? PeriodGeneral : period.Trim();
-
-            if (!period_options.Contains(wanted))
-                period_options.Add(wanted);
-
-            if (_selected_period == wanted)
-            {
-                reload();
-                return;
-            }
-
-            _selected_period = wanted;
-            on_property_changed(nameof(selected_period));
-            reload();
-        }
-
-        public void refresh_data() => _ = initialize_async();
-
-        private async Task initialize_async()
+        // Se recarga cada vez que se abre el menu: si se registro una nota nueva,
+        // su mes tiene que aparecer entre las opciones.
+        public async Task load_options_async()
         {
             try
             {
-                _is_loading = true;
-                on_property_changed(nameof(is_loading));
+                is_loading = true;
 
-                var months = (await _credit_note_service.get_credit_note_months_async()).ToList();
+                var months = await _credit_note_service.get_credit_note_months_async();
 
-                period_options.Clear();
-                period_options.Add(PeriodGeneral);
-                foreach (var m in months) period_options.Add(m);
+                var previous = _selected_month;
 
-                if (!period_options.Contains(_selected_period))
-                    period_options.Add(_selected_period);
-
-                on_property_changed(nameof(selected_period));
-
-                _is_loading = false;
-                on_property_changed(nameof(is_loading));
-
-                await load_report_async();
-            }
-            catch (Exception ex)
-            {
-                _is_loading = false;
-                on_property_changed(nameof(is_loading));
-                AppDialog.Show(ErrorText.Get(ex), "Error");
-            }
-        }
-
-        private bool is_general => string.Equals(_selected_period, PeriodGeneral, StringComparison.OrdinalIgnoreCase);
-
-        private bool resolve_period(out DateTime from, out DateTime to)
-        {
-            if (is_general)
-            {
-                // GENERAL: todo el historial, desde la primera nota hasta hoy.
-                from = new DateTime(2000, 1, 1);
-                to = DateTime.Today;
-                return true;
-            }
-
-            if (!DateTime.TryParseExact(_selected_period, "MMMM yyyy", Ve, DateTimeStyles.None, out var month))
-            {
-                AppDialog.Show(
-                    "Seleccione un periodo valido para el reporte.",
-                    "Reporte de Notas de Credito",
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
-                from = default;
-                to = default;
-                return false;
-            }
-
-            from = new DateTime(month.Year, month.Month, 1);
-            to = from.AddMonths(1).AddDays(-1);
-            return true;
-        }
-
-        private void reload()
-        {
-            if (_is_loading) return;
-            _ = load_report_async();
-        }
-
-        private async Task load_report_async()
-        {
-            if (!resolve_period(out var from, out var to)) return;
-
-            try
-            {
-                _is_loading = true;
-                on_property_changed(nameof(is_loading));
-
-                var category = _selected_category == CategoryAll ? null : _selected_category;
-
-                var result = await _credit_note_service.get_credit_note_report_async(from, to, category, null);
-
-                if (is_general)
+                month_options.Clear();
+                foreach (var m in months)
                 {
-                    result.period_label = PeriodGeneral;
-                    result.previous_period_label = string.Empty;
-                    result.previous_total_usd = 0;
-                    result.previous_total_notes = 0;
+                    if (string.IsNullOrWhiteSpace(m)) continue;
+                    month_options.Add(m);
                 }
 
-                report = result;
+                if (month_options.Count == 0)
+                {
+                    is_mensual = false;
+                    is_general = true;
+                    _selected_month = string.Empty;
+                }
+                else if (!string.IsNullOrWhiteSpace(previous) && month_options.Contains(previous))
+                {
+                    _selected_month = previous;
+                }
+                else
+                {
+                    _selected_month = month_options[0];
+                }
+
+                on_property_changed(nameof(selected_month));
             }
             catch (Exception ex)
             {
@@ -208,19 +144,36 @@ namespace NinOS.UI.Common.ViewModels
             }
             finally
             {
-                _is_loading = false;
-                on_property_changed(nameof(is_loading));
+                is_loading = false;
             }
         }
 
-        private void execute_export_pdf()
+        public async Task descargar_reporte_async()
         {
             try
             {
+                is_loading = true;
+
+                if (!resolve_period(out var from, out var to, out var period_label)) return;
+
+                var category = resolve_category();
+
+                var report = await _credit_note_service.get_credit_note_report_async(from, to, category, null);
+
+                report.period_label = period_label;
+                report.category_label = _selected_category;
+
+                if (period_label == PeriodGeneral)
+                {
+                    report.previous_period_label = string.Empty;
+                    report.previous_total_usd = 0;
+                    report.previous_total_notes = 0;
+                }
+
                 if (!report.has_data)
                 {
                     AppDialog.Show(
-                        "No hay notas de credito en el periodo seleccionado.",
+                        "No hay notas de credito para el periodo y la categoria seleccionados.",
                         "Reporte de Notas de Credito",
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Information);
@@ -237,6 +190,48 @@ namespace NinOS.UI.Common.ViewModels
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
             }
+            finally
+            {
+                is_loading = false;
+            }
+        }
+
+        private bool resolve_period(out DateTime from, out DateTime to, out string label)
+        {
+            if (_is_general)
+            {
+                // GENERAL: todo el historial, hasta hoy.
+                from = new DateTime(2000, 1, 1);
+                to = DateTime.Today;
+                label = PeriodGeneral;
+                return true;
+            }
+
+            if (!DateTime.TryParseExact(_selected_month, "MMMM yyyy", Ve, DateTimeStyles.None, out var month))
+            {
+                AppDialog.Show(
+                    "Seleccione un mes para el reporte mensual.",
+                    "Reporte de Notas de Credito",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+                from = default;
+                to = default;
+                label = string.Empty;
+                return false;
+            }
+
+            from = new DateTime(month.Year, month.Month, 1);
+            to = from.AddMonths(1).AddDays(-1);
+            label = month.ToString("MMMM yyyy", Ve);
+            return true;
+        }
+
+        private string? resolve_category()
+        {
+            if (_selected_category == CategoryBoth) return null;
+            if (_selected_category == CategoryGift) return StoredGift;
+            if (_selected_category == CategoryReturns) return StoredReturn;
+            return null;
         }
     }
 }

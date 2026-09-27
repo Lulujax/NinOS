@@ -86,7 +86,7 @@ namespace NinOS.UI.Common.ViewModels
         public string selected_month
         {
             get => _selected_month;
-            set { if (_selected_month == value) return; _selected_month = value; on_property_changed(); if (!_is_loading) apply_filters(); }
+            set { if (_is_loading) return; if (_selected_month == value) return; _selected_month = value; on_property_changed(); apply_filters(); }
         }
 
         public int selected_tab_index
@@ -158,6 +158,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
+                var previous_selection = _selected_month;
                 _is_loading = true;
 
                 var raw = await _commission_service.get_all_commissions_async();
@@ -176,7 +177,21 @@ namespace NinOS.UI.Common.ViewModels
 
                 _all_rows_source = all_rows;
 
-                if (!pending_months.Contains(_selected_month)) _selected_month = string.Empty;
+                var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                if (!string.IsNullOrEmpty(previous_selection) && pending_months.Contains(previous_selection))
+                {
+                    _selected_month = previous_selection;
+                }
+                else if (pending_months.Contains(current_month_str))
+                {
+                    _selected_month = current_month_str;
+                }
+                else
+                {
+                    _selected_month = unique_months.LastOrDefault() ?? string.Empty;
+                    _selected_month = string.Empty;
+                }
+
                 on_property_changed(nameof(selected_month));
 
                 _is_loading = false;

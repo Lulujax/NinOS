@@ -37,6 +37,10 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 await db_context.products.AddAsync(new_product);
+
+                stock_movement_writer.registrar_carga_inicial(
+                    db_context, new_product, $"ALTA-{new_product.product_code}");
+
                 await db_context.SaveChangesAsync();
             }
         }
@@ -47,7 +51,29 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                int? stock_actual = await db_context.products
+                    .AsNoTracking()
+                    .Where(p => p.id_product == product_to_update.id_product)
+                    .Select(p => (int?)p.stock_quantity)
+                    .FirstOrDefaultAsync();
+
+                int diferencia = product_to_update.stock_quantity - (stock_actual ?? 0);
+
                 db_context.products.Update(product_to_update);
+
+                // Si el usuario edito el stock a mano, queda asentado en el kardex como ajuste.
+                if (stock_actual.HasValue && diferencia != 0)
+                {
+                    stock_movement_writer.registrar_ajuste(
+                        db_context,
+                        product_to_update.id_product,
+                        diferencia,
+                        $"AJUSTE-{product_to_update.product_code}",
+                        DateTime.UtcNow,
+                        product_to_update.unit_price_usd);
+                }
+
                 await db_context.SaveChangesAsync();
             }
         }
@@ -148,98 +174,75 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 NinOSDbContext db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                var promotions = await db.promotions
+                // El kardex es la fuente de la verdad: aqui ya estan las ventas, las salidas por
+                // obsequio, las entradas por devolucion, las anulaciones y los ajustes manuales.
+                var movements = await db.stock_movements
                     .AsNoTracking()
-                    .Include(p => p.items)
+                    .Where(m => m.id_product == id_product)
+                    .OrderByDescending(m => m.movement_date)
+                    .ThenByDescending(m => m.id_stock_movement)
                     .ToListAsync();
 
-                var promotions_with_product = promotions
-                    .Where(p => p.items != null && p.items.Any(i => i.id_product == id_product))
-                    .ToDictionary(p => p.id_promotion, p => p.items.First(i => i.id_product == id_product).quantity_required);
+                if (movements.Count == 0) return Enumerable.Empty<product_sales_history_dto>();
 
-                var promotion_ids = promotions_with_product.Keys.ToList();
+                var customer_ids = movements
+                    .Where(m => m.id_customer != null)
+                    .Select(m => m.id_customer!.Value)
+                    .Distinct()
+                    .ToList();
 
-                var details = new List<note_detail>();
-                details.AddRange(await db.note_details
-                    .AsNoTracking()
-                    .Where(d => d.id_product == id_product)
-                    .ToListAsync());
-
-                if (promotion_ids.Count > 0)
-                {
-                    details.AddRange(await db.note_details
+                var customers = customer_ids.Count == 0
+                    ? new Dictionary<int, customer>()
+                    : await db.customers
                         .AsNoTracking()
-                        .Where(d => d.id_promotion != null && promotion_ids.Contains(d.id_promotion.Value))
-                        .ToListAsync());
-                }
+                        .Where(c => customer_ids.Contains(c.id_customer))
+                        .ToDictionaryAsync(c => c.id_customer);
 
-                if (details.Count == 0) return Enumerable.Empty<product_sales_history_dto>();
+                var seller_ids = movements
+                    .Where(m => m.id_seller != null)
+                    .Select(m => m.id_seller!.Value)
+                    .Distinct()
+                    .ToList();
 
-                var note_ids = details.Select(d => d.id_delivery_note).Distinct().ToList();
-                var notes = await db.delivery_notes
-                    .AsNoTracking()
-                    .Where(n => note_ids.Contains(n.id_delivery_note))
-                    .ToListAsync();
-
-                var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
-                var customers = await db.customers
-                    .AsNoTracking()
-                    .Where(c => customer_ids.Contains(c.id_customer))
-                    .ToDictionaryAsync(c => c.id_customer);
-
-                var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
-                var sellers = await db.sellers
-                    .AsNoTracking()
-                    .Where(s => seller_ids.Contains(s.id_seller))
-                    .ToDictionaryAsync(s => s.id_seller);
+                var sellers = seller_ids.Count == 0
+                    ? new Dictionary<int, seller>()
+                    : await db.sellers
+                        .AsNoTracking()
+                        .Where(s => seller_ids.Contains(s.id_seller))
+                        .ToDictionaryAsync(s => s.id_seller);
 
                 var result = new List<product_sales_history_dto>();
 
-                foreach (note_detail d in details)
+                foreach (stock_movement m in movements)
                 {
-                    delivery_note? note = notes.FirstOrDefault(n => n.id_delivery_note == d.id_delivery_note);
-                    if (note == null) continue;
-
-                    int units;
-                    string sold_as;
-                    string line_description;
-
-                    if (d.id_product == id_product)
-                    {
-                        units = d.quantity;
-                        sold_as = "Producto";
-                        line_description = "";
-                    }
-                    else if (d.id_promotion != null && promotions_with_product.TryGetValue(d.id_promotion.Value, out int qty_required))
-                    {
-                        units = d.quantity * qty_required;
-                        promotion? promo = promotions.FirstOrDefault(p => p.id_promotion == d.id_promotion.Value);
-                        sold_as = "Promoción";
-                        line_description = promo?.name ?? "Promoción";
-                    }
-                    else
-                    {
-                        continue;
-                    }
+                    bool es_entrada = m.movement_type == stock_movement.Entrada;
+                    int unidades = m.promotion_units ?? m.quantity;
 
                     result.Add(new product_sales_history_dto
                     {
-                        id_delivery_note = note.id_delivery_note,
-                        note_number = note.note_number,
-                        creation_date = note.creation_date,
-                        customer_name = customers.TryGetValue(note.id_customer, out var c) ? c.business_name : string.Empty,
-                        seller_name = sellers.TryGetValue(note.id_seller, out var s) ? s.full_name : string.Empty,
-                        line_description = line_description,
-                        sold_as = sold_as,
-                        units_sold = units,
-                        unit_price_usd = d.unit_price_usd,
-                        line_subtotal_usd = d.subtotal_usd,
-                        status = note.status,
-                        movement_type = note.status == "Anulada" ? "ENTRADA" : "SALIDA"
+                        id_delivery_note = m.id_delivery_note,
+                        note_number = m.document_number,
+                        creation_date = m.movement_date,
+                        customer_name = m.id_customer != null && customers.TryGetValue(m.id_customer.Value, out var c)
+                            ? c.business_name
+                            : string.Empty,
+                        seller_name = m.id_seller != null && sellers.TryGetValue(m.id_seller.Value, out var s)
+                            ? s.full_name
+                            : string.Empty,
+                        line_description = m.line_description ?? string.Empty,
+                        sold_as = m.sold_as ?? string.Empty,
+                        units_sold = unidades,
+                        unit_price_usd = m.unit_price_usd,
+                        line_subtotal_usd = m.unit_price_usd * unidades,
+                        status = m.document_status ?? string.Empty,
+                        movement_type = m.movement_type,
+                        movement_reason = m.reason,
+                        document_type = m.document_type,
+                        is_credit_note = m.id_credit_note != null
                     });
                 }
 
-                return result.OrderByDescending(r => r.creation_date).ToList();
+                return result;
             }
         }
     }

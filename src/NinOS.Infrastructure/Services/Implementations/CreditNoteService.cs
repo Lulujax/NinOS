@@ -402,22 +402,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 }
                             }
                         }
-
-                        foreach (var detail in detail_list)
-                        {
-                            if (detail.id_product != null)
-                            {
-                                products[detail.id_product.Value].stock_quantity -= detail.quantity;
-                            }
-                            else if (detail.id_promotion != null)
-                            {
-                                var promotion = promotions[detail.id_promotion.Value];
-                                foreach (var promo_item in promotion.items!)
-                                {
-                                    products[promo_item.id_product].stock_quantity -= detail.quantity * promo_item.quantity_required;
-                                }
-                            }
-                        }
                     }
                     else
                     {
@@ -464,7 +448,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                             {
                                 if (!products.TryGetValue(detail.id_product.Value, out var product))
                                     throw new InvalidOperationException("Uno de los productos devueltos ya no existe.");
-                                product.stock_quantity += detail.quantity;
                             }
                             else if (detail.id_promotion != null)
                             {
@@ -476,7 +459,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 {
                                     if (!products.TryGetValue(promo_item.id_product, out var promo_product))
                                         throw new InvalidOperationException("Uno de los productos de la promocion devuelta ya no existe.");
-                                    promo_product.stock_quantity += detail.quantity * promo_item.quantity_required;
                                 }
                             }
                         }
@@ -506,6 +488,87 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         detail.id_credit_note = new_note.id_credit_note;
                         await db_context.credit_note_details.AddAsync(detail);
+                    }
+
+                    // Kardex: el obsequio descuenta stock (SALIDA) y la devolucion lo repone (ENTRADA).
+                    // Se registra aqui para que el movimiento quede ligado a la nota ya insertada.
+                    foreach (var detail in detail_list)
+                    {
+                        if (detail.id_product != null)
+                        {
+                            var producto = products[detail.id_product.Value];
+
+                            if (is_gift)
+                            {
+                                stock_movement_writer.registrar_salida(
+                                    db_context, producto, detail.quantity,
+                                    stock_movement.RazonObsequio, stock_movement.DocumentoCredito, new_note.note_number,
+                                    new_note.creation_date, detail.unit_price_usd,
+                                    estado_documento: new_note.status,
+                                    id_entrega: original_note?.id_delivery_note,
+                                    id_credito: new_note.id_credit_note,
+                                    id_vendedor: new_note.id_seller,
+                                    id_cliente: new_note.id_customer,
+                                    vendido_como: stock_movement_writer.VendidoProducto);
+                            }
+                            else
+                            {
+                                stock_movement_writer.registrar_entrada(
+                                    db_context, producto, detail.quantity,
+                                    stock_movement.RazonDevolucion, stock_movement.DocumentoCredito, new_note.note_number,
+                                    new_note.creation_date, detail.unit_price_usd,
+                                    estado_documento: new_note.status,
+                                    id_entrega: original_note?.id_delivery_note,
+                                    id_credito: new_note.id_credit_note,
+                                    id_vendedor: new_note.id_seller,
+                                    id_cliente: new_note.id_customer,
+                                    vendido_como: stock_movement_writer.VendidoProducto);
+                            }
+                        }
+                        else if (detail.id_promotion != null)
+                        {
+                            var promocion = promotions[detail.id_promotion.Value];
+                            decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
+
+                            foreach (var promo_item in promocion.items!)
+                            {
+                                var promo_producto = products[promo_item.id_product];
+                                int cantidad = detail.quantity * promo_item.quantity_required;
+
+                                if (is_gift)
+                                {
+                                    stock_movement_writer.registrar_salida(
+                                        db_context, promo_producto, cantidad,
+                                        stock_movement.RazonObsequio, stock_movement.DocumentoCredito, new_note.note_number,
+                                        new_note.creation_date, precio_por_unidad,
+                                        estado_documento: new_note.status,
+                                        id_entrega: original_note?.id_delivery_note,
+                                        id_credito: new_note.id_credit_note,
+                                        id_vendedor: new_note.id_seller,
+                                        id_cliente: new_note.id_customer,
+                                        id_promocion: detail.id_promotion,
+                                        unidades_promocion: detail.quantity,
+                                        vendido_como: stock_movement_writer.VendidoPromocion,
+                                        descripcion_linea: promocion.name);
+                                }
+                                else
+                                {
+                                    stock_movement_writer.registrar_entrada(
+                                        db_context, promo_producto, cantidad,
+                                        stock_movement.RazonDevolucion, stock_movement.DocumentoCredito, new_note.note_number,
+                                        new_note.creation_date, precio_por_unidad,
+                                        estado_documento: new_note.status,
+                                        id_entrega: original_note?.id_delivery_note,
+                                        id_credito: new_note.id_credit_note,
+                                        id_vendedor: new_note.id_seller,
+                                        id_cliente: new_note.id_customer,
+                                        id_promocion: detail.id_promotion,
+                                        unidades_promocion: detail.quantity,
+                                        vendido_como: stock_movement_writer.VendidoPromocion,
+                                        descripcion_linea: promocion.name);
+                                }
+                            }
+                        }
                     }
 
                     // Solo la devolucion se registra como pago NEGATIVO para que reste en el historial y en el saldo;

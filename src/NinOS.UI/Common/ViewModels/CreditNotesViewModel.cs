@@ -19,16 +19,44 @@ namespace NinOS.UI.Common.ViewModels
         private readonly ICustomerService _customer_service;
 
         private string _selected_month = string.Empty;
+        private string _selected_category_filter = "Todas";
+        private List<credit_note_dto> _all_month_rows = new();
         private bool _is_loading;
         private decimal _total_credit_usd;
         private int _selected_tab_index;
 
         public ObservableCollection<string> credit_note_months { get; }
+        public ObservableCollection<string> category_filters { get; } = new() { "Todas", "Devolución", "Obsequio" };
         public ObservableCollection<credit_note_dto> notes { get; }
         public ObservableCollection<credit_note_dto> sandra_notes { get; }
         public ObservableCollection<credit_note_dto> anais_notes { get; }
         public ObservableCollection<credit_note_dto> alejandra_notes { get; }
         public ObservableCollection<credit_note_dto> juan_luis_notes { get; }
+
+        public string selected_category_filter
+        {
+            get => _selected_category_filter;
+            set
+            {
+                if (_selected_category_filter == value) return;
+                _selected_category_filter = value;
+                on_property_changed();
+                on_property_changed(nameof(total_label));
+                apply_filters();
+            }
+        }
+
+        public string total_label
+        {
+            get
+            {
+                if (string.Equals(_selected_category_filter, "Obsequio", StringComparison.OrdinalIgnoreCase))
+                    return "TOTAL OBSEQUIADO: $";
+                if (string.Equals(_selected_category_filter?.Replace("ó", "o"), "Devolucion", StringComparison.OrdinalIgnoreCase))
+                    return "TOTAL DEVUELTO: $";
+                return "TOTAL: $";
+            }
+        }
 
         public int selected_tab_index
         {
@@ -47,10 +75,11 @@ namespace NinOS.UI.Common.ViewModels
             get => _selected_month;
             set
             {
+                if (_is_loading) return;
                 if (_selected_month == value) return;
-                _selected_month = value;
+                _selected_month = value ?? string.Empty;
                 on_property_changed();
-                if (!_is_loading) _ = load_notes_async();
+                _ = load_notes_async();
             }
         }
 
@@ -89,6 +118,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
+                var previous_selection = _selected_month;
                 _is_loading = true;
 
                 var months = (await _credit_note_service.get_credit_note_months_async()).ToList();
@@ -97,8 +127,20 @@ namespace NinOS.UI.Common.ViewModels
                 credit_note_months.Add("");
                 foreach (var m in months) credit_note_months.Add(m);
 
-                if (!credit_note_months.Contains(_selected_month))
+                var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                if (!string.IsNullOrEmpty(previous_selection) && credit_note_months.Contains(previous_selection))
+                {
+                    _selected_month = previous_selection;
+                }
+                else if (credit_note_months.Contains(current_month_str))
+                {
+                    _selected_month = current_month_str;
+                }
+                else
+                {
+                    _selected_month = months.LastOrDefault() ?? string.Empty;
                     _selected_month = string.Empty;
+                }
 
                 on_property_changed(nameof(selected_month));
 
@@ -116,29 +158,48 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                notes.Clear();
-                sandra_notes.Clear();
-                anais_notes.Clear();
-                alejandra_notes.Clear();
-                juan_luis_notes.Clear();
-                total_credit_usd = 0;
+                _all_month_rows.Clear();
+                if (string.IsNullOrEmpty(_selected_month))
+                {
+                    apply_filters();
+                    return;
+                }
 
-                if (string.IsNullOrEmpty(_selected_month)) return;
-
-                var rows = (await _credit_note_service.get_credit_notes_by_month_async(_selected_month)).ToList();
-
-                foreach (var row in rows) notes.Add(row);
-                foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase))) sandra_notes.Add(row);
-                foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase))) anais_notes.Add(row);
-                foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase))) alejandra_notes.Add(row);
-                foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase))) juan_luis_notes.Add(row);
-
-                recalc_totals();
+                _all_month_rows = (await _credit_note_service.get_credit_notes_by_month_async(_selected_month)).ToList();
+                apply_filters();
             }
             catch (Exception ex)
             {
                 AppDialog.Show(ErrorText.Get(ex), "Error");
             }
+        }
+
+        private void apply_filters()
+        {
+            notes.Clear();
+            sandra_notes.Clear();
+            anais_notes.Clear();
+            alejandra_notes.Clear();
+            juan_luis_notes.Clear();
+            total_credit_usd = 0;
+
+            var filtered = _all_month_rows.AsEnumerable();
+
+            if (!string.IsNullOrEmpty(_selected_category_filter) && !_selected_category_filter.Equals("Todas", StringComparison.OrdinalIgnoreCase))
+            {
+                string target = _selected_category_filter.Replace("ó", "o");
+                filtered = filtered.Where(r => string.Equals(r.category?.Replace("ó", "o"), target, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var rows = filtered.ToList();
+
+            foreach (var row in rows) notes.Add(row);
+            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase))) sandra_notes.Add(row);
+            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase))) anais_notes.Add(row);
+            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase))) alejandra_notes.Add(row);
+            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase))) juan_luis_notes.Add(row);
+
+            recalc_totals();
         }
 
         private void recalc_totals()

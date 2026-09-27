@@ -80,6 +80,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(p => all_product_ids.Contains(p.id_product))
                         .ToDictionaryAsync(p => p.id_product);
 
+                    // Los movimientos se_guardan aqui porque recien despues de insertar la nota
+                    // se conoce su id, y es el que queda como FK en el kardex.
+                    var stock_movimientos = new List<stock_movement>();
+
                     foreach (note_detail detail in details_list)
                     {
                         if (detail.id_product != null)
@@ -88,7 +92,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 throw new InvalidOperationException("Uno de los productos seleccionados ya no existe. Actualice el detalle de la nota.");
                             if (p.stock_quantity < detail.quantity)
                                 throw new InvalidOperationException($"Stock insuficiente para {p.name}");
-                            p.stock_quantity -= detail.quantity;
+
+                            stock_movimientos.Add(stock_movement_writer.registrar_salida(
+                                _db_context, p, detail.quantity,
+                                stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,
+                                new_note.creation_date, detail.unit_price_usd,
+                                estado_documento: new_note.status,
+                                id_vendedor: new_note.id_seller,
+                                id_cliente: new_note.id_customer,
+                                vendido_como: stock_movement_writer.VendidoProducto));
                         }
                         else if (detail.id_promotion != null)
                         {
@@ -96,6 +108,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 throw new InvalidOperationException("La promoción seleccionada ya no existe. Actualice el detalle de la nota.");
                             if (promo.items == null || promo.items.Count == 0)
                                 throw new InvalidOperationException($"La promocion {promo.name} no tiene productos asignados.");
+
+                            decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
 
                             foreach (var p_item in promo.items)
                             {
@@ -108,7 +122,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 int required_qty = detail.quantity * p_item.quantity_required;
                                 if (p.stock_quantity < required_qty)
                                     throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promocion.");
-                                p.stock_quantity -= required_qty;
+
+                                stock_movimientos.Add(stock_movement_writer.registrar_salida(
+                                    _db_context, p, required_qty,
+                                    stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,
+                                    new_note.creation_date, precio_por_unidad,
+                                    estado_documento: new_note.status,
+                                    id_vendedor: new_note.id_seller,
+                                    id_cliente: new_note.id_customer,
+                                    id_promocion: detail.id_promotion,
+                                    unidades_promocion: detail.quantity,
+                                    vendido_como: stock_movement_writer.VendidoPromocion,
+                                    descripcion_linea: promo.name));
                             }
                         }
                     }
@@ -134,6 +159,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     catch (DbUpdateException ex) when (is_unique_note_number_violation(ex))
                     {
                         throw new InvalidOperationException("Ya existe una nota con ese correlativo. Verifique el número e intente de nuevo.");
+                    }
+
+                    foreach (stock_movement movimiento in stock_movimientos)
+                    {
+                        movimiento.id_delivery_note = new_note.id_delivery_note;
                     }
 
                     foreach (note_detail detail in details_list)

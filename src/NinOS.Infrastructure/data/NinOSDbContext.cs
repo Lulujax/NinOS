@@ -20,6 +20,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<sales_goal> sales_goals { get; set; }
         public DbSet<credit_note> credit_notes { get; set; }
         public DbSet<credit_note_detail> credit_note_details { get; set; }
+        public DbSet<stock_movement> stock_movements { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -279,6 +280,38 @@ namespace NinOS.Infrastructure.Data
 
                 entity.HasOne<credit_note>().WithMany().HasForeignKey(e => e.id_credit_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            model_builder.Entity<stock_movement>(entity =>
+            {
+                entity.ToTable("stock_movement");
+                entity.HasKey(e => e.id_stock_movement);
+                entity.Property(e => e.id_stock_movement).HasColumnName("id_stock_movement").UseIdentityByDefaultColumn();
+                entity.Property(e => e.movement_date).HasColumnName("movement_date").IsRequired();
+                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired();
+                entity.HasIndex(e => e.id_product);
+                entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
+                entity.Property(e => e.movement_type).HasColumnName("movement_type").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.reason).HasColumnName("reason").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.document_type).HasColumnName("document_type").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.document_number).HasColumnName("document_number").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.document_status).HasColumnName("document_status").HasMaxLength(50);
+                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired(false);
+                entity.Property(e => e.id_credit_note).HasColumnName("id_credit_note").IsRequired(false);
+                entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired(false);
+                entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired(false);
+                entity.Property(e => e.id_promotion).HasColumnName("id_promotion").IsRequired(false);
+                entity.Property(e => e.promotion_units).HasColumnName("promotion_units").IsRequired(false);
+                entity.Property(e => e.sold_as).HasColumnName("sold_as").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.line_description).HasColumnName("line_description").HasMaxLength(200);
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
+
+                entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<credit_note>().WithMany().HasForeignKey(e => e.id_credit_note).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
             });
         }

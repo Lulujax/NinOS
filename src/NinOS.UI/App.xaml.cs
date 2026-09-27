@@ -63,11 +63,11 @@ namespace NinOS.UI
             {
                 log_startup_message("OnStartup begin");
 
-                SplashWindow splash = new SplashWindow { Topmost = true };
+                SplashWindow splash = new SplashWindow();
                 splash.ShowWithAnimation();
                 DateTime started_at = DateTime.Now;
 
-                System.Threading.Tasks.Task.Run(() =>
+                System.Threading.Tasks.Task.Run(async () =>
                 {
                     ServiceCollection service_collection = new ServiceCollection();
                     configure_services(service_collection);
@@ -78,6 +78,19 @@ namespace NinOS.UI
                     {
                         var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                         DbInitializer.initialize(db_context);
+
+                        // Pre-calentar conexion y datos en paralelo durante la pantalla de carga
+                        var receivable = scope.ServiceProvider.GetRequiredService<IAccountsReceivableService>();
+                        var commission = scope.ServiceProvider.GetRequiredService<ICommissionService>();
+                        var inventory = scope.ServiceProvider.GetRequiredService<IInventoryService>();
+                        var credit = scope.ServiceProvider.GetRequiredService<ICreditNoteService>();
+
+                        await System.Threading.Tasks.Task.WhenAll(
+                            receivable.get_all_notes_async(),
+                            commission.get_all_commissions_async(),
+                            inventory.get_all_products_async(),
+                            credit.get_credit_note_months_async()
+                        );
                     }
                     log_startup_message("After DbInitializer");
                 }).ContinueWith(previous =>
@@ -116,8 +129,10 @@ namespace NinOS.UI
                             MainWindow main_window = _service_provider!.GetRequiredService<MainWindow>();
                             Application.Current.MainWindow = main_window;
                             log_startup_message("Before MainWindow show");
+                            main_window.WindowState = WindowState.Maximized;
                             main_window.Show();
                             main_window.Activate();
+                            main_window.Focus();
                             splash.CloseWithAnimation();
                             AppLog.Info("Aplicación iniciada correctamente");
                             base.OnStartup(e);

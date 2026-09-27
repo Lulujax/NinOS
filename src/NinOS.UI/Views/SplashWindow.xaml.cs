@@ -102,5 +102,18 @@ namespace NinOS.UI.Views
             DoubleAnimation fade_in = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
             ReadyPanel.BeginAnimation(OpacityProperty, fade_in);
         }
+
+        private void Border_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
     }
 }
