@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Win32;
@@ -44,7 +44,7 @@ namespace NinOS.UI.Common
                     page.Content().Column(col =>
                     {
                         col.Item().Text("DETALLE DE LA RELACION").FontSize(16).Bold().FontColor(Accent).AlignCenter();
-                        col.Item().Text($"RELACION NRO {row.relation_number} ({row.week_start:dd/MM} AL {row.week_end:dd/MM})").FontSize(10).Bold().FontColor("#666666").AlignCenter();
+                        col.Item().Text($"RELACION NRO {row.relation_number} ({row.week_start:dd/MM} AL {row.week_end:dd/MM})").FontSize(10).Bold().FontColor("#000000").AlignCenter();
                         col.Item().PaddingTop(4).PaddingBottom(6).LineHorizontal(1.5f).LineColor(Accent);
 
                         col.Item().PaddingBottom(4).Text("NOTAS DE LA RELACION").FontSize(10).Bold().FontColor(Accent);

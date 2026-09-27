@@ -140,7 +140,7 @@
                                     ElementStyle="{StaticResource CellCenter}"/>
                 <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="130"
                                     ElementStyle="{StaticResource CellCenter}"/>
-                <DataGridTextColumn Header="VENDEDORA" Binding="{Binding seller_name}" Width="95"
+                <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="95"
                                     ElementStyle="{StaticResource CellCenter}"/>
                 <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat={}{0:0.##}}" Width="70"
                                     ElementStyle="{StaticResource CellCenter}"/>

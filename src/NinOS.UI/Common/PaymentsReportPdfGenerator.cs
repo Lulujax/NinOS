@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace NinOS.UI.Common
     public static class PaymentsReportPdfGenerator
     {
         private static readonly string PrimaryColor = "#1B3A2D";
-        private static readonly string LightBorder = "#B0B0B0";
+        private static readonly string LightBorder = "#000000";
         private static readonly string AccentBg = "#F0F4EC";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
@@ -74,7 +74,7 @@ namespace NinOS.UI.Common
                 col.Item().Row(row =>
                 {
                     row.RelativeItem().Text("PAGOS REALIZADOS DEL MES").FontSize(13).Bold().FontColor(PrimaryColor);
-                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#666666");
+                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#000000");
                 });
                 col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
             });
@@ -83,7 +83,7 @@ namespace NinOS.UI.Common
             {
                 if (seller_name == null)
                 {
-                    col.Item().Text("No hubo pagos en el mes seleccionado.").FontSize(11).FontColor("#888888");
+                    col.Item().Text("No hubo pagos en el mes seleccionado.").FontSize(11).FontColor("#000000");
                     return;
                 }
 
@@ -93,7 +93,7 @@ namespace NinOS.UI.Common
                 {
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("VENDEDOR").FontSize(6.5f).Bold().FontColor("#555555");
+                        c.Item().Text("VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
                         c.Item().PaddingTop(1).Text(seller_name).FontSize(9).Bold();
                     });
                 });
@@ -168,12 +168,12 @@ namespace NinOS.UI.Common
                     {
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#555555");
+                            r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
                             r.ConstantItem(120).AlignRight().Text(Money(sub_total_usd)).FontSize(10).Bold();
                         });
                         bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
                         {
-                            r.RelativeItem().Text("SUB TOTAL BS").FontSize(9).Bold().FontColor("#555555");
+                            r.RelativeItem().Text("SUB TOTAL BS").FontSize(9).Bold().FontColor("#000000");
                             r.ConstantItem(120).AlignRight().Text(MoneyBs(sub_total_bs)).FontSize(10).Bold();
                         });
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
@@ -191,14 +191,14 @@ namespace NinOS.UI.Common
                 col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                 col.Item().PaddingTop(2).Row(row =>
                 {
-                    row.RelativeItem().Text("Reporte de pagos del mes").FontSize(7).FontColor("#888888");
-                    row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#888888");
+                    row.RelativeItem().Text("Reporte de pagos del mes").FontSize(7).FontColor("#000000");
+                    row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#000000");
                     row.RelativeItem().AlignRight().Text(t =>
                     {
-                        t.Span("Pagina ").FontSize(7).FontColor("#888888");
-                        t.CurrentPageNumber().FontSize(7).FontColor("#888888");
-                        t.Span(" de ").FontSize(7).FontColor("#888888");
-                        t.TotalPages().FontSize(7).FontColor("#888888");
+                        t.Span("Pagina ").FontSize(7).FontColor("#000000");
+                        t.CurrentPageNumber().FontSize(7).FontColor("#000000");
+                        t.Span(" de ").FontSize(7).FontColor("#000000");
+                        t.TotalPages().FontSize(7).FontColor("#000000");
                     });
                 });
             });

@@ -14,22 +14,29 @@ namespace NinOS.UI.Views
         private Brush PrimaryBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D));
         private static readonly Brush LabelGrayBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
         private Brush LightGrayBrush = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC));
-        private static readonly Brush BorderGrayBrush = new SolidColorBrush(Color.FromRgb(0xB0, 0xB0, 0xB0));
-        private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD));
+        private static readonly Brush BorderGrayBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
+        private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
         private static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(0xCC, 0x00, 0x00));
         private static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(0x22, 0x8B, 0x22));
-        private static readonly Brush FooterGrayBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
+        private static readonly Brush FooterGrayBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
 
         public bool Confirmed { get; private set; }
         public bool PdfRequested { get; private set; }
 
         private readonly note_print_dto _note;
+        private readonly note_print_dto? _pair_original;
         private readonly bool _view_only;
 
         public NotePreviewWindow(note_print_dto note, bool view_only = false)
+            : this(note, null, view_only)
+        {
+        }
+
+        public NotePreviewWindow(note_print_dto note, note_print_dto? pair_original, bool view_only = false)
         {
             InitializeComponent();
             _note = note;
+            _pair_original = pair_original;
             _view_only = view_only;
             PrimaryBrush = ParseBrush(note.accent_color, new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D)));
             LightGrayBrush = ParseBrush(note.accent_soft_color, new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC)));
@@ -78,7 +85,10 @@ namespace NinOS.UI.Views
             {
                 try
                 {
-                    NotePdfGenerator.generate(_note);
+                    if (_pair_original != null)
+                        NotePdfGenerator.generate(_pair_original, _note);
+                    else
+                        NotePdfGenerator.generate(_note);
                 }
                 catch (Exception ex)
                 {
@@ -295,8 +305,9 @@ namespace NinOS.UI.Views
 
             var midBox = new Border { Padding = new Thickness(6) };
             var midCol = new StackPanel();
-            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 14, 0, 0), HorizontalAlignment.Center));
-            midCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 36, 0, 0)));
+            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 8, 0, 0), HorizontalAlignment.Center));
+            midCol.Children.Add(MakeText("________________________________", 8, false, FooterGrayBrush, new Thickness(0, 12, 0, 0), HorizontalAlignment.Center));
+            midCol.VerticalAlignment = VerticalAlignment.Bottom;
             midBox.Child = midCol;
             Grid.SetColumn(midBox, note.is_promo ? 2 : 4);
             payRow.Children.Add(midBox);

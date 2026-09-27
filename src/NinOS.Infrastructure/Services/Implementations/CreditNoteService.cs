@@ -392,6 +392,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         subtotal_check += detail.subtotal_usd;
                     }
 
+                    // La NC comparte el numero de la nota de entrega que devuelve (ej: NC 3200_031 sobre nota 3200_031).
+                    new_note.note_number = original_note.note_number;
+
                     await db_context.credit_notes.AddAsync(new_note);
 
                     try
@@ -570,8 +573,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     document_label = "NOTA DE CREDITO",
                     is_pro_venta = false,
                     is_promo = false,
-                    accent_color = "#C62828",
-                    accent_soft_color = "#FDECEA",
+                    accent_color = "#2E7D32",
+                    accent_soft_color = "#F1F8E9",
                     promo_discount_percentage = null,
                     promo_discount_amount = 0,
                     volume_discount_percentage = 0,
@@ -583,7 +586,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     gross_total_usd = total,
                     discount_percentage = 0,
                     discount_amount = 0,
-                    total_amount_usd = -total,
+                    total_amount_usd = total,
                     paid_amount_usd = 0,
                     balance_due_usd = 0,
                     seller_name = seller?.full_name ?? string.Empty,

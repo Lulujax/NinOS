@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using NinOS.Domain.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -42,7 +42,7 @@ namespace NinOS.UI.Common
                     page.Content().Column(col =>
                     {
                         col.Item().Text($"RELACION NRO {dto.relation_number}").FontSize(16).Bold().FontColor(Accent).AlignCenter();
-                        col.Item().Text($"{dto.week_start:dd/MM} AL {dto.week_end:dd/MM} _ FACTURAS POR COBRAR {dto.city}").FontSize(10).Bold().FontColor("#666666").AlignCenter();
+                        col.Item().Text($"{dto.week_start:dd/MM} AL {dto.week_end:dd/MM} _ FACTURAS POR COBRAR {dto.city}").FontSize(10).Bold().FontColor("#000000").AlignCenter();
                         col.Item().PaddingTop(4).PaddingBottom(4).LineHorizontal(1.5f).LineColor(Accent);
 
                         col.Item().Table(table =>

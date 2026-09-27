@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace NinOS.Domain.ViewModels
 {
@@ -16,6 +17,9 @@ namespace NinOS.Domain.ViewModels
         public DateTime creation_date { get; set; }
         public decimal total_amount_usd { get; set; }
         public string status { get; set; } = string.Empty;
+
+        // Fecha de la nota de entrega en formato mes y ano, igual que el selector del modulo.
+        public string delivery_month_label => creation_date.ToString("MMMM yyyy", new CultureInfo("es-VE"));
     }
 
     // Nota de entrega origen + lineas devolubles para armar la Nota de Credito.

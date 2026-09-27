@@ -53,6 +53,25 @@ namespace NinOS.UI.Views
             window.ShowDialog();
         }
 
+        private async void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!((sender as Button)?.Tag is credit_note_dto selected) || vm == null) return;
+
+            try
+            {
+                var pair = await vm.get_printable_pair_async(selected);
+                var window = new NotePreviewWindow(pair.credit, pair.original, view_only: true)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
         private async void PdfButton_Click(object sender, RoutedEventArgs e)
         {
             if (!((sender as Button)?.Tag is credit_note_dto selected) || vm == null) return;

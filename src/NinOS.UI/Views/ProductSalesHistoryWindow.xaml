@@ -73,7 +73,7 @@
                 <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="100"/>
                 <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="100" MinWidth="95"/>
                 <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="180"/>
-                <DataGridTextColumn Header="VENDEDORA" Binding="{Binding seller_name}" Width="120"/>
+                <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="120"/>
                 <DataGridTextColumn Header="MOVIMIENTO" Binding="{Binding movement_type}" Width="120">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">

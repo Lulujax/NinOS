@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using Microsoft.Win32;
@@ -12,7 +12,7 @@ namespace NinOS.UI.Common
     public static class CommissionPdfGenerator
     {
         private static readonly string PrimaryColor = "#1B3A2D";
-        private static readonly string LightBorder = "#B0B0B0";
+        private static readonly string LightBorder = "#000000";
         private static readonly string AccentBg = "#F0F4EC";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
@@ -69,7 +69,7 @@ namespace NinOS.UI.Common
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("VENDEDORA").FontSize(6.5f).Bold().FontColor("#555555");
+                                c.Item().Text("VENDEDORA").FontSize(6.5f).Bold().FontColor("#000000");
                                 c.Item().PaddingTop(1).Text(seller).FontSize(9).Bold();
                             });
                         });
@@ -147,7 +147,7 @@ namespace NinOS.UI.Common
                             {
                                 bottom.Item().Padding(4).Row(r =>
                                 {
-                                    r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#555555");
+                                    r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
                                     r.ConstantItem(120).AlignRight().Text(Money(sub_total)).FontSize(10).Bold();
                                 });
                                 bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
@@ -232,12 +232,12 @@ namespace NinOS.UI.Common
                         col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                         col.Item().PaddingTop(2).Row(row =>
                         {
-                            row.RelativeItem().Text("Comprobante de pago de comision").FontSize(7).FontColor("#888888");
-                            row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#888888");
+                            row.RelativeItem().Text("Comprobante de pago de comision").FontSize(7).FontColor("#000000");
+                            row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#000000");
                             row.RelativeItem().AlignRight().Text(t =>
                             {
-                                t.Span("Pagina ").FontSize(7).FontColor("#888888");
-                                t.CurrentPageNumber().FontSize(7).FontColor("#888888");
+                                t.Span("Pagina ").FontSize(7).FontColor("#000000");
+                                t.CurrentPageNumber().FontSize(7).FontColor("#000000");
                             });
                         });
                     });

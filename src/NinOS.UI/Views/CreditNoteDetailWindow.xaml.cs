@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
@@ -26,16 +25,10 @@ namespace NinOS.UI.Views
             SellerText.Text = note.seller_name;
             DateText.Text = note.creation_date.ToString("dd/MM/yyyy");
             TotalText.Text = $"{note.total_amount_usd:N2} USD";
-            StatusText.Text = note.status;
 
             if (note.status == "Anulada")
             {
-                StatusText.Foreground = Brushes.Gray;
                 BtnPdf.IsEnabled = false;
-            }
-            else
-            {
-                StatusText.Foreground = Brushes.SeaGreen;
             }
 
             Loaded += async (_, _) => await LoadDetailsAsync();

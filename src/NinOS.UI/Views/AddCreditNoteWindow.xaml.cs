@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
@@ -44,7 +46,6 @@ namespace NinOS.UI.Views
     public partial class AddCreditNoteWindow : Window
     {
         private readonly CreditNotesViewModel _vm;
-        private readonly string _current_month;
         private credit_note_source_dto? _source;
         private List<note_combo_item> _all_combo_items = new();
 
@@ -54,10 +55,19 @@ namespace NinOS.UI.Views
         {
             InitializeComponent();
             _vm = vm;
-            _current_month = current_month ?? string.Empty;
-            CreditDatePicker.SelectedDate = DateTime.Now;
+
+            if (DateTime.TryParseExact(current_month ?? string.Empty, "MMMM yyyy",
+                    new CultureInfo("es-VE"), DateTimeStyles.None, out DateTime month))
+            {
+                NoteDatePicker.SelectedDate = new DateTime(month.Year, month.Month, 1);
+            }
 
             Loaded += async (_, _) => await LoadNotesAsync();
+        }
+
+        private async void OnNoteDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await LoadNotesAsync();
         }
 
         private async Task LoadNotesAsync()
@@ -66,9 +76,13 @@ namespace NinOS.UI.Views
             {
                 var all_notes = new List<accounts_receivable_dto>();
 
-                if (!string.IsNullOrEmpty(_current_month))
+                string month_label = NoteDatePicker.SelectedDate is DateTime picked
+                    ? picked.ToString("MMMM yyyy", new CultureInfo("es-VE"))
+                    : string.Empty;
+
+                if (!string.IsNullOrEmpty(month_label))
                 {
-                    var notes = await _vm.get_notes_by_month_async(_current_month);
+                    var notes = await _vm.get_notes_by_month_async(month_label);
                     all_notes.AddRange(notes);
                 }
                 else
@@ -173,7 +187,7 @@ namespace NinOS.UI.Views
                 BtnClearNote.Visibility = Visibility.Visible;
 
                 CustomerText.Text = $"{source.customer_name}  ({source.customer_code})";
-                SellerText.Text = "Vendedora: " + source.seller_name;
+                SellerText.Text = "Vendedor: " + source.seller_name;
                 NoteInfoText.Text = $"Nota: {source.note_number}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD   |   Ya devuelto: {source.already_returned_usd:N2} USD";
 
                 var rows = source.lines
@@ -270,12 +284,11 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                string correlative = await _vm.generate_credit_correlative_async(_source.id_seller);
                 decimal total = rows.Sum(r => r.subtotal_usd);
 
                 var new_note = new credit_note(
-                    note_number: correlative,
-                    creation_date: CreditDatePicker.SelectedDate ?? DateTime.Now,
+                    note_number: _source.note_number,
+                    creation_date: _source.creation_date,
                     id_delivery_note: _source.id_delivery_note,
                     id_seller: _source.id_seller,
                     id_customer: _source.id_customer,

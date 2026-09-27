@@ -21,8 +21,19 @@
         <TextBlock Grid.Row="0" Text="Nota de Credito" FontSize="14" FontWeight="Bold"
                    Foreground="#C62828" Margin="0,0,0,8"/>
 
-        <!-- BUSCADOR DE NOTA: igual que registrar pago / pagar comision -->
+        <!-- FECHA DE LA NOTA DE ENTREGA: va primero y filtra el buscador por el mes elegido -->
         <Grid Grid.Row="1" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Fecha de la Nota de Entrega:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <DatePicker x:Name="NoteDatePicker" Grid.Column="1" FontSize="11" Width="150" HorizontalAlignment="Left" Height="26"
+                        SelectedDateChanged="OnNoteDateChanged"/>
+        </Grid>
+
+        <!-- BUSCADOR DE NOTA: igual que registrar pago / pagar comision -->
+        <Grid Grid.Row="2" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="110"/>
                 <ColumnDefinition Width="*"/>
@@ -92,22 +103,13 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="2" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
+        <Border Grid.Row="3" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
             <StackPanel>
                 <TextBlock x:Name="CustomerText" FontSize="11" Foreground="#C62828" FontWeight="SemiBold"/>
                 <TextBlock x:Name="SellerText" FontSize="11" Foreground="#424242" Margin="0,2,0,0"/>
                 <TextBlock x:Name="NoteInfoText" FontSize="11" Foreground="#424242" Margin="0,2,0,0" FontWeight="SemiBold"/>
             </StackPanel>
         </Border>
-
-        <Grid Grid.Row="3" Margin="0,0,0,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="110"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Fecha Devolucion:"/><Run Text="*" Foreground="Red"/></TextBlock>
-            <DatePicker x:Name="CreditDatePicker" Grid.Column="1" FontSize="11" Width="140" HorizontalAlignment="Left" Height="26"/>
-        </Grid>
 
         <!-- BANDA DE GRUPOS DE COLUMNAS -->
         <Grid Grid.Row="4" Height="22" Margin="0,0,0,2">

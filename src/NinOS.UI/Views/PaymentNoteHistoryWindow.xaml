@@ -19,7 +19,7 @@
         <Border Grid.Row="0" Background="#F0F6FC" BorderBrush="#0D62B5" BorderThickness="1"
                 CornerRadius="4" Padding="12" Margin="0,0,0,8">
             <StackPanel>
-                <!-- Fila 1: Nota / Cliente / Vendedora -->
+                <!-- Fila 1: Nota / Cliente / Vendedor -->
                 <DockPanel LastChildFill="True">
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                         <TextBlock Text="Nota:" FontSize="15" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
@@ -30,7 +30,7 @@
                         <TextBlock x:Name="CustomerText" FontSize="15" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Vendedora:" FontSize="15" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
+                        <TextBlock Text="Vendedor:" FontSize="15" FontWeight="Bold" Foreground="#0D62B5" VerticalAlignment="Center"/>
                         <TextBlock x:Name="SellerText" FontSize="15" Foreground="#424242" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>

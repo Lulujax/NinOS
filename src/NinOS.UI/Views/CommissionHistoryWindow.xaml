@@ -29,7 +29,7 @@
                         <TextBlock x:Name="CustomerText" FontSize="15" Foreground="#424242" Margin="6,0,18,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <TextBlock Text="Vendedora:" FontSize="15" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                        <TextBlock Text="Vendedor:" FontSize="15" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
                         <TextBlock x:Name="SellerText" FontSize="15" Foreground="#424242" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>

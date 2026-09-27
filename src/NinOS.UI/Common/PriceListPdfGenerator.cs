@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -19,7 +19,7 @@ namespace NinOS.UI.Common
 
     public static class PriceListPdfGenerator
     {
-        private static readonly string LightBorder = "#B0B0B0";
+        private static readonly string LightBorder = "#000000";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
         private static readonly Dictionary<string, (string color, string soft)> BrandColors = new()
@@ -88,7 +88,7 @@ namespace NinOS.UI.Common
                         col.Item().Text("LISTA DE PRECIOS")
                             .FontSize(15).Bold().FontColor("#1B3A2D");
                         col.Item().PaddingTop(2).Text($"ACTUALIZADO: {DateTime.UtcNow:dd/MM/yyyy}")
-                            .FontSize(9).FontColor("#666666");
+                            .FontSize(9).FontColor("#000000");
                         col.Item().PaddingTop(4).LineHorizontal(1.5f).LineColor("#1B3A2D");
                     });
 
@@ -96,7 +96,7 @@ namespace NinOS.UI.Common
                     {
                         if (ordered.Count == 0)
                         {
-                            col.Item().Text("No hay productos para listar.").FontSize(11).FontColor("#888888");
+                            col.Item().Text("No hay productos para listar.").FontSize(11).FontColor("#000000");
                             return;
                         }
 
@@ -163,11 +163,11 @@ namespace NinOS.UI.Common
                         col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                         col.Item().PaddingTop(3).Row(row =>
                         {
-                            row.RelativeItem().Text($"Total de productos: {ordered.Count}").FontSize(7).FontColor("#888888");
+                            row.RelativeItem().Text($"Total de productos: {ordered.Count}").FontSize(7).FontColor("#000000");
                             row.RelativeItem().AlignRight().Text(t =>
                             {
-                                t.Span("Pagina ").FontSize(7).FontColor("#888888");
-                                t.CurrentPageNumber().FontSize(7).FontColor("#888888");
+                                t.Span("Pagina ").FontSize(7).FontColor("#000000");
+                                t.CurrentPageNumber().FontSize(7).FontColor("#000000");
                             });
                         });
                     });
