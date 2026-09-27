@@ -20,7 +20,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private string _selected_month = string.Empty;
         private string _selected_category_filter = "Todas";
-        private List<credit_note_dto> _all_month_rows = new();
+        private List<credit_note_dto> _all_credit_rows = new();
         private bool _is_loading;
         private decimal _total_credit_usd;
         private int _selected_tab_index;
@@ -75,11 +75,10 @@ namespace NinOS.UI.Common.ViewModels
             get => _selected_month;
             set
             {
-                if (_is_loading) return;
                 if (_selected_month == value) return;
                 _selected_month = value ?? string.Empty;
                 on_property_changed();
-                _ = load_notes_async();
+                if (!_is_loading) apply_filters();
             }
         }
 
@@ -118,31 +117,35 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var previous_selection = _selected_month;
+                var current_selection = _selected_month;
                 _is_loading = true;
 
                 var months = (await _credit_note_service.get_credit_note_months_async()).ToList();
 
-                credit_note_months.Clear();
-                credit_note_months.Add("");
-                foreach (var m in months) credit_note_months.Add(m);
+                var new_months = new List<string> { "" };
+                new_months.AddRange(months);
 
-                var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-                if (!string.IsNullOrEmpty(previous_selection) && credit_note_months.Contains(previous_selection))
+                // Si el usuario ya tenia un mes seleccionado y sigue existiendo, conservarlo.
+                // Si tenia un mes que ya no existe, buscar el mes actual o el mas reciente.
+                // Si nunca habia seleccionado nada (primera carga, string.Empty), dejarlo vacio.
+                string desired = current_selection ?? string.Empty;
+                if (!string.IsNullOrEmpty(desired) && !new_months.Contains(desired))
                 {
-                    _selected_month = previous_selection;
-                }
-                else if (credit_note_months.Contains(current_month_str))
-                {
-                    _selected_month = current_month_str;
-                }
-                else
-                {
-                    _selected_month = months.LastOrDefault() ?? string.Empty;
-                    _selected_month = string.Empty;
+                    var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                    desired = new_months.Contains(current_month_str)
+                        ? current_month_str
+                        : (months.Count > 0 ? months[months.Count - 1] : string.Empty);
                 }
 
-                on_property_changed(nameof(selected_month));
+                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde.
+                foreach (var m in new List<string>(credit_note_months).Except(new_months)) credit_note_months.Remove(m);
+                foreach (var m in new_months.Except(credit_note_months)) credit_note_months.Add(m);
+
+                if (_selected_month != desired)
+                {
+                    _selected_month = desired;
+                    on_property_changed(nameof(selected_month));
+                }
 
                 _is_loading = false;
                 await load_notes_async();
@@ -158,14 +161,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                _all_month_rows.Clear();
-                if (string.IsNullOrEmpty(_selected_month))
-                {
-                    apply_filters();
-                    return;
-                }
-
-                _all_month_rows = (await _credit_note_service.get_credit_notes_by_month_async(_selected_month)).ToList();
+                _all_credit_rows = (await _credit_note_service.get_all_credit_notes_async()).ToList();
                 apply_filters();
             }
             catch (Exception ex)
@@ -183,7 +179,9 @@ namespace NinOS.UI.Common.ViewModels
             juan_luis_notes.Clear();
             total_credit_usd = 0;
 
-            var filtered = _all_month_rows.AsEnumerable();
+            IEnumerable<credit_note_dto> filtered = string.IsNullOrEmpty(_selected_month)
+                ? Enumerable.Empty<credit_note_dto>()
+                : _all_credit_rows.Where(r => string.Equals(r.delivery_month_label, _selected_month, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(_selected_category_filter) && !_selected_category_filter.Equals("Todas", StringComparison.OrdinalIgnoreCase))
             {

@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -1105,7 +1106,8 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                AppDialog.Show($"Error al actualizar datos: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                AppLog.Error("refresh_data failed", ex);
+                AppDialog.Show($"Error al cargar datos: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
             finally
             {
@@ -1113,79 +1115,9 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private async void load_initial_data_async()
+        private void load_initial_data_async()
         {
-            if (_is_loading) return;
-            _is_loading = true;
-            try
-            {
-                IEnumerable<customer> db_customers = await _customer_service.GetAllCustomersAsync();
-                foreach (customer c in db_customers) _all_customers_cache.Add(c);
-
-                seller[] db_sellers = await _seller_repository.get_all_async();
-                foreach (seller s in db_sellers) sellers.Add(s);
-
-                note_type[] db_note_types = await _note_type_repository.get_all_async();
-                foreach (note_type nt in db_note_types) _all_note_types_cache.Add(nt);
-
-                IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
-                foreach (promotion pr in db_promotions)
-                {
-                    if (pr.items == null || !pr.items.Any())
-                    {
-                        continue;
-                    }
-
-                    bool has_invalid_item = false;
-                    foreach (var item in pr.items)
-                    {
-                        if (item.product == null || item.quantity_required <= 0)
-                        {
-                            has_invalid_item = true;
-                            break;
-                        }
-                    }
-
-                    if (has_invalid_item) continue;
-
-                    int promo_stock = int.MaxValue;
-                    foreach (var item in pr.items)
-                    {
-                        int max_combos = item.product!.stock_quantity / item.quantity_required;
-                        if (max_combos < promo_stock) promo_stock = max_combos;
-                    }
-
-                    if (promo_stock <= 0) continue;
-
-                    all_items.Add(new billable_item { 
-                        id_promotion = pr.id_promotion, 
-                        code = pr.promotion_code, 
-                        name = pr.name, 
-                        unit_price_usd = pr.unit_price_usd,
-                        available_stock = promo_stock == int.MaxValue ? 0 : promo_stock
-                    });
-                }
-
-                IEnumerable<product> db_products = await _inventory_service.get_all_products_async();
-                foreach (product p in db_products)
-                {
-                    all_items.Add(new billable_item { 
-                        id_product = p.id_product, 
-                        code = p.product_code, 
-                        name = p.name, 
-                        unit_price_usd = p.unit_price_usd,
-                        available_stock = p.stock_quantity
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show($"Error al cargar datos: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
-            finally
-            {
-                _is_loading = false;
-            }
+            refresh_data();
         }
 
         private async void update_correlative_async()

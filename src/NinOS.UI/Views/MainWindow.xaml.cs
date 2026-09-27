@@ -69,7 +69,7 @@ namespace NinOS.UI.Views
 
         private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.Source is not TabControl) return;
+            if (!ReferenceEquals(e.Source, MainTabControl)) return;
             if (_viewModel == null) return;
 
             int tab_index = MainTabControl.SelectedIndex;

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Interfaces;
@@ -9,70 +10,108 @@ namespace NinOS.Infrastructure.Repositories.Implementations
 {
     public class GenericRepository<t_entity> : IGenericRepository<t_entity> where t_entity : class
     {
-        private readonly NinOSDbContext _db_context;
-        private readonly DbSet<t_entity> _db_set;
+        private readonly IServiceScopeFactory? _scope_factory;
+        private readonly NinOSDbContext? _db_context;
 
-        public GenericRepository(NinOSDbContext db_context)
+        public GenericRepository(IServiceScopeFactory scope_factory)
         {
-            if (db_context == null)
-            {
-                throw new ArgumentNullException(nameof(db_context));
-            }
-            
-            _db_context = db_context;
-            _db_set = _db_context.Set<t_entity>();
+            _scope_factory = scope_factory ?? throw new ArgumentNullException(nameof(scope_factory));
+        }
+
+        protected GenericRepository(NinOSDbContext db_context)
+        {
+            _db_context = db_context ?? throw new ArgumentNullException(nameof(db_context));
         }
 
         public async Task add_async(t_entity entity)
         {
-            if (entity == null)
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            if (_scope_factory != null)
             {
-                throw new ArgumentNullException(nameof(entity));
+                using var scope = _scope_factory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                await db.Set<t_entity>().AddAsync(entity);
+                await db.SaveChangesAsync();
             }
-            
-            await _db_set.AddAsync(entity);
-            await _db_context.SaveChangesAsync();
+            else
+            {
+                await _db_context!.Set<t_entity>().AddAsync(entity);
+                await _db_context.SaveChangesAsync();
+            }
+
             AppLog.Info($"INSERT {typeof(t_entity).Name}");
         }
 
         public async Task<t_entity?> get_by_id_async(int id)
         {
-            t_entity? entity = await _db_set.FindAsync(id);
-            
-            if (entity == null)
+            if (_scope_factory != null)
             {
-                throw new InvalidOperationException();
+                using var scope = _scope_factory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                t_entity? entity = await db.Set<t_entity>().FindAsync(id);
+                if (entity == null) throw new InvalidOperationException();
+                return entity;
             }
-            
-            return entity;
+            else
+            {
+                t_entity? entity = await _db_context!.Set<t_entity>().FindAsync(id);
+                if (entity == null) throw new InvalidOperationException();
+                return entity;
+            }
         }
 
         public async Task<t_entity[]> get_all_async()
         {
-            return await _db_set.ToArrayAsync();
+            if (_scope_factory != null)
+            {
+                using var scope = _scope_factory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db.Set<t_entity>().AsNoTracking().ToArrayAsync();
+            }
+            else
+            {
+                return await _db_context!.Set<t_entity>().AsNoTracking().ToArrayAsync();
+            }
         }
 
         public async Task update_async(t_entity entity)
         {
-            if (entity == null)
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            if (_scope_factory != null)
             {
-                throw new ArgumentNullException(nameof(entity));
+                using var scope = _scope_factory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                db.Set<t_entity>().Update(entity);
+                await db.SaveChangesAsync();
             }
-            
-            _db_set.Update(entity);
-            await _db_context.SaveChangesAsync();
+            else
+            {
+                _db_context!.Set<t_entity>().Update(entity);
+                await _db_context.SaveChangesAsync();
+            }
+
             AppLog.Info($"UPDATE {typeof(t_entity).Name}");
         }
 
         public async Task delete_async(t_entity entity)
         {
-            if (entity == null)
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            if (_scope_factory != null)
             {
-                throw new ArgumentNullException(nameof(entity));
+                using var scope = _scope_factory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                db.Set<t_entity>().Remove(entity);
+                await db.SaveChangesAsync();
             }
-            
-            _db_set.Remove(entity);
-            await _db_context.SaveChangesAsync();
+            else
+            {
+                _db_context!.Set<t_entity>().Remove(entity);
+                await _db_context.SaveChangesAsync();
+            }
+
             AppLog.Info($"DELETE {typeof(t_entity).Name}");
         }
     }

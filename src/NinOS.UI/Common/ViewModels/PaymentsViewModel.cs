@@ -59,7 +59,7 @@ namespace NinOS.UI.Common.ViewModels
         public string selected_month
         {
             get => _selected_month;
-            set { if (_is_loading) return; if (_selected_month == value) return; _selected_month = value; on_property_changed(); apply_filters(); }
+            set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
         }
 
         public int selected_tab_index
@@ -132,7 +132,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var previous_selection = _selected_month;
+                var current_selection = _selected_month;
                 _is_loading = true;
 
                 var raw = await _receivable_service.get_all_notes_async();
@@ -145,28 +145,32 @@ namespace NinOS.UI.Common.ViewModels
                     .Select(d => d.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")))
                     .ToList();
 
-                pending_months.Clear();
-                pending_months.Add("");
-                foreach (var m in unique_months) pending_months.Add(m);
+                var new_months = new List<string> { "" };
+                new_months.AddRange(unique_months);
+
+                // Si el usuario ya tenia un mes seleccionado y sigue existiendo, conservarlo.
+                // Si tenia un mes que ya no existe, buscar el mes actual o el mas reciente.
+                // Si nunca habia seleccionado nada (primera carga, string.Empty), dejarlo vacio.
+                string desired = current_selection ?? string.Empty;
+                if (!string.IsNullOrEmpty(desired) && !new_months.Contains(desired))
+                {
+                    var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                    desired = new_months.Contains(current_month_str)
+                        ? current_month_str
+                        : (unique_months.Count > 0 ? unique_months[unique_months.Count - 1] : string.Empty);
+                }
+
+                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde.
+                foreach (var m in pending_months.Except(new_months).ToList()) pending_months.Remove(m);
+                foreach (var m in new_months.Except(pending_months).ToList()) pending_months.Add(m);
 
                 _all_notes_source = all_rows;
 
-                var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-                if (!string.IsNullOrEmpty(previous_selection) && pending_months.Contains(previous_selection))
+                if (_selected_month != desired)
                 {
-                    _selected_month = previous_selection;
+                    _selected_month = desired;
+                    on_property_changed(nameof(selected_month));
                 }
-                else if (pending_months.Contains(current_month_str))
-                {
-                    _selected_month = current_month_str;
-                }
-                else
-                {
-                    _selected_month = unique_months.LastOrDefault() ?? string.Empty;
-                    _selected_month = string.Empty;
-                }
-
-                on_property_changed(nameof(selected_month));
 
                 _is_loading = false;
                 apply_filters();
