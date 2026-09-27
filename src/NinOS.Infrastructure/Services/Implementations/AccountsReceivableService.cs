@@ -584,6 +584,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (has_payments)
                         throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos. Elimine primero los pagos registrados.");
 
+                    var has_credit_notes = await db_context.credit_notes
+                        .AnyAsync(c => c.id_delivery_note == id_delivery_note);
+
+                    if (has_credit_notes)
+                        throw new InvalidOperationException("No se puede anular una nota que tiene notas de credito registradas.");
+
                     var details = await db_context.note_details
                         .Where(d => d.id_delivery_note == id_delivery_note)
                         .ToListAsync();

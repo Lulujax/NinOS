@@ -18,6 +18,8 @@ namespace NinOS.Infrastructure.Data
         public DbSet<promotion_item> promotion_items { get; set; }
         public DbSet<relacion> relaciones { get; set; }
         public DbSet<sales_goal> sales_goals { get; set; }
+        public DbSet<credit_note> credit_notes { get; set; }
+        public DbSet<credit_note_detail> credit_note_details { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -240,6 +242,43 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.goal_month_start).HasColumnName("goal_month_start").HasColumnType("date").IsRequired();
                 entity.HasIndex(e => e.goal_month_start).IsUnique();
                 entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
+            });
+
+            model_builder.Entity<credit_note>(entity =>
+            {
+                entity.ToTable("credit_note");
+                entity.HasKey(e => e.id_credit_note);
+                entity.Property(e => e.id_credit_note).HasColumnName("id_credit_note").UseIdentityByDefaultColumn();
+                entity.Property(e => e.note_number).HasColumnName("note_number").IsRequired().HasMaxLength(50);
+                entity.HasIndex(e => e.note_number).IsUnique();
+                entity.Property(e => e.creation_date).HasColumnName("creation_date").IsRequired();
+                entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
+                entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
+                entity.Property(e => e.id_customer).HasColumnName("id_customer").IsRequired();
+                entity.Property(e => e.total_amount_usd).HasColumnName("total_amount_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.observations).HasColumnName("observations").HasMaxLength(500);
+
+                entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            model_builder.Entity<credit_note_detail>(entity =>
+            {
+                entity.ToTable("credit_note_detail");
+                entity.HasKey(e => e.id_credit_note_detail);
+                entity.Property(e => e.id_credit_note_detail).HasColumnName("id_credit_note_detail").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_credit_note).HasColumnName("id_credit_note").IsRequired();
+                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired(false);
+                entity.Property(e => e.id_promotion).HasColumnName("id_promotion").IsRequired(false);
+                entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
+
+                entity.HasOne<credit_note>().WithMany().HasForeignKey(e => e.id_credit_note).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

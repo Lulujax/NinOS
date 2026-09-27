@@ -43,6 +43,9 @@
             <TabItem Header="Pro Venta">
                 <views:ProVentaView DataContext="{Binding pro_venta_vm}" />
             </TabItem>
+            <TabItem Header="Notas de Credito">
+                <views:CreditNotesView DataContext="{Binding credit_notes_vm}" />
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

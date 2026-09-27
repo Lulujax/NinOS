@@ -12,6 +12,7 @@ namespace NinOS.UI.Common.ViewModels
         private CustomerViewModel? _customer_vm;
         private InventoryViewModel? _inventory_vm;
         private ProVentaViewModel? _pro_venta_vm;
+        private CreditNotesViewModel? _credit_notes_vm;
 
         public DeliveryNotesViewModel? delivery_notes_vm
         {
@@ -61,6 +62,12 @@ namespace NinOS.UI.Common.ViewModels
             set { _pro_venta_vm = value; on_property_changed(); }
         }
 
+        public CreditNotesViewModel? credit_notes_vm
+        {
+            get => _credit_notes_vm;
+            set { _credit_notes_vm = value; on_property_changed(); }
+        }
+
         public MainWindowViewModel(
             DeliveryNotesViewModel deliveryNotesVm,
             AccountsReceivableViewModel accountsReceivableVm,
@@ -69,7 +76,8 @@ namespace NinOS.UI.Common.ViewModels
             CommissionsViewModel commissionsVm,
             CustomerViewModel customerVm,
             InventoryViewModel inventoryVm,
-            ProVentaViewModel proVentaVm)
+            ProVentaViewModel proVentaVm,
+            CreditNotesViewModel creditNotesVm)
         {
             delivery_notes_vm = deliveryNotesVm;
             accounts_receivable_vm = accountsReceivableVm;
@@ -79,6 +87,7 @@ namespace NinOS.UI.Common.ViewModels
             customer_vm = customerVm;
             inventory_vm = inventoryVm;
             pro_venta_vm = proVentaVm;
+            credit_notes_vm = creditNotesVm;
 
             if (delivery_notes_vm != null)
             {
@@ -86,6 +95,17 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     accounts_receivable_vm?.refresh_data();
                     delivery_notes_vm?.refresh_data();
+                    inventory_vm?.refresh_data();
+                    pro_venta_vm?.refresh_data();
+                };
+            }
+
+            if (credit_notes_vm != null)
+            {
+                credit_notes_vm.OnCreditNoteSaved += () =>
+                {
+                    accounts_receivable_vm?.refresh_data();
+                    payments_vm?.refresh_data();
                     inventory_vm?.refresh_data();
                     pro_venta_vm?.refresh_data();
                 };

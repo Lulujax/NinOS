@@ -50,24 +50,18 @@ namespace NinOS.Domain
             }
         }
 
+        // Puede ser negativo: una Nota de Credito se registra como pago negativo para
+        // restar en el historial y en el saldo (el saldo se deriva de la suma de pagos).
         public decimal amount_usd
         {
             get { return _amount_usd; }
-            set
-            {
-                if (value < 0) throw new ArgumentException();
-                _amount_usd = value;
-            }
+            set { _amount_usd = value; }
         }
 
         public decimal amount_bs
         {
             get { return _amount_bs; }
-            set
-            {
-                if (value < 0) throw new ArgumentException();
-                _amount_bs = value;
-            }
+            set { _amount_bs = value; }
         }
 
         public decimal? exchange_rate

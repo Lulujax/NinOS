@@ -31,6 +31,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var transaction = await _db_context.Database.BeginTransactionAsync();
             try
             {
+                if (new_payment.amount_usd < 0)
+                    throw new InvalidOperationException("El monto del abono no puede ser negativo.");
+
                 delivery_note target_note = await _db_context.delivery_notes.FindAsync(new_payment.id_delivery_note);
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
                 if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
@@ -136,6 +139,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var transaction = await _db_context.Database.BeginTransactionAsync();
             try
             {
+                if (updated_payment.amount_usd < 0)
+                    throw new InvalidOperationException("El monto del abono no puede ser negativo.");
+
                 payment existing = await _db_context.payments.FindAsync(updated_payment.id_payment);
                 if (existing == null) throw new InvalidOperationException("El pago no existe.");
 
