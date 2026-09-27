@@ -316,13 +316,18 @@ namespace NinOS.UI.Common.ViewModels
 
                 _all_notes_source = all_rows;
 
+                var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
                 if (!string.IsNullOrEmpty(previous_selection) && pending_months.Contains(previous_selection))
                 {
                     _selected_month = previous_selection;
                 }
+                else if (pending_months.Contains(current_month_str))
+                {
+                    _selected_month = current_month_str;
+                }
                 else
                 {
-                    _selected_month = string.Empty;
+                    _selected_month = unique_months.LastOrDefault() ?? string.Empty;
                 }
 
                 on_property_changed(nameof(selected_month));
