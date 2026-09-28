@@ -53,8 +53,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada")
                     .Select(dn => new { dn.creation_date.Year, dn.creation_date.Month })
                     .Distinct()
-                    .OrderByDescending(d => d.Year)
-                    .ThenByDescending(d => d.Month)
+                    .OrderBy(d => d.Year)
+                    .ThenBy(d => d.Month)
                     .ToListAsync();
 
                 return dates
@@ -164,8 +164,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .AsNoTracking()
                     .Select(c => new { c.creation_date.Year, c.creation_date.Month })
                     .Distinct()
-                    .OrderByDescending(c => c.Year)
-                    .ThenByDescending(c => c.Month)
+                    .OrderBy(c => c.Year)
+                    .ThenBy(c => c.Month)
                     .ToListAsync();
 
                 return months

@@ -138,9 +138,21 @@ namespace NinOS.UI.Common.ViewModels
                         : (months.Count > 0 ? months[months.Count - 1] : string.Empty);
                 }
 
-                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde.
-                foreach (var m in new List<string>(credit_note_months).Except(new_months)) credit_note_months.Remove(m);
-                foreach (var m in new_months.Except(credit_note_months)) credit_note_months.Add(m);
+                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde y el orden cronologico estricto se preserva.
+                for (int i = credit_note_months.Count - 1; i >= 0; i--)
+                {
+                    if (!new_months.Contains(credit_note_months[i]))
+                        credit_note_months.RemoveAt(i);
+                }
+                for (int i = 0; i < new_months.Count; i++)
+                {
+                    var item = new_months[i];
+                    int currentIndex = credit_note_months.IndexOf(item);
+                    if (currentIndex < 0)
+                        credit_note_months.Insert(i, item);
+                    else if (currentIndex != i)
+                        credit_note_months.Move(currentIndex, i);
+                }
 
                 if (_selected_month != desired)
                 {

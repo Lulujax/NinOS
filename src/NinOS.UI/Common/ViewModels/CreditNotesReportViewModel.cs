@@ -127,13 +127,18 @@ namespace NinOS.UI.Common.ViewModels
                     is_general = true;
                     _selected_month = string.Empty;
                 }
-                else if (!string.IsNullOrWhiteSpace(previous) && month_options.Contains(previous))
+                var current_month_str = DateTime.Now.ToString("MMMM yyyy", Ve);
+                if (!string.IsNullOrWhiteSpace(previous) && month_options.Contains(previous))
                 {
                     _selected_month = previous;
                 }
+                else if (month_options.Contains(current_month_str))
+                {
+                    _selected_month = current_month_str;
+                }
                 else
                 {
-                    _selected_month = month_options[0];
+                    _selected_month = month_options.Count > 0 ? month_options[month_options.Count - 1] : string.Empty;
                 }
 
                 on_property_changed(nameof(selected_month));

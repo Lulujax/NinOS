@@ -37,8 +37,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                              && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)))
                     .Select(n => new { n.creation_date.Year, n.creation_date.Month })
                     .Distinct()
-                    .OrderByDescending(n => n.Year)
-                    .ThenByDescending(n => n.Month)
+                    .OrderBy(n => n.Year)
+                    .ThenBy(n => n.Month)
                     .ToListAsync();
 
                 return pending_notes

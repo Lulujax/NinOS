@@ -70,17 +70,23 @@
                         <ComboBox ItemsSource="{Binding weeks}" SelectedItem="{Binding selected_week, Mode=TwoWay}"
                                   DisplayMemberPath="label" Width="200" Margin="0,0,20,0"/>
                         <Button Content="Imprimir PDF" Command="{Binding print_command}" Background="#1565C0"
-                                Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"/>
+                                Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
+                                IsEnabled="{Binding has_rows}"/>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="{Binding relation_title}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#1565C0"/>
+                <TextBlock Text="{Binding relation_title}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#1565C0"
+                           Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <TextBlock Text="{Binding relation_subtitle}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"
-                           Foreground="#666666" Margin="0,2,0,8"/>
+                           Foreground="#666666" Margin="0,2,0,8"
+                           Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <TextBlock Text="No hay notas de despacho en esta semana." Foreground="#888888" HorizontalAlignment="Center"
-                           Margin="0,20,0,0"
-                           Visibility="{Binding is_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Border Margin="0,30,0,0" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="18,14"
+                        HorizontalAlignment="Center" MaxWidth="500"
+                        Visibility="{Binding is_empty, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="No hay notas de despacho ni relación para esta semana."
+                               Foreground="#757575" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
+                </Border>
 
                 <StackPanel Width="1080" Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding report_rows}">
@@ -147,7 +153,8 @@
                     </Grid>
                 </StackPanel>
 
-                <Border Width="560" HorizontalAlignment="Center" BorderBrush="#1565C0" BorderThickness="1" Margin="0,14,0,0">
+                <Border Width="560" HorizontalAlignment="Center" BorderBrush="#1565C0" BorderThickness="1" Margin="0,14,0,0"
+                        Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="LIQUIDACION" FontWeight="Bold" FontSize="12" Foreground="#1565C0" Padding="6"/>
 

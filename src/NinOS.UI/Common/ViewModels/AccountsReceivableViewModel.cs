@@ -305,6 +305,7 @@ namespace NinOS.UI.Common.ViewModels
                 var all_rows = raw.Select(map_to_row).ToList();
 
                 var unique_months = all_rows
+                    .Where(n => n.creation_date.Year >= 2000)
                     .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
                     .Distinct()
                     .OrderBy(d => d)
@@ -326,9 +327,21 @@ namespace NinOS.UI.Common.ViewModels
                         : (unique_months.Count > 0 ? unique_months[unique_months.Count - 1] : string.Empty);
                 }
 
-                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde.
-                foreach (var m in pending_months.Except(new_months).ToList()) pending_months.Remove(m);
-                foreach (var m in new_months.Except(pending_months).ToList()) pending_months.Add(m);
+                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde y el orden cronologico estricto se preserva.
+                for (int i = pending_months.Count - 1; i >= 0; i--)
+                {
+                    if (!new_months.Contains(pending_months[i]))
+                        pending_months.RemoveAt(i);
+                }
+                for (int i = 0; i < new_months.Count; i++)
+                {
+                    var item = new_months[i];
+                    int currentIndex = pending_months.IndexOf(item);
+                    if (currentIndex < 0)
+                        pending_months.Insert(i, item);
+                    else if (currentIndex != i)
+                        pending_months.Move(currentIndex, i);
+                }
 
                 _all_notes_source = all_rows;
 

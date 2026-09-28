@@ -109,9 +109,9 @@ namespace NinOS.UI.Common.ViewModels
 
         public decimal nota_por_pagar => Math.Round(total_amount - total_gastos_25 - total_gastos_15, 2);
 
-        public string relation_title => _report == null ? string.Empty : $"RELACION NRO {_report.relation_number}";
+        public string relation_title => (_report == null || !has_rows) ? string.Empty : $"RELACION NRO {_report.relation_number}";
 
-        public string relation_subtitle => _report == null
+        public string relation_subtitle => (_report == null || !has_rows)
             ? string.Empty
             : $"{_report.week_start:dd/MM} AL {_report.week_end:dd/MM} _ FACTURAS POR COBRAR MARACAY";
 
@@ -149,7 +149,10 @@ namespace NinOS.UI.Common.ViewModels
                 available_months.Clear();
                 foreach (var month in months) available_months.Add(month);
 
-                var next = months.FirstOrDefault(m => m.value == previous) ?? months.FirstOrDefault();
+                var current_month = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                var next = months.FirstOrDefault(m => m.value == previous)
+                        ?? months.FirstOrDefault(m => m.value == current_month)
+                        ?? months.LastOrDefault();
                 _selected_month = null;
                 on_property_changed(nameof(selected_month));
                 _selected_month = next;
@@ -272,7 +275,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void print_report()
         {
-            if (_report == null) return;
+            if (_report == null || !has_rows) return;
             ProVentaPdfGenerator.generate(_report, nota_por_pagar);
         }
 

@@ -46,7 +46,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Select(m => new DateTime(m.Year, m.Month, 1))
                 .Concat(new[] { new DateTime(now.Year, now.Month, 1) })
                 .Distinct()
-                .OrderByDescending(d => d)
+                .OrderBy(d => d)
                 .Select(d => new pro_venta_month_option
                 {
                     value = d,
@@ -166,7 +166,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             try
             {
                 await db_context.SaveChangesAsync();
-                return relation;
+                await renumber_relations_chronologically_async(db_context);
+                return await db_context.relaciones.AsNoTracking().FirstAsync(r => r.id_relacion == relation.id_relacion);
             }
             catch (DbUpdateException)
             {
@@ -179,6 +180,35 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .FirstOrDefaultAsync(r => r.week_start == week_start);
                 if (created != null) return created;
                 throw;
+            }
+        }
+
+        private static async Task renumber_relations_chronologically_async(NinOSDbContext db_context)
+        {
+            var all = await db_context.relaciones.OrderBy(r => r.week_start).ToListAsync();
+            bool needs_renumber = false;
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (all[i].relation_number != i + 1)
+                {
+                    needs_renumber = true;
+                    break;
+                }
+            }
+            if (needs_renumber)
+            {
+                int temp_base = 100000;
+                for (int i = 0; i < all.Count; i++)
+                {
+                    all[i].relation_number = temp_base + i + 1;
+                }
+                await db_context.SaveChangesAsync();
+
+                for (int i = 0; i < all.Count; i++)
+                {
+                    all[i].relation_number = i + 1;
+                }
+                await db_context.SaveChangesAsync();
             }
         }
 

@@ -154,6 +154,37 @@ namespace NinOS.Infrastructure.Data
                     }
                     db_context.SaveChanges();
                 }
+
+                // Asegurar que las relaciones existentes esten numeradas de forma unica y estrictamente cronologica (1, 2, 3...)
+                var all_relaciones = db_context.relaciones.OrderBy(r => r.week_start).ToList();
+                if (all_relaciones.Count > 0)
+                {
+                    bool needs_renumber = false;
+                    for (int i = 0; i < all_relaciones.Count; i++)
+                    {
+                        if (all_relaciones[i].relation_number != i + 1)
+                        {
+                            needs_renumber = true;
+                            break;
+                        }
+                    }
+                    if (needs_renumber)
+                    {
+                        // Usar base positiva alta para no chocar con el indice unico ni violar value > 0
+                        int temp_base = 100000;
+                        for (int i = 0; i < all_relaciones.Count; i++)
+                        {
+                            all_relaciones[i].relation_number = temp_base + i + 1;
+                        }
+                        db_context.SaveChanges();
+
+                        for (int i = 0; i < all_relaciones.Count; i++)
+                        {
+                            all_relaciones[i].relation_number = i + 1;
+                        }
+                        db_context.SaveChanges();
+                    }
+                }
             }
 
             if (db_context.sellers.Any() || db_context.customers.Any() || db_context.products.Any())
