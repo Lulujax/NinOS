@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -189,7 +190,9 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(r => string.Equals(r.category?.Replace("ó", "o"), target, StringComparison.OrdinalIgnoreCase));
             }
 
-            var rows = filtered.ToList();
+            var rows = filtered
+                .OrderByCorrelative(r => r.note_number)
+                .ToList();
 
             foreach (var row in rows) notes.Add(row);
             foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase))) sandra_notes.Add(row);
@@ -225,6 +228,9 @@ namespace NinOS.UI.Common.ViewModels
 
         public async Task<IEnumerable<accounts_receivable_dto>> get_notes_by_month_async(string month_year)
             => await _receivable_service.get_all_by_month_async(month_year);
+
+        public async Task<IEnumerable<string>> get_delivery_note_months_for_seller_async(int id_seller)
+            => await _credit_note_service.get_delivery_note_months_for_seller_async(id_seller);
 
         public async Task<IEnumerable<string>> get_all_months_async()
             => await _receivable_service.get_all_months_async();

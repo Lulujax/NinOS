@@ -107,9 +107,11 @@ namespace NinOS.UI.Common
                             {
                                 string bg = alt ? SoftAccent : Colors.White;
                                 alt = !alt;
+                                string color = p.es_negativo ? "#D32F2F" : "#2E7D32";
+                                string monto = Math.Abs(p.amount_usd).ToString("N2");
 
                                 hist.Cell().Background(bg).Padding(2).AlignCenter().Text(p.payment_date.ToString("dd/MM/yyyy"));
-                                hist.Cell().Background(bg).Padding(2).AlignCenter().Text(p.amount_usd.ToString("N2"));
+                                hist.Cell().Background(bg).Padding(2).AlignCenter().Text(monto).FontColor(color).Bold();
                                 hist.Cell().Background(bg).Padding(2).Text(p.notes);
                             }
 

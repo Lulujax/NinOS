@@ -245,5 +245,102 @@ namespace NinOS.Infrastructure.Services.Implementations
                 return result;
             }
         }
+
+        public async Task<IEnumerable<promotion_sales_history_dto>> get_promotion_sales_history_async(int id_promotion)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                // La promocion genera un movimiento por cada producto que la compone;
+                // para la grilla se agrupa por documento y se muestra la cantidad de
+                // promociones vendidas/devueltas (promotion_units) y su precio unitario.
+                var movements = await db.stock_movements
+                    .AsNoTracking()
+                    .Where(m => m.id_promotion == id_promotion)
+                    .OrderByDescending(m => m.movement_date)
+                    .ThenByDescending(m => m.id_stock_movement)
+                    .ToListAsync();
+
+                if (movements.Count == 0) return Enumerable.Empty<promotion_sales_history_dto>();
+
+                var customer_ids = movements
+                    .Where(m => m.id_customer != null)
+                    .Select(m => m.id_customer!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var customers = customer_ids.Count == 0
+                    ? new Dictionary<int, customer>()
+                    : await db.customers
+                        .AsNoTracking()
+                        .Where(c => customer_ids.Contains(c.id_customer))
+                        .ToDictionaryAsync(c => c.id_customer);
+
+                var seller_ids = movements
+                    .Where(m => m.id_seller != null)
+                    .Select(m => m.id_seller!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var sellers = seller_ids.Count == 0
+                    ? new Dictionary<int, seller>()
+                    : await db.sellers
+                        .AsNoTracking()
+                        .Where(s => seller_ids.Contains(s.id_seller))
+                        .ToDictionaryAsync(s => s.id_seller);
+
+                var result = new List<promotion_sales_history_dto>();
+
+                var groups = movements.GroupBy(m => new
+                {
+                    m.id_delivery_note,
+                    m.id_credit_note,
+                    m.document_number,
+                    m.movement_type,
+                    m.reason,
+                    m.document_type,
+                    m.document_status,
+                    m.id_customer,
+                    m.id_seller,
+                    m.unit_price_usd,
+                    m.movement_date
+                });
+
+                foreach (var group in groups)
+                {
+                    stock_movement first = group.First();
+                    int unidades = group.Max(x => x.promotion_units ?? x.quantity);
+
+                    result.Add(new promotion_sales_history_dto
+                    {
+                        id_delivery_note = first.id_delivery_note,
+                        note_number = first.document_number,
+                        creation_date = first.movement_date,
+                        customer_name = first.id_customer != null && customers.TryGetValue(first.id_customer.Value, out var c)
+                            ? c.business_name
+                            : string.Empty,
+                        seller_name = first.id_seller != null && sellers.TryGetValue(first.id_seller.Value, out var s)
+                            ? s.full_name
+                            : string.Empty,
+                        line_description = first.line_description ?? string.Empty,
+                        sold_as = first.sold_as ?? string.Empty,
+                        units_sold = unidades,
+                        unit_price_usd = first.unit_price_usd,
+                        line_subtotal_usd = first.unit_price_usd * unidades,
+                        status = first.document_status ?? string.Empty,
+                        movement_type = first.movement_type,
+                        movement_reason = first.reason,
+                        document_type = first.document_type,
+                        is_credit_note = first.id_credit_note != null
+                    });
+                }
+
+                return result
+                    .OrderByDescending(r => r.creation_date)
+                    .ThenByDescending(r => r.id_delivery_note)
+                    .ToList();
+            }
+        }
     }
 }

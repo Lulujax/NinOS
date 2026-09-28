@@ -699,6 +699,22 @@
                                     </ControlTemplate>
                                 </Button.Template>
                             </Button>
+                            <Button Content="Cancelar" Margin="4,0,0,0" Padding="6,2" BorderThickness="0" Cursor="Hand"
+                                    FontSize="11.5" Foreground="#ECEFF1" Background="#546E7A" FontWeight="SemiBold"
+                                    Command="{Binding cancel_goal_edit_command}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#607D8B"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Grid>

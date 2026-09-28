@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Microsoft.Win32;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -92,7 +93,9 @@ namespace NinOS.UI.Common
                     return;
                 }
 
-                var srows = seller_rows ?? new List<monthly_report_row_dto>();
+                var srows = (seller_rows ?? new List<monthly_report_row_dto>())
+                    .OrderByCorrelative(r => r.document_number)
+                    .ToList();
                 var detail_header = string.IsNullOrWhiteSpace(report.detail_column_header) ? "DETALLE" : report.detail_column_header;
                 var status_header = string.IsNullOrWhiteSpace(report.status_column_header) ? "ESTADO" : report.status_column_header;
 

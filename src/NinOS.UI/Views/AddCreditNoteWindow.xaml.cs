@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
@@ -61,22 +62,24 @@ namespace NinOS.UI.Views
 
         public event EventHandler? CreditNoteCreated;
 
+        private bool _is_updating_cascade;
+        private bool _is_gift;
+
         public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null)
         {
             InitializeComponent();
             _vm = vm;
-            _initializing_months = true;
 
             Loaded += async (_, _) =>
             {
+                _is_updating_cascade = true;
+
                 if (CmbCategory.SelectedItem is ComboBoxItem selected)
                     _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
 
                 ApplyCategoryMode();
 
                 await LoadSellersAsync();
-                await LoadMonthsAsync(current_month);
-                _initializing_months = false;
 
                 if (_is_gift)
                 {
@@ -84,17 +87,29 @@ namespace NinOS.UI.Views
                 }
                 else
                 {
+                    ResetDevolucionState();
+                    if (CmbSeller != null) CmbSeller.SelectedItem = null;
+                    if (CmbMonth != null)
+                    {
+                        CmbMonth.Items.Clear();
+                        CmbMonth.SelectedIndex = -1;
+                        CmbMonth.IsEnabled = false;
+                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
+                    }
                     if (NoteTextBox != null)
                     {
                         NoteTextBox.IsEnabled = false;
-                        NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
+                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                    }
+                    if (BtnToggleDropdown != null)
+                    {
+                        BtnToggleDropdown.IsEnabled = false;
                     }
                 }
+
+                _is_updating_cascade = false;
             };
         }
-
-        private bool _initializing_months;
-        private bool _is_gift;
 
         private async Task LoadSellersAsync()
         {
@@ -112,32 +127,33 @@ namespace NinOS.UI.Views
             }
         }
 
-        private async Task LoadMonthsAsync(string? current_month)
-        {
-            try
-            {
-                var months = (await _vm.get_all_months_async()).ToList();
-
-                CmbMonth.Items.Clear();
-                CmbMonth.Items.Add(string.Empty);
-                foreach (var m in months) CmbMonth.Items.Add(m);
-
-                CmbMonth.SelectedIndex = 0;
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show(ErrorText.Get(ex), "Error");
-            }
-        }
-
         private async void OnMonthSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (!IsLoaded || _initializing_months) return;
+            if (!IsLoaded || _is_updating_cascade) return;
             try
             {
-                if (!_is_gift && _selected_seller != null)
+                ResetDevolucionState();
+                string? selected_month = CmbMonth.SelectedItem as string;
+                if (!string.IsNullOrWhiteSpace(selected_month) && _selected_seller != null)
                 {
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.IsEnabled = true;
+                        NoteTextBox.ToolTip = "Escriba el numero de nota o nombre del cliente...";
+                    }
+                    if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = true;
                     await LoadNotesAsync();
+                }
+                else
+                {
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.IsEnabled = false;
+                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                    }
+                    if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
+                    _all_combo_items.Clear();
+                    FilterNotes(string.Empty);
                 }
             }
             catch (Exception ex)
@@ -152,41 +168,41 @@ namespace NinOS.UI.Views
             if (CmbCategory.SelectedItem is not ComboBoxItem selected) return;
             _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
             ApplyCategoryMode();
+
+            _is_updating_cascade = true;
+            _selected_seller = null;
+            if (CmbSeller != null) CmbSeller.SelectedItem = null;
+            _is_updating_cascade = false;
+
             try
             {
                 if (_is_gift)
                 {
                     ResetDevolucionState();
+                    ResetObsequioState(preserve_seller: false);
                     await LoadObsequioDataAsync();
-                    if (_selected_seller != null)
-                    {
-                        if (CustomerTextBox != null) CustomerTextBox.IsEnabled = true;
-                        _seller_customers = _all_customers
-                            .Where(c => string.Equals(c.seller_name?.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase))
-                            .OrderBy(c => c.business_name)
-                            .ToList();
-                        FilterCustomers(string.Empty);
-                    }
                 }
                 else
                 {
-                    ResetObsequioState(preserve_seller: true);
-                    if (_selected_seller != null)
+                    ResetObsequioState(preserve_seller: false);
+                    ResetDevolucionState();
+                    if (CmbMonth != null)
                     {
-                        if (NoteTextBox != null)
-                        {
-                            NoteTextBox.IsEnabled = true;
-                            NoteTextBox.ToolTip = "Escriba el numero de nota o nombre del cliente...";
-                        }
-                        await LoadNotesAsync();
+                        _is_updating_cascade = true;
+                        CmbMonth.Items.Clear();
+                        CmbMonth.SelectedIndex = -1;
+                        CmbMonth.IsEnabled = false;
+                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
+                        _is_updating_cascade = false;
                     }
-                    else
+                    if (NoteTextBox != null)
                     {
-                        if (NoteTextBox != null)
-                        {
-                            NoteTextBox.IsEnabled = false;
-                            NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
-                        }
+                        NoteTextBox.IsEnabled = false;
+                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                    }
+                    if (BtnToggleDropdown != null)
+                    {
+                        BtnToggleDropdown.IsEnabled = false;
                     }
                 }
             }
@@ -304,7 +320,7 @@ namespace NinOS.UI.Views
 
         private async void OnSellerChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!IsLoaded) return;
+            if (!IsLoaded || _is_updating_cascade) return;
             _selected_seller = CmbSeller.SelectedItem as seller;
 
             if (_is_gift)
@@ -317,6 +333,17 @@ namespace NinOS.UI.Views
                 }
                 if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
                 if (CustomerPopup != null) CustomerPopup.IsOpen = false;
+                if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
+                _seller_customers.Clear();
+
+                if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
+                if (ProductPopup != null) ProductPopup.IsOpen = false;
+                if (ProductListBox != null) ProductListBox.ItemsSource = null;
+
+                foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
+                _gift_items.Clear();
+                if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
+                RecalcTotal();
 
                 if (_selected_seller != null)
                 {
@@ -330,31 +357,58 @@ namespace NinOS.UI.Views
                 else
                 {
                     if (CustomerTextBox != null) CustomerTextBox.IsEnabled = false;
-                    _seller_customers.Clear();
-                    if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
                 }
             }
             else
             {
                 ResetDevolucionState();
+
+                if (NoteTextBox != null)
+                {
+                    NoteTextBox.IsEnabled = false;
+                    NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                }
+                if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
+
+                _is_updating_cascade = true;
+                if (CmbMonth != null)
+                {
+                    CmbMonth.Items.Clear();
+                    CmbMonth.SelectedIndex = -1;
+                }
+                _is_updating_cascade = false;
+
                 if (_selected_seller != null)
                 {
-                    if (NoteTextBox != null)
+                    if (CmbMonth != null)
                     {
-                        NoteTextBox.IsEnabled = true;
-                        NoteTextBox.ToolTip = "Escriba el numero de nota o nombre del cliente...";
+                        CmbMonth.IsEnabled = true;
+                        CmbMonth.ToolTip = "Seleccione el mes de la nota de entrega";
                     }
-                    await LoadNotesAsync();
+                    try
+                    {
+                        var months = (await _vm.get_delivery_note_months_for_seller_async(_selected_seller.id_seller)).ToList();
+                        _is_updating_cascade = true;
+                        if (CmbMonth != null)
+                        {
+                            CmbMonth.Items.Clear();
+                            foreach (var m in months) CmbMonth.Items.Add(m);
+                            CmbMonth.SelectedIndex = -1;
+                        }
+                        _is_updating_cascade = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        AppDialog.Show(ErrorText.Get(ex), "Error");
+                    }
                 }
                 else
                 {
-                    if (NoteTextBox != null)
+                    if (CmbMonth != null)
                     {
-                        NoteTextBox.IsEnabled = false;
-                        NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar sus notas...";
+                        CmbMonth.IsEnabled = false;
+                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
                     }
-                    _all_combo_items.Clear();
-                    if (NoteListBox != null) NoteListBox.ItemsSource = null;
                 }
             }
         }
@@ -544,8 +598,7 @@ namespace NinOS.UI.Views
 
                 _all_combo_items = notes
                     .Where(n => n.status != "Anulada")
-                    .OrderByDescending(n => n.creation_date)
-                    .ThenBy(n => n.note_number)
+                    .OrderByCorrelative(n => n.note_number)
                     .Select(n => new note_combo_item
                     {
                         id_delivery_note = n.id_delivery_note,
@@ -555,7 +608,7 @@ namespace NinOS.UI.Views
                         total_amount_usd = n.total_amount_usd,
                         paid_amount_usd = n.paid_amount_usd,
                         status = n.status,
-                        note_type = n.sales_observations
+                        note_type = !string.IsNullOrWhiteSpace(n.note_type_name) ? n.note_type_name : n.sales_observations
                     }).ToList();
 
                 FilterNotes(string.Empty);
@@ -576,6 +629,7 @@ namespace NinOS.UI.Views
 
         private void OnToggleDropdown(object sender, RoutedEventArgs e)
         {
+            if (NotePopup == null || NoteListBox == null) return;
             if (NotePopup.IsOpen)
             {
                 NotePopup.IsOpen = false;
@@ -587,11 +641,16 @@ namespace NinOS.UI.Views
                     AppDialog.Show("Seleccione primero un vendedor para buscar sus notas de entrega.", "Aviso");
                     return;
                 }
+                if (string.IsNullOrWhiteSpace(CmbMonth.SelectedItem as string))
+                {
+                    AppDialog.Show("Seleccione primero un mes para buscar notas de entrega.", "Aviso");
+                    return;
+                }
                 FilterNotes(string.Empty);
                 NotePopup.IsOpen = NoteListBox.Items.Count > 0;
                 if (NoteListBox.Items.Count == 0)
                 {
-                    AppDialog.Show("No se encontraron notas de entrega para este vendedor en el periodo indicado.", "Aviso");
+                    AppDialog.Show("No se encontraron notas de entrega para este vendedor en el mes indicado.", "Aviso");
                 }
             }
         }
@@ -617,9 +676,10 @@ namespace NinOS.UI.Views
 
         private void OnNoteListSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (NoteListBox.SelectedItem is note_combo_item item)
+            if (NoteListBox?.SelectedItem is note_combo_item item)
             {
                 _ = LoadSourceAsync(item);
+                NoteListBox.SelectedItem = null;
             }
         }
 

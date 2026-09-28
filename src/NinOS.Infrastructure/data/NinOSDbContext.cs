@@ -36,6 +36,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.full_name).HasColumnName("full_name").IsRequired().HasMaxLength(150);
                 entity.Property(e => e.seller_code).HasColumnName("seller_code").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.customer_code_prefix).HasColumnName("customer_code_prefix").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.last_customer_number).HasColumnName("last_customer_number").IsRequired();
             });
 
             model_builder.Entity<note_type>(entity =>
@@ -240,9 +241,18 @@ namespace NinOS.Infrastructure.Data
                 entity.ToTable("sales_goal");
                 entity.HasKey(e => e.id_sales_goal);
                 entity.Property(e => e.id_sales_goal).HasColumnName("id_sales_goal").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired(false);
                 entity.Property(e => e.goal_month_start).HasColumnName("goal_month_start").HasColumnType("date").IsRequired();
-                entity.HasIndex(e => e.goal_month_start).IsUnique();
                 entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
+
+                entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.goal_month_start, e.id_seller })
+                    .IsUnique()
+                    .HasFilter("\"id_seller\" IS NOT NULL");
+                entity.HasIndex(e => e.goal_month_start)
+                    .IsUnique()
+                    .HasFilter("\"id_seller\" IS NULL");
             });
 
             model_builder.Entity<credit_note>(entity =>

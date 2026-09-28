@@ -16,5 +16,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task update_promotion_async(promotion promotion_to_update);
         Task delete_promotion_async(promotion promotion_to_delete);
         Task<IEnumerable<product_sales_history_dto>> get_product_sales_history_async(int id_product);
+        Task<IEnumerable<promotion_sales_history_dto>> get_promotion_sales_history_async(int id_promotion);
     }
 }

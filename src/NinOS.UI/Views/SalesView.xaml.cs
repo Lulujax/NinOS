@@ -48,9 +48,17 @@ namespace NinOS.UI.Views
 
         private void GoalTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key != System.Windows.Input.Key.Enter) return;
-            e.Handled = true;
-            if (DataContext is SalesViewModel vm) vm.save_goal_command.Execute(null);
+            if (DataContext is not SalesViewModel vm) return;
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                e.Handled = true;
+                vm.cancel_goal_edit_command.Execute(null);
+            }
+            else if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                vm.save_goal_command.Execute(null);
+            }
         }
 
         private void DataGrid_PreviewMouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)

@@ -67,12 +67,12 @@ namespace NinOS.UI
                 splash.ShowWithAnimation();
                 DateTime started_at = DateTime.Now;
 
+                ServiceCollection service_collection = new ServiceCollection();
+                configure_services(service_collection);
+                _service_provider = service_collection.BuildServiceProvider();
+
                 System.Threading.Tasks.Task.Run(async () =>
                 {
-                    ServiceCollection service_collection = new ServiceCollection();
-                    configure_services(service_collection);
-                    _service_provider = service_collection.BuildServiceProvider();
-
                     log_startup_message("Before DbInitializer");
                     using (var scope = _service_provider.CreateScope())
                     {

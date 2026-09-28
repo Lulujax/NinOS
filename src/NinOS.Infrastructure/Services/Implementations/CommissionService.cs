@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
 
@@ -227,7 +228,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     note_last_payment_date = note_last_payment_date
                 };
             })
-            .OrderByDescending(c => c.creation_date)
+            .OrderByCorrelative(c => c.note_number)
             .ToList();
         }
 
@@ -308,7 +309,7 @@ return new commission_dto
                     payout_date = c.payout_date
                 };
             })
-            .OrderByDescending(c => c.creation_date)
+            .OrderByCorrelative(c => c.note_number)
             .ToList();
         }
 
@@ -474,7 +475,7 @@ return new commission_dto
                         commission_paid_date = batch_date
                     };
                 })
-                .OrderBy(r => r.note_number)
+                .OrderByCorrelative(r => r.note_number)
                 .ToList();
 
             return new commission_receipt_dto

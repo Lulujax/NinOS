@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -25,7 +26,8 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             using var scope = _scope_factory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
-            return await repo.get_all_async();
+            var all = await repo.get_all_async();
+            return all.OrderByCorrelative(n => n.note_number).ToList();
         }
 
         public async Task<string> generate_correlative_async(int id_seller)

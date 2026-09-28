@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -41,23 +42,115 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<IEnumerable<string>> get_delivery_note_months_for_seller_async(int id_seller)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var dates = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada")
+                    .Select(dn => new { dn.creation_date.Year, dn.creation_date.Month })
+                    .Distinct()
+                    .OrderByDescending(d => d.Year)
+                    .ThenByDescending(d => d.Month)
+                    .ToListAsync();
+
+                return dates
+                    .Select(d => new DateTime(d.Year, d.Month, 1).ToString("MMMM yyyy", new CultureInfo("es-VE")))
+                    .ToList();
+            }
+        }
+
         public async Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, string? month_year = null)
         {
             using (var scope = _scope_factory.CreateScope())
             {
-                var cxc = scope.ServiceProvider.GetRequiredService<IAccountsReceivableService>();
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var query = db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada");
+
                 if (!string.IsNullOrWhiteSpace(month_year))
                 {
-                    return await cxc.get_all_by_month_and_seller_async(month_year, id_seller);
+                    if (DateTime.TryParseExact(month_year.Trim(), "MMMM yyyy", new CultureInfo("es-VE"), DateTimeStyles.None, out var target_date))
+                    {
+                        query = query.Where(dn => dn.creation_date.Year == target_date.Year && dn.creation_date.Month == target_date.Month);
+                    }
                 }
-                var all_months = await cxc.get_all_months_async();
+
+                var notes = await query
+                    .OrderBy(n => n.note_number)
+                    .ToListAsync();
+
+                if (notes.Count == 0)
+                    return Enumerable.Empty<accounts_receivable_dto>();
+
+                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+                var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+
+                var customers = await db_context.customers
+                    .AsNoTracking()
+                    .Where(c => customer_ids.Contains(c.id_customer))
+                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+                var seller = await db_context.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == id_seller);
+                string seller_name = seller?.full_name ?? string.Empty;
+
+                var note_types = await db_context.note_types.AsNoTracking().ToDictionaryAsync(t => t.id_note_type, t => t.name);
+
+                var payment_totals = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .GroupBy(p => p.id_delivery_note!.Value)
+                    .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
+                    .ToDictionaryAsync(x => x.Id, x => x.Total);
+
                 var results = new List<accounts_receivable_dto>();
-                foreach (var month in all_months)
+                foreach (var dn in notes)
                 {
-                    var notes = await cxc.get_all_by_month_and_seller_async(month, id_seller);
-                    results.AddRange(notes);
+                    decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
+                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+
+                    string type_name = string.Empty;
+                    if (dn.note_type_id != null && note_types.TryGetValue(dn.note_type_id.Value, out var tn))
+                    {
+                        type_name = tn;
+                    }
+                    else if (dn.promo_discount_percentage != null && dn.promo_discount_percentage > 0)
+                    {
+                        type_name = "Promocion";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(dn.sales_observations))
+                    {
+                        type_name = dn.sales_observations;
+                    }
+                    else
+                    {
+                        type_name = "General";
+                    }
+
+                    results.Add(new accounts_receivable_dto
+                    {
+                        id_delivery_note = dn.id_delivery_note,
+                        note_number = dn.note_number,
+                        customer_name = customer_name ?? string.Empty,
+                        id_seller = dn.id_seller,
+                        seller_name = seller_name,
+                        creation_date = dn.creation_date,
+                        dispatch_date = dn.dispatch_date,
+                        total_amount_usd = dn.adjusted_total_usd,
+                        status = dn.status,
+                        paid_amount_usd = paid,
+                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        note_type_name = type_name,
+                        sales_observations = type_name
+                    });
                 }
-                return results;
+
+                return results.OrderByCorrelative(r => r.note_number).ToList();
             }
         }
 
@@ -148,8 +241,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToDictionaryAsync(n => n.id_delivery_note);
 
             return notes
-                .OrderByDescending(c => c.creation_date)
-                .ThenByDescending(c => c.id_credit_note)
+                .OrderByCorrelative(c => c.note_number)
                 .Select(c => new credit_note_dto
                 {
                     id_credit_note = c.id_credit_note,
@@ -833,8 +925,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 report.average_note_usd = report.total_notes == 0 ? 0 : report.total_usd / report.total_notes;
 
                 report.rows = rows
-                    .OrderByDescending(r => r.creation_date)
-                    .ThenByDescending(r => r.id_credit_note)
+                    .OrderByCorrelative(r => r.note_number)
                     .ToList();
 
                 report.by_seller = build_seller_bars(rows);

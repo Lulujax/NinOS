@@ -130,16 +130,12 @@
                             <Border Grid.Row="4" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="RIF:" FontStyle="Italic" TextAlignment="Center"/></Border>
                             <Border Grid.Row="4" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.rif}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
                             <Border Grid.Row="4" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="codigo" FontStyle="Italic" TextAlignment="Center"/></Border>
-                            <Border Grid.Row="4" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
-                                <TextBox Text="{Binding customer_code_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
-                            </Border>
+                            <Border Grid.Row="4" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2"><TextBlock Text="{Binding customer_code_text}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
 
                             <Border Grid.Row="5" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="TELEFONO:" FontStyle="Italic" TextAlignment="Center"/></Border>
                             <Border Grid.Row="5" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="{Binding selected_customer.phone_number}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
                             <Border Grid.Row="5" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,0" Padding="2"><TextBlock Text="contacto" FontStyle="Italic" TextAlignment="Center"/></Border>
-                            <Border Grid.Row="5" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,0" Padding="2">
-                                <TextBox Text="{Binding contact_name_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center"/>
-                            </Border>
+                            <Border Grid.Row="5" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,0" Padding="2"><TextBlock Text="{Binding contact_name_text}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
                         </Grid>
                     </Border>
 

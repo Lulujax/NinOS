@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Win32;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -105,7 +106,9 @@ namespace NinOS.UI.Common
                     return;
                 }
 
-                var srows = seller_rows ?? new List<credit_note_report_row_dto>();
+                var srows = (seller_rows ?? new List<credit_note_report_row_dto>())
+                    .OrderByCorrelative(r => r.note_number)
+                    .ToList();
 
                 col.Item().Row(row =>
                 {

@@ -586,7 +586,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 _discount_conditions_text = string.Empty;
                 on_property_changed(nameof(discount_conditions_text));
-                promo_title_text = "PROMOCION OLEOS MAYO Y JUNIO";
+                promo_title_text = "PROMOCION";
                 foreach (note_detail_row row in note_details) row.recalculate_row();
                 recalculate_total();
             }
@@ -689,7 +689,7 @@ namespace NinOS.UI.Common.ViewModels
             if (s != null)
             {
                 IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                    (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.customer_code_prefix)) ||
+                    (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)) ||
                     c.seller_name == s.full_name);
 
                 foreach (customer c in match)
@@ -1056,7 +1056,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     filtered_customers.Clear();
                     IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.customer_code_prefix)) ||
+                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)) ||
                         c.seller_name == _selected_seller.full_name);
                     foreach (customer c in match) filtered_customers.Add(c);
                 }
@@ -1273,7 +1273,7 @@ namespace NinOS.UI.Common.ViewModels
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,
                 discount_conditions_text = _discount_conditions_text,
-                promo_banner_text = has_promo_discount ? _promo_title_text : string.Empty,
+                promo_banner_text = has_promo_discount ? "PROMOCION" : string.Empty,
                 company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
                 header_title = string.IsNullOrWhiteSpace(_header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : _header_title,
                 promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo) ? parsed_promo : null,
@@ -1368,7 +1368,7 @@ namespace NinOS.UI.Common.ViewModels
                 decimal vol_pct = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0;
 
                 new_note.note_type_id = _selected_note_type?.id_note_type;
-                new_note.promo_banner = has_promo_discount ? _promo_title_text : null;
+                new_note.promo_banner = has_promo_discount ? "PROMOCION" : null;
                 new_note.promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal pp) ? pp : null;
 
                 // CxC trabaja un único DCTO; el detalle separado (condición + volumen) queda congelado para el PDF.

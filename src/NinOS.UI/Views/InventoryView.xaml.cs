@@ -70,15 +70,40 @@ namespace NinOS.UI.Views
             };
         }
 
+        private void on_generate_price_list_click(object sender, RoutedEventArgs e)
+        {
+            popup_price_list.IsOpen = !popup_price_list.IsOpen;
+        }
+
+        private void on_download_price_list_click(object sender, RoutedEventArgs e)
+        {
+            popup_price_list.IsOpen = false;
+
+            if (DataContext is InventoryViewModel view_model)
+            {
+                view_model.generate_price_list_command.Execute(null);
+            }
+        }
+
         private async void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is not InventoryViewModel view_model) return;
             if (sender is not DataGrid grid) return;
             if (grid.SelectedItem is not inventory_item_dto dto) return;
-            if (dto.is_promotion || dto.product_ref == null) return;
+            if (dto.product_ref == null && dto.promo_ref == null) return;
 
             try
             {
+                if (dto.is_promotion && dto.promo_ref != null)
+                {
+                    var promo_history = await view_model.get_promotion_history_async(dto.promo_ref.id_promotion);
+
+                    var promo_window = new PromotionSalesHistoryWindow(dto.promo_ref, promo_history);
+                    promo_window.Owner = Window.GetWindow(this);
+                    promo_window.ShowDialog();
+                    return;
+                }
+
                 var history = await view_model.get_product_history_async(dto.product_ref.id_product);
 
                 var window = new ProductSalesHistoryWindow(dto.product_ref, history);

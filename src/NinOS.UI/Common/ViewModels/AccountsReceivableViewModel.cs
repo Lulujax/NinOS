@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -359,6 +360,10 @@ namespace NinOS.UI.Common.ViewModels
             else if (_selected_filter == "Todas")
                 filtered = filtered.Where(n => n.status != "Pagada").ToList();
 
+            filtered = filtered
+                .OrderByCorrelative(n => n.note_number)
+                .ToList();
+
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
             update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
@@ -617,7 +622,7 @@ namespace NinOS.UI.Common.ViewModels
                     show_paid_balance_summary = true,
                     empty_text = "Sin cuentas por cobrar para el mes seleccionado.",
                     rows = month_rows
-                        .OrderBy(n => n.creation_date)
+                        .OrderByCorrelative(n => n.note_number)
                         .Select(n => new monthly_report_row_dto
                         {
                             date = n.creation_date,

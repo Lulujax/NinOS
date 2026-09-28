@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
 
@@ -98,7 +99,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var in_week = notes
                 .Where(n => n.creation_date.Date >= week.start.Date && n.creation_date.Date <= week.end.Date)
-                .OrderBy(n => n.creation_date)
+                .OrderByCorrelative(n => n.note_number)
                 .ToList();
 
             var customer_ids = in_week.Select(n => n.id_customer).Distinct().ToList();
@@ -130,11 +131,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             if (relation == null && in_week.Count > 0)
             {
-                int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
-                relacion new_relation = new relacion(next_number, week.start.Date, week.start.Date.AddDays(6));
-                db_context.relaciones.Add(new_relation);
-                await db_context.SaveChangesAsync();
-                relation = new_relation;
+                relation = await get_or_create_week_relation_async(db_context, week.start.Date);
             }
 
             return new pro_venta_weekly_dto
@@ -151,6 +148,40 @@ namespace NinOS.Infrastructure.Services.Implementations
             };
         }
 
+        private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime date)
+        {
+            int offset = ((int)date.Date.DayOfWeek + 6) % 7;
+            DateTime week_start = date.Date.AddDays(-offset);
+
+            relacion? existing = await db_context.relaciones
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.week_start == week_start);
+            if (existing != null) return existing;
+
+            int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
+
+            relacion relation = new relacion(next_number, week_start, week_start.AddDays(6));
+            db_context.relaciones.Add(relation);
+
+            try
+            {
+                await db_context.SaveChangesAsync();
+                return relation;
+            }
+            catch (DbUpdateException)
+            {
+                // Otra transaccion pudo crear la relacion de esta semana (o disputar el numero):
+                // se reintenta leyendo.
+                db_context.Entry(relation).State = EntityState.Detached;
+
+                relacion? created = await db_context.relaciones
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.week_start == week_start);
+                if (created != null) return created;
+                throw;
+            }
+        }
+
         public Task<List<pro_venta_relation_row>> get_pending_relations_async()
         {
             return build_relation_rows_async(only_pending: true);
@@ -161,11 +192,13 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scope_factory.CreateScope();
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            var notes = await db_context.delivery_notes
+            var raw_notes = await db_context.delivery_notes
                 .AsNoTracking()
                 .Where(n => n.id_relacion == id_relacion && n.status != "Anulada")
                 .OrderBy(n => n.note_number)
                 .ToListAsync();
+
+            var notes = raw_notes.OrderByCorrelative(n => n.note_number).ToList();
 
             if (notes.Count == 0)
                 return new List<pro_venta_weekly_row>();

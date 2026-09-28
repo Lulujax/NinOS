@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
 
@@ -85,6 +86,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                               && (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
                               && dn.creation_date.Year == target_date.Year
                               && dn.creation_date.Month == target_date.Month)
+                    .OrderBy(dn => dn.note_number)
                     .ToListAsync();
 
                 if (notes.Count == 0)
@@ -135,7 +137,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result;
+                return result.OrderByCorrelative(r => r.note_number).ToList();
             }
         }
 
@@ -160,6 +162,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(dn => (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
                               && dn.creation_date.Year == target_date.Year
                               && dn.creation_date.Month == target_date.Month)
+                    .OrderBy(dn => dn.note_number)
                     .ToListAsync();
 
                 if (notes.Count == 0)
@@ -254,7 +257,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result;
+                return result.OrderByCorrelative(r => r.note_number).ToList();
             }
         }
 
@@ -275,6 +278,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
+                    .OrderBy(n => n.note_number)
                     .ToListAsync();
 
                 if (notes.Count == 0)
@@ -368,7 +372,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result;
+                return result.OrderByCorrelative(r => r.note_number).ToList();
             }
         }
 
@@ -767,7 +771,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
                     company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
-                    promo_banner_text = is_promo ? (string.IsNullOrWhiteSpace(note.promo_banner) ? "PROMOCIÓN" : note.promo_banner) : string.Empty,
+                    promo_banner_text = is_promo ? "PROMOCION" : string.Empty,
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
                     document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
                     is_pro_venta = note_type != null && note_type.code == "MAR",
@@ -812,7 +816,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToListAsync();
         }
 
-        public async Task<decimal?> get_sales_goal_async(DateTime year_month)
+        public async Task<decimal?> get_sales_goal_async(DateTime year_month, int? id_seller = null)
         {
             DateTime month_start = new DateTime(year_month.Year, year_month.Month, 1);
             using (var scope = _scope_factory.CreateScope())
@@ -820,20 +824,30 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 return await db_context.sales_goals
                     .AsNoTracking()
-                    .Where(g => g.goal_month_start == month_start)
+                    .Where(g => g.goal_month_start == month_start && g.id_seller == id_seller)
                     .Select(g => (decimal?)g.amount_usd)
                     .FirstOrDefaultAsync();
             }
         }
 
-        public async Task set_sales_goal_async(DateTime year_month, decimal amount_usd)
+        public async Task set_sales_goal_async(DateTime year_month, int? id_seller, decimal amount_usd)
         {
             DateTime month_start = new DateTime(year_month.Year, year_month.Month, 1);
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var existing = await db_context.sales_goals
-                    .FirstOrDefaultAsync(g => g.goal_month_start == month_start);
+                    .FirstOrDefaultAsync(g => g.goal_month_start == month_start && g.id_seller == id_seller);
+
+                if (amount_usd <= 0)
+                {
+                    if (existing != null)
+                    {
+                        db_context.sales_goals.Remove(existing);
+                        await db_context.SaveChangesAsync();
+                    }
+                    return;
+                }
 
                 if (existing != null)
                 {
@@ -841,7 +855,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 }
                 else
                 {
-                    db_context.sales_goals.Add(new sales_goal(month_start, amount_usd));
+                    db_context.sales_goals.Add(new sales_goal(month_start, amount_usd, id_seller));
                 }
                 await db_context.SaveChangesAsync();
             }

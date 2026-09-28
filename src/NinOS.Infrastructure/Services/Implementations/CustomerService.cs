@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 await db_context.customers.AddAsync(newCustomer);
                 await db_context.SaveChangesAsync();
+                await UpdateSellerLastCustomerNumberAsync(db_context, newCustomer);
             }
         }
 
@@ -65,7 +67,25 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 db_context.customers.Update(existingCustomer);
                 await db_context.SaveChangesAsync();
+                await UpdateSellerLastCustomerNumberAsync(db_context, existingCustomer);
             }
+        }
+
+        private static async Task UpdateSellerLastCustomerNumberAsync(NinOSDbContext db_context, customer changedCustomer)
+        {
+            if (string.IsNullOrWhiteSpace(changedCustomer.customer_code)) return;
+
+            long full_number = SeriesCalculator.ParseFullNumber(changedCustomer.customer_code);
+            if (full_number <= 0) return;
+
+            seller? target_seller = await db_context.sellers
+                .FirstOrDefaultAsync(s => s.full_name == changedCustomer.seller_name);
+            if (target_seller == null) return;
+
+            if (full_number <= target_seller.last_customer_number) return;
+
+            target_seller.last_customer_number = full_number;
+            await db_context.SaveChangesAsync();
         }
 
         public async Task DeleteCustomerAsync(int id)
@@ -80,6 +100,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (hasNotes)
                 {
                     throw new InvalidOperationException("Este cliente tiene notas de entrega asociadas y no puede eliminarse. Solo puede editarse.");
+                }
+
+                bool hasCreditNotes = await db_context.credit_notes.AnyAsync(n => n.id_customer == id);
+                if (hasCreditNotes)
+                {
+                    throw new InvalidOperationException("Este cliente tiene notas de credito asociadas y no puede eliminarse. Solo puede editarse.");
                 }
 
                 db_context.customers.Remove(customerToDelete);

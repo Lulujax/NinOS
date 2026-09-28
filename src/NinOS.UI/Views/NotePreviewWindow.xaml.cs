@@ -106,7 +106,7 @@ namespace NinOS.UI.Views
         {
             var p = NotePanel;
 
-            if (note.is_promo && !string.IsNullOrWhiteSpace(note.promo_banner_text))
+            if (note.is_promo)
             {
                 var bannerBorder = new Border
                 {
@@ -115,7 +115,7 @@ namespace NinOS.UI.Views
                     Padding = new Thickness(12, 4, 12, 4),
                     Margin = new Thickness(0, 0, 0, 6)
                 };
-                bannerBorder.Child = MakeText(note.promo_banner_text, 18, true, PrimaryBrush, null, HorizontalAlignment.Center);
+                bannerBorder.Child = MakeText("PROMOCION", 18, true, PrimaryBrush, null, HorizontalAlignment.Center);
                 p.Children.Add(bannerBorder);
             }
 

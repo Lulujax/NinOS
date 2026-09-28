@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Repositories.Interfaces;
 
@@ -25,32 +26,14 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             seller? current_seller = await _context.sellers.FindAsync(id_seller);
             if (current_seller == null) throw new InvalidOperationException();
 
-            // Serie unica por vendedor, compartida con las notas de credito (ej: 3300_042).
-            string prefix = current_seller.seller_code + "_";
-
+            // Serie independiente por vendedor sobre SOLO notas de entrega (ej: 3200_001, 3200_100,
+            // 3200_999 -> 3201_000). Las notas de credito usan su propia serie.
             var seller_notes = await _context.delivery_notes
                 .Where(n => n.id_seller == id_seller)
                 .Select(n => n.note_number)
                 .ToListAsync();
 
-            var credit_notes = await _context.credit_notes
-                .Where(n => n.id_seller == id_seller)
-                .Select(n => n.note_number)
-                .ToListAsync();
-
-            int max_number = 0;
-            foreach (string note_number in seller_notes.Concat(credit_notes))
-            {
-                if (string.IsNullOrWhiteSpace(note_number) || !note_number.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
-
-                string[] parts = note_number.Split('_');
-                if (parts.Length > 0 && int.TryParse(parts.Last(), out int parsed) && parsed > max_number)
-                {
-                    max_number = parsed;
-                }
-            }
-
-            return $"{prefix}{max_number + 1:D3}";
+            return SeriesCalculator.GetNext(seller_notes, current_seller.seller_code);
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -217,6 +218,10 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(n => n.remaining_amount_usd > 0.005m).ToList();
             else if (_selected_filter == "Pagadas")
                 filtered = filtered.Where(n => n.remaining_amount_usd <= 0.005m).ToList();
+
+            filtered = filtered
+                .OrderByCorrelative(n => n.note_number)
+                .ToList();
 
             update_collection(all_rows, filtered);
             update_collection(sandra_rows, filtered.Where(n => n.seller_name == "Sandra").ToList());

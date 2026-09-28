@@ -49,6 +49,10 @@ namespace NinOS.Domain
             }
         }
 
+        // Ultimo numero completo usado en la serie de codigos de cliente del vendedor
+        // (ej: 3200005 para "3200_005"). Persistido para que un codigo borrado nunca se reutilice.
+        public long last_customer_number { get; set; }
+
         protected seller()
         {
             _full_name = "-";

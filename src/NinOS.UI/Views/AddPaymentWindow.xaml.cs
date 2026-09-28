@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.UI.Common.ViewModels;
 using NinOS.UI.Common;
 
@@ -157,7 +158,7 @@ namespace NinOS.UI.Views
 
                 _all_combo_items = all_notes
                     .Where(n => n.status != "Anulada" && n.status != "Pagada")
-                    .OrderBy(n => n.note_number)
+                    .OrderByCorrelative(n => n.note_number)
                     .Select(n => new note_combo_item
                     {
                         id_delivery_note = n.id_delivery_note,

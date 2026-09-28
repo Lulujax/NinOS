@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -33,6 +34,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly ICustomerService _customerService;
         private readonly IGenericRepository<seller> _sellerRepository;
         private readonly Dictionary<string, string> _sellerPrefixMap;
+        private readonly Dictionary<string, long> _sellerLastNumberMap;
         private List<CustomerRowDto> _allCustomersSource;
         private CustomerRowDto? _editingCustomer;
         private bool _isLoading;
@@ -204,11 +206,13 @@ namespace NinOS.UI.Common.ViewModels
 
             _sellerPrefixMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                { "Sandra", "3200" },
                 { "Anais", "3300" },
-                { "Sandra", "3301" },
-                { "Alejandra", "3305" },
+                { "Alejandra", "3500" },
                 { "Juan Luis", "3400" }
             };
+
+            _sellerLastNumberMap = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
             _allCustomersSource = new List<CustomerRowDto>();
             _isLoading = false;
@@ -252,9 +256,13 @@ namespace NinOS.UI.Common.ViewModels
                     seller[] sellers = await _sellerRepository.get_all_async();
                     foreach (seller s in sellers)
                     {
-                        if (!string.IsNullOrWhiteSpace(s.full_name) && !string.IsNullOrWhiteSpace(s.customer_code_prefix))
+                        if (!string.IsNullOrWhiteSpace(s.full_name) && !string.IsNullOrWhiteSpace(s.seller_code))
                         {
-                            _sellerPrefixMap[s.full_name] = s.customer_code_prefix;
+                            _sellerPrefixMap[s.full_name] = s.seller_code;
+                        }
+                        if (!string.IsNullOrWhiteSpace(s.full_name))
+                        {
+                            _sellerLastNumberMap[s.full_name] = s.last_customer_number;
                         }
                     }
                 }
@@ -315,24 +323,20 @@ namespace NinOS.UI.Common.ViewModels
 
             string sellerPrefix = GetSellerPrefix(_newSellerName);
             string prefix = $"{sellerPrefix}_";
-            
+
             var existingCodes = _allCustomersSource
                 .Where(c => !string.IsNullOrEmpty(c.CustomerCode) && c.CustomerCode.StartsWith(prefix))
                 .Select(c => c.CustomerCode)
                 .ToList();
 
-            int maxNumber = 0;
-            foreach (string code in existingCodes)
+            long maxFullNumber = SeriesCalculator.GetMax(existingCodes, SeriesCalculator.Seed(sellerPrefix));
+
+            if (_sellerLastNumberMap.TryGetValue(_newSellerName ?? string.Empty, out long persistedLast) && persistedLast > maxFullNumber)
             {
-                string numberPart = code.Replace(prefix, "");
-                if (int.TryParse(numberPart, out int num))
-                {
-                    if (num > maxNumber) maxNumber = num;
-                }
+                maxFullNumber = persistedLast;
             }
 
-            int nextNumber = maxNumber + 1;
-            NewCustomerCode = $"{prefix}{nextNumber:D2}";
+            NewCustomerCode = SeriesCalculator.FormatNumber(maxFullNumber + 1);
         }
 
         private void SetDefaultSellerFromTab()
@@ -408,7 +412,8 @@ namespace NinOS.UI.Common.ViewModels
         private bool CanExecuteSaveCustomer(object? parameter)
         {
             return !string.IsNullOrWhiteSpace(_newCustomerCode) &&
-                   !string.IsNullOrWhiteSpace(_newBusinessName);
+                   !string.IsNullOrWhiteSpace(_newBusinessName) &&
+                   !string.IsNullOrWhiteSpace(_newRifNumber);
         }
 
         private async void ExecuteSaveCustomer(object? parameter)
@@ -418,9 +423,9 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
 
-                if (string.IsNullOrWhiteSpace(_newCustomerCode) || string.IsNullOrWhiteSpace(_newBusinessName))
+                if (string.IsNullOrWhiteSpace(_newCustomerCode) || string.IsNullOrWhiteSpace(_newBusinessName) || string.IsNullOrWhiteSpace(_newRifNumber))
                 {
-                    ErrorMessage = "Tienes que llenar los campos obligatorios.";
+                    ErrorMessage = "Tienes que llenar los campos obligatorios: Razón Social (Negocio/Nombre) e Identificación.";
                     return;
                 }
 

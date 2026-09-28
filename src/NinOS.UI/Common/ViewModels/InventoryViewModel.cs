@@ -43,6 +43,33 @@ namespace NinOS.UI.Common.ViewModels
         }
     }
 
+    // Marca/categoria seleccionable en el popup de la lista de precios.
+    public class brand_selection_option : ViewModelBase
+    {
+        private bool _is_checked;
+        private readonly Action? _on_changed;
+
+        public string name { get; }
+
+        public bool is_checked
+        {
+            get => _is_checked;
+            set
+            {
+                if (_is_checked == value) return;
+                _is_checked = value;
+                on_property_changed();
+                _on_changed?.Invoke();
+            }
+        }
+
+        public brand_selection_option(string name, Action? on_changed)
+        {
+            this.name = name;
+            _on_changed = on_changed;
+        }
+    }
+
     public class InventoryViewModel : ViewModelBase
     {
         private readonly IInventoryService _inventory_service;
@@ -67,8 +94,11 @@ namespace NinOS.UI.Common.ViewModels
         private product? _selected_promo_product;
         private string _new_promo_name = string.Empty;
         private string _new_promo_price = string.Empty;
+        private bool _all_brands_selected = true;
+        private bool _suppress_brand_sync;
 
         public ObservableCollection<string> category_options { get; }
+        public ObservableCollection<brand_selection_option> price_list_brand_options { get; }
         public ObservableCollection<inventory_item_dto> todos_list { get; }
         public ObservableCollection<inventory_item_dto> defile_list { get; }
         public ObservableCollection<inventory_item_dto> oleos_list { get; }
@@ -95,6 +125,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand remove_from_builder_command { get; }
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
+        public ICommand clear_price_list_command { get; }
         
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
@@ -157,7 +188,16 @@ namespace NinOS.UI.Common.ViewModels
         public string new_category
         {
             get { return _new_category; }
-            set { _new_category = value; on_property_changed(); }
+            set
+            {
+                if (_new_category == value) return;
+                _new_category = value;
+                on_property_changed();
+                if (_product_being_edited == null)
+                {
+                    new_code = generate_next_product_code(value);
+                }
+            }
         }
 
         public string new_quantity
@@ -202,6 +242,27 @@ namespace NinOS.UI.Common.ViewModels
             set { _new_promo_price = value; on_property_changed(); }
         }
 
+        // "Todas a la vez" en el popup de la lista de precios.
+        public bool all_brands_selected
+        {
+            get { return _all_brands_selected; }
+            set
+            {
+                if (_all_brands_selected == value) return;
+                _all_brands_selected = value;
+                on_property_changed();
+                if (value)
+                {
+                    _suppress_brand_sync = true;
+                    foreach (brand_selection_option option in price_list_brand_options)
+                    {
+                        option.is_checked = true;
+                    }
+                    _suppress_brand_sync = false;
+                }
+            }
+        }
+
         public InventoryViewModel(IInventoryService inventory_service)
         {
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
@@ -211,6 +272,13 @@ namespace NinOS.UI.Common.ViewModels
             _all_promotions_source = new List<promotion>();
 
             category_options = new ObservableCollection<string> { "Defile", "Oleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Cutique", "Otros" };
+            
+            price_list_brand_options = new ObservableCollection<brand_selection_option>();
+
+            foreach (string brand in category_options)
+            {
+                price_list_brand_options.Add(new brand_selection_option(brand, on_brand_option_changed));
+            }
             
             todos_list = new ObservableCollection<inventory_item_dto>();
             defile_list = new ObservableCollection<inventory_item_dto>();
@@ -238,6 +306,7 @@ namespace NinOS.UI.Common.ViewModels
             remove_from_builder_command = new RelayCommand(execute_remove_from_builder);
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
+            clear_price_list_command = new RelayCommand(execute_clear_price_list);
             
             new_category = "Defile";
             
@@ -291,6 +360,11 @@ namespace NinOS.UI.Common.ViewModels
             return await _inventory_service.get_product_sales_history_async(id_product);
         }
 
+        public async Task<IEnumerable<promotion_sales_history_dto>> get_promotion_history_async(int id_promotion)
+        {
+            return await _inventory_service.get_promotion_sales_history_async(id_promotion);
+        }
+
         private void update_category_from_tab()
         {
             add_button_text = (_selected_tab_index == 11) ? "+ Añadir Promoción" : "+ Añadir Producto";
@@ -309,6 +383,45 @@ namespace NinOS.UI.Common.ViewModels
                 case 10: new_category = "Otros"; break;
                 default: break;
             }
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<string, string> category_code_prefixes = new()
+        {
+            ["Defile"] = "DEF",
+            ["Oleos"] = "OLE",
+            ["Rembrandt"] = "REM",
+            ["Bioline"] = "BIO",
+            ["Amazonia Secret"] = "AMA",
+            ["Kedam"] = "KED",
+            ["Depil Clear"] = "DEP",
+            ["Estilista"] = "EST",
+            ["Cutique"] = "CUTI-",
+            ["Otros"] = "OTR"
+        };
+
+        private string generate_next_product_code(string category)
+        {
+            if (string.IsNullOrWhiteSpace(category) || !category_code_prefixes.TryGetValue(category, out string? prefix))
+            {
+                return string.Empty;
+            }
+
+            int digit_count = prefix.EndsWith("-") ? 3 : 5;
+            int max_number = 0;
+
+            foreach (product p in _all_products_source)
+            {
+                if (string.IsNullOrWhiteSpace(p.product_code)) continue;
+                if (!p.product_code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+
+                string suffix = p.product_code.Substring(prefix.Length);
+                if (suffix.Length == digit_count && int.TryParse(suffix, out int value) && value > max_number)
+                {
+                    max_number = value;
+                }
+            }
+
+            return prefix + (max_number + 1).ToString(new string('0', digit_count));
         }
 
         private void assign_row_numbers(ObservableCollection<inventory_item_dto> target_list)
@@ -504,6 +617,7 @@ namespace NinOS.UI.Common.ViewModels
             new_quantity = string.Empty;
             new_price = string.Empty;
             update_category_from_tab();
+            new_code = generate_next_product_code(new_category);
             on_property_changed(nameof(can_edit_category));
             on_request_add_window?.Invoke();
         }
@@ -561,8 +675,51 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private void on_brand_option_changed()
+        {
+            if (_suppress_brand_sync) return;
+
+            bool all_checked = price_list_brand_options.Any() &&
+                price_list_brand_options.All(o => o.is_checked);
+
+            if (all_checked && !_all_brands_selected)
+            {
+                _all_brands_selected = true;
+                on_property_changed(nameof(all_brands_selected));
+            }
+            else if (!all_checked && _all_brands_selected)
+            {
+                _all_brands_selected = false;
+                on_property_changed(nameof(all_brands_selected));
+            }
+        }
+
+        private void execute_clear_price_list(object? parameter)
+        {
+            foreach (brand_selection_option option in price_list_brand_options)
+            {
+                if (option.is_checked) option.is_checked = false;
+            }
+
+            if (_all_brands_selected)
+            {
+                _all_brands_selected = false;
+                on_property_changed(nameof(all_brands_selected));
+            }
+        }
+
         private void execute_generate_price_list(object? parameter)
         {
+            if (price_list_brand_options.Count == 0 || price_list_brand_options.All(o => !o.is_checked))
+            {
+                AppDialog.Show(
+                    "Seleccione al menos una marca/categoría para generar la lista de precios.",
+                    "Lista de precios",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
             try
             {
                 var items = new List<price_list_item>();
@@ -571,6 +728,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     if (string.IsNullOrWhiteSpace(p.product_code) || string.IsNullOrWhiteSpace(p.name)) continue;
                     if (p.unit_price_usd <= 0) continue;
+                    if (!is_brand_selected(p.category)) continue;
 
                     items.Add(new price_list_item
                     {
@@ -605,9 +763,10 @@ namespace NinOS.UI.Common.ViewModels
                     var brands = promo.items
                         .Select(i => string.IsNullOrWhiteSpace(i.product!.category) ? "Otros" : i.product!.category!)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Where(is_brand_selected)
                         .ToList();
 
-                    if (brands.Count == 0) brands.Add("Otros");
+                    if (brands.Count == 0) continue;
 
                     foreach (string brand in brands)
                     {
@@ -627,6 +786,13 @@ namespace NinOS.UI.Common.ViewModels
             {
                 ErrorMessage = $"No se pudo generar la lista de precios: {ErrorText.Get(ex)}";
             }
+        }
+
+        private bool is_brand_selected(string? category)
+        {
+            string safe = string.IsNullOrWhiteSpace(category) ? "Otros" : category;
+            return price_list_brand_options.Any(o =>
+                o.is_checked && o.name.Equals(safe, StringComparison.OrdinalIgnoreCase));
         }
 
         private async void execute_delete_product(object? parameter)

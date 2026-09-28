@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
+using NinOS.Infrastructure.Common;
 
 namespace NinOS.Infrastructure.Data
 {
@@ -12,6 +14,8 @@ namespace NinOS.Infrastructure.Data
             if (db_context == null) throw new ArgumentNullException(nameof(db_context));
 
             db_context.Database.Migrate();
+
+            migrate_legacy_series(db_context);
 
             const string brand_header = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
 
@@ -160,11 +164,21 @@ namespace NinOS.Infrastructure.Data
             if (!db_context.sellers.Any())
             {
                 db_context.sellers.AddRange(
-                    new seller("Sandra", "3200", "3301"),
+                    new seller("Sandra", "3200", "3200"),
                     new seller("Anais", "3300", "3300"),
-                    new seller("Alejandra", "3500", "3305")
+                    new seller("Alejandra", "3500", "3500"),
+                    new seller("Juan Luis", "3400", "3400")
                 );
                 db_context.SaveChanges();
+            }
+            else
+            {
+                var juan = db_context.sellers.FirstOrDefault(s => s.full_name == "Juan Luis");
+                if (juan == null)
+                {
+                    db_context.sellers.Add(new seller("Juan Luis", "3400", "3400"));
+                    db_context.SaveChanges();
+                }
             }
 
             if (!db_context.customers.Any())
@@ -534,10 +548,137 @@ namespace NinOS.Infrastructure.Data
             }
         }
 
+        // Migra series con prefijos viejos (customer_code_prefix) a los prefijos nuevos (seller_code).
+        // Ej: Sandra 3301 -> 3200; Anais 3300 -> 3300 (sin cambio); Alejandra 3305 -> 3500.
+        // Idempotente: si no hay prefijos viejos en la data, no cambia nada.
+        // Clientes: siempre se alinean sufijos a 3 digitos. Notas: se renumeran solo si cambia el prefijo.
+        private static void migrate_legacy_series(NinOSDbContext db_context)
+        {
+            var sellers = db_context.sellers.ToList();
+            foreach (var seller in sellers)
+            {
+                if (string.IsNullOrWhiteSpace(seller.customer_code_prefix) || string.IsNullOrWhiteSpace(seller.seller_code)) continue;
+
+                string legacy_prefix = seller.customer_code_prefix.Trim();
+                string current_prefix = seller.seller_code.Trim();
+                if (!long.TryParse(legacy_prefix, out _) || !long.TryParse(current_prefix, out _)) continue;
+
+                bool prefix_changed = legacy_prefix != current_prefix;
+                string legacy_marker = legacy_prefix + "_";
+                string current_marker = current_prefix + "_";
+                long seed = SeriesCalculator.Seed(current_prefix);
+
+                // --- Clientes ---
+                // Renumera en orden: clientes con prefijo viejo (3301_xx...) y clientes con prefijo
+                // actual pero sufijo no alineado a 3 digitos (3200_5 / 3200_05 de generadores viejos).
+                bool customer_changed = false;
+                var all_customers = db_context.customers.ToList();
+                var customers_to_fix = all_customers
+                    .Where(c => c.customer_code.StartsWith(legacy_marker)
+                        || (c.customer_code.StartsWith(current_marker) && has_non_3digit_suffix(c.customer_code)))
+                    .OrderBy(c => c.id_customer)
+                    .ToList();
+                if (customers_to_fix.Count > 0)
+                {
+                    long used_max = all_customers
+                        .Where(c => c.customer_code.StartsWith(current_marker) && !has_non_3digit_suffix(c.customer_code))
+                        .Select(c => SeriesCalculator.ParseFullNumber(c.customer_code))
+                        .Where(v => v > 0)
+                        .DefaultIfEmpty(seed)
+                        .Max();
+
+                    long counter = Math.Max(used_max, seed);
+                    foreach (var c in customers_to_fix)
+                    {
+                        counter++;
+                        c.customer_code = SeriesCalculator.FormatNumber(counter);
+                    }
+                    db_context.SaveChanges();
+                    customer_changed = true;
+                }
+
+                // --- Notas (solo cuando el prefijo realmente cambio) ---
+                if (prefix_changed)
+                {
+                    // --- Notas de entrega ---
+                    var legacy_delivery = db_context.delivery_notes
+                        .Where(n => n.note_number.StartsWith(legacy_marker))
+                        .OrderBy(n => n.id_delivery_note)
+                        .ToList();
+                    if (legacy_delivery.Count > 0)
+                    {
+                        long used_max = db_context.delivery_notes
+                            .Where(n => n.note_number.StartsWith(current_marker))
+                            .ToList()
+                            .Select(n => SeriesCalculator.ParseFullNumber(n.note_number))
+                            .Where(v => v > 0)
+                            .DefaultIfEmpty(seed)
+                            .Max();
+
+                        long counter = Math.Max(used_max, seed);
+                        foreach (var n in legacy_delivery)
+                        {
+                            counter++;
+                            n.note_number = SeriesCalculator.FormatNumber(counter);
+                        }
+                        db_context.SaveChanges();
+                        customer_changed = true;
+                    }
+
+                    // --- Notas de credito ---
+                    var legacy_credit = db_context.credit_notes
+                        .Where(n => n.note_number.StartsWith(legacy_marker))
+                        .OrderBy(n => n.id_credit_note)
+                        .ToList();
+                    if (legacy_credit.Count > 0)
+                    {
+                        long used_max = db_context.credit_notes
+                            .Where(n => n.note_number.StartsWith(current_marker))
+                            .ToList()
+                            .Select(n => SeriesCalculator.ParseFullNumber(n.note_number))
+                            .Where(v => v > 0)
+                            .DefaultIfEmpty(seed)
+                            .Max();
+
+                        long counter = Math.Max(used_max, seed);
+                        foreach (var n in legacy_credit)
+                        {
+                            counter++;
+                            n.note_number = SeriesCalculator.FormatNumber(counter);
+                        }
+                        db_context.SaveChanges();
+                        customer_changed = true;
+                    }
+                }
+
+                if (customer_changed)
+                {
+                    seller.last_customer_number = db_context.customers
+                        .Where(c => c.customer_code.StartsWith(current_marker))
+                        .ToList()
+                        .Select(c => SeriesCalculator.ParseFullNumber(c.customer_code))
+                        .Where(v => v > 0)
+                        .DefaultIfEmpty(seed)
+                        .Max();
+                    db_context.SaveChanges();
+                }
+            }
+        }
+
         private static DateTime monday_of(DateTime date)
         {
             int offset = ((int)date.DayOfWeek + 6) % 7;
             return date.Date.AddDays(-offset);
+        }
+
+        // True si el sufijo tras "_" no son exactamente 3 digitos (ej: "3200_5", "3200_05").
+        private static bool has_non_3digit_suffix(string code)
+        {
+            int separator = code.LastIndexOf('_');
+            if (separator <= 0 || separator >= code.Length - 1) return true;
+
+            string suffix = code.Substring(separator + 1);
+            return suffix.Length != 3 || !suffix.All(char.IsDigit);
         }
     }
 }

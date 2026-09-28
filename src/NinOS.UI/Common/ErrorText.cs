@@ -39,14 +39,32 @@ namespace NinOS.UI.Common
 
             // Mensajes que ya vienen redactados de forma legible para el usuario.
             if (text.Contains("stock insuficiente") ||
+                text.Contains("inventario insuficiente") ||
                 text.Contains("no se puede") ||
                 text.Contains("no puede") ||
                 text.Contains("ya existe") ||
                 text.Contains("ya fue") ||
                 text.Contains("ya está") ||
+                text.Contains("ya es") ||
                 text.Contains("no existe") ||
                 text.Contains("no hay") ||
+                text.Contains("no tiene") ||
+                text.Contains("no pertenece") ||
+                text.Contains("no se encontro") ||
+                text.Contains("no va anclada") ||
+                text.Contains("no encontrado") ||
+                text.Contains("no encontrada") ||
+                text.Contains("requiere una nota") ||
+                text.Contains("es demasiado") ||
+                text.Contains("es obligatoria") ||
+                text.Contains("es invalida") ||
                 text.Contains("debe ") ||
+                text.Contains("deben ser") ||
+                text.Contains("tienes que") ||
+                text.Contains("esta repetido") ||
+                text.Contains("hay un renglon") ||
+                text.Contains("supera lo entregado") ||
+                text.Contains("se gestionan en el modulo") ||
                 text.Contains("no es") ||
                 text.Contains("revise") ||
                 text.Contains("verifique"))

@@ -91,10 +91,10 @@ namespace NinOS.UI.Common
             page.MarginBottom(0.7f, Unit.Centimetre);
             page.Header().Column(col =>
             {
-                if (note.is_promo && !string.IsNullOrWhiteSpace(note.promo_banner_text))
+                if (note.is_promo)
                 {
                     col.Item().PaddingBottom(2).Border(0.8f).BorderColor(primary).PaddingHorizontal(6).PaddingVertical(1).AlignCenter()
-                        .Text(note.promo_banner_text).FontSize(12).Bold().FontColor(primary);
+                        .Text("PROMOCION").FontSize(12).Bold().FontColor(primary);
                 }
 
                 col.Item().Row(row =>

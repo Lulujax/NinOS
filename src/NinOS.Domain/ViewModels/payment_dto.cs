@@ -28,5 +28,7 @@ namespace NinOS.Domain.ViewModels
         public string tasa_display => exchange_rate.HasValue ? exchange_rate.Value.ToString("N2") : "-";
         public string ult_edicion_display => updated_at.HasValue ? updated_at.Value.ToString("dd/MM/yyyy HH:mm") : "-";
         public string fecha_registro_display => created_at.ToString("dd/MM/yyyy HH:mm");
+        public bool es_negativo => amount_usd < 0;
+        public decimal monto_usd_magnitud => Math.Abs(amount_usd);
     }
 }

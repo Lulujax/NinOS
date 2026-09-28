@@ -66,8 +66,18 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="FECHA DEL PAGO" Binding="{Binding payment_date, StringFormat={}{0:dd/MM/yyyy}}" Width="150"
                                     ElementStyle="{StaticResource CenterCell}"/>
-                <DataGridTextColumn Header="MONTO USD" Binding="{Binding amount_usd, StringFormat={}{0:N2}}" Width="130"
-                                    ElementStyle="{StaticResource CenterCell}"/>
+                <DataGridTextColumn Header="MONTO USD" Binding="{Binding monto_usd_magnitud, StringFormat={}{0:N2}}" Width="130">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+                            <Setter Property="Foreground" Value="Green"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding es_negativo}" Value="True">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="OBSERVACION" Binding="{Binding notes}" Width="*"/>
                 <DataGridTemplateColumn Header="ACCION" Width="120">
                     <DataGridTemplateColumn.CellTemplate>

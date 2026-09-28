@@ -133,9 +133,9 @@
                                      Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"/>
                         </Grid>
                     </Border>
-                    <Button Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
-                            Command="{Binding generate_price_list_command}" Content="Descargar lista de precios"
-                            Margin="10,0,0,0"/>
+                    <Button x:Name="btn_price_list" Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
+                        Click="on_generate_price_list_click" Content="Descargar lista de precios"
+                        Margin="10,0,0,0"/>
                 </StackPanel>
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -148,6 +148,60 @@
         <Border Grid.Row="1" Background="#FFE6E6" CornerRadius="4" Padding="10" Margin="0,0,0,10" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
             <TextBlock Text="{Binding ErrorMessage}" Foreground="#CC0000" FontWeight="Bold" TextWrapping="Wrap"/>
         </Border>
+
+        <!-- POPUP: seleccion de marcas/categorias para la lista de precios -->
+        <Popup x:Name="popup_price_list"
+               PlacementTarget="{Binding ElementName=btn_price_list}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="4"
+                    Padding="12,10" Width="250">
+                <StackPanel>
+                    <TextBlock Text="LISTA DE PRECIOS" FontSize="11" FontWeight="Bold"
+                               Foreground="#1B3A2D"/>
+                    <TextBlock Text="Marque las marcas/categorias que quiere incluir en el PDF."
+                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
+
+                    <CheckBox Content="Todas a la vez"
+                              IsChecked="{Binding all_brands_selected, Mode=TwoWay}"
+                              FontSize="12" FontWeight="Bold" Foreground="#333333" Margin="0,0,0,6" Cursor="Hand"/>
+                    <Button Content="Quitar todas" Background="Transparent" Foreground="#C62828"
+                            FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"
+                            HorizontalAlignment="Left" Margin="0,-4,0,6"
+                            Command="{Binding clear_price_list_command}"/>
+
+                    <ItemsControl ItemsSource="{Binding price_list_brand_options}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding name}"
+                                          IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                          FontSize="12" Foreground="#333333" Margin="4,2,0,2" Cursor="Hand"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Content="Descargar PDF"
+                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                            FontSize="12.5" Height="30" BorderThickness="0" Cursor="Hand"
+                            Margin="0,12,0,0" Click="on_download_price_list_click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Todos">

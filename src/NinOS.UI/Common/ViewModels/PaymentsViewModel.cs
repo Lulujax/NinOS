@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -193,7 +194,9 @@ namespace NinOS.UI.Common.ViewModels
             // Sin mes seleccionado (estado vacio) no mostrar filas.
             var filtered = string.IsNullOrEmpty(_selected_month)
                 ? new List<payment_row_dto>()
-                : filter_by_month_and_search(source.ToList(), _selected_month, query);
+                : filter_by_month_and_search(source.ToList(), _selected_month, query)
+                    .OrderByCorrelative(n => n.note_number)
+                    .ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());

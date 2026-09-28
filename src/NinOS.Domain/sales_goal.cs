@@ -8,6 +8,7 @@ namespace NinOS.Domain
         private decimal _amount_usd;
 
         public int id_sales_goal { get; set; }
+        public int? id_seller { get; set; }
 
         public DateTime goal_month_start
         {
@@ -33,10 +34,11 @@ namespace NinOS.Domain
         {
         }
 
-        public sales_goal(DateTime goal_month_start, decimal amount_usd)
+        public sales_goal(DateTime goal_month_start, decimal amount_usd, int? id_seller = null)
         {
             this.goal_month_start = goal_month_start;
             this.amount_usd = amount_usd;
+            this.id_seller = id_seller;
         }
     }
 }

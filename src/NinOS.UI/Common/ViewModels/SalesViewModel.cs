@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -30,6 +31,7 @@ namespace NinOS.UI.Common.ViewModels
         private decimal _goal_remaining_usd;
 
         private List<accounts_receivable_dto> _all_notes_source = new();
+        private Dictionary<string, int> _seller_name_to_id = new(StringComparer.OrdinalIgnoreCase);
 
         public ObservableCollection<string> pending_months { get; }
         public ObservableCollection<string> filter_options { get; }
@@ -57,7 +59,19 @@ namespace NinOS.UI.Common.ViewModels
         public int selected_tab_index
         {
             get => _selected_tab_index;
-            set { _selected_tab_index = value; on_property_changed(); if (!_is_loading) apply_filters(); }
+            set
+            {
+                if (_selected_tab_index == value) return;
+                _selected_tab_index = value;
+                on_property_changed();
+                if (!_is_loading)
+                {
+                    is_editing_goal = false;
+                    update_goal_month_display();
+                    apply_filters();
+                    _ = load_goal_for_selected_month_async();
+                }
+            }
         }
 
         public string selected_filter
@@ -195,6 +209,9 @@ namespace NinOS.UI.Common.ViewModels
                 var previous_selection = _selected_month;
                 _is_loading = true;
 
+                var sellers = await _receivable_service.get_sellers_async();
+                _seller_name_to_id = sellers.ToDictionary(s => s.full_name, s => s.id_seller, StringComparer.OrdinalIgnoreCase);
+
                 var raw = await _receivable_service.get_all_notes_async();
                 var all_rows = raw.ToList();
 
@@ -247,7 +264,9 @@ namespace NinOS.UI.Common.ViewModels
         private void apply_filters()
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
+            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query)
+                .OrderByCorrelative(n => n.note_number)
+                .ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
@@ -294,6 +313,30 @@ namespace NinOS.UI.Common.ViewModels
             return result.ToList();
         }
 
+        private int? get_selected_seller_id()
+        {
+            return _selected_tab_index switch
+            {
+                1 => _seller_name_to_id.TryGetValue("Sandra", out int id1) ? id1 : null,
+                2 => _seller_name_to_id.TryGetValue("Anais", out int id2) ? id2 : null,
+                3 => _seller_name_to_id.TryGetValue("Alejandra", out int id3) ? id3 : null,
+                4 => _seller_name_to_id.TryGetValue("Juan Luis", out int id4) ? id4 : null,
+                _ => null
+            };
+        }
+
+        private string get_selected_tab_name()
+        {
+            return _selected_tab_index switch
+            {
+                1 => "Sandra",
+                2 => "Anais",
+                3 => "Alejandra",
+                4 => "Juan Luis",
+                _ => "General"
+            };
+        }
+
         private void recalc_totals()
         {
             var list = _selected_tab_index switch
@@ -309,9 +352,19 @@ namespace NinOS.UI.Common.ViewModels
             total_sales_usd = list.Sum(n => n.total_amount_usd);
 
             var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
-            month_total_usd = month_rows
-                .Where(n => n.status == "Pendiente" || n.status == "Pagada")
-                .Sum(n => n.total_amount_usd);
+            var eligible_notes = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada");
+
+            string current_seller = get_selected_tab_name();
+            if (current_seller != "General")
+            {
+                month_total_usd = eligible_notes
+                    .Where(n => string.Equals(n.seller_name, current_seller, StringComparison.OrdinalIgnoreCase))
+                    .Sum(n => n.total_amount_usd);
+            }
+            else
+            {
+                month_total_usd = eligible_notes.Sum(n => n.total_amount_usd);
+            }
 
             recalc_goal_progress();
         }
@@ -392,7 +445,7 @@ namespace NinOS.UI.Common.ViewModels
                     show_paid_balance_summary = true,
                     empty_text = "Sin ventas para el mes seleccionado.",
                     rows = month_rows
-                        .OrderBy(n => n.creation_date)
+                        .OrderByCorrelative(n => n.note_number)
                         .Select(n => new monthly_report_row_dto
                         {
                             date = n.creation_date,
@@ -445,7 +498,8 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                await _receivable_service.set_sales_goal_async(month.Value, amount);
+                int? seller_id = get_selected_seller_id();
+                await _receivable_service.set_sales_goal_async(month.Value, seller_id, amount);
                 await load_goal_for_selected_month_async();
 
                 is_editing_goal = false;
@@ -473,7 +527,15 @@ namespace NinOS.UI.Common.ViewModels
             DateTime? month = parse_selected_month();
             string month_label = month?.ToString("MMMM yyyy", new CultureInfo("es-VE")) ?? string.Empty;
             goal_month_display = month_label;
-            goal_label_display = string.IsNullOrEmpty(month_label) ? "META:" : $"META ({month_label}):";
+            string tab_name = get_selected_tab_name().ToUpperInvariant();
+            if (string.IsNullOrEmpty(month_label))
+            {
+                goal_label_display = $"META {tab_name}:";
+            }
+            else
+            {
+                goal_label_display = $"META {tab_name} ({month_label}):";
+            }
             is_month_selected = month != null;
         }
 
@@ -486,7 +548,8 @@ namespace NinOS.UI.Common.ViewModels
                 recalc_goal_progress();
                 return;
             }
-            sales_goal_usd = await _receivable_service.get_sales_goal_async(month.Value);
+            int? seller_id = get_selected_seller_id();
+            sales_goal_usd = await _receivable_service.get_sales_goal_async(month.Value, seller_id);
             recalc_goal_progress();
         }
     }

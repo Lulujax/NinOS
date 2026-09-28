@@ -59,9 +59,10 @@
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Mes de la Nota (Opcional):"/></TextBlock>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Mes de la Nota:"/><Run Text="*" Foreground="Red"/></TextBlock>
             <ComboBox x:Name="CmbMonth" Grid.Column="1" FontSize="11" Width="150" HorizontalAlignment="Left" Height="26"
-                      HorizontalContentAlignment="Center" ToolTip="Filtrar notas de entrega por mes"
+                      HorizontalContentAlignment="Center" ToolTip="Seleccione primero un vendedor..."
+                      IsEnabled="False"
                       SelectionChanged="OnMonthSelected"/>
         </Grid>
 
@@ -79,11 +80,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="NoteTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
-                         IsEnabled="False" TextChanged="OnNoteSearchChanged" ToolTip="Seleccione primero un vendedor para buscar sus notas..."/>
+                         IsEnabled="False" TextChanged="OnNoteSearchChanged" ToolTip="Seleccione primero un mes para buscar notas..."/>
                 <Button x:Name="BtnToggleDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
-                        FontSize="9" Cursor="Hand" Click="OnToggleDropdown"
+                        FontSize="9" Cursor="Hand" Click="OnToggleDropdown" IsEnabled="False"
                         Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
-                        VerticalAlignment="Center" ToolTip="Ver notas del vendedor">
+                        VerticalAlignment="Center" ToolTip="Ver notas del mes seleccionado">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="0"
