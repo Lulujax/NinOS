@@ -101,6 +101,18 @@ namespace NinOS.UI.Views
             return null;
         }
 
+        private void on_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = !popup_reporte.IsOpen;
+        }
+
+        private void on_descargar_sales_report_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is SalesViewModel vm)
+                vm.sales_report_command.Execute(null);
+        }
+
         private async void ObsTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (sender is not TextBox textbox) return;

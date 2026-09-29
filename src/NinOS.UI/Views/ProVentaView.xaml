@@ -68,7 +68,18 @@
                                   DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
                         <TextBlock Text="Semana:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding weeks}" SelectedItem="{Binding selected_week, Mode=TwoWay}"
-                                  DisplayMemberPath="label" Width="200" Margin="0,0,20,0"/>
+                                  DisplayMemberPath="label" Width="190" Margin="0,0,20,0"/>
+                        <TextBlock Text="Relación:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="CmbRelation"
+                                  ItemsSource="{Binding available_relations}"
+                                  SelectedItem="{Binding selected_relation, Mode=TwoWay}"
+                                  DisplayMemberPath="label"
+                                  IsEditable="True"
+                                  IsTextSearchEnabled="False"
+                                  PreviewKeyDown="CmbRelation_PreviewKeyDown"
+                                  KeyUp="CmbRelation_KeyUp"
+                                  LostFocus="CmbRelation_LostFocus"
+                                  Width="150" Margin="0,0,20,0"/>
                         <Button Content="Imprimir PDF" Command="{Binding print_command}" Background="#1565C0"
                                 Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
                                 IsEnabled="{Binding has_rows}"/>
@@ -88,21 +99,25 @@
                                Foreground="#757575" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
                 </Border>
 
-                <StackPanel Width="1080" Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Width="1240" Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding report_rows}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="NRO NOTA CLIENTE" Binding="{Binding note_number}" Width="1.5*"
+                            <DataGridTextColumn Header="NRO NOTA CLIENTE" Binding="{Binding note_number}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="2.7*"/>
+                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="2.5*"/>
                             <DataGridTextColumn Header="MONTO NOTA" Binding="{Binding amount, StringFormat=N2}" Width="1.05*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="COMISION LUIS 10%" Binding="{Binding commission_luis, StringFormat=N2}" Width="1.45*"
+                            <DataGridTextColumn Header="COMISION LUIS 10%" Binding="{Binding commission_luis, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="GASTOS OPERATIVOS 25%" Binding="{Binding gastos_25, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="GASTOS ADMINISTRATIVOS 15%" Binding="{Binding gastos_15, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTemplateColumn Header="ACCIONES" Width="1.9*">
+                            <DataGridTextColumn Header="FECHA PAGO CLIENTE" Binding="{Binding payment_date_display}" Width="1.35*"
+                                                ElementStyle="{StaticResource CenterCellStyle}"/>
+                            <DataGridTextColumn Header="FORMA DE PAGO" Binding="{Binding payment_method_display}" Width="1.45*"
+                                                ElementStyle="{StaticResource CenterCellStyle}"/>
+                            <DataGridTemplateColumn Header="ACCIONES" Width="1.8*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -125,13 +140,15 @@
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.5*"/>
-                            <ColumnDefinition Width="2.7*"/>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="2.5*"/>
                             <ColumnDefinition Width="1.05*"/>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="1.35*"/>
                             <ColumnDefinition Width="1.45*"/>
-                            <ColumnDefinition Width="1.35*"/>
-                            <ColumnDefinition Width="1.35*"/>
-                            <ColumnDefinition Width="1.9*"/>
+                            <ColumnDefinition Width="1.8*"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" BorderBrush="#1565C0" BorderThickness="1,1,1,1" Background="#E3F2FD" Padding="4">
                             <TextBlock Text="TOTAL" FontWeight="Bold" TextAlignment="Left"/>
@@ -150,6 +167,8 @@
                             <TextBlock Text="{Binding total_gastos_15, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center"/>
                         </Border>
                         <Border Grid.Column="6" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
+                        <Border Grid.Column="7" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
+                        <Border Grid.Column="8" BorderBrush="#1565C0" BorderThickness="0,1,1,1" Background="#E3F2FD"/>
                     </Grid>
                 </StackPanel>
 

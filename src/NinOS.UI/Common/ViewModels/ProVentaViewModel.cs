@@ -21,11 +21,15 @@ namespace NinOS.UI.Common.ViewModels
         private int _selected_report_index;
         private pro_venta_month_option? _selected_month;
         private pro_venta_week_info? _selected_week;
+        private pro_venta_relation_option? _selected_relation;
+        private bool _is_syncing_week_relation;
+        private List<pro_venta_relation_option> _all_relations_cache = new();
         private pro_venta_weekly_dto? _report;
         private bool _is_loading;
 
         public ObservableCollection<pro_venta_month_option> available_months { get; } = new();
         public List<pro_venta_week_info> weeks { get; private set; } = new();
+        public ObservableCollection<pro_venta_relation_option> available_relations { get; } = new();
         public ObservableCollection<pro_venta_weekly_row> report_rows { get; } = new();
         public ObservableCollection<pro_venta_relation_row> pending_rows { get; } = new();
         public ObservableCollection<pro_venta_relation_row> paid_rows { get; } = new();
@@ -98,10 +102,23 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_week == value) return;
                 _selected_week = value;
                 on_property_changed();
+                sync_relation_with_week();
                 if (!_is_loading)
                 {
                     _ = load_report_async();
                 }
+            }
+        }
+
+        public pro_venta_relation_option? selected_relation
+        {
+            get { return _selected_relation; }
+            set
+            {
+                if (_selected_relation == value) return;
+                _selected_relation = value;
+                on_property_changed();
+                sync_week_with_relation();
             }
         }
 
@@ -158,6 +175,8 @@ namespace NinOS.UI.Common.ViewModels
                 _selected_month = next;
                 on_property_changed(nameof(selected_month));
 
+                _all_relations_cache = await _pro_venta_service.get_all_relations_async();
+
                 if (_selected_month != null)
                 {
                     refresh_weeks_async();
@@ -170,6 +189,32 @@ namespace NinOS.UI.Common.ViewModels
             {
                 AppDialog.Show(ErrorText.Get(ex), "error");
             }
+        }
+
+        public async Task load_relations_async()
+        {
+            try
+            {
+                _all_relations_cache = await _pro_venta_service.get_all_relations_async();
+                refresh_month_relations();
+                sync_relation_with_week();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "error");
+            }
+        }
+
+        private void refresh_month_relations()
+        {
+            var month_week_starts = weeks.Select(w => w.start.Date).ToHashSet();
+            var filtered = _all_relations_cache
+                .Where(r => month_week_starts.Contains(r.week_start.Date))
+                .OrderBy(r => r.relation_number)
+                .ToList();
+
+            available_relations.Clear();
+            foreach (var r in filtered) available_relations.Add(r);
         }
 
         public async Task load_pending_async()
@@ -222,6 +267,8 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(weeks));
                 _selected_week = weeks.FirstOrDefault(w => w.week_index == previous_index) ?? weeks.FirstOrDefault();
                 on_property_changed(nameof(selected_week));
+                refresh_month_relations();
+                sync_relation_with_week();
             }
             finally
             {
@@ -250,6 +297,42 @@ namespace NinOS.UI.Common.ViewModels
                 report_rows.Clear();
                 foreach (var row in report.rows) report_rows.Add(row);
 
+                if (_report.relation_number > 0)
+                {
+                    var existingRel = _all_relations_cache.FirstOrDefault(r => r.relation_number == _report.relation_number);
+                    if (existingRel == null)
+                    {
+                        existingRel = new pro_venta_relation_option
+                        {
+                            id_relacion = _report.id_relacion,
+                            relation_number = _report.relation_number,
+                            week_start = _report.week_start,
+                            week_end = _report.week_end,
+                            label = $"Relacion nro {_report.relation_number}"
+                        };
+                        _all_relations_cache.Add(existingRel);
+                        _all_relations_cache = _all_relations_cache.OrderBy(r => r.relation_number).ToList();
+                        existingRel = _all_relations_cache.First(r => r.relation_number == _report.relation_number);
+                    }
+
+                    refresh_month_relations();
+
+                    var currentRel = available_relations.FirstOrDefault(r => r.relation_number == _report.relation_number);
+                    if (_selected_relation != currentRel && !_is_syncing_week_relation)
+                    {
+                        _is_syncing_week_relation = true;
+                        try
+                        {
+                            _selected_relation = currentRel;
+                            on_property_changed(nameof(selected_relation));
+                        }
+                        finally
+                        {
+                            _is_syncing_week_relation = false;
+                        }
+                    }
+                }
+
                 raise_report_changed();
             }
             catch (Exception ex)
@@ -273,10 +356,29 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(diferencial));
         }
 
-        private void print_report()
+        private async void print_report()
         {
             if (_report == null || !has_rows) return;
-            ProVentaPdfGenerator.generate(_report, nota_por_pagar);
+            try
+            {
+                List<payment_dto>? payments = null;
+                pro_venta_relation_row? relation_row = null;
+
+                if (_report.id_relacion > 0)
+                {
+                    payments = (await _payment_service.get_payments_by_relation_async(_report.id_relacion))
+                        .OrderBy(p => p.payment_date)
+                        .ToList();
+                    relation_row = pending_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                                ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion);
+                }
+
+                ProVentaPdfGenerator.generate(_report, nota_por_pagar, payments, relation_row);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void execute_relation_pdf(object? parameter)
@@ -291,11 +393,21 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                var notes = await _pro_venta_service.get_relation_notes_async(row.id_relacion);
+                var week = new pro_venta_week_info
+                {
+                    week_index = row.relation_number,
+                    start = row.week_start,
+                    end = row.week_end,
+                    label = $"{row.week_start:dd} AL {row.week_end:dd}"
+                };
+
+                var report = await _pro_venta_service.get_weekly_report_async(week);
+                decimal nota_por_pagar = Math.Round(report.total_amount - report.total_gastos_25 - report.total_gastos_15, 2);
                 var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
                     .OrderBy(p => p.payment_date)
                     .ToList();
-                ProVentaDetailPdfGenerator.generate(row, notes, payments);
+
+                ProVentaPdfGenerator.generate(report, nota_por_pagar, payments, row);
             }
             catch (Exception ex)
             {
@@ -349,7 +461,11 @@ namespace NinOS.UI.Common.ViewModels
 
                 var report = await _pro_venta_service.get_weekly_report_async(week);
                 decimal nota_por_pagar = Math.Round(report.total_amount - report.total_gastos_25 - report.total_gastos_15, 2);
-                ProVentaPdfGenerator.generate(report, nota_por_pagar);
+                var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
+                    .OrderBy(p => p.payment_date)
+                    .ToList();
+
+                ProVentaPdfGenerator.generate(report, nota_por_pagar, payments, row);
             }
             catch (Exception ex)
             {
@@ -383,6 +499,153 @@ namespace NinOS.UI.Common.ViewModels
 
             await load_pending_async();
             await load_paid_async();
+        }
+
+        private void sync_relation_with_week()
+        {
+            if (_is_syncing_week_relation) return;
+            if (_selected_week == null)
+            {
+                if (_selected_relation != null)
+                {
+                    _selected_relation = null;
+                    on_property_changed(nameof(selected_relation));
+                }
+                return;
+            }
+
+            _is_syncing_week_relation = true;
+            try
+            {
+                var match = available_relations.FirstOrDefault(r => r.week_start.Date == _selected_week.start.Date);
+                if (_selected_relation != match)
+                {
+                    _selected_relation = match;
+                    on_property_changed(nameof(selected_relation));
+                }
+            }
+            finally
+            {
+                _is_syncing_week_relation = false;
+            }
+        }
+
+        private void sync_week_with_relation()
+        {
+            if (_is_syncing_week_relation) return;
+            if (_selected_relation == null) return;
+
+            _is_syncing_week_relation = true;
+            try
+            {
+                var target_start = _selected_relation.week_start.Date;
+
+                // 1. Check if the currently selected month's weeks contains target_start
+                var current_week_match = weeks.FirstOrDefault(w => w.start.Date == target_start);
+                if (current_week_match != null)
+                {
+                    if (_selected_week != current_week_match)
+                    {
+                        _selected_week = current_week_match;
+                        on_property_changed(nameof(selected_week));
+                        if (!_is_loading)
+                        {
+                            _ = load_report_async();
+                        }
+                    }
+                    return;
+                }
+
+                // 2. Not in current month: find which month contains this week
+                var target_month = available_months.FirstOrDefault(m =>
+                    _pro_venta_service.build_weeks(m.value.Year, m.value.Month).Any(w => w.start.Date == target_start));
+
+                if (target_month == null)
+                {
+                    var date_for_month = new DateTime(_selected_relation.week_end.Year, _selected_relation.week_end.Month, 1);
+                    target_month = available_months.FirstOrDefault(m => m.value.Year == date_for_month.Year && m.value.Month == date_for_month.Month);
+                    if (target_month == null)
+                    {
+                        var culture = new System.Globalization.CultureInfo("es-VE");
+                        target_month = new pro_venta_month_option
+                        {
+                            value = date_for_month,
+                            label = date_for_month.ToString("MMMM yyyy", culture)
+                        };
+                        available_months.Add(target_month);
+                    }
+                }
+
+                _selected_month = target_month;
+                on_property_changed(nameof(selected_month));
+
+                var new_weeks = _pro_venta_service.build_weeks(_selected_month.value.Year, _selected_month.value.Month);
+                weeks = new_weeks;
+                on_property_changed(nameof(weeks));
+
+                refresh_month_relations();
+
+                var matching_week = weeks.FirstOrDefault(w => w.start.Date == target_start);
+                _selected_week = matching_week ?? weeks.FirstOrDefault();
+                on_property_changed(nameof(selected_week));
+
+                _selected_relation = available_relations.FirstOrDefault(r => r.relation_number == _selected_relation.relation_number) ?? _selected_relation;
+                on_property_changed(nameof(selected_relation));
+
+                if (!_is_loading)
+                {
+                    _ = load_report_async();
+                }
+            }
+            finally
+            {
+                _is_syncing_week_relation = false;
+            }
+        }
+
+        public bool select_relation_by_number(int relation_number)
+        {
+            var match = available_relations.FirstOrDefault(r => r.relation_number == relation_number);
+            if (match != null)
+            {
+                selected_relation = match;
+                return true;
+            }
+
+            var globalMatch = _all_relations_cache.FirstOrDefault(r => r.relation_number == relation_number);
+            if (globalMatch != null)
+            {
+                selected_relation = globalMatch;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool select_relation_by_text(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            if (int.TryParse(text.Trim(), out int exactNum))
+            {
+                return select_relation_by_number(exactNum);
+            }
+
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"\d+");
+            if (match.Success && int.TryParse(match.Value, out int num))
+            {
+                return select_relation_by_number(num);
+            }
+
+            var found = available_relations.FirstOrDefault(r => r.label.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase))
+                     ?? _all_relations_cache.FirstOrDefault(r => r.label.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (found != null)
+            {
+                selected_relation = found;
+                return true;
+            }
+
+            return false;
         }
     }
 }

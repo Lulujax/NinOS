@@ -82,7 +82,7 @@
                 <TextBox x:Name="NoteTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
                          IsEnabled="False" TextChanged="OnNoteSearchChanged" ToolTip="Seleccione primero un mes para buscar notas..."/>
                 <Button x:Name="BtnToggleDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
-                        FontSize="9" Cursor="Hand" Click="OnToggleDropdown" IsEnabled="False"
+                        FontSize="9" Cursor="Hand" Click="OnToggleDropdown" PreviewMouseLeftButtonDown="OnToggleDropdownPreviewMouseDown" IsEnabled="False"
                         Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
                         VerticalAlignment="Center" ToolTip="Ver notas del mes seleccionado">
                     <Button.Template>
@@ -164,7 +164,7 @@
                 <TextBox x:Name="CustomerTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
                          IsEnabled="False" TextChanged="OnCustomerSearchChanged" ToolTip="Escriba el nombre o codigo del cliente..."/>
                 <Button x:Name="BtnToggleCustomerDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
-                        FontSize="9" Cursor="Hand" Click="OnToggleCustomerDropdown"
+                        FontSize="9" Cursor="Hand" Click="OnToggleCustomerDropdown" PreviewMouseLeftButtonDown="OnToggleCustomerDropdownPreviewMouseDown"
                         Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
                         VerticalAlignment="Center" ToolTip="Ver clientes del vendedor">
                     <Button.Template>
@@ -245,7 +245,7 @@
                 <TextBox x:Name="ProductSearchTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
                          TextChanged="OnProductSearchChanged" ToolTip="Escriba codigo o nombre del producto para agregarlo..."/>
                 <Button x:Name="BtnToggleProductDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
-                        FontSize="9" Cursor="Hand" Click="OnToggleProductDropdown"
+                        FontSize="9" Cursor="Hand" Click="OnToggleProductDropdown" PreviewMouseLeftButtonDown="OnToggleProductDropdownPreviewMouseDown"
                         Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
                         VerticalAlignment="Center" ToolTip="Ver todos los productos disponibles con stock">
                     <Button.Template>
@@ -382,7 +382,8 @@
                             <TextBox Text="{Binding return_quantity, UpdateSourceTrigger=PropertyChanged}"
                                      VerticalContentAlignment="Center" FontSize="11" FontWeight="SemiBold"
                                      HorizontalAlignment="Stretch" Margin="3,2"
-                                     TextAlignment="Center" PreviewTextInput="OnQuantityPreviewTextInput"/>
+                                     TextAlignment="Center" PreviewTextInput="OnQuantityPreviewTextInput"
+                                     LostFocus="OnReturnQuantityLostFocus"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

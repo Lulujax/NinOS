@@ -37,6 +37,13 @@ namespace NinOS.Domain
         [MaxLength(100)]
         public string seller_name { get; set; }
 
+        public bool is_active { get; set; } = true;
+
+        public DateTime? deleted_at { get; set; }
+
+        [MaxLength(200)]
+        public string? deleted_reason { get; set; }
+
         public customer()
         {
             customer_code = string.Empty;
@@ -62,6 +69,7 @@ namespace NinOS.Domain
             fiscal_address = fiscal ?? string.Empty;
             delivery_address = delivery ?? string.Empty;
             seller_name = seller ?? string.Empty;
+            is_active = true;
         }
     }
 }

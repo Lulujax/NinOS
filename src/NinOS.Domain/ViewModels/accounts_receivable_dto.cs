@@ -25,6 +25,7 @@ namespace NinOS.Domain.ViewModels
         public string bank_name_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public string note_type_name { get; set; } = string.Empty;
+        public string note_type_code { get; set; } = string.Empty;
 
         private string _cxc_observations = string.Empty;
         private string _sales_observations = string.Empty;

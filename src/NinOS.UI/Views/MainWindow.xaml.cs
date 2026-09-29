@@ -20,6 +20,58 @@ namespace NinOS.UI.Views
             Closed += (s, e) => AppLog.Info("Aplicación cerrada");
         }
 
+        private DateTime _last_title_click;
+        private int _title_click_count;
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            ModifierKeys modifiers = Keyboard.Modifiers;
+
+            if (e.Key == Key.F12 && modifiers.HasFlag(ModifierKeys.Control))
+            {
+                e.Handled = true;
+                TryOpenAdminLogin();
+                return;
+            }
+
+            if (e.Key == Key.P && modifiers.HasFlag(ModifierKeys.Control) && modifiers.HasFlag(ModifierKeys.Alt))
+            {
+                e.Handled = true;
+                TryOpenAdminLogin();
+            }
+        }
+
+        private void TitleBar_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            DateTime now = DateTime.Now;
+            if (_title_click_count == 0 || (now - _last_title_click).TotalMilliseconds > 1500)
+                _title_click_count = 1;
+            else
+                _title_click_count++;
+
+            _last_title_click = now;
+
+            if (_title_click_count >= 5)
+            {
+                _title_click_count = 0;
+                TryOpenAdminLogin();
+            }
+        }
+
+        private void TryOpenAdminLogin()
+        {
+            var login = new AdminLoginWindow();
+            login.Owner = this;
+            login.ShowDialog();
+
+            if (!login.Unlocked) return;
+
+            AppLog.Info("Acceso admin autorizado");
+            var panel = new AdminPanelWindow();
+            panel.Owner = this;
+            panel.ShowDialog();
+        }
+
         private bool TryGetTabItem(DependencyObject? source, out TabItem? tab_item)
         {
             tab_item = null;

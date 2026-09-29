@@ -20,6 +20,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
         private string _selected_filter = "Todas";
+        private string _selected_report_type = "Ambas";
         private decimal _total_sales_usd;
         private bool _is_loading;
 
@@ -35,6 +36,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public ObservableCollection<string> pending_months { get; }
         public ObservableCollection<string> filter_options { get; }
+        public ObservableCollection<string> report_type_options { get; }
         public ObservableCollection<accounts_receivable_dto> all_notes { get; }
         public ObservableCollection<accounts_receivable_dto> sandra_notes { get; }
         public ObservableCollection<accounts_receivable_dto> anais_notes { get; }
@@ -78,6 +80,12 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _selected_filter;
             set { if (_selected_filter == value) return; _selected_filter = value; on_property_changed(); apply_filters(); }
+        }
+
+        public string selected_report_type
+        {
+            get => _selected_report_type;
+            set { if (_selected_report_type == value) return; _selected_report_type = value ?? "Ambas"; on_property_changed(); }
         }
 
         public string search_query
@@ -160,7 +168,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public ICommand preview_note_command { get; }
         public ICommand print_pdf_command { get; }
-        public ICommand month_report_command { get; }
+        public ICommand sales_report_command { get; }
         public ICommand save_goal_command { get; }
         public ICommand edit_goal_command { get; }
         public ICommand cancel_goal_edit_command { get; }
@@ -184,10 +192,15 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Pagadas");
             filter_options.Add("Anuladas");
 
+            report_type_options = new ObservableCollection<string>();
+            report_type_options.Add("Ambas");
+            report_type_options.Add("General");
+            report_type_options.Add("Promocion");
+
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
 
-            month_report_command = new RelayCommand(execute_month_report);
+            sales_report_command = new RelayCommand(execute_sales_report);
             save_goal_command = new RelayCommand(execute_save_goal);
             edit_goal_command = new RelayCommand(execute_edit_goal);
             cancel_goal_edit_command = new RelayCommand(execute_cancel_goal_edit);
@@ -212,7 +225,7 @@ namespace NinOS.UI.Common.ViewModels
                 var sellers = await _receivable_service.get_sellers_async();
                 _seller_name_to_id = sellers.ToDictionary(s => s.full_name, s => s.id_seller, StringComparer.OrdinalIgnoreCase);
 
-                var raw = await _receivable_service.get_all_notes_async();
+                var raw = await _receivable_service.get_all_sales_notes_async();
                 var all_rows = raw.ToList();
 
                 var unique_months = all_rows
@@ -307,6 +320,7 @@ namespace NinOS.UI.Common.ViewModels
                         n.customer_name,
                         n.seller_name,
                         n.status,
+                        n.note_type_name,
                         n.sales_observations,
                         n.payment_method_text,
                         n.bank_name_text,
@@ -325,6 +339,9 @@ namespace NinOS.UI.Common.ViewModels
 
             return result.ToList();
         }
+
+        private static bool is_promotion_note(accounts_receivable_dto note) =>
+            string.Equals(note.note_type_code?.Trim(), "PVP", StringComparison.OrdinalIgnoreCase);
 
         private int? get_selected_seller_id()
         {
@@ -442,16 +459,45 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void execute_month_report(object? parameter)
+        private void execute_sales_report(object? parameter)
         {
             try
             {
+                if (string.IsNullOrEmpty(_selected_month))
+                {
+                    AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
                 var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
                     .ToList();
 
+                bool solo_promo = string.Equals(_selected_report_type, "Promocion", StringComparison.OrdinalIgnoreCase);
+                bool solo_general = string.Equals(_selected_report_type, "General", StringComparison.OrdinalIgnoreCase);
+                if (solo_promo || solo_general)
+                {
+                    month_rows = month_rows
+                        .Where(n => is_promotion_note(n) == solo_promo)
+                        .ToList();
+                }
+
+                string current_seller = get_selected_tab_name();
+                if (current_seller != "General")
+                {
+                    month_rows = month_rows
+                        .Where(n => string.Equals(n.seller_name, current_seller, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                string type_suffix = solo_promo ? "PROMOCION" : solo_general ? "GENERAL" : string.Empty;
+                string seller_suffix = current_seller == "General" ? string.Empty : current_seller.ToUpperInvariant();
+                string combined = string.Join(" - ", new[] { type_suffix, seller_suffix }.Where(s => !string.IsNullOrEmpty(s)));
+
                 var report = new monthly_report_dto
                 {
-                    title = "VENTAS - DETALLE DEL MES",
+                    title = string.IsNullOrEmpty(combined)
+                        ? "VENTAS - DETALLE DEL MES"
+                        : $"VENTAS - DETALLE DEL MES ({combined})",
                     month = _selected_month,
                     report_name = "ventas",
                     detail_column_header = "ABONADO",

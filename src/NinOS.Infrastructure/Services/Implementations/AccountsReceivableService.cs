@@ -267,17 +267,40 @@ namespace NinOS.Infrastructure.Services.Implementations
             return all.Where(n => n.id_seller == id_seller);
         }
 
+        // Cobranzas y Pagos: sin notas pro venta (MAR ni PVP).
         public async Task<IEnumerable<accounts_receivable_dto>> get_all_notes_async()
         {
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var excluded_ids = await get_pro_venta_type_ids_async(db_context);
+                return await get_notes_internal_async(db_context, excluded_ids);
+            }
+        }
 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+        // Ventas: todas las notas, incluidas las pro venta (MAR) y las de promocion (PVP).
+        public async Task<IEnumerable<accounts_receivable_dto>> get_all_sales_notes_async()
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await get_notes_internal_async(db_context, new List<int>());
+            }
+        }
 
-                var notes = await db_context.delivery_notes
-                    .AsNoTracking()
-                    .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
+        private async Task<IEnumerable<accounts_receivable_dto>> get_notes_internal_async(
+            NinOSDbContext db_context, List<int> excluded_type_ids)
+        {
+            {
+                var notes_query = db_context.delivery_notes.AsNoTracking();
+
+                if (excluded_type_ids.Count > 0)
+                {
+                    notes_query = notes_query
+                        .Where(n => n.note_type_id == null || !excluded_type_ids.Contains(n.note_type_id.Value));
+                }
+
+                var notes = await notes_query
                     .OrderBy(n => n.note_number)
                     .ToListAsync();
 
@@ -319,6 +342,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
+                var note_types = await db_context.note_types
+                    .AsNoTracking()
+                    .ToDictionaryAsync(t => t.id_note_type);
+
                 var note_detail_map = await db_context.note_details
                     .AsNoTracking()
                     .Where(d => note_ids.Contains(d.id_delivery_note))
@@ -347,10 +374,20 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
                     customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    string note_type_name = string.Empty;
+                    string note_type_code = string.Empty;
+                    if (dn.note_type_id != null && note_types.TryGetValue(dn.note_type_id.Value, out var note_type_row))
+                    {
+                        note_type_name = note_type_row.name ?? string.Empty;
+                        note_type_code = note_type_row.code ?? string.Empty;
+                    }
+
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
                         note_number = dn.note_number,
+                        note_type_name = note_type_name,
+                        note_type_code = note_type_code,
                         customer_name = customer_name ?? string.Empty,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
@@ -773,11 +810,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
                     promo_banner_text = is_promo ? "PROMOCION" : string.Empty,
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
-                    document_label = note_type != null && note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
-                    is_pro_venta = note_type != null && note_type.code == "MAR",
+                    document_label = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
+                    is_pro_venta = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code),
                     is_promo = is_promo,
-                    accent_color = note_type != null && note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
-                    accent_soft_color = note_type != null && note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC",
+                    accent_color = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "#1565C0" : "#1B3A2D",
+                    accent_soft_color = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "#E3F2FD" : "#F0F4EC",
                     promo_discount_percentage = is_promo ? promo_pct : null,
                     promo_discount_amount = promo_amt,
                     volume_discount_percentage = volume_pct ?? 0,
@@ -811,7 +848,16 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             return db_context.note_types
                 .AsNoTracking()
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+        }
+
+        private static Task<List<int>> get_promotion_type_ids_async(NinOSDbContext db_context)
+        {
+            return db_context.note_types
+                .AsNoTracking()
+                .Where(t => t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
         }

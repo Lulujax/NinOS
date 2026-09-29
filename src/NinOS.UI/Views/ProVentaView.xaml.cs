@@ -85,5 +85,63 @@ namespace NinOS.UI.Views
                 window.ShowDialog();
             };
         }
+
+        private System.Windows.Threading.DispatcherTimer? _relationSearchTimer;
+
+        private void CmbRelation_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                _relationSearchTimer?.Stop();
+                CommitRelationText();
+                e.Handled = true;
+            }
+        }
+
+        private void CmbRelation_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Escape || e.Key == Key.Tab || e.Key == Key.Down || e.Key == Key.Up)
+                return;
+
+            _relationSearchTimer?.Stop();
+            _relationSearchTimer = new System.Windows.Threading.DispatcherTimer { Interval = System.TimeSpan.FromMilliseconds(350) };
+            _relationSearchTimer.Tick += (s, args) =>
+            {
+                _relationSearchTimer.Stop();
+                CommitRelationText();
+            };
+            _relationSearchTimer.Start();
+        }
+
+        private void CmbRelation_LostFocus(object sender, RoutedEventArgs e)
+        {
+            _relationSearchTimer?.Stop();
+            CommitRelationText();
+        }
+
+        private void CommitRelationText()
+        {
+            if (DataContext is not ProVentaViewModel vm) return;
+            string text = CmbRelation.Text?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(text))
+            {
+                if (vm.select_relation_by_text(text))
+                {
+                    CmbRelation.SelectedItem = vm.selected_relation;
+                    if (vm.selected_relation != null)
+                    {
+                        CmbRelation.Text = vm.selected_relation.label;
+                    }
+                }
+                else if (vm.selected_relation != null)
+                {
+                    CmbRelation.Text = vm.selected_relation.label;
+                }
+            }
+            else if (vm.selected_relation != null)
+            {
+                CmbRelation.Text = vm.selected_relation.label;
+            }
+        }
     }
 }

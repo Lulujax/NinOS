@@ -12,5 +12,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<List<pro_venta_weekly_row>> get_relation_notes_async(int id_relacion);
         Task<List<pro_venta_relation_row>> get_pending_relations_async();
         Task<List<pro_venta_relation_row>> get_paid_relations_async();
+        Task<List<pro_venta_relation_option>> get_all_relations_async();
     }
 }

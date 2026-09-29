@@ -14,6 +14,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<accounts_receivable_dto>> get_receivables_by_month_and_seller_async(string month_year, int id_seller);
         Task<IEnumerable<accounts_receivable_dto>> get_all_by_month_async(string month_year);
         Task<IEnumerable<accounts_receivable_dto>> get_all_notes_async();
+        Task<IEnumerable<accounts_receivable_dto>> get_all_sales_notes_async();
         Task<IEnumerable<accounts_receivable_dto>> get_all_by_month_and_seller_async(string month_year, int id_seller);
         Task<accounts_receivable_dto?> search_note_by_number_async(string note_number);
         Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage = null, decimal? volume_discount_percentage = null);

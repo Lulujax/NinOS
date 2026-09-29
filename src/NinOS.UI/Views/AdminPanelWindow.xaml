@@ -1,0 +1,320 @@
+<Window x:Class="NinOS.UI.Views.AdminPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Panel Administrador - NinOS" Height="640" Width="1000"
+        WindowStartupLocation="CenterOwner" MinHeight="520" MinWidth="820"
+        Icon="/Assets/ninOS_logo.png">
+
+    <Window.Resources>
+        <Style x:Key="PanelGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinRowHeight" Value="22"/>
+        </Style>
+        <Style x:Key="PanelCellWrap" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="RestoreButton" TargetType="Button">
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#1B3A2D" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="White"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RefreshButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#1B3A2D"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#E8F0EA" CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                BorderBrush="#C9D6CF" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#D8E6DC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PurgeButton" TargetType="Button" BasedOn="{StaticResource RestoreButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#8C2F2F" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="White"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="18"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#1B3A2D"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#F5F5F5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#1B3A2D" Padding="16,10">
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Panel Administrador" FontSize="17" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Papelera de clientes y productos · Restauraciones · Backups" FontSize="12" Foreground="#C9D6CF" Margin="0,2,0,0"/>
+                </StackPanel>
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" Foreground="#9AA4B0"
+                           Text="Acceso: Ctrl+F12 o 5 clicks en el titulo"/>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="12">
+
+            <!-- ===== Papelera Clientes ===== -->
+            <TabItem Header="Papelera Clientes">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Style="{StaticResource RefreshButton}" Content="Actualizar"
+                                Click="OnRefreshCustomersClick"/>
+                        <TextBlock x:Name="CustomersCountText" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   FontSize="12" Foreground="#666666"/>
+                    </StackPanel>
+                    <DataGrid x:Name="CustomersGrid" Grid.Row="1" Style="{StaticResource PanelGrid}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding id_customer}" Header="#" Width="44"/>
+                            <DataGridTextColumn Binding="{Binding code}" Header="Codigo" Width="90" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding business_name}" Header="Razon Social" Width="200" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding phone}" Header="Telefono" Width="110" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding seller_name}" Header="Vendedor" Width="85" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding reason}" Header="Motivo" Width="150" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding deleted_on}" Header="Eliminado el" Width="130" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTemplateColumn Header="Restaurar" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RestoreButton}" Content="Restaurar"
+                                                Click="OnRestoreCustomerClick" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Purgar" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource PurgeButton}" Content="Purgar"
+                                                Click="OnPurgeCustomerClick" HorizontalAlignment="Center"
+                                                ToolTip="Borrado definitivo de la BD (solo si no tiene notas)"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== Papelera Productos ===== -->
+            <TabItem Header="Papelera Productos">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Style="{StaticResource RefreshButton}" Content="Actualizar"
+                                Click="OnRefreshProductsClick"/>
+                        <TextBlock x:Name="ProductsCountText" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   FontSize="12" Foreground="#666666"/>
+                    </StackPanel>
+                    <DataGrid x:Name="ProductsGrid" Grid.Row="1" Style="{StaticResource PanelGrid}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding id_product}" Header="#" Width="44"/>
+                            <DataGridTextColumn Binding="{Binding code}" Header="Codigo" Width="100" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding name}" Header="Nombre" Width="220" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding category}" Header="Categoria" Width="110" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding price}" Header="Precio" Width="90" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding stock}" Header="Stock" Width="70" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding reason}" Header="Motivo" Width="150" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding deleted_on}" Header="Eliminado el" Width="130" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTemplateColumn Header="Restaurar" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RestoreButton}" Content="Restaurar"
+                                                Click="OnRestoreProductClick" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Purgar" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource PurgeButton}" Content="Purgar"
+                                                Click="OnPurgeProductClick" HorizontalAlignment="Center"
+                                                ToolTip="Borrado definitivo de la BD (solo si no tiene movimientos)"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== Backup de la BD ===== -->
+            <TabItem Header="Backup de la BD">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Border Style="{StaticResource CardBorder}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitle}" Text="Backup manual"/>
+                                    <TextBlock FontSize="11.5" Foreground="#777777" TextWrapping="Wrap" Margin="0,0,0,10"
+                                               Text="Genera un archivo .dump de la base de datos usando pg_dump. Guarda la copia en un lugar seguro."/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource RefreshButton}" Content="Generar backup ahora" Click="OnBackupNowClick"/>
+                                        <Button Style="{StaticResource RefreshButton}" Content="Abrir carpeta de backups" Margin="8,0,0,0" Click="OnOpenBackupsFolderClick"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitle}" Text="Restaurar base de datos"/>
+                                    <TextBlock FontSize="11.5" Foreground="#8C2F2F" TextWrapping="Wrap" Margin="0,0,0,10"
+                                               Text="CUIDADO: reemplaza todos los datos actuales por los del archivo. Pide confirmacion escribiendo RESTAURAR."/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource RefreshButton}" Content="Restaurar desde archivo..." Click="OnRestoreClick"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="1" Background="#E8F0EA" BorderBrush="#C9D6CF" BorderThickness="1" CornerRadius="3" Padding="10" Margin="0,10,0,0">
+                        <TextBlock x:Name="BackupStatusText" TextWrapping="Wrap" FontSize="11.5" Foreground="#1B3A2D"
+                                   Text="Listo. Los backups se guardan en la carpeta Backups junto al ejecutable."/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== Extras ===== -->
+            <TabItem Header="Extras">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource CardBorder}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Estado de la base de datos"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Informacion de la BD configurada y conteo de registros."/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RefreshButton}" Content="Consultar estado" Click="OnDbStatusClick"/>
+                                    <TextBlock x:Name="DbStatusText" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11.5" TextWrapping="Wrap" MaxWidth="560" Foreground="#444444"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Exportaciones"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Exporta los catalogos a CSV (separado por ';', se abre en Excel)."/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RefreshButton}" Content="Exportar clientes" Click="OnExportCustomersClick"/>
+                                    <Button Style="{StaticResource RefreshButton}" Content="Exportar productos" Margin="8,0,0,0" Click="OnExportProductsClick"/>
+                                    <TextBlock x:Name="ExportStatusText" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11.5" Foreground="#444444"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Bitacora de actividad"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Ultimas acciones registradas por la aplicacion (incluye eliminaciones, restauraciones y backups)."/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RefreshButton}" Content="Cargar bitacora" Click="OnLoadLogClick"/>
+                                    <Button Style="{StaticResource RefreshButton}" Content="Abrir archivo" Margin="8,0,0,0" Click="OnOpenLogFileClick"/>
+                                </StackPanel>
+                                <TextBox x:Name="LogTextBox" Margin="0,10,0,0" Height="170" IsReadOnly="True"
+                                         FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                                         Background="#FAFAFA" BorderBrush="#DDDDDD" Padding="6"
+                                         Text="(Pulsa 'Cargar bitacora' para ver el registro)"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Seguridad"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Cambia la contrasena que protege este panel."/>
+                                <Button Style="{StaticResource RefreshButton}" HorizontalAlignment="Left"
+                                        Content="Cambiar contrasena de administrador"
+                                        Click="OnChangePasswordClick"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+</Window>

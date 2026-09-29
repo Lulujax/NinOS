@@ -7,10 +7,13 @@ namespace NinOS.Infrastructure.Services.Interfaces
     public interface ICustomerService
     {
         Task<IEnumerable<customer>> GetAllCustomersAsync();
+        Task<IEnumerable<customer>> GetDeletedCustomersAsync();
         Task<customer?> GetCustomerByIdAsync(int id);
         Task<customer?> GetCustomerByCodeAsync(string code);
         Task AddCustomerAsync(customer newCustomer);
         Task UpdateCustomerAsync(customer existingCustomer);
-        Task DeleteCustomerAsync(int id);
+        Task SoftDeleteCustomerAsync(int id, string? reason);
+        Task RestoreCustomerAsync(int id);
+        Task PurgeCustomerAsync(int id);
     }
 }

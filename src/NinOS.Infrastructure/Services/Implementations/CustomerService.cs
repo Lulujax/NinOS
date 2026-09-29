@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,7 +26,22 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.customers.AsNoTracking().ToListAsync();
+                return await db_context.customers.AsNoTracking()
+                    .Where(c => c.is_active)
+                    .OrderBy(c => c.customer_code)
+                    .ToListAsync();
+            }
+        }
+
+        public async Task<IEnumerable<customer>> GetDeletedCustomersAsync()
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.customers.AsNoTracking()
+                    .Where(c => !c.is_active)
+                    .OrderByDescending(c => c.deleted_at)
+                    .ToListAsync();
             }
         }
 
@@ -88,28 +104,58 @@ namespace NinOS.Infrastructure.Services.Implementations
             await db_context.SaveChangesAsync();
         }
 
-        public async Task DeleteCustomerAsync(int id)
+        public async Task SoftDeleteCustomerAsync(int id, string? reason)
         {
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                customer? customerToDelete = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
-                if (customerToDelete == null) return;
+                customer? customer_to_delete = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+                if (customer_to_delete == null || !customer_to_delete.is_active) return;
 
-                bool hasNotes = await db_context.delivery_notes.AnyAsync(n => n.id_customer == id);
-                if (hasNotes)
-                {
-                    throw new InvalidOperationException("Este cliente tiene notas de entrega asociadas y no puede eliminarse. Solo puede editarse.");
-                }
-
-                bool hasCreditNotes = await db_context.credit_notes.AnyAsync(n => n.id_customer == id);
-                if (hasCreditNotes)
-                {
-                    throw new InvalidOperationException("Este cliente tiene notas de credito asociadas y no puede eliminarse. Solo puede editarse.");
-                }
-
-                db_context.customers.Remove(customerToDelete);
+                customer_to_delete.is_active = false;
+                customer_to_delete.deleted_at = DateTime.UtcNow;
+                customer_to_delete.deleted_reason = string.IsNullOrWhiteSpace(reason) ? "Sin motivo" : reason.Trim();
                 await db_context.SaveChangesAsync();
+                AppLog.Info($"Cliente {customer_to_delete.customer_code} enviado a la papelera. Motivo: {customer_to_delete.deleted_reason}");
+            }
+        }
+
+        public async Task RestoreCustomerAsync(int id)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                customer? customer_to_restore = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+                if (customer_to_restore == null || customer_to_restore.is_active) return;
+
+                customer_to_restore.is_active = true;
+                customer_to_restore.deleted_at = null;
+                customer_to_restore.deleted_reason = null;
+                await db_context.SaveChangesAsync();
+                AppLog.Info($"Cliente {customer_to_restore.customer_code} restaurado desde la papelera.");
+            }
+        }
+
+        public async Task PurgeCustomerAsync(int id)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                customer? target = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
+                if (target == null) return;
+
+                bool has_references =
+                    await db_context.delivery_notes.AnyAsync(n => n.id_customer == id) ||
+                    await db_context.credit_notes.AnyAsync(n => n.id_customer == id) ||
+                    await db_context.stock_movements.AnyAsync(m => m.id_customer == id);
+
+                if (has_references)
+                    throw new InvalidOperationException(
+                        "No se puede borrar definitivamente: este cliente tiene notas, créditos o movimientos de kardex asociados.\nSe conservará en la papelera.");
+
+                db_context.customers.Remove(target);
+                await db_context.SaveChangesAsync();
+                AppLog.Info($"Cliente {target.customer_code} PURGADO definitivamente.");
             }
         }
     }

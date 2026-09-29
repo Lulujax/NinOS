@@ -52,6 +52,27 @@ namespace NinOS.Infrastructure.Data
                 db_context.SaveChanges();
             }
 
+            // Tipo "Promocion Pro Venta": promocion exclusiva de Juan Luis, tratada como Pro Venta.
+            var existing_promo_pro_venta = db_context.note_types.FirstOrDefault(t => t.code == "PVP");
+            if (existing_promo_pro_venta == null)
+            {
+                var promo_pro_venta = new note_type(
+                    "Promocion Pro Venta", "PVP", brand_header, "promo", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 5,
+                    promo_discount_percentage = 10m
+                };
+                db_context.note_types.Add(promo_pro_venta);
+                db_context.SaveChanges();
+            }
+            else if (existing_promo_pro_venta.promo_discount_percentage == null)
+            {
+                existing_promo_pro_venta.promo_discount_percentage = 10m;
+                db_context.SaveChanges();
+            }
+
             // Tipos obsoletos (Promo Oleos, Canecalon, Hair Liss): se eliminan.
             // Las notas que los usan pasan a tipo General.
             var removed_type_codes = new[] { "PRO", "CAN", "HLS" };
@@ -111,7 +132,7 @@ namespace NinOS.Infrastructure.Data
 
             // Backfill: asigna una relacion semanal (correlativo global) a las notas Pro Venta existentes.
             var mar_type_ids = db_context.note_types
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToList();
 

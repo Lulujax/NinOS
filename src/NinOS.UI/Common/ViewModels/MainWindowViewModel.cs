@@ -111,6 +111,21 @@ namespace NinOS.UI.Common.ViewModels
                     credit_notes_vm?.refresh_data();
                 };
             }
+
+            // Cuando el Panel Administrador restaura o elimina clientes/productos,
+            // todos los listados se recargan para que el cambio se vea de inmediato.
+            AppDataEvents.CatalogsChanged += () =>
+            {
+                delivery_notes_vm?.refresh_data();
+                accounts_receivable_vm?.refresh_data();
+                sales_vm?.refresh_data();
+                payments_vm?.refresh_data();
+                commissions_vm?.refresh_data();
+                customer_vm?.refresh_data();
+                inventory_vm?.refresh_data();
+                pro_venta_vm?.refresh_data();
+                credit_notes_vm?.refresh_data();
+            };
         }
     }
 }

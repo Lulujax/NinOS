@@ -64,11 +64,32 @@ namespace NinOS.UI.Views
 
         private bool _is_updating_cascade;
         private bool _is_gift;
+        private readonly string? _initial_seller_name;
 
-        public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null)
+        private bool _notePopupWasOpen;
+        private bool _customerPopupWasOpen;
+        private bool _productPopupWasOpen;
+
+        public void OnToggleDropdownPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _notePopupWasOpen = NotePopup != null && NotePopup.IsOpen;
+        }
+
+        public void OnToggleCustomerDropdownPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _customerPopupWasOpen = CustomerPopup != null && CustomerPopup.IsOpen;
+        }
+
+        public void OnToggleProductDropdownPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _productPopupWasOpen = ProductPopup != null && ProductPopup.IsOpen;
+        }
+
+        public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null)
         {
             InitializeComponent();
             _vm = vm;
+            _initial_seller_name = initial_seller_name;
 
             Loaded += async (_, _) =>
             {
@@ -79,31 +100,55 @@ namespace NinOS.UI.Views
 
                 ApplyCategoryMode();
 
-                await LoadSellersAsync();
+                var sellersTask = LoadSellersAsync();
+                var obsequioTask = LoadObsequioDataAsync();
+                await Task.WhenAll(sellersTask, obsequioTask);
 
-                if (_is_gift)
+                seller? preselected = null;
+                if (!string.IsNullOrWhiteSpace(_initial_seller_name))
                 {
-                    await LoadObsequioDataAsync();
+                    preselected = _all_sellers.FirstOrDefault(s => string.Equals(s.full_name?.Trim(), _initial_seller_name.Trim(), StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (preselected != null)
+                {
+                    CmbSeller.SelectedItem = preselected;
+                    _selected_seller = preselected;
+                    if (_is_gift)
+                    {
+                        ApplySellerForObsequio(preselected);
+                    }
+                    else
+                    {
+                        await ApplySellerForDevolucionAsync(preselected);
+                    }
                 }
                 else
                 {
-                    ResetDevolucionState();
-                    if (CmbSeller != null) CmbSeller.SelectedItem = null;
-                    if (CmbMonth != null)
+                    if (_is_gift)
                     {
-                        CmbMonth.Items.Clear();
-                        CmbMonth.SelectedIndex = -1;
-                        CmbMonth.IsEnabled = false;
-                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
+                        ApplySellerForObsequio(null);
                     }
-                    if (NoteTextBox != null)
+                    else
                     {
-                        NoteTextBox.IsEnabled = false;
-                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
-                    }
-                    if (BtnToggleDropdown != null)
-                    {
-                        BtnToggleDropdown.IsEnabled = false;
+                        ResetDevolucionState();
+                        if (CmbSeller != null) CmbSeller.SelectedItem = null;
+                        if (CmbMonth != null)
+                        {
+                            CmbMonth.Items.Clear();
+                            CmbMonth.SelectedIndex = -1;
+                            CmbMonth.IsEnabled = false;
+                            CmbMonth.ToolTip = "Seleccione primero un vendedor...";
+                        }
+                        if (NoteTextBox != null)
+                        {
+                            NoteTextBox.IsEnabled = false;
+                            NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                        }
+                        if (BtnToggleDropdown != null)
+                        {
+                            BtnToggleDropdown.IsEnabled = false;
+                        }
                     }
                 }
 
@@ -169,41 +214,23 @@ namespace NinOS.UI.Views
             _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
             ApplyCategoryMode();
 
-            _is_updating_cascade = true;
-            _selected_seller = null;
-            if (CmbSeller != null) CmbSeller.SelectedItem = null;
-            _is_updating_cascade = false;
+            var currentSeller = CmbSeller.SelectedItem as seller;
 
             try
             {
                 if (_is_gift)
                 {
                     ResetDevolucionState();
-                    ResetObsequioState(preserve_seller: false);
+                    ResetObsequioState(preserve_seller: true);
+                    if (ItemsGrid != null) ItemsGrid.ItemsSource = _gift_items;
                     await LoadObsequioDataAsync();
+                    ApplySellerForObsequio(currentSeller);
                 }
                 else
                 {
-                    ResetObsequioState(preserve_seller: false);
+                    ResetObsequioState(preserve_seller: true);
                     ResetDevolucionState();
-                    if (CmbMonth != null)
-                    {
-                        _is_updating_cascade = true;
-                        CmbMonth.Items.Clear();
-                        CmbMonth.SelectedIndex = -1;
-                        CmbMonth.IsEnabled = false;
-                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
-                        _is_updating_cascade = false;
-                    }
-                    if (NoteTextBox != null)
-                    {
-                        NoteTextBox.IsEnabled = false;
-                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
-                    }
-                    if (BtnToggleDropdown != null)
-                    {
-                        BtnToggleDropdown.IsEnabled = false;
-                    }
+                    await ApplySellerForDevolucionAsync(currentSeller);
                 }
             }
             catch (Exception ex)
@@ -225,7 +252,7 @@ namespace NinOS.UI.Views
             if (SellerText != null) SellerText.Text = string.Empty;
             if (NoteInfoText != null) NoteInfoText.Text = string.Empty;
             if (NoteInfoBorder != null) NoteInfoBorder.Visibility = Visibility.Collapsed;
-            if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
+            if (!_is_gift && ItemsGrid != null) ItemsGrid.ItemsSource = null;
             RecalcTotal();
             if (NotePopup != null) NotePopup.IsOpen = false;
         }
@@ -242,9 +269,12 @@ namespace NinOS.UI.Views
 
             if (CustomerTextBox != null)
             {
-                CustomerTextBox.IsEnabled = false;
+                CustomerTextBox.IsEnabled = preserve_seller && _selected_seller != null;
                 CustomerTextBox.IsReadOnly = false;
                 CustomerTextBox.Text = string.Empty;
+                CustomerTextBox.ToolTip = preserve_seller && _selected_seller != null
+                    ? "Escriba el nombre, codigo o RIF del cliente..."
+                    : "Seleccione primero un vendedor...";
             }
             if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
             if (CustomerPopup != null) CustomerPopup.IsOpen = false;
@@ -257,7 +287,7 @@ namespace NinOS.UI.Views
             foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
             _gift_items.Clear();
 
-            if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
+            if (ItemsGrid != null) ItemsGrid.ItemsSource = _is_gift ? _gift_items : null;
             RecalcTotal();
         }
 
@@ -288,6 +318,11 @@ namespace NinOS.UI.Views
                     ? "Busque y agregue los productos a obsequiar. Indique la cantidad de cada uno (no puede superar el STOCK DISPONIBLE)."
                     : "Escriba arriba la cantidad devuelta de cada producto. No puede superar la columna DISPONIBLE.";
             }
+
+            if (ItemsGrid != null)
+            {
+                ItemsGrid.ItemsSource = _is_gift ? _gift_items : null;
+            }
         }
 
         private async Task LoadObsequioDataAsync()
@@ -309,12 +344,124 @@ namespace NinOS.UI.Views
                         .ToList();
                 }
 
-                ItemsGrid.ItemsSource = _gift_items;
+                if (_selected_seller != null)
+                {
+                    _seller_customers = _all_customers
+                        .Where(c => !string.IsNullOrWhiteSpace(c.seller_name)
+                            ? string.Equals(c.seller_name.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase)
+                            : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)))
+                        .OrderBy(c => c.business_name)
+                        .ToList();
+                    FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
+                }
+
+                FilterProducts(ProductSearchTextBox?.Text?.Trim().ToLower() ?? string.Empty);
+
+                if (_is_gift && ItemsGrid != null)
+                {
+                    ItemsGrid.ItemsSource = _gift_items;
+                }
                 RecalcTotal();
             }
             catch (Exception ex)
             {
                 AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void ApplySellerForObsequio(seller? s)
+        {
+            _selected_seller = s;
+            _selected_customer = null;
+
+            if (CustomerTextBox != null)
+            {
+                CustomerTextBox.IsReadOnly = false;
+                CustomerTextBox.Text = string.Empty;
+                CustomerTextBox.IsEnabled = s != null;
+                CustomerTextBox.ToolTip = s != null
+                    ? "Escriba el nombre, codigo o RIF del cliente..."
+                    : "Seleccione primero un vendedor...";
+            }
+            if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
+            if (CustomerPopup != null) CustomerPopup.IsOpen = false;
+
+            if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
+            if (ProductPopup != null) ProductPopup.IsOpen = false;
+
+            foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
+            _gift_items.Clear();
+
+            if (ItemsGrid != null) ItemsGrid.ItemsSource = _gift_items;
+            RecalcTotal();
+
+            if (s != null)
+            {
+                _seller_customers = _all_customers
+                    .Where(c => !string.IsNullOrWhiteSpace(c.seller_name)
+                        ? string.Equals(c.seller_name.Trim(), s.full_name?.Trim(), StringComparison.OrdinalIgnoreCase)
+                        : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)))
+                    .OrderBy(c => c.business_name)
+                    .ToList();
+                FilterCustomers(string.Empty);
+            }
+            else
+            {
+                _seller_customers.Clear();
+                if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
+            }
+        }
+
+        private async Task ApplySellerForDevolucionAsync(seller? s)
+        {
+            ResetDevolucionState();
+
+            if (NoteTextBox != null)
+            {
+                NoteTextBox.IsEnabled = false;
+                NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+            }
+            if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
+
+            _is_updating_cascade = true;
+            if (CmbMonth != null)
+            {
+                CmbMonth.Items.Clear();
+                CmbMonth.SelectedIndex = -1;
+            }
+            _is_updating_cascade = false;
+
+            if (s != null)
+            {
+                if (CmbMonth != null)
+                {
+                    CmbMonth.IsEnabled = true;
+                    CmbMonth.ToolTip = "Seleccione el mes de la nota de entrega";
+                }
+                try
+                {
+                    var months = (await _vm.get_delivery_note_months_for_seller_async(s.id_seller)).ToList();
+                    _is_updating_cascade = true;
+                    if (CmbMonth != null)
+                    {
+                        CmbMonth.Items.Clear();
+                        foreach (var m in months) CmbMonth.Items.Add(m);
+                        CmbMonth.SelectedIndex = -1;
+                    }
+                    _is_updating_cascade = false;
+                }
+                catch (Exception ex)
+                {
+                    AppDialog.Show(ErrorText.Get(ex), "Error");
+                }
+            }
+            else
+            {
+                if (CmbMonth != null)
+                {
+                    CmbMonth.IsEnabled = false;
+                    CmbMonth.ToolTip = "Seleccione primero un vendedor...";
+                }
             }
         }
 
@@ -325,91 +472,11 @@ namespace NinOS.UI.Views
 
             if (_is_gift)
             {
-                _selected_customer = null;
-                if (CustomerTextBox != null)
-                {
-                    CustomerTextBox.IsReadOnly = false;
-                    CustomerTextBox.Text = string.Empty;
-                }
-                if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
-                if (CustomerPopup != null) CustomerPopup.IsOpen = false;
-                if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
-                _seller_customers.Clear();
-
-                if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
-                if (ProductPopup != null) ProductPopup.IsOpen = false;
-                if (ProductListBox != null) ProductListBox.ItemsSource = null;
-
-                foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
-                _gift_items.Clear();
-                if (ItemsGrid != null) ItemsGrid.ItemsSource = null;
-                RecalcTotal();
-
-                if (_selected_seller != null)
-                {
-                    if (CustomerTextBox != null) CustomerTextBox.IsEnabled = true;
-                    _seller_customers = _all_customers
-                        .Where(c => string.Equals(c.seller_name?.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(c => c.business_name)
-                        .ToList();
-                    FilterCustomers(string.Empty);
-                }
-                else
-                {
-                    if (CustomerTextBox != null) CustomerTextBox.IsEnabled = false;
-                }
+                ApplySellerForObsequio(_selected_seller);
             }
             else
             {
-                ResetDevolucionState();
-
-                if (NoteTextBox != null)
-                {
-                    NoteTextBox.IsEnabled = false;
-                    NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
-                }
-                if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
-
-                _is_updating_cascade = true;
-                if (CmbMonth != null)
-                {
-                    CmbMonth.Items.Clear();
-                    CmbMonth.SelectedIndex = -1;
-                }
-                _is_updating_cascade = false;
-
-                if (_selected_seller != null)
-                {
-                    if (CmbMonth != null)
-                    {
-                        CmbMonth.IsEnabled = true;
-                        CmbMonth.ToolTip = "Seleccione el mes de la nota de entrega";
-                    }
-                    try
-                    {
-                        var months = (await _vm.get_delivery_note_months_for_seller_async(_selected_seller.id_seller)).ToList();
-                        _is_updating_cascade = true;
-                        if (CmbMonth != null)
-                        {
-                            CmbMonth.Items.Clear();
-                            foreach (var m in months) CmbMonth.Items.Add(m);
-                            CmbMonth.SelectedIndex = -1;
-                        }
-                        _is_updating_cascade = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        AppDialog.Show(ErrorText.Get(ex), "Error");
-                    }
-                }
-                else
-                {
-                    if (CmbMonth != null)
-                    {
-                        CmbMonth.IsEnabled = false;
-                        CmbMonth.ToolTip = "Seleccione primero un vendedor...";
-                    }
-                }
+                await ApplySellerForDevolucionAsync(_selected_seller);
             }
         }
 
@@ -424,9 +491,16 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void OnToggleCustomerDropdown(object sender, RoutedEventArgs e)
+        private async void OnToggleCustomerDropdown(object sender, RoutedEventArgs e)
         {
             if (CustomerPopup == null || CustomerListBox == null) return;
+
+            if (_customerPopupWasOpen)
+            {
+                _customerPopupWasOpen = false;
+                CustomerPopup.IsOpen = false;
+                return;
+            }
 
             if (CustomerPopup.IsOpen)
             {
@@ -439,8 +513,18 @@ namespace NinOS.UI.Views
                     AppDialog.Show("Seleccione primero un vendedor para ver sus clientes.", "Aviso");
                     return;
                 }
-                FilterCustomers(string.Empty);
+
+                if (_all_customers.Count == 0)
+                {
+                    await LoadObsequioDataAsync();
+                }
+
+                FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
                 CustomerPopup.IsOpen = CustomerListBox.Items.Count > 0;
+                if (CustomerListBox.Items.Count == 0)
+                {
+                    AppDialog.Show("No se encontraron clientes para el vendedor seleccionado.", "Aviso");
+                }
             }
         }
 
@@ -501,17 +585,34 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void OnToggleProductDropdown(object sender, RoutedEventArgs e)
+        private async void OnToggleProductDropdown(object sender, RoutedEventArgs e)
         {
             if (ProductPopup == null || ProductListBox == null) return;
+
+            if (_productPopupWasOpen)
+            {
+                _productPopupWasOpen = false;
+                ProductPopup.IsOpen = false;
+                return;
+            }
+
             if (ProductPopup.IsOpen)
             {
                 ProductPopup.IsOpen = false;
             }
             else
             {
-                FilterProducts(string.Empty);
+                if (_available_products.Count == 0)
+                {
+                    await LoadObsequioDataAsync();
+                }
+
+                FilterProducts(ProductSearchTextBox?.Text?.Trim().ToLower() ?? string.Empty);
                 ProductPopup.IsOpen = ProductListBox.Items.Count > 0;
+                if (ProductListBox.Items.Count == 0)
+                {
+                    AppDialog.Show("No hay productos con stock disponible para obsequiar.", "Aviso");
+                }
             }
         }
 
@@ -535,6 +636,11 @@ namespace NinOS.UI.Views
         {
             if (ProductListBox?.SelectedItem is product p)
             {
+                if (ItemsGrid != null && ItemsGrid.ItemsSource != _gift_items)
+                {
+                    ItemsGrid.ItemsSource = _gift_items;
+                }
+
                 var existing = _gift_items.FirstOrDefault(r => r.id_product == p.id_product);
                 if (existing != null)
                 {
@@ -630,6 +736,14 @@ namespace NinOS.UI.Views
         private void OnToggleDropdown(object sender, RoutedEventArgs e)
         {
             if (NotePopup == null || NoteListBox == null) return;
+
+            if (_notePopupWasOpen)
+            {
+                _notePopupWasOpen = false;
+                NotePopup.IsOpen = false;
+                return;
+            }
+
             if (NotePopup.IsOpen)
             {
                 NotePopup.IsOpen = false;
@@ -759,6 +873,20 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void OnReturnQuantityLostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is not TextBox box) return;
+            if (box.DataContext is not credit_note_edit_row row) return;
+
+            string raw = box.Text?.Trim() ?? string.Empty;
+            if (!int.TryParse(raw, out int parsed) || parsed < 0)
+                parsed = 0;
+
+            row.return_quantity = parsed;
+            box.Text = row.return_quantity.ToString();
+            RecalcTotal();
+        }
+
         private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName != nameof(credit_note_edit_row.return_quantity)) return;
@@ -815,9 +943,10 @@ namespace NinOS.UI.Views
                     }
 
                     decimal total = rows.Sum(r => r.subtotal_usd);
+                    string correlative = await _vm.generate_credit_correlative_async(id_seller);
 
                     new_note = new credit_note(
-                        note_number: string.Empty,
+                        note_number: correlative,
                         creation_date: DateTime.UtcNow,
                         id_delivery_note: null,
                         id_seller: id_seller,

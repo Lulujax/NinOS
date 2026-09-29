@@ -599,12 +599,12 @@ namespace NinOS.UI.Common.ViewModels
 
         public string document_label
         {
-            get { return _selected_note_type != null && _selected_note_type.code == "MAR" ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA"; }
+            get { return NoteTypeCodes.is_pro_venta(_selected_note_type?.code) ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA"; }
         }
 
         public bool is_pro_venta
         {
-            get { return _selected_note_type != null && _selected_note_type.code == "MAR"; }
+            get { return NoteTypeCodes.is_pro_venta(_selected_note_type?.code); }
         }
 
         public string note_accent_color
@@ -619,7 +619,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string note_payment_bg
         {
-            get { return is_promo ? "#FFFFFF" : (is_pro_venta ? "#BBDEFB" : "#DCE6C8"); }
+            get { return is_pro_venta ? "#BBDEFB" : (is_promo ? "#FFFFFF" : "#DCE6C8"); }
         }
 
         public string note_guardar_color
@@ -665,8 +665,8 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (is_juan_luis)
                 {
-                    // Juan Luis solo puede crear notas Pro Venta.
-                    if (nt.code != "MAR") continue;
+                    // Juan Luis solo puede crear notas Pro Venta (Pro Venta o Promocion Pro Venta).
+                    if (nt.code != "MAR" && nt.code != "PVP") continue;
                 }
                 else
                 {
@@ -689,8 +689,9 @@ namespace NinOS.UI.Common.ViewModels
             if (s != null)
             {
                 IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                    (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)) ||
-                    c.seller_name == s.full_name);
+                    !string.IsNullOrWhiteSpace(c.seller_name)
+                        ? string.Equals(c.seller_name.Trim(), s.full_name.Trim(), StringComparison.OrdinalIgnoreCase)
+                        : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)));
 
                 foreach (customer c in match)
                 {
@@ -1056,8 +1057,9 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     filtered_customers.Clear();
                     IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                        (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)) ||
-                        c.seller_name == _selected_seller.full_name);
+                        !string.IsNullOrWhiteSpace(c.seller_name)
+                            ? string.Equals(c.seller_name.Trim(), _selected_seller.full_name.Trim(), StringComparison.OrdinalIgnoreCase)
+                            : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)));
                     foreach (customer c in match) filtered_customers.Add(c);
                 }
 
@@ -1282,10 +1284,10 @@ namespace NinOS.UI.Common.ViewModels
                 volume_discount_amount = volume_discount_amount,
                 discounted_total_usd = discounted_total_usd,
                 document_label = document_label,
-                is_pro_venta = _selected_note_type != null && _selected_note_type.code == "MAR",
+                is_pro_venta = NoteTypeCodes.is_pro_venta(_selected_note_type?.code),
                 is_promo = has_promo_discount,
-                accent_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#1565C0" : "#1B3A2D",
-                accent_soft_color = _selected_note_type != null && _selected_note_type.code == "MAR" ? "#E3F2FD" : "#F0F4EC"
+                accent_color = NoteTypeCodes.is_pro_venta(_selected_note_type?.code) ? "#1565C0" : "#1B3A2D",
+                accent_soft_color = NoteTypeCodes.is_pro_venta(_selected_note_type?.code) ? "#E3F2FD" : "#F0F4EC"
             };
 
             foreach (note_detail_row row in note_details)

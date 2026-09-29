@@ -808,17 +808,14 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                await _inventory_service.delete_product_async(dto.product_ref);
+                await _inventory_service.soft_delete_product_async(dto.product_ref.id_product, null);
                 load_initial_data_async();
-            }
-            catch (InvalidOperationException ex)
-            {
-                ErrorMessage = ErrorText.Get(ex);
-                AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDataEvents.raise_catalogs_changed();
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"No se pudo eliminar el producto: {ErrorText.Get(ex)}";
+                AppDialog.Show($"Error al eliminar el producto: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

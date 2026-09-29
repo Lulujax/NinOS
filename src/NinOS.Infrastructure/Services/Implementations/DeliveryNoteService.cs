@@ -144,7 +144,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         bool is_mar = await _db_context.note_types
                             .AsNoTracking()
-                            .AnyAsync(t => t.id_note_type == new_note.note_type_id.Value && t.code == "MAR");
+                            .AnyAsync(t => t.id_note_type == new_note.note_type_id.Value && (t.code == "MAR" || t.code == "PVP"));
 
                         if (is_mar)
                         {

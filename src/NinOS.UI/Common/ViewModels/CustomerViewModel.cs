@@ -242,6 +242,8 @@ namespace NinOS.UI.Common.ViewModels
             LoadCustomersAsync();
         }
 
+        public void refresh_data() => LoadCustomersAsync();
+
         private async void LoadCustomersAsync()
         {
             try
@@ -552,15 +554,11 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     IsLoading = true;
                     ErrorMessage = string.Empty;
-                    await _customerService.DeleteCustomerAsync(selected.CustomerRef.id_customer);
+                    await _customerService.SoftDeleteCustomerAsync(selected.CustomerRef.id_customer, null);
                     LoadCustomersAsync();
+                    AppDataEvents.raise_catalogs_changed();
                     AppDialog.Show($"Cliente \"{selected.BusinessName}\" eliminado.",
                         "Cliente eliminado", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    ErrorMessage = ErrorText.Get(ex);
-                    AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 catch (Exception ex)
                 {

@@ -27,7 +27,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 
@@ -88,7 +88,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 
@@ -136,6 +136,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             return new pro_venta_weekly_dto
             {
+                id_relacion = relation?.id_relacion ?? 0,
                 relation_number = relation?.relation_number ?? 0,
                 week_start = week.start,
                 week_end = week.end,
@@ -267,7 +268,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 
@@ -324,6 +325,26 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
 
             return rows.OrderBy(r => r.relation_number).ToList();
+        }
+
+        public async Task<List<pro_venta_relation_option>> get_all_relations_async()
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var list = await db_context.relaciones
+                .AsNoTracking()
+                .OrderBy(r => r.relation_number)
+                .ToListAsync();
+
+            return list.Select(r => new pro_venta_relation_option
+            {
+                id_relacion = r.id_relacion,
+                relation_number = r.relation_number,
+                week_start = r.week_start,
+                week_end = r.week_end,
+                label = $"Relacion nro {r.relation_number}"
+            }).ToList();
         }
     }
 }

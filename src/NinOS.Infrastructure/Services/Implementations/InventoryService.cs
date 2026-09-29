@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,7 +27,22 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.products.ToListAsync();
+                return await db_context.products.AsNoTracking()
+                    .Where(p => p.is_active)
+                    .OrderBy(p => p.product_code)
+                    .ToListAsync();
+            }
+        }
+
+        public async Task<IEnumerable<product>> get_deleted_products_async()
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.products.AsNoTracking()
+                    .Where(p => !p.is_active)
+                    .OrderByDescending(p => p.deleted_at)
+                    .ToListAsync();
             }
         }
 
@@ -78,23 +94,62 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task delete_product_async(product product_to_delete)
+        public async Task soft_delete_product_async(int id_product, string? reason)
         {
-            if (product_to_delete == null) throw new ArgumentNullException(nameof(product_to_delete));
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                bool has_note_details = await db_context.note_details.AnyAsync(d => d.id_product == product_to_delete.id_product);
-                if (has_note_details)
-                    throw new InvalidOperationException("Este producto tiene notas de venta asociadas y no puede eliminarse. Solo puede editarse.");
+                product? product_to_delete = await db_context.products.FirstOrDefaultAsync(p => p.id_product == id_product);
+                if (product_to_delete == null || !product_to_delete.is_active) return;
 
-                bool has_promotion_items = await db_context.promotion_items.AnyAsync(i => i.id_product == product_to_delete.id_product);
-                if (has_promotion_items)
-                    throw new InvalidOperationException("Este producto forma parte de promociones y no puede eliminarse. Solo puede editarse.");
-
-                db_context.products.Remove(product_to_delete);
+                product_to_delete.is_active = false;
+                product_to_delete.deleted_at = DateTime.UtcNow;
+                product_to_delete.deleted_reason = string.IsNullOrWhiteSpace(reason) ? "Sin motivo" : reason.Trim();
                 await db_context.SaveChangesAsync();
+                AppLog.Info($"Producto {product_to_delete.product_code} enviado a la papelera. Motivo: {product_to_delete.deleted_reason}");
+            }
+        }
+
+        public async Task restore_product_async(int id_product)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                product? product_to_restore = await db_context.products.FirstOrDefaultAsync(p => p.id_product == id_product);
+                if (product_to_restore == null || product_to_restore.is_active) return;
+
+                product_to_restore.is_active = true;
+                product_to_restore.deleted_at = null;
+                product_to_restore.deleted_reason = null;
+                await db_context.SaveChangesAsync();
+                AppLog.Info($"Producto {product_to_restore.product_code} restaurado desde la papelera.");
+            }
+        }
+
+        public async Task purge_product_async(int id_product)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                product? target = await db_context.products.FirstOrDefaultAsync(p => p.id_product == id_product);
+                if (target == null) return;
+
+                bool has_references =
+                    await db_context.note_details.AnyAsync(d => d.id_product == id_product) ||
+                    await db_context.credit_note_details.AnyAsync(d => d.id_product == id_product) ||
+                    await db_context.promotion_items.AnyAsync(pi => pi.id_product == id_product) ||
+                    await db_context.stock_movements.AnyAsync(m => m.id_product == id_product);
+
+                if (has_references)
+                    throw new InvalidOperationException(
+                        "No se puede borrar definitivamente: este producto tiene líneas de notas, créditos, promociones o kardex asociados.\nSe conservará en la papelera.");
+
+                db_context.products.Remove(target);
+                await db_context.SaveChangesAsync();
+                AppLog.Info($"Producto {target.product_code} PURGADO definitivamente.");
             }
         }
 

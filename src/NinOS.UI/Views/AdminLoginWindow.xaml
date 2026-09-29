@@ -1,0 +1,78 @@
+<Window x:Class="NinOS.UI.Views.AdminLoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ShowInTaskbar="False" Title="Acceso Administrador"
+        Icon="/Assets/ninOS_logo.png"
+        Width="380" SizeToContent="Height"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Loaded="Window_Loaded">
+
+    <Border Background="#161A1F" CornerRadius="16" BorderBrush="#2A3138" BorderThickness="1" Padding="24">
+        <StackPanel>
+
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Panel Administrador" FontSize="16" FontWeight="Bold" Foreground="#C9D6CF"/>
+                    <TextBlock Text="Area restringida. Solo para el administrador." FontSize="12" Foreground="#9AA4B0" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="OnCloseClick"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand" Content="x"
+                        Foreground="#8A96A0" FontSize="14" FontWeight="Bold" ToolTip="Cancelar"/>
+            </Grid>
+
+            <Border Background="#22282F" BorderBrush="#3A424C" BorderThickness="1" CornerRadius="8"
+                    Margin="0,18,0,0" Padding="10,7">
+                <PasswordBox x:Name="PassBox" Background="Transparent" BorderThickness="0"
+                             Foreground="White" FontSize="14" VerticalContentAlignment="Center"
+                             PasswordChar="*" />
+            </Border>
+
+            <TextBlock x:Name="ErrorText" Text="" Foreground="#FF6B6B" FontSize="12"
+                       Margin="0,8,0,0" TextWrapping="Wrap"/>
+
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Click="OnEnterClick" Content="Entrar" Cursor="Hand"
+                        Foreground="#1B1B1B" FontWeight="Bold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="#C9A227" CornerRadius="8" Padding="10,8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button Grid.Column="2" Click="OnCancelClick" Content="Cancelar" Cursor="Hand"
+                        Foreground="#C9D6CF">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="#2A3138" CornerRadius="8" Padding="10,8"
+                                    BorderBrush="#3A424C" BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#333B45"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+        </StackPanel>
+    </Border>
+</Window>

@@ -579,7 +579,7 @@ return new commission_dto
         {
             return db_context.note_types
                 .AsNoTracking()
-                .Where(t => t.code == "MAR")
+                .Where(t => t.code == "MAR" || t.code == "PVP")
                 .Select(t => t.id_note_type)
                 .ToListAsync();
         }

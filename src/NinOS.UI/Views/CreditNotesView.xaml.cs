@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -71,7 +71,16 @@ namespace NinOS.UI.Views
         {
             if (vm == null) return;
 
-            var window = new AddCreditNoteWindow(vm, vm.selected_month)
+            string? initial_seller = vm.selected_tab_index switch
+            {
+                1 => "Sandra",
+                2 => "Anais",
+                3 => "Alejandra",
+                4 => "Juan Luis",
+                _ => null
+            };
+
+            var window = new AddCreditNoteWindow(vm, vm.selected_month, initial_seller)
             {
                 Owner = Window.GetWindow(this)
             };

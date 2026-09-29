@@ -134,10 +134,11 @@
                           FontSize="12.5" Height="26"
                           HorizontalContentAlignment="Center"/>
 
-                <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
+                <Button x:Name="btn_reporte" Content="Reporte" Background="#1B3A2D" Foreground="White"
                         Margin="0,0,0,6" VerticalAlignment="Center"
                         FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding month_report_command}" FontSize="12.5">
+                        FontSize="12.5" ToolTip="Reporte de ventas del mes"
+                        Click="on_reporte_click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
@@ -152,6 +153,48 @@
                     </Button.Template>
                 </Button>
         </WrapPanel>
+
+        <!-- MINI MENU DE REPORTE -->
+        <Popup x:Name="popup_reporte"
+               PlacementTarget="{Binding ElementName=btn_reporte}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border x:Name="panel_reporte"
+                    Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="4"
+                    Padding="12,10" Width="270">
+                <StackPanel>
+                    <TextBlock Text="REPORTE DE VENTAS" FontSize="11" FontWeight="Bold"
+                               Foreground="#00897B"/>
+                    <TextBlock Text="Se usara el mes y la sub-pestana de vendedor ya seleccionados."
+                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,9"/>
+
+                    <TextBlock Text="TIPO DE NOTA" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                    <ComboBox ItemsSource="{Binding report_type_options}"
+                              SelectedItem="{Binding selected_report_type, Mode=TwoWay}"
+                              FontSize="12" Height="25" Cursor="Hand"/>
+
+                    <Button Content="Descargar PDF"
+                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                            FontSize="12.5" Height="30" BorderThickness="0" Cursor="Hand"
+                            Margin="0,12,0,0" Click="on_descargar_sales_report_click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <!-- FILA 1: TABS DE VENDEDORAS -->
         <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4">
@@ -192,6 +235,8 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
@@ -279,6 +324,8 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -363,6 +410,8 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
@@ -449,6 +498,8 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -532,6 +583,8 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yy}" Width="70"
+                          ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>

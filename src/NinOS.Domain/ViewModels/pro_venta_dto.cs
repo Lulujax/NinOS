@@ -31,6 +31,8 @@ namespace NinOS.Domain.ViewModels
         public decimal commission_luis { get; set; }
         public decimal gastos_25 { get; set; }
         public decimal gastos_15 { get; set; }
+        public string payment_date_display { get; set; } = string.Empty;
+        public string payment_method_display { get; set; } = string.Empty;
     }
 
     public class pro_venta_relation_row
@@ -48,8 +50,23 @@ namespace NinOS.Domain.ViewModels
         public string relation_label => $"NRO {relation_number} ({week_start:dd/MM} AL {week_end:dd/MM})";
     }
 
+    public class pro_venta_relation_option
+    {
+        public int id_relacion { get; set; }
+        public int relation_number { get; set; }
+        public DateTime week_start { get; set; }
+        public DateTime week_end { get; set; }
+        public string label { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return label;
+        }
+    }
+
     public class pro_venta_weekly_dto
     {
+        public int id_relacion { get; set; }
         public int relation_number { get; set; }
         public DateTime week_start { get; set; }
         public DateTime week_end { get; set; }

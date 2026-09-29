@@ -71,6 +71,12 @@ namespace NinOS.Domain
             }
         }
 
+        public bool is_active { get; set; } = true;
+
+        public DateTime? deleted_at { get; set; }
+
+        public string? deleted_reason { get; set; }
+
         protected product()
         {
             _product_code = "-";
@@ -85,6 +91,7 @@ namespace NinOS.Domain
             this.category = category;
             this.unit_price_usd = unit_price_usd;
             this.stock_quantity = stock_quantity;
+            is_active = true;
         }
     }
 }
