@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using NinOS.UI.Common.ViewModels;
 using NinOS.UI.Common;
+using NinOS.Infrastructure.Logging;
 
 namespace NinOS.UI.Views
 {
@@ -99,20 +100,30 @@ namespace NinOS.UI.Views
                     var promo_history = await view_model.get_promotion_history_async(dto.promo_ref.id_promotion);
 
                     var promo_window = new PromotionSalesHistoryWindow(dto.promo_ref, promo_history);
-                    promo_window.Owner = Window.GetWindow(this);
+                    promo_window.Owner = Window.GetWindow(this) ?? Application.Current.MainWindow;
                     promo_window.ShowDialog();
+                    return;
+                }
+
+                if (dto.product_ref == null)
+                {
+                    AppDialog.Show("No se encontró la información del producto.\nCierra la pantalla y vuelve a abrirla.", "No se pudo ver el historial");
                     return;
                 }
 
                 var history = await view_model.get_product_history_async(dto.product_ref.id_product);
 
                 var window = new ProductSalesHistoryWindow(dto.product_ref, history);
-                window.Owner = Window.GetWindow(this);
+                window.Owner = Window.GetWindow(this) ?? Application.Current.MainWindow;
                 window.ShowDialog();
             }
             catch (System.Exception ex)
             {
-                AppDialog.Show($"Error al cargar el historial: {ErrorText.Get(ex)}", "Error");
+                AppLog.Error($"Historial de producto: no se pudo abrir para '{dto.item_name}'.", ex);
+                AppDialog.Show(
+                    "No se pudo abrir el historial.\n\n" + ErrorText.Get(ex, "historial de producto") +
+                    "\n\nCierra la pantalla de Inventario, ábrela de nuevo e inténtalo otra vez.",
+                    "No se pudo ver el historial");
             }
         }
     }

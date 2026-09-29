@@ -203,64 +203,6 @@ namespace NinOS.UI.Views
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // ============ Purgar (borrado definitivo) ============
-
-        private async void OnPurgeCustomerClick(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is not deleted_customer_row row) return;
-
-            MessageBoxResult confirm = AppDialog.Show(
-                $"¿Borrar DEFINITIVAMENTE el cliente \"{row.business_name}\" ({row.code}) de la base de datos?\n\nEsta accion no se puede deshacer. Si tiene notas, creditos o movimientos, se mostrara un aviso y se conservara en la papelera.",
-                "Purgar cliente",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes) return;
-
-            try
-            {
-                if (_customer_service != null) await _customer_service.PurgeCustomerAsync(row.id_customer);
-                await load_customers_async();
-                AppDataEvents.raise_catalogs_changed();
-            }
-            catch (InvalidOperationException ex)
-            {
-                AppDialog.Show(ex.Message, "No se pudo purgar", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show($"No se pudo purgar el cliente: {ErrorText.Get(ex)}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async void OnPurgeProductClick(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is not deleted_product_row row) return;
-
-            MessageBoxResult confirm = AppDialog.Show(
-                $"¿Borrar DEFINITIVAMENTE el producto \"{row.name}\" ({row.code}) de la base de datos?\n\nEsta accion no se puede deshacer. Si tiene notas, creditos, promociones o kardex, se mostrara un aviso y se conservara en la papelera.",
-                "Purgar producto",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes) return;
-
-            try
-            {
-                if (_inventory_service != null) await _inventory_service.purge_product_async(row.id_product);
-                await load_products_async();
-                AppDataEvents.raise_catalogs_changed();
-            }
-            catch (InvalidOperationException ex)
-            {
-                AppDialog.Show(ex.Message, "No se pudo purgar", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show($"No se pudo purgar el producto: {ErrorText.Get(ex)}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         // ============ Backup ============
 
         private async void OnBackupNowClick(object sender, RoutedEventArgs e)

@@ -9,7 +9,7 @@ namespace NinOS.UI.Common
     /// </summary>
     public static class AppDataEvents
     {
-        /// <summary>Clientes o productos fueron eliminados, restaurados o purgados.</summary>
+        /// <summary>Clientes o productos fueron eliminados o restaurados.</summary>
         public static event Action? CatalogsChanged;
 
         public static void raise_catalogs_changed()

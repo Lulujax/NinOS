@@ -13,7 +13,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task update_product_async(product product_to_update);
         Task soft_delete_product_async(int id_product, string? reason);
         Task restore_product_async(int id_product);
-        Task purge_product_async(int id_product);
         Task<IEnumerable<promotion>> get_all_promotions_async();
         Task add_promotion_async(promotion new_promotion);
         Task update_promotion_async(promotion promotion_to_update);

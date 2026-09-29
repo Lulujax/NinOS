@@ -6,7 +6,11 @@ namespace NinOS.Infrastructure.Data
 {
     public static class DbConnectionFactory
     {
-        public const string DefaultConnectionString = "Host=82.39.109.158;Port=5432;Database=ninos_db;Username=ninos_admin;Password=1234;";
+        // Keepalive evita que el VPS corte las conexiones inactivas del pool y que
+        // la siguiente consulta falle con "connection closed" aunque haya internet.
+        public const string DefaultConnectionString =
+            "Host=82.39.109.158;Port=5432;Database=ninos_db;Username=ninos_admin;Password=1234;" +
+            "Timeout=15;Command Timeout=45;Keepalive=30;Pooling=true;Minimum Pool Size=2;Maximum Pool Size=30;";
 
         public static string GetConnectionString()
         {

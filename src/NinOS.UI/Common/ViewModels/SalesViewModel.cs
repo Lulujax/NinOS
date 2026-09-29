@@ -340,8 +340,9 @@ namespace NinOS.UI.Common.ViewModels
             return result.ToList();
         }
 
+        // La nota de promocion es el tipo PRM ("Promocion"). PVP es pro venta, no entra aqui.
         private static bool is_promotion_note(accounts_receivable_dto note) =>
-            string.Equals(note.note_type_code?.Trim(), "PVP", StringComparison.OrdinalIgnoreCase);
+            string.Equals(note.note_type_code?.Trim(), "PRM", StringComparison.OrdinalIgnoreCase);
 
         private int? get_selected_seller_id()
         {

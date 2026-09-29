@@ -101,7 +101,10 @@ namespace NinOS.UI
                         Dispatcher.BeginInvoke(() =>
                         {
                             log_startup_message("OnStartup exception", exception);
-                            AppDialog.Show(ErrorText.Get(exception) + "\n\nSe guardó el detalle en:\n" + _error_log_path, "error");
+                            AppDialog.Show(
+                                "NinOS no pudo iniciar.\n\n" + ErrorText.Get(exception) +
+                                "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
+                                "No se pudo iniciar NinOS");
                             Current.Shutdown();
                         });
                         return;
@@ -147,7 +150,10 @@ namespace NinOS.UI
             catch (Exception ex)
             {
                 log_startup_message("OnStartup exception", ex);
-                AppDialog.Show(ErrorText.Get(ex) + "\n\nSe guardó el detalle en:\n" + _error_log_path, "error");
+                AppDialog.Show(
+                    "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) +
+                    "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
+                    "No se pudo iniciar NinOS");
                 Current.Shutdown();
             }
         }

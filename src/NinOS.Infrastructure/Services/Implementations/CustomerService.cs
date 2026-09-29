@@ -135,28 +135,5 @@ namespace NinOS.Infrastructure.Services.Implementations
                 AppLog.Info($"Cliente {customer_to_restore.customer_code} restaurado desde la papelera.");
             }
         }
-
-        public async Task PurgeCustomerAsync(int id)
-        {
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                customer? target = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == id);
-                if (target == null) return;
-
-                bool has_references =
-                    await db_context.delivery_notes.AnyAsync(n => n.id_customer == id) ||
-                    await db_context.credit_notes.AnyAsync(n => n.id_customer == id) ||
-                    await db_context.stock_movements.AnyAsync(m => m.id_customer == id);
-
-                if (has_references)
-                    throw new InvalidOperationException(
-                        "No se puede borrar definitivamente: este cliente tiene notas, créditos o movimientos de kardex asociados.\nSe conservará en la papelera.");
-
-                db_context.customers.Remove(target);
-                await db_context.SaveChangesAsync();
-                AppLog.Info($"Cliente {target.customer_code} PURGADO definitivamente.");
-            }
-        }
     }
 }

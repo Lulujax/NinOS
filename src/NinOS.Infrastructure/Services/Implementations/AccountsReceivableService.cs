@@ -853,17 +853,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToListAsync();
         }
 
-        private static Task<List<int>> get_promotion_type_ids_async(NinOSDbContext db_context)
-        {
-            return db_context.note_types
-                .AsNoTracking()
-                .Where(t => t.code == "PVP")
-                .Select(t => t.id_note_type)
-                .ToListAsync();
-        }
-
-        public async Task<decimal?> get_sales_goal_async(DateTime year_month, int? id_seller = null)
-        {
+        public async Task<decimal?> get_sales_goal_async(DateTime year_month, int? id_seller = null)        {
             DateTime month_start = new DateTime(year_month.Year, year_month.Month, 1);
             using (var scope = _scope_factory.CreateScope())
             {

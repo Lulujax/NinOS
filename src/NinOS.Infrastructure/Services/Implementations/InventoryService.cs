@@ -128,31 +128,6 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task purge_product_async(int id_product)
-        {
-            using (IServiceScope scope = _scope_factory.CreateScope())
-            {
-                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-
-                product? target = await db_context.products.FirstOrDefaultAsync(p => p.id_product == id_product);
-                if (target == null) return;
-
-                bool has_references =
-                    await db_context.note_details.AnyAsync(d => d.id_product == id_product) ||
-                    await db_context.credit_note_details.AnyAsync(d => d.id_product == id_product) ||
-                    await db_context.promotion_items.AnyAsync(pi => pi.id_product == id_product) ||
-                    await db_context.stock_movements.AnyAsync(m => m.id_product == id_product);
-
-                if (has_references)
-                    throw new InvalidOperationException(
-                        "No se puede borrar definitivamente: este producto tiene líneas de notas, créditos, promociones o kardex asociados.\nSe conservará en la papelera.");
-
-                db_context.products.Remove(target);
-                await db_context.SaveChangesAsync();
-                AppLog.Info($"Producto {target.product_code} PURGADO definitivamente.");
-            }
-        }
-
         public async Task<IEnumerable<promotion>> get_all_promotions_async()
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
@@ -224,6 +199,13 @@ namespace NinOS.Infrastructure.Services.Implementations
         }
 
         public async Task<IEnumerable<product_sales_history_dto>> get_product_sales_history_async(int id_product)
+        {
+            return await with_connection_retry(
+                () => get_product_sales_history_intento_async(id_product),
+                "get_product_sales_history_async");
+        }
+
+        private async Task<IEnumerable<product_sales_history_dto>> get_product_sales_history_intento_async(int id_product)
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
@@ -302,6 +284,13 @@ namespace NinOS.Infrastructure.Services.Implementations
         }
 
         public async Task<IEnumerable<promotion_sales_history_dto>> get_promotion_sales_history_async(int id_promotion)
+        {
+            return await with_connection_retry(
+                () => get_promotion_sales_history_intento_async(id_promotion),
+                "get_promotion_sales_history_async");
+        }
+
+        private async Task<IEnumerable<promotion_sales_history_dto>> get_promotion_sales_history_intento_async(int id_promotion)
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
@@ -396,6 +385,54 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .ThenByDescending(r => r.id_delivery_note)
                     .ToList();
             }
+        }
+
+        /// <summary>
+        /// La base de datos esta en un VPS remoto. Cuando la conexion lleva un rato
+        /// sin usarse, el servidor o el firewall pueden cortarla y la primera consulta
+        /// falla aunque el internet este bien. En ese caso se reintenta una vez con una
+        /// conexion nueva antes de mostrarle el error al usuario.
+        /// </summary>
+        private static async Task<T> with_connection_retry<T>(Func<Task<T>> operacion, string origen)
+        {
+            for (int intento = 1; ; intento++)
+            {
+                try
+                {
+                    return await operacion();
+                }
+                catch (Exception ex) when (intento == 1 && is_error_de_conexion(ex))
+                {
+                    AppLog.Warn($"Conexion interrumpida en {origen}, se reintenta una vez. " +
+                                $"Detalle: {ex.GetType().Name}: {ex.Message}");
+                    await Task.Delay(700);
+                }
+            }
+        }
+
+        private static bool is_error_de_conexion(Exception exception)
+        {
+            Exception? actual = exception;
+            int depth = 0;
+
+            while (actual != null && depth < 8)
+            {
+                string tipo = actual.GetType().Name;
+                if (tipo.Contains("Npgsql") || tipo.Contains("Socket") ||
+                    tipo.Contains("Timeout") || tipo.Contains("IOException"))
+                    return true;
+
+                string mensaje = (actual.Message ?? string.Empty).ToLowerInvariant();
+                if (mensaje.Contains("connection") || mensaje.Contains("conexión") ||
+                    mensaje.Contains("conexion") || mensaje.Contains("timeout") ||
+                    mensaje.Contains("broken pipe") || mensaje.Contains("no such host"))
+                    return true;
+
+                actual = actual.InnerException;
+                depth++;
+            }
+
+            return false;
         }
     }
 }
