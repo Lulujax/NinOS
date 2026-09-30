@@ -404,9 +404,9 @@ namespace NinOS.Infrastructure.Data
                 product product_158 = new product("EST30612", "PEINE NEGRO CON EMPAQUE", "Estilista", 1.33m, 0);
                 product product_159 = new product("EST30615", "PORTA HILO DENTAL", "Estilista", 1.33m, 0);
                 product product_160 = new product("EST30616", "PEINE MARRON", "Estilista", 1.33m, 0);
-                product product_161 = new product("CUTI-001", "MEN SHAMPOO CUTIQUE CONTROL DE CASPA 300 ML", "Cutique", 0.00m, 0);
-                product product_162 = new product("CUTI-002", "MEN SHAMPOO CUTIQUE CONTROL DE CAIDA 300 ML", "Cutique", 0.00m, 0);
-                product product_163 = new product("CUTI-003", "MEN 3 EN 1 CARA, CUERPO Y CABELLO 300 ML", "Cutique", 0.00m, 0);
+                product product_161 = new product("CUT32001", "MEN SHAMPOO CUTIQUE CONTROL DE CASPA 300 ML", "Cutique", 0.00m, 0);
+                product product_162 = new product("CUT32002", "MEN SHAMPOO CUTIQUE CONTROL DE CAIDA 300 ML", "Cutique", 0.00m, 0);
+                product product_163 = new product("CUT32003", "MEN 3 EN 1 CARA, CUERPO Y CABELLO 300 ML", "Cutique", 0.00m, 0);
 
                 db_context.products.AddRange(product_1, product_2, product_3, product_4, product_5, product_6, product_7, product_8, product_9, product_10, product_11, product_12, product_13, product_14, product_15, product_16, product_17, product_18, product_19, product_20);
                 db_context.products.AddRange(product_21, product_22, product_23, product_24, product_25, product_26, product_27, product_28, product_29, product_30, product_31, product_32, product_33, product_34, product_35, product_36, product_37, product_38, product_39, product_40);
@@ -420,26 +420,26 @@ namespace NinOS.Infrastructure.Data
 
                 db_context.SaveChanges();
 
-                promotion promo_1 = new promotion("PROMO-BLANCA-001", "PROMO 2 X 1 LINEA BLANCA TRICOMPLEX CON ACIDO HIALURONICO - CHAMPO 2 X 1", "Defile", 5.90m);
-                promotion promo_2 = new promotion("PROMO-BLANCA-002", "PROMO 2 X 1 CEBOLLA MORADA - AMAZONIA CHAMPO CEBOLLA MORADA 2 X 1", "Amazonia Secret", 5.90m);
-                promotion promo_3 = new promotion("PROMO-ROSA-001", "PROMO 2 X 1 TRICOMPLEX MATIZADOR - PRE-TRATAMIENTO MATIZADOR TRICOMPLEX CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
-                promotion promo_4 = new promotion("PROMO-ROSA-002", "PROMO 2 X 1 REGULADOR - PRE-TRATAMIENTO REGULADOR DE GRASA CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
-                promotion promo_5 = new promotion("PROMO-ROSA-003", "PROMO 2 X 1 ACIDO HIALURONICO - PRE-TRATAMIENTO ACIDO HIALURONICO CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
-                promotion promo_6 = new promotion("PROMO-ROSA-004", "PROMO 2 X 1 ARGAN - PRE-TRATAMIENTO ARGAN CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
-                promotion promo_7 = new promotion("PROMO-ROSA-005", "PROMO 2 X 1 TRICOMPLEX VITAMINA E - PRE-TRATAMIENTO TRICOMPLEX VITAMINA E CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
-                promotion promo_8 = new promotion("PROMO-ROSA-006", "PROMO 2 X 1 K BOTROX - PRE-TRATAMIENTO K BOTROX CHAMPO Y ACONDICIONADOR", "Defile", 5.90m);
-                promotion promo_9 = new promotion("PROMO-CERA-001", "CERA LATA MANZANA VERDE (DEPIL CLEAR)", "Depil Clear", 8.00m);
-                promotion promo_10 = new promotion("PROMO-CERA-002", "CERA LATA MIEL BANANA (DEPIL CLEAR)", "Depil Clear", 8.00m);
-                promotion promo_11 = new promotion("PROMO-CERA-003", "CERA LATA TALCO (DEPIL CLEAR)", "Depil Clear", 8.00m);
-                promotion promo_12 = new promotion("PROMO-OLEOS-001", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL FRIZZ + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_13 = new promotion("PROMO-OLEOS-002", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL CASPA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_14 = new promotion("PROMO-OLEOS-003", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL DE CAIDA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_15 = new promotion("PROMO-OLEOS-004", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RESTAURADOR + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_16 = new promotion("PROMO-OLEOS-005", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CUIDADO DIARIO + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_17 = new promotion("PROMO-OLEOS-006", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RIZOS + CREMA DE OBSEQUIO", "Oleos", 12.80m);
-                promotion promo_18 = new promotion("OFERTA-DEPIL-001", "OFERTA DEPICLEAR - ACEITE VARIADOS 240 ML", "Depil Clear", 2.50m);
-                promotion promo_19 = new promotion("OFERTA-KEDAM-001", "OFERTA KEDAM - SHAMPO KEDAM VARIO 360 ML", "Kedam", 2.50m);
-                promotion promo_20 = new promotion("OFERTA-POLVO-001", "OFERTA POLVO - POLVO DECOLORANTE DEFILE 200GR", "Defile", 8.50m);
+                promotion promo_1 = new promotion("OF00001", "PROMO 2 X 1 LINEA BLANCA TRICOMPLEX CON ACIDO HIALURONICO - CHAMPO 2 X 1", "Defile", 5.90m);
+                promotion promo_2 = new promotion("OF00002", "PROMO 2 X 1 CEBOLLA MORADA - AMAZONIA CHAMPO CEBOLLA MORADA 2 X 1", "Amazonia Secret", 5.90m);
+                promotion promo_3 = new promotion("COM00001", "PROMO 2 X 1 TRICOMPLEX MATIZADOR - PRE-TRATAMIENTO MATIZADOR TRICOMPLEX CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
+                promotion promo_4 = new promotion("COM00002", "PROMO 2 X 1 REGULADOR - PRE-TRATAMIENTO REGULADOR DE GRASA CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
+                promotion promo_5 = new promotion("COM00003", "PROMO 2 X 1 ACIDO HIALURONICO - PRE-TRATAMIENTO ACIDO HIALURONICO CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
+                promotion promo_6 = new promotion("COM00004", "PROMO 2 X 1 ARGAN - PRE-TRATAMIENTO ARGAN CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
+                promotion promo_7 = new promotion("COM00005", "PROMO 2 X 1 TRICOMPLEX VITAMINA E - PRE-TRATAMIENTO TRICOMPLEX VITAMINA E CHAMPO Y BAÑO DE CREMA", "Defile", 5.90m);
+                promotion promo_8 = new promotion("COM00006", "PROMO 2 X 1 K BOTROX - PRE-TRATAMIENTO K BOTROX CHAMPO Y ACONDICIONADOR", "Defile", 5.90m);
+                promotion promo_9 = new promotion("OF00003", "CERA LATA MANZANA VERDE (DEPIL CLEAR)", "Depil Clear", 8.00m);
+                promotion promo_10 = new promotion("OF00004", "CERA LATA MIEL BANANA (DEPIL CLEAR)", "Depil Clear", 8.00m);
+                promotion promo_11 = new promotion("OF00005", "CERA LATA TALCO (DEPIL CLEAR)", "Depil Clear", 8.00m);
+                promotion promo_12 = new promotion("COM00007", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL FRIZZ + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_13 = new promotion("COM00008", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL CASPA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_14 = new promotion("COM00009", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CONTROL DE CAIDA + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_15 = new promotion("COM00010", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RESTAURADOR + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_16 = new promotion("COM00011", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR CUIDADO DIARIO + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_17 = new promotion("COM00012", "PROMO 3 X 2 OLEOS - SHAMPOO Y ACONDICIONADOR RIZOS + CREMA DE OBSEQUIO", "Oleos", 12.80m);
+                promotion promo_18 = new promotion("OF00006", "OFERTA DEPICLEAR - ACEITE VARIADOS 240 ML", "Depil Clear", 2.50m);
+                promotion promo_19 = new promotion("OF00007", "OFERTA KEDAM - SHAMPO KEDAM VARIO 360 ML", "Kedam", 2.50m);
+                promotion promo_20 = new promotion("OF00008", "OFERTA POLVO - POLVO DECOLORANTE DEFILE 200GR", "Defile", 8.50m);
 
                 db_context.promotions.AddRange(promo_1, promo_2, promo_3, promo_4, promo_5, promo_6, promo_7, promo_8, promo_9, promo_10, promo_11, promo_12, promo_13, promo_14, promo_15, promo_16, promo_17, promo_18, promo_19, promo_20);
 

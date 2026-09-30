@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
 {
@@ -13,12 +14,39 @@ namespace NinOS.UI.Views
         {
             InitializeComponent();
 
-            PromoNameText.Text = promotion.name;
-            PromoCodeText.Text = promotion.promotion_code;
-            PromoCategoryText.Text = promotion.category;
+            PromoNameText.Text = promotion.name ?? string.Empty;
+            PromoCodeText.Text = promotion.promotion_code ?? string.Empty;
+            PromoCategoryText.Text = promotion.category ?? string.Empty;
             PromoPriceText.Text = promotion.unit_price_usd.ToString("N2");
 
-            var list = history.ToList();
+            var componentes = promotion.items?
+                .Where(i => i != null && i.product != null && i.quantity_required > 0)
+                .ToList() ?? new List<promotion_item>();
+
+            bool es_oferta_individual = componentes.Count == 1 && componentes[0].quantity_required == 1;
+            PromoTypeText.Text = InventoryViewModel.promo_type_name(
+                InventoryViewModel.promo_type_from_code(promotion.promotion_code, componentes.Count, es_oferta_individual));
+
+            // Muestra de que esta compuesta la promocion.
+            var lineas = componentes
+                .Select(i =>
+                {
+                    string codigo = string.IsNullOrWhiteSpace(i.product!.product_code) ? "" : i.product.product_code!;
+                    string nombre = string.IsNullOrWhiteSpace(i.product.name) ? codigo : i.product.name!;
+                    return i.quantity_required + " x  " + nombre.Trim() + (string.IsNullOrWhiteSpace(codigo) ? "" : "   (" + codigo + ")");
+                })
+                .ToList();
+
+            if (lineas.Count == 0)
+            {
+                CompositionEmptyText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CompositionItems.ItemsSource = lineas;
+            }
+
+            var list = history?.ToList() ?? new List<promotion_sales_history_dto>();
             HistoryGrid.ItemsSource = list;
         }
 

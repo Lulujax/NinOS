@@ -30,16 +30,27 @@ namespace NinOS.UI.Common.ViewModels
         public bool is_default_combo { get; set; }
         public product? product_ref { get; set; }
         public promotion? promo_ref { get; set; }
+        public string promo_type_display { get; set; } = string.Empty;
     }
 
     public class promo_builder_item : ViewModelBase
     {
         private int _quantity = 1;
+        private bool _quantity_editable = true;
+
         public product? product_ref { get; set; }
         public int quantity
         {
             get { return _quantity; }
             set { _quantity = value; on_property_changed(); }
+        }
+
+        // En "Producto Individual en Oferta" la cantidad siempre es 1, por eso
+        // la celda se muestra bloqueada.
+        public bool quantity_editable
+        {
+            get { return _quantity_editable; }
+            set { _quantity_editable = value; on_property_changed(); }
         }
     }
 
@@ -72,9 +83,16 @@ namespace NinOS.UI.Common.ViewModels
 
     public class InventoryViewModel : ViewModelBase
     {
+        // Codigos de promocion con el mismo formato correlativo de los productos: prefijo + 5 digitos.
+        public const string promo_prefix_oferta = "OF";
+        public const string promo_prefix_kit = "KIT";
+        public const string promo_prefix_combo = "COM";
+        private const int promo_code_digits = 5;
+
         private readonly IInventoryService _inventory_service;
         private List<product> _all_products_source;
         private List<promotion> _all_promotions_source;
+        private HashSet<string> _trashed_promotion_codes = new(StringComparer.Ordinal);
         private product? _product_being_edited;
         private promotion? _promotion_being_edited;
         private string _error_message = string.Empty;
@@ -91,7 +109,6 @@ namespace NinOS.UI.Common.ViewModels
 
         private int _promo_type_index = 0;
         private string _promo_search_query = string.Empty;
-        private product? _selected_promo_product;
         private string _new_promo_name = string.Empty;
         private string _new_promo_price = string.Empty;
         private bool _all_brands_selected = true;
@@ -115,6 +132,12 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<product> promo_search_results { get; }
         public ObservableCollection<promo_builder_item> builder_items { get; }
 
+        public bool is_editing_promotion => _promotion_being_edited != null;
+
+        // En oferta individual solo cabe un producto: cuando ya hay uno en la
+        // tabla se oculta el boton Agregar y hay que quitarlo con la X primero.
+        public bool can_add_products => _promo_type_index != 0 || builder_items.Count == 0;
+
         public ICommand open_add_window_command { get; }
         public ICommand save_product_command { get; }
         public ICommand edit_command { get; }
@@ -136,6 +159,8 @@ namespace NinOS.UI.Common.ViewModels
         {
             get { return _selected_tab_index == 0; }
         }
+
+        public bool is_editing_product => _product_being_edited != null;
 
         public string ErrorMessage
         {
@@ -215,19 +240,18 @@ namespace NinOS.UI.Common.ViewModels
         public int promo_type_index
         {
             get { return _promo_type_index; }
-            set { _promo_type_index = value; on_property_changed(); }
+            set
+            {
+                _promo_type_index = value;
+                on_property_changed();
+                refresh_builder_state();
+            }
         }
 
         public string promo_search_query
         {
             get { return _promo_search_query; }
             set { _promo_search_query = value; on_property_changed(); filter_promo_search(); }
-        }
-
-        public product? selected_promo_product
-        {
-            get { return _selected_promo_product; }
-            set { _selected_promo_product = value; on_property_changed(); }
         }
 
         public string new_promo_name
@@ -294,7 +318,7 @@ namespace NinOS.UI.Common.ViewModels
             promociones_list = new ObservableCollection<inventory_item_dto>();
             
             promo_search_results = new ObservableCollection<product>();
-            builder_items = new ObservableCollection<promo_builder_item>();
+        builder_items = new ObservableCollection<promo_builder_item>();
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
             save_product_command = new RelayCommand(execute_save_product);
@@ -326,6 +350,8 @@ namespace NinOS.UI.Common.ViewModels
                 IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
                 _all_promotions_source = promotions.ToList();
 
+                await load_trashed_promotion_codes_async();
+
                 filter_data();
             }
             catch (Exception ex)
@@ -348,10 +374,28 @@ namespace NinOS.UI.Common.ViewModels
                 IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
                 _all_promotions_source = promotions.ToList();
 
+                await load_trashed_promotion_codes_async();
+
                 filter_data();
             }
             catch (Exception)
             {
+            }
+        }
+
+        private async Task load_trashed_promotion_codes_async()
+        {
+            try
+            {
+                IEnumerable<promotion> deleted_promos = await _inventory_service.get_deleted_promotions_async();
+                _trashed_promotion_codes = deleted_promos
+                    .Select(p => p.promotion_code ?? string.Empty)
+                    .Where(c => !string.IsNullOrWhiteSpace(c))
+                    .ToHashSet();
+            }
+            catch (Exception)
+            {
+                _trashed_promotion_codes.Clear();
             }
         }
 
@@ -395,7 +439,7 @@ namespace NinOS.UI.Common.ViewModels
             ["Kedam"] = "KED",
             ["Depil Clear"] = "DEP",
             ["Estilista"] = "EST",
-            ["Cutique"] = "CUTI-",
+            ["Cutique"] = "CUT",
             ["Otros"] = "OTR"
         };
 
@@ -424,8 +468,110 @@ namespace NinOS.UI.Common.ViewModels
             return prefix + (max_number + 1).ToString(new string('0', digit_count));
         }
 
-        private void assign_row_numbers(ObservableCollection<inventory_item_dto> target_list)
+        // 0 = Oferta de un producto, 1 = Kit, 2 = Combo.
+        public static string promo_prefix_for_type(int type_index)
         {
+            if (type_index == 0) return promo_prefix_oferta;
+            if (type_index == 1) return promo_prefix_kit;
+            return promo_prefix_combo;
+        }
+
+        public static string promo_type_name(int type_index)
+        {
+            if (type_index == 0) return "Oferta";
+            if (type_index == 1) return "Kit";
+            return "Combo";
+        }
+
+        public static bool promo_code_is_type(string? code, int type_index)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return false;
+
+            string prefix = promo_prefix_for_type(type_index);
+            if (!code!.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
+
+            string suffix = code.Substring(prefix.Length);
+            if (suffix.Length != promo_code_digits) return false;
+
+            foreach (char c in suffix)
+            {
+                if (!char.IsDigit(c)) return false;
+            }
+
+            return true;
+        }
+
+        public static bool promo_is_oferta(string? code) => promo_code_is_type(code, 0);
+
+        public static bool promo_is_kit(string? code) => promo_code_is_type(code, 1);
+
+        public static bool promo_is_combo(string? code) => promo_code_is_type(code, 2);
+
+        /// <summary>
+        /// Devuelve el tipo de una promocion a partir de su codigo. Si el codigo no
+        /// sigue el formato nuevo (prefijo + 5 digitos) se deduce de sus componentes.
+        /// </summary>
+        public static int promo_type_from_code(string? code, int cantidad_componentes, bool componentes_de_uno)
+        {
+            if (promo_code_is_type(code, 1)) return 1;
+            if (promo_code_is_type(code, 2)) return 2;
+            if (promo_code_is_type(code, 0)) return 0;
+
+            // Codigos del formato anterior (C-KIT-XXXX, C-COMBO-XXXX, C-PROMO-XXXX).
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                if (code!.StartsWith("C-KIT-", StringComparison.OrdinalIgnoreCase)) return 1;
+                if (code.StartsWith("C-COMBO-", StringComparison.OrdinalIgnoreCase)) return 2;
+                if (code.StartsWith("C-PROMO-", StringComparison.OrdinalIgnoreCase)) return 0;
+            }
+
+            return componentes_de_uno ? 0 : (cantidad_componentes > 1 ? 2 : 0);
+        }
+
+        private string generate_next_promotion_code(int type_index)
+        {
+            string prefix = promo_prefix_for_type(type_index);
+            int max_number = 0;
+
+            foreach (promotion p in _all_promotions_source)
+            {
+                if (p == null) continue;
+                if (!promo_code_is_type(p.promotion_code, type_index)) continue;
+
+                string suffix = p.promotion_code!.Substring(prefix.Length);
+                if (int.TryParse(suffix, out int value) && value > max_number)
+                {
+                    max_number = value;
+                }
+            }
+
+            // Las promociones en la papelera conservan su codigo, asi que tambien cuentan
+            // para el correlativo: si no, una nueva promocion chocaria con el indice unico
+            // cuando se restaure la anterior.
+            if (_trashed_promotion_codes.Count > 0)
+            {
+                foreach (string trashed_code in _trashed_promotion_codes)
+                {
+                    if (!promo_code_is_type(trashed_code, type_index)) continue;
+
+                    string suffix = trashed_code.Substring(prefix.Length);
+                    if (int.TryParse(suffix, out int value) && value > max_number)
+                    {
+                        max_number = value;
+                    }
+                }
+            }
+
+            int next_number = max_number + 1;
+            while (_trashed_promotion_codes.Contains(prefix + next_number.ToString(new string('0', promo_code_digits))))
+            {
+                next_number++;
+            }
+
+            return prefix + next_number.ToString(new string('0', promo_code_digits));
+        }
+
+        private void assign_row_numbers(ObservableCollection<inventory_item_dto> target_list)        {
             int row = 1;
             foreach (inventory_item_dto item in target_list)
             {
@@ -542,23 +688,14 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 if (calculated_available <= 0) continue;
 
-                string display_code = p.promotion_code.Replace("C-PROMO-", "").Replace("C-KIT-", "KIT-").Replace("C-COMBO-", "COMBO-");
+                string display_code = p.promotion_code ?? string.Empty;
 
-                inventory_item_dto new_dto = new inventory_item_dto
-                {
-                    id_display = p.id_promotion.ToString(),
-                    item_code = display_code,
-                    item_name = p.name,
-                    item_category = "Promociones",
-                    item_quantity = calculated_available.ToString(),
-                    item_price = p.unit_price_usd,
-                    is_promotion = true,
-                    is_default_combo = false,
-                    promo_ref = p
-                };
+                inventory_item_dto new_dto = create_promotion_dto(p, display_code, calculated_available);
+                new_dto.promo_type_display = promo_type_name(
+                    promo_type_from_code(p.promotion_code, p.items.Count, false));
 
-                todos_list.Add(create_promotion_dto(p, display_code, calculated_available));
-                promociones_list.Add(create_promotion_dto(p, display_code, calculated_available));
+                todos_list.Add(new_dto);
+                promociones_list.Add(new_dto);
             }
 
             assign_row_numbers(todos_list);
@@ -600,9 +737,11 @@ namespace NinOS.UI.Common.ViewModels
             if (_selected_tab_index == 11)
             {
                 _promotion_being_edited = null;
-                promo_type_index = 0;
-                promo_search_query = string.Empty;
-                selected_promo_product = null;
+                on_property_changed(nameof(is_editing_promotion));
+                _promo_type_index = 0;
+                on_property_changed(nameof(promo_type_index));
+                _promo_search_query = string.Empty;
+                on_property_changed(nameof(promo_search_query));
                 new_promo_name = string.Empty;
                 new_promo_price = string.Empty;
                 promo_search_results.Clear();
@@ -619,6 +758,7 @@ namespace NinOS.UI.Common.ViewModels
             update_category_from_tab();
             new_code = generate_next_product_code(new_category);
             on_property_changed(nameof(can_edit_category));
+            on_property_changed(nameof(is_editing_product));
             on_request_add_window?.Invoke();
         }
 
@@ -633,6 +773,7 @@ namespace NinOS.UI.Common.ViewModels
                 new_quantity = dto.product_ref.stock_quantity.ToString();
                 new_price = dto.product_ref.unit_price_usd.ToString();
                 on_property_changed(nameof(can_edit_category));
+                on_property_changed(nameof(is_editing_product));
                 on_request_add_window?.Invoke();
             }
         }
@@ -642,37 +783,52 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is inventory_item_dto dto && dto.is_promotion && dto.promo_ref != null)
             {
                 _promotion_being_edited = dto.promo_ref;
+                on_property_changed(nameof(is_editing_promotion));
+
                 new_promo_name = dto.promo_ref.name;
                 new_promo_price = dto.promo_ref.unit_price_usd.ToString();
-                
+
                 builder_items.Clear();
-                
-                if (dto.promo_ref.items != null && dto.promo_ref.items.Count == 1 && dto.promo_ref.items.First().quantity_required == 1)
+                _promo_search_query = string.Empty;
+                on_property_changed(nameof(promo_search_query));
+                promo_search_results.Clear();
+
+                var componentes = dto.promo_ref.items?
+                    .Where(i => i != null && i.product != null && i.quantity_required > 0)
+                    .ToList() ?? new List<promotion_item>();
+
+                foreach (promotion_item item in componentes)
                 {
-                    promo_type_index = 0;
-                    promotion_item item = dto.promo_ref.items.First();
-                    selected_promo_product = _all_products_source.FirstOrDefault(p => p.id_product == item.id_product);
-                }
-                else
-                {
-                    promo_type_index = 2;
-                    if (dto.promo_ref.items != null)
+                    builder_items.Add(new promo_builder_item
                     {
-                        foreach (promotion_item item in dto.promo_ref.items)
-                        {
-                            if (item.product != null)
-                            {
-                                builder_items.Add(new promo_builder_item { 
-                                    product_ref = item.product, 
-                                    quantity = item.quantity_required 
-                                });
-                            }
-                        }
-                    }
+                        product_ref = item.product,
+                        quantity = item.quantity_required
+                    });
                 }
-                
+
+                bool es_oferta_individual = componentes.Count == 1 && componentes[0].quantity_required == 1;
+                _promo_type_index = promo_type_from_code(
+                    dto.promo_ref.promotion_code, componentes.Count, es_oferta_individual);
+                on_property_changed(nameof(promo_type_index));
+                refresh_builder_state();
+
                 on_request_add_promotion_window?.Invoke();
             }
+        }
+
+        // Al cambiar de tipo, la oferta individual se queda con un solo producto
+        // y con cantidad 1, por lo que la celda de cantidad se bloquea.
+        private void refresh_builder_state()
+        {
+            bool es_oferta_individual = _promo_type_index == 0;
+
+            foreach (promo_builder_item item in builder_items)
+            {
+                item.quantity_editable = !es_oferta_individual;
+                if (es_oferta_individual) item.quantity = 1;
+            }
+
+            on_property_changed(nameof(can_add_products));
         }
 
         private void on_brand_option_changed()
@@ -746,19 +902,21 @@ namespace NinOS.UI.Common.ViewModels
 
                     string raw = promo.promotion_code ?? string.Empty;
 
-                    // Las ofertas temporales (C-PROMO-) no son precios de lista estandar.
-                    if (raw.StartsWith("C-PROMO-", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    // Solo kits y combos (productos empaquetados con precio fijo).
-                    bool is_kit = raw.StartsWith("C-KIT-", StringComparison.OrdinalIgnoreCase);
-                    bool is_combo = raw.StartsWith("C-COMBO-", StringComparison.OrdinalIgnoreCase);
-                    if (!is_kit && !is_combo) continue;
+                    // Las ofertas no son precios de lista estandar.
+                    if (promo_is_oferta(raw)) continue;
 
                     if (promo.unit_price_usd <= 0) continue;
 
-                    string code = is_kit
-                        ? "KIT-" + raw.Substring("C-KIT-".Length)
-                        : "COMBO-" + raw.Substring("C-COMBO-".Length);
+                    // Solo kits y combos (productos empaquetados con precio fijo). Si el
+                    // codigo viene del formato antiguo se deduce de la composicion.
+                    int tipo = promo_type_from_code(
+                        raw,
+                        promo.items?.Count ?? 0,
+                        promo.items != null && promo.items.Count == 1 && promo.items[0].quantity_required == 1);
+
+                    if (tipo == 0) continue;
+
+                    string code = raw;
 
                     var brands = promo.items
                         .Select(i => string.IsNullOrWhiteSpace(i.product!.category) ? "Otros" : i.product!.category!)
@@ -799,11 +957,27 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
 
-            MessageBoxResult confirm = AppDialog.Show(
-                $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?",
-                "Confirmar eliminación",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+            List<promotion> affected_promos = new();
+            try
+            {
+                affected_promos = (await _inventory_service.get_promotions_using_product_async(dto.product_ref.id_product)).ToList();
+            }
+            catch (Exception)
+            {
+                // Si no se pueden consultar, se sigue con el aviso normal de siempre.
+            }
+
+            string mensaje = $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?";
+            if (affected_promos.Count > 0)
+            {
+                string lista = string.Join("\n", affected_promos.Select(p => $"   • {p.promotion_code} — {p.name}"));
+                mensaje += $"\n\nEste producto forma parte de {affected_promos.Count} promoción(es) activa(s):\n{lista}\n\n" +
+                           "Esas promociones también se eliminarán, porque sin el producto no se pueden vender. " +
+                           "Si solo querías quitar el producto de la promoción, edita la promoción y quítalo de su composición.";
+            }
+
+            MessageBoxResult confirm = AppDialog.Show(mensaje, "Confirmar eliminación",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (confirm != MessageBoxResult.Yes) return;
 
             try
@@ -811,6 +985,18 @@ namespace NinOS.UI.Common.ViewModels
                 await _inventory_service.soft_delete_product_async(dto.product_ref.id_product, null);
                 load_initial_data_async();
                 AppDataEvents.raise_catalogs_changed();
+
+                if (affected_promos.Count > 0)
+                {
+                    AppDialog.Show(
+                        $"Producto eliminado exitosamente.\n\nTambién se eliminaron {affected_promos.Count} promoción(es) que lo usaban.",
+                        "Exito", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    AppDialog.Show("Producto eliminado exitosamente.", "Exito",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
@@ -824,7 +1010,7 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is not inventory_item_dto dto || !dto.is_promotion || dto.promo_ref == null) return;
 
             MessageBoxResult confirm = AppDialog.Show(
-                $"¿Seguro de eliminar la promoción \"{dto.promo_ref.name}\"?",
+                $"¿Seguro de eliminar la promoción \"{dto.promo_ref.name}\" ({dto.promo_ref.promotion_code})?",
                 "Confirmar eliminación",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -832,13 +1018,11 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                await _inventory_service.delete_promotion_async(dto.promo_ref);
+                await _inventory_service.soft_delete_promotion_async(dto.promo_ref.id_promotion, null);
                 load_initial_data_async();
-            }
-            catch (InvalidOperationException ex)
-            {
-                ErrorMessage = ErrorText.Get(ex);
-                AppDialog.Show(ErrorText.Get(ex), "No se puede eliminar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDataEvents.raise_catalogs_changed();
+                AppDialog.Show("Promoción eliminada exitosamente.", "Exito",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -883,9 +1067,16 @@ namespace NinOS.UI.Common.ViewModels
                     await _inventory_service.add_product_async(new_prod);
                 }
 
+                bool era_edicion = _product_being_edited != null;
                 _product_being_edited = null;
+                on_property_changed(nameof(is_editing_product));
                 load_initial_data_async();
                 on_close_add_window?.Invoke();
+                AppDialog.Show(
+                    era_edicion ? "Producto actualizado exitosamente." : "Producto creado exitosamente.",
+                    "Exito",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -895,10 +1086,21 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_add_to_builder(object? parameter)
         {
-            if (parameter is product prod && !builder_items.Any(i => i.product_ref != null && i.product_ref.id_product == prod.id_product))
+            if (parameter is not product prod) return;
+
+            if (_promo_type_index == 0)
             {
-                builder_items.Add(new promo_builder_item { product_ref = prod });
+                // Oferta individual: una sola pieza, agregar otra reemplaza la anterior.
+                builder_items.Clear();
+                builder_items.Add(new promo_builder_item { product_ref = prod, quantity = 1 });
+                refresh_builder_state();
+                return;
             }
+
+            if (builder_items.Any(i => i.product_ref != null && i.product_ref.id_product == prod.id_product)) return;
+
+            builder_items.Add(new promo_builder_item { product_ref = prod, quantity = 1 });
+            refresh_builder_state();
         }
 
         private void execute_remove_from_builder(object? parameter)
@@ -906,6 +1108,7 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is promo_builder_item item)
             {
                 builder_items.Remove(item);
+                on_property_changed(nameof(can_add_products));
             }
         }
 
@@ -929,78 +1132,94 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            // La tabla de composicion es la unica fuente de la verdad para los tres
+            // tipos: en oferta individual debe quedar exactamente un producto.
+            List<promo_builder_item> composicion = builder_items.Where(it => it.product_ref != null).ToList();
+
+            if (composicion.Count == 0)
+            {
+                ErrorMessage = "Agrega al menos un producto a la composición.";
+                return;
+            }
+
+            if (_promo_type_index == 0 && composicion.Count > 1)
+            {
+                ErrorMessage = "Una oferta individual solo lleva un producto. Si quieres varios, elige Combo.";
+                return;
+            }
+
+            if (_promo_type_index != 0 && string.IsNullOrWhiteSpace(new_promo_name))
+            {
+                ErrorMessage = "Escribe el nombre del Kit/Combo.";
+                return;
+            }
+
             try
             {
+                // Se conserva el codigo, salvo que el tipo haya cambiado (por ejemplo
+                // de Oferta a Kit), en cuyo caso se asigna uno del tipo nuevo.
+                string code = generate_next_promotion_code(_promo_type_index);
                 if (_promotion_being_edited != null)
                 {
-                    promotion promo_update = new promotion(_promotion_being_edited.promotion_code, new_promo_name, "Promociones", parsed_price);
-                    promo_update.id_promotion = _promotion_being_edited.id_promotion;
-
-                    if (_promo_type_index == 0)
-                    {
-                        if (_selected_promo_product != null)
-                        {
-                            promo_update.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
-                        }
-                    }
-                    else
-                    {
-                        foreach (promo_builder_item item in builder_items)
-                        {
-                            if (item.product_ref != null)
-                            {
-                                promo_update.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
-                            }
-                        }
-                    }
-
-                    await _inventory_service.update_promotion_async(promo_update);
+                    string code_to_keep = _promotion_being_edited.promotion_code ?? string.Empty;
+                    if (promo_code_is_type(code_to_keep, _promo_type_index)) code = code_to_keep;
                 }
-                else if (_promo_type_index == 0)
+
+                string final_name = new_promo_name ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(final_name))
                 {
-                    if (_selected_promo_product == null)
-                    {
-                        ErrorMessage = "Tienes que llenar los campos obligatorios.";
-                        return;
-                    }
+                    final_name = "PROMO " + (composicion[0].product_ref?.name ?? "PROMOCION");
+                }
 
-                    string new_code = "C-PROMO-" + _selected_promo_product.product_code;
-                    string final_name = string.IsNullOrWhiteSpace(new_promo_name) ? "PROMO " + _selected_promo_product.name : new_promo_name;
+                promotion promo_to_save = new promotion(code, final_name, "Promociones", parsed_price);
 
-                    promotion new_promo = new promotion(new_code, final_name, "Promociones", parsed_price);
-                    new_promo.items.Add(new promotion_item(_selected_promo_product.id_product, 1));
-                    await _inventory_service.add_promotion_async(new_promo);
+                if (_promotion_being_edited != null)
+                {
+                    promo_to_save.id_promotion = _promotion_being_edited.id_promotion;
+                }
+
+                foreach (promo_builder_item item in composicion)
+                {
+                    if (item.product_ref == null) continue;
+                    int cantidad = _promo_type_index == 0 ? 1 : Math.Max(1, item.quantity);
+                    promo_to_save.items.Add(new promotion_item(item.product_ref.id_product, cantidad));
+                }
+
+                if (_promotion_being_edited != null)
+                {
+                    await _inventory_service.update_promotion_async(promo_to_save);
                 }
                 else
                 {
-                    if (builder_items.Count == 0 || string.IsNullOrWhiteSpace(new_promo_name))
-                    {
-                        ErrorMessage = "Tienes que llenar los campos obligatorios.";
-                        return;
-                    }
-
-                    string prefix = _promo_type_index == 1 ? "C-KIT-" : "C-COMBO-";
-                    string new_code = prefix + Guid.NewGuid().ToString().Substring(0, 4).ToUpper();
-
-                    promotion new_promo = new promotion(new_code, new_promo_name, "Promociones", parsed_price);
-                    foreach (promo_builder_item item in builder_items)
-                    {
-                        if (item.product_ref != null)
-                        {
-                            new_promo.items.Add(new promotion_item(item.product_ref.id_product, item.quantity));
-                        }
-                    }
-                    await _inventory_service.add_promotion_async(new_promo);
+                    await _inventory_service.add_promotion_async(promo_to_save);
                 }
 
+                bool era_edicion = _promotion_being_edited != null;
                 _promotion_being_edited = null;
+                on_property_changed(nameof(is_editing_promotion));
                 load_initial_data_async();
                 on_close_add_promotion_window?.Invoke();
+                AppDialog.Show(
+                    build_promo_success_message(era_edicion),
+                    "Exito",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"No se pudo guardar la promoción: {ErrorText.Get(ex)}";
             }
+        }
+
+        // "Oferta creada exitosamente." / "Kit actualizado exitosamente." / etc.
+        // Kit y Combo son masculino, por eso el participio cambia segun el tipo.
+        private string build_promo_success_message(bool es_edicion)
+        {
+            bool es_femenino = _promo_type_index == 0;
+            string nombre = _promo_type_index == 0 ? "Oferta" : _promo_type_index == 1 ? "Kit" : "Combo";
+            return es_edicion
+                ? $"{nombre} actualizado exitosamente."
+                : $"{nombre} {(es_femenino ? "creada" : "creado")} exitosamente.";
         }
     }
 }

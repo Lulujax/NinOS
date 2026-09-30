@@ -13,6 +13,7 @@ using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
 {
@@ -39,6 +40,18 @@ namespace NinOS.UI.Views
         public string deleted_on { get; set; } = string.Empty;
     }
 
+    public class deleted_promotion_row
+    {
+        public int id_promotion { get; set; }
+        public string code { get; set; } = string.Empty;
+        public string name { get; set; } = string.Empty;
+        public string type_name { get; set; } = string.Empty;
+        public string price { get; set; } = string.Empty;
+        public string items { get; set; } = string.Empty;
+        public string reason { get; set; } = string.Empty;
+        public string deleted_on { get; set; } = string.Empty;
+    }
+
     public partial class AdminPanelWindow : Window
     {
         private readonly ICustomerService? _customer_service;
@@ -48,12 +61,14 @@ namespace NinOS.UI.Views
 
         public ObservableCollection<deleted_customer_row> DeletedCustomers { get; } = new();
         public ObservableCollection<deleted_product_row> DeletedProducts { get; } = new();
+        public ObservableCollection<deleted_promotion_row> DeletedPromotions { get; } = new();
 
         public AdminPanelWindow()
         {
             InitializeComponent();
             CustomersGrid.ItemsSource = DeletedCustomers;
             ProductsGrid.ItemsSource = DeletedProducts;
+            PromotionsGrid.ItemsSource = DeletedPromotions;
 
             var service_provider = (Application.Current as App)?.GetServiceProvider();
             _customer_service = service_provider?.GetService(typeof(ICustomerService)) as ICustomerService;
@@ -68,6 +83,7 @@ namespace NinOS.UI.Views
         {
             await load_customers_async();
             await load_products_async();
+            await load_promotions_trash_async();
         }
 
         private async Task load_customers_async()
@@ -133,6 +149,67 @@ namespace NinOS.UI.Views
         private async void OnRefreshProductsClick(object sender, RoutedEventArgs e)
             => await load_products_async();
 
+        private async void OnRefreshPromotionsClick(object sender, RoutedEventArgs e)
+            => await load_promotions_trash_async();
+
+        private async Task load_promotions_trash_async()
+        {
+            if (_inventory_service == null) return;
+            try
+            {
+                var promotions = await _inventory_service.get_deleted_promotions_async();
+                DeletedPromotions.Clear();
+                foreach (var p in promotions)
+                {
+                    DeletedPromotions.Add(new deleted_promotion_row
+                    {
+                        id_promotion = p.id_promotion,
+                        code = p.promotion_code ?? string.Empty,
+                        name = p.name ?? string.Empty,
+                        type_name = InventoryViewModel.promo_type_name(
+                            InventoryViewModel.promo_type_from_code(p.promotion_code, p.items?.Count ?? 0, false)),
+                        price = p.unit_price_usd.ToString("N2"),
+                        items = p.items == null || p.items.Count == 0
+                            ? "sin productos"
+                            : string.Join(" + ", p.items.Select(i => $"{i.quantity_required} x {(i.product?.product_code ?? "?")}")),
+                        reason = p.deleted_reason ?? string.Empty,
+                        deleted_on = p.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? string.Empty
+                    });
+                }
+                PromotionsCountText.Text = $"{DeletedPromotions.Count} promoción(es) en la papelera";
+            }
+            catch (System.Exception ex)
+            {
+                AppLog.Error($"Papelera promociones: {ex.Message}");
+            }
+        }
+
+        private async void OnRestorePromotionClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not deleted_promotion_row row) return;
+
+            MessageBoxResult confirm = AppDialog.Show(
+                $"¿Restaurar la promoción \"{row.name}\" ({row.code})?\n\nVolverá a estar disponible con su código original, como si nada hubiera pasado.",
+                "Restaurar promoción",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                if (_inventory_service != null) await _inventory_service.restore_promotion_async(row.id_promotion);
+                await load_promotions_trash_async();
+                AppDataEvents.raise_catalogs_changed();
+                AppDialog.Show($"Promoción \"{row.name}\" restaurada.", "Listo",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                AppDialog.Show($"No se pudo restaurar la promoción: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private async void OnRestoreCustomerClick(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is not deleted_customer_row row) return;
@@ -172,11 +249,17 @@ namespace NinOS.UI.Views
 
             try
             {
-                if (_inventory_service != null) await _inventory_service.restore_product_async(row.id_product);
+                int promos_restauradas = _inventory_service != null
+                    ? await _inventory_service.restore_product_async(row.id_product)
+                    : 0;
                 await load_products_async();
+                await load_promotions_trash_async();
                 AppDataEvents.raise_catalogs_changed();
-                AppDialog.Show($"Producto \"{row.name}\" restaurado.", "Listo",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(
+                    promos_restauradas > 0
+                        ? $"Producto \"{row.name}\" restaurado.\n\nTambién volvieron {promos_restauradas} promoción(es) que se habían eliminado con este producto."
+                        : $"Producto \"{row.name}\" restaurado.",
+                    "Listo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (System.Exception ex)
             {

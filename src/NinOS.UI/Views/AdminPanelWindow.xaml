@@ -177,6 +177,42 @@
                 </Grid>
             </TabItem>
 
+            <!-- ===== Papelera Promociones ===== -->
+            <TabItem Header="Papelera Promociones">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Style="{StaticResource RefreshButton}" Content="Actualizar"
+                                Click="OnRefreshPromotionsClick"/>
+                        <TextBlock x:Name="PromotionsCountText" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   FontSize="12" Foreground="#666666"/>
+                    </StackPanel>
+                    <DataGrid x:Name="PromotionsGrid" Grid.Row="1" Style="{StaticResource PanelGrid}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding id_promotion}" Header="#" Width="44"/>
+                            <DataGridTextColumn Binding="{Binding code}" Header="Codigo" Width="90" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding name}" Header="Nombre" Width="220" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding type_name}" Header="Tipo" Width="80" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding price}" Header="Precio" Width="80" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding items}" Header="Composicion" Width="200" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding reason}" Header="Motivo" Width="150" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding deleted_on}" Header="Eliminado el" Width="130" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTemplateColumn Header="Restaurar" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RestoreButton}" Content="Restaurar"
+                                                Click="OnRestorePromotionClick" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
             <!-- ===== Backup de la BD ===== -->
             <TabItem Header="Backup de la BD">
                 <Grid Margin="0,6,0,0">

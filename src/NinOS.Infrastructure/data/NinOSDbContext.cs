@@ -208,6 +208,11 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(200);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
+                // Sin este default la migracion dejaria is_active = false en las promociones
+                // existentes y todas cairian en la papelera al actualizar la base.
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.deleted_at).HasColumnName("deleted_at").IsRequired(false);
+                entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").IsRequired(false).HasMaxLength(200);
             });
 
             model_builder.Entity<promotion_item>(entity =>

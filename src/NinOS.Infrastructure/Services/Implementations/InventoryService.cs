@@ -52,12 +52,27 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                await db_context.products.AddAsync(new_product);
 
-                stock_movement_writer.registrar_carga_inicial(
-                    db_context, new_product, $"ALTA-{new_product.product_code}");
+                // El movimiento de carga inicial necesita el id del producto, que la base
+                // solo genera al insertar. Por eso se guarda primero y despues se asienta
+                // el kardex, dentro de la misma transaccion para que no queden mitades.
+                await using var transaction = await db_context.Database.BeginTransactionAsync();
+                try
+                {
+                    await db_context.products.AddAsync(new_product);
+                    await db_context.SaveChangesAsync();
 
-                await db_context.SaveChangesAsync();
+                    stock_movement_writer.registrar_carga_inicial(
+                        db_context, new_product, $"ALTA-{new_product.product_code}");
+
+                    await db_context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
         }
 
@@ -94,6 +109,19 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<IEnumerable<promotion>> get_promotions_using_product_async(int id_product)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.promotions
+                    .AsNoTracking()
+                    .Where(p => p.is_active && p.items.Any(i => i.id_product == id_product))
+                    .OrderBy(p => p.promotion_code)
+                    .ToListAsync();
+            }
+        }
+
         public async Task soft_delete_product_async(int id_product, string? reason)
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
@@ -106,25 +134,63 @@ namespace NinOS.Infrastructure.Services.Implementations
                 product_to_delete.is_active = false;
                 product_to_delete.deleted_at = DateTime.UtcNow;
                 product_to_delete.deleted_reason = string.IsNullOrWhiteSpace(reason) ? "Sin motivo" : reason.Trim();
+
+                // Una promoción sin sus productos no tiene sentido, así que se va con el producto.
+                List<promotion> affected_promos = await db_context.promotions
+                    .Where(p => p.is_active && p.items.Any(i => i.id_product == id_product))
+                    .ToListAsync();
+
+                DateTime deleted_at = DateTime.UtcNow;
+                foreach (promotion promo in affected_promos)
+                {
+                    promo.is_active = false;
+                    promo.deleted_at = deleted_at;
+                    promo.deleted_reason = cascade_delete_reason(product_to_delete.product_code);
+                }
+
                 await db_context.SaveChangesAsync();
                 AppLog.Info($"Producto {product_to_delete.product_code} enviado a la papelera. Motivo: {product_to_delete.deleted_reason}");
+                if (affected_promos.Count > 0)
+                {
+                    AppLog.Info($"Promociones eliminadas junto con el producto {product_to_delete.product_code}: " +
+                                string.Join(", ", affected_promos.Select(p => p.promotion_code)));
+                }
             }
         }
 
-        public async Task restore_product_async(int id_product)
+        // Reason con el que se marcan las promociones que caen junto con su producto.
+        // Permite devolverlas al restaurarlo, sin tocar las que se borraron a mano.
+        internal static string cascade_delete_reason(string product_code)
+            => $"Eliminado junto con el producto {product_code}";
+
+        public async Task<int> restore_product_async(int id_product)
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
                 product? product_to_restore = await db_context.products.FirstOrDefaultAsync(p => p.id_product == id_product);
-                if (product_to_restore == null || product_to_restore.is_active) return;
+                if (product_to_restore == null || product_to_restore.is_active) return 0;
 
                 product_to_restore.is_active = true;
                 product_to_restore.deleted_at = null;
                 product_to_restore.deleted_reason = null;
+
+                List<promotion> promos_to_restore = await db_context.promotions
+                    .Where(p => !p.is_active && p.deleted_reason == cascade_delete_reason(product_to_restore.product_code))
+                    .ToListAsync();
+
+                foreach (promotion promo in promos_to_restore)
+                {
+                    promo.is_active = true;
+                    promo.deleted_at = null;
+                    promo.deleted_reason = null;
+                }
+
                 await db_context.SaveChangesAsync();
-                AppLog.Info($"Producto {product_to_restore.product_code} restaurado desde la papelera.");
+                AppLog.Info($"Producto {product_to_restore.product_code} restaurado desde la papelera. " +
+                            $"Promociones devueltas: {promos_to_restore.Count}.");
+                return promos_to_restore.Count;
             }
         }
 
@@ -134,8 +200,25 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 return await db_context.promotions
+                    .AsNoTracking()
+                    .Where(p => p.is_active)
                     .Include(p => p.items)
                     .ThenInclude(i => i.product)
+                    .OrderBy(p => p.promotion_code)
+                    .ToListAsync();
+            }
+        }
+
+        public async Task<IEnumerable<promotion>> get_deleted_promotions_async()
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.promotions
+                    .AsNoTracking()
+                    .Where(p => !p.is_active)
+                    .Include(p => p.items)
+                    .OrderByDescending(p => p.deleted_at)
                     .ToListAsync();
             }
         }
@@ -182,19 +265,45 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task delete_promotion_async(promotion promotion_to_delete)
+        public async Task soft_delete_promotion_async(int id_promotion, string? reason)
         {
-            if (promotion_to_delete == null) throw new ArgumentNullException(nameof(promotion_to_delete));
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                bool has_note_details = await db_context.note_details.AnyAsync(d => d.id_promotion == promotion_to_delete.id_promotion);
-                if (has_note_details)
-                    throw new InvalidOperationException("Esta promoción tiene notas de venta asociadas y no puede eliminarse. Solo puede editarse.");
+                promotion? promo_to_delete = await db_context.promotions
+                    .FirstOrDefaultAsync(p => p.id_promotion == id_promotion);
+                if (promo_to_delete == null || !promo_to_delete.is_active) return;
 
-                db_context.promotions.Remove(promotion_to_delete);
+                promo_to_delete.is_active = false;
+                promo_to_delete.deleted_at = DateTime.UtcNow;
+                promo_to_delete.deleted_reason = string.IsNullOrWhiteSpace(reason)
+                    ? "Eliminado desde el inventario"
+                    : reason;
+
                 await db_context.SaveChangesAsync();
+
+                AppLog.Info($"Promoción {promo_to_delete.promotion_code} eliminada. Motivo: {promo_to_delete.deleted_reason}");
+            }
+        }
+
+        public async Task restore_promotion_async(int id_promotion)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                promotion? promo_to_restore = await db_context.promotions
+                    .FirstOrDefaultAsync(p => p.id_promotion == id_promotion);
+                if (promo_to_restore == null || promo_to_restore.is_active) return;
+
+                promo_to_restore.is_active = true;
+                promo_to_restore.deleted_at = null;
+                promo_to_restore.deleted_reason = null;
+
+                await db_context.SaveChangesAsync();
+
+                AppLog.Info($"Promoción {promo_to_restore.promotion_code} restaurada.");
             }
         }
 

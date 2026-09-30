@@ -11,6 +11,7 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -37,6 +38,10 @@
                             <TextBlock x:Name="PromoCategoryText" FontSize="16" FontWeight="Bold" Foreground="#0D62B5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
+                            <TextBlock Text="TIPO:" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PromoTypeText" FontSize="16" FontWeight="Bold" Foreground="#6A1B9A" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,24,0">
                             <TextBlock Text="PRECIO ($):" FontSize="15" FontWeight="Bold" Foreground="#424242" VerticalAlignment="Center"/>
                             <TextBlock x:Name="PromoPriceText" FontSize="16" FontWeight="Bold" Foreground="#2E7D32" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
@@ -45,8 +50,37 @@
             </StackPanel>
         </Border>
 
+        <!-- COMPOSICION DE LA PROMOCION -->
+        <Border Grid.Row="1" Background="#F5F9FD" BorderBrush="#C5D3E0" BorderThickness="1"
+                CornerRadius="4" Padding="12" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock Text="ESTÁ COMPUESTA POR:" FontSize="14" FontWeight="Bold" Foreground="#0D62B5" Margin="0,0,0,6"/>
+                <ItemsControl x:Name="CompositionItems">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="White" BorderBrush="#C5D3E0" BorderThickness="1"
+                                    CornerRadius="3" Padding="8,3" Margin="0,0,0,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding}" FontSize="14" Foreground="#37474F"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock x:Name="CompositionEmptyText"
+                           Text="Esta promoción no tiene productos cargados."
+                           FontSize="14" FontStyle="Italic" Foreground="#8A6D3B"
+                           Visibility="Collapsed" />
+            </StackPanel>
+        </Border>
+
         <!-- DATAGRID DE HISTORIAL -->
-        <DataGrid Grid.Row="1" x:Name="HistoryGrid" AutoGenerateColumns="False"
+        <DataGrid Grid.Row="2" x:Name="HistoryGrid" AutoGenerateColumns="False"
                   AlternatingRowBackground="#F5F9FD" RowBackground="White"
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#E0E7EE"
@@ -143,7 +177,7 @@
         </DataGrid>
 
         <!-- PANEL DE ACCIONES -->
-        <DockPanel Grid.Row="2" Margin="0,8,0,0" LastChildFill="False">
+        <DockPanel Grid.Row="3" Margin="0,8,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
                     FontSize="13" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
         </DockPanel>

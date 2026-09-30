@@ -82,6 +82,12 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Boton de la barra superior: mismo diseno que el Editar de las filas, pero con tamano de barra -->
+        <Style x:Key="HeaderAddButton" TargetType="Button" BasedOn="{StaticResource RowEditButton}">
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="FontSize" Value="12.5"/>
+        </Style>
         <Style x:Key="RowDeleteButton" TargetType="Button">
             <Setter Property="Padding" Value="6,2"/>
             <Setter Property="Margin" Value="1"/>
@@ -140,7 +146,7 @@
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <Button Grid.Column="3" Style="{StaticResource HeaderActionButton}" Background="#0078D7"
+                <Button Grid.Column="3" Style="{StaticResource HeaderAddButton}"
                         Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
             </Grid>
         </Border>
@@ -468,10 +474,10 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding promociones_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
+                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre del Combo/Kit" Width="*"
                           ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
+                        <DataGridTextColumn Binding="{Binding promo_type_display}" Header="Tipo" Width="70"/>
                         <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
                         <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
                         <DataGridTemplateColumn Header="Acciones" Width="180">
