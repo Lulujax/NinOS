@@ -208,7 +208,8 @@
                                 <DataTemplate>
                                     <TextBox Text="{Binding quantity, UpdateSourceTrigger=LostFocus}" FontSize="11"
                                              FontWeight="SemiBold" TextAlignment="Center"
-                                             HorizontalAlignment="Stretch" Margin="3,2" VerticalContentAlignment="Center">
+                                             HorizontalAlignment="Stretch" Margin="3,2" VerticalContentAlignment="Center"
+                                             PreviewTextInput="OnQuantityPreview">
                                         <TextBox.Style>
                                             <Style TargetType="TextBox">
                                                 <Setter Property="IsReadOnly" Value="False"/>

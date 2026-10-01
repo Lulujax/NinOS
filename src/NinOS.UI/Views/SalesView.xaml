@@ -1,4 +1,4 @@
-<UserControl x:Class="NinOS.UI.Views.SalesView"
+﻿<UserControl x:Class="NinOS.UI.Views.SalesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -20,7 +20,7 @@
             <Setter Property="CanUserResizeColumns" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="20"/>
         </Style>
@@ -36,6 +36,7 @@
         <Style x:Key="CellTextWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="TextTrimming" Value="None"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
         <Style x:Key="BlueComboBox" TargetType="ComboBox">
             <Setter Property="Height" Value="26"/>
@@ -210,7 +211,7 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="75"
                           ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="170"
                           ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -238,11 +239,12 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="TIPO DE NOTA" Binding="{Binding note_type_display}" Width="110"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding sales_observations_display}" ToolTip="{Binding sales_observations_display}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -302,7 +304,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="170"
                           ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -326,11 +328,12 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="TIPO DE NOTA" Binding="{Binding note_type_display}" Width="110"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding sales_observations_display}" ToolTip="{Binding sales_observations_display}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -389,7 +392,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="170"
                           ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -413,11 +416,12 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="TIPO DE NOTA" Binding="{Binding note_type_display}" Width="110"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding sales_observations_display}" ToolTip="{Binding sales_observations_display}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -476,7 +480,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="170"
                           ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -500,11 +504,12 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="TIPO DE NOTA" Binding="{Binding note_type_display}" Width="110"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding sales_observations_display}" ToolTip="{Binding sales_observations_display}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -562,7 +567,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
                           ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*" MinWidth="170"
                           ElementStyle="{StaticResource CellTextWrap}"/>
                         <DataGridTextColumn Header="TOTAL" Binding="{Binding total_amount_usd, StringFormat=F2}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
@@ -586,11 +591,12 @@
                           ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yy}" Width="80"
                           ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="TIPO DE NOTA" Binding="{Binding note_type_display}" Width="110"/>
                         <DataGridTemplateColumn Header="OBSERVACION" Width="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <TextBlock Text="{Binding sales_observations}" ToolTip="{Binding sales_observations}" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding sales_observations_display}" ToolTip="{Binding sales_observations_display}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Cursor="Hand">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">

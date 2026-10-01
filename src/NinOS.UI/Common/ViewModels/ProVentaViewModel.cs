@@ -41,10 +41,12 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand pay_relation_command { get; }
         public ICommand note_pdf_command { get; }
         public ICommand note_preview_command { get; }
+        public ICommand annul_note_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
         public Action<pro_venta_weekly_row>? on_request_note_preview;
+        public Action<pro_venta_weekly_row>? on_request_annul_note;
 
         public ProVentaViewModel(
             IProVentaService pro_venta_service,
@@ -62,6 +64,7 @@ namespace NinOS.UI.Common.ViewModels
             pay_relation_command = new RelayCommand(execute_pay_relation);
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
+            annul_note_command = new RelayCommand(execute_annul_note);
         }
 
         public int selected_report_index
@@ -124,7 +127,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string city => "MARACAY";
 
-        public decimal nota_por_pagar => Math.Round(total_amount - total_gastos_25 - total_gastos_15, 2);
+        public decimal nota_por_pagar => Money.round(total_amount - total_gastos_25 - total_gastos_15);
 
         public string relation_title => (_report == null || !has_rows) ? string.Empty : $"RELACION NRO {_report.relation_number}";
 
@@ -139,8 +142,8 @@ namespace NinOS.UI.Common.ViewModels
         public decimal total_commission_luis => _report?.total_commission_luis ?? 0;
         public decimal total_gastos_25 => _report?.total_gastos_25 ?? 0;
         public decimal total_gastos_15 => _report?.total_gastos_15 ?? 0;
-        public decimal total_cobrado => total_amount - total_commission_luis;
-        public decimal diferencial => total_cobrado - nota_por_pagar;
+        public decimal total_cobrado => Money.round(total_amount - total_commission_luis);
+        public decimal diferencial => Money.round(total_cobrado - nota_por_pagar);
 
         public bool has_pending => pending_rows.Count > 0;
         public bool pending_empty => !has_pending;
@@ -402,7 +405,7 @@ namespace NinOS.UI.Common.ViewModels
                 };
 
                 var report = await _pro_venta_service.get_weekly_report_async(week);
-                decimal nota_por_pagar = Math.Round(report.total_amount - report.total_gastos_25 - report.total_gastos_15, 2);
+                decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
                 var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
                     .OrderBy(p => p.payment_date)
                     .ToList();
@@ -442,6 +445,26 @@ namespace NinOS.UI.Common.ViewModels
                 on_request_note_preview?.Invoke(row);
         }
 
+        private void execute_annul_note(object? parameter)
+        {
+            if (parameter is pro_venta_weekly_row row)
+                on_request_annul_note?.Invoke(row);
+        }
+
+        public async Task confirm_annul_note_async(pro_venta_weekly_row row)
+        {
+            if (row == null) return;
+            try
+            {
+                await _accounts_receivable_service.annul_delivery_note_async(row.id_delivery_note);
+                refresh_data();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         public async Task<note_print_dto> get_printable_note_async(int id_delivery_note)
         {
             return await _accounts_receivable_service.get_printable_note_async(id_delivery_note);
@@ -460,7 +483,7 @@ namespace NinOS.UI.Common.ViewModels
                 };
 
                 var report = await _pro_venta_service.get_weekly_report_async(week);
-                decimal nota_por_pagar = Math.Round(report.total_amount - report.total_gastos_25 - report.total_gastos_15, 2);
+                decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
                 var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
                     .OrderBy(p => p.payment_date)
                     .ToList();

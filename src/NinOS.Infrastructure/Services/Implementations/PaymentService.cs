@@ -13,12 +13,56 @@ namespace NinOS.Infrastructure.Services.Implementations
 {
     public class PaymentService : IPaymentService
     {
+        /// <summary>
+        /// Excedente maximo permitido sobre el saldo de la nota.
+        ///
+        /// Se tolera una pequena diferencia por redondeo o por pagos que entran con un poco
+        /// de más, pero mas alla de esto es un error de captura y no se deja pasar: si se
+        /// aceptara sin limite, un monto mal tecleado dejaria la nota con saldo negativo
+        /// (dinero que la empresa no debe) y eso nadie lo revisa despues.
+        /// </summary>
+        private const decimal EXCESO_MAXIMO_PERMITIDO = 3.00m;
+
         private readonly IServiceScopeFactory _scope_factory;
 
         public PaymentService(IServiceScopeFactory scope_factory)
         {
             if (scope_factory == null) throw new ArgumentNullException(nameof(scope_factory));
             _scope_factory = scope_factory;
+        }
+
+        /// <summary>
+        /// Verifica que el abono no exceda el saldo de la nota mas alla del tolerado.
+        ///
+        /// El saldo se calcula con lo ya abonado, y al editar se excluye el pago que se esta
+        /// cambiando para no contarlo dos veces.
+        /// </summary>
+        private static async Task verificar_exceso_permitido_async(
+            NinOSDbContext db_context,
+            delivery_note target_note,
+            decimal amount_usd,
+            int? id_payment_excluido = null)
+        {
+            var query = db_context.payments
+                .Where(p => p.id_delivery_note == target_note.id_delivery_note);
+
+            if (id_payment_excluido.HasValue)
+            {
+                query = query.Where(p => p.id_payment != id_payment_excluido.Value);
+            }
+
+            decimal[] abonos = await query.Select(p => p.amount_usd).ToArrayAsync();
+            decimal saldo = target_note.adjusted_total_usd - abonos.Sum();
+
+            decimal maximo_a_pagar = saldo + EXCESO_MAXIMO_PERMITIDO;
+            if (amount_usd <= maximo_a_pagar) return;
+
+            throw new InvalidOperationException(
+                $"El monto excede el saldo de la nota {target_note.note_number}.\n\n" +
+                $"Saldo pendiente: {saldo:N2}\n" +
+                $"Maximo a pagar (saldo + {EXCESO_MAXIMO_PERMITIDO:N2}): {maximo_a_pagar:N2}\n" +
+                $"Monto ingresado: {amount_usd:N2}\n\n" +
+                $"El pago no fue registrado.");
         }
 
         public async Task register_payment_async(payment new_payment, bool is_pro_venta = false)
@@ -42,6 +86,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
                     throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
+
+                await verificar_exceso_permitido_async(_db_context, target_note, new_payment.amount_usd);
 
                 new_payment.amount_bs = new_payment.amount_bs < 0 ? 0 : new_payment.amount_bs;
                 if (string.IsNullOrEmpty(new_payment.bank_name)) new_payment.bank_name = "";
@@ -151,6 +197,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
                     throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
+
+                await verificar_exceso_permitido_async(_db_context, target_note, updated_payment.amount_usd, existing.id_payment);
 
                 existing.id_delivery_note = updated_payment.id_delivery_note;
                 existing.payment_date = updated_payment.payment_date;

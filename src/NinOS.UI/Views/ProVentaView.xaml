@@ -1,4 +1,4 @@
-<UserControl x:Class="NinOS.UI.Views.ProVentaView"
+﻿<UserControl x:Class="NinOS.UI.Views.ProVentaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
@@ -7,6 +7,13 @@
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <!-- Cliente: si el nombre no entra en una linea baja a la siguiente y la fila crece.
+             VerticalAlignment=Top porque en Center el texto multidinea se centra y se recorta. -->
+        <Style x:Key="WrapCellStyle" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
         <Style x:Key="ProVentaGrid" TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
@@ -14,7 +21,7 @@
             <Setter Property="CanUserDeleteRows" Value="False"/>
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeColumns" Value="False"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="GridLinesVisibility" Value="All"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#B0B0B0"/>
             <Setter Property="VerticalGridLinesBrush" Value="#B0B0B0"/>
@@ -99,38 +106,44 @@
                                Foreground="#757575" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
                 </Border>
 
-                <StackPanel Width="1240" Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding report_rows}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="NRO NOTA CLIENTE" Binding="{Binding note_number}" Width="1.35*"
+                            <DataGridTextColumn Header="NOTA" Binding="{Binding note_number}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="2.5*"/>
+                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="2.5*"
+                                                ElementStyle="{StaticResource WrapCellStyle}" ToolTip="{Binding customer_name}"/>
                             <DataGridTextColumn Header="MONTO NOTA" Binding="{Binding amount, StringFormat=N2}" Width="1.05*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="COMISION LUIS 10%" Binding="{Binding commission_luis, StringFormat=N2}" Width="1.35*"
+                            <DataGridTextColumn Header="COM. LUIS 10%" Binding="{Binding commission_luis, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="GASTOS OPERATIVOS 25%" Binding="{Binding gastos_25, StringFormat=N2}" Width="1.35*"
+                            <DataGridTextColumn Header="GASTOS OPER. 25%" Binding="{Binding gastos_25, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTextColumn Header="GASTOS ADMINISTRATIVOS 15%" Binding="{Binding gastos_15, StringFormat=N2}" Width="1.35*"
+                            <DataGridTextColumn Header="GASTOS ADM. 15%" Binding="{Binding gastos_15, StringFormat=N2}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="FECHA PAGO CLIENTE" Binding="{Binding payment_date_display}" Width="1.35*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="FORMA DE PAGO" Binding="{Binding payment_method_display}" Width="1.45*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTemplateColumn Header="ACCIONES" Width="1.8*">
+                            <DataGridTemplateColumn Header="ACCIONES" Width="290">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="Vista Previa" Padding="6,2" Margin="2" FontSize="9.5" Cursor="Hand"
+                                            <Button Content="Vista Previa" ToolTip="Vista previa de la nota" Padding="6,2" Margin="2" FontSize="9.5" Cursor="Hand"
                                                     Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
                                                     Foreground="#424242"
                                                     Command="{Binding DataContext.note_preview_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Imprimir" Padding="6,2" Margin="2" FontSize="9.5" Cursor="Hand"
-                                                    Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
-                                                    Foreground="#424242"
-                                                    Command="{Binding DataContext.note_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"/>
+<Button Content="Imprimir" Padding="6,2" Margin="2" FontSize="9.5" Cursor="Hand"
+ Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
+ Foreground="#424242"
+ Command="{Binding DataContext.note_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+ CommandParameter="{Binding}"/>
+ <Button Content="Anular" Padding="6,2" Margin="2" FontSize="9.5" Cursor="Hand"
+ Background="#FDECEA" BorderThickness="1" BorderBrush="#E6A6A0"
+ Foreground="#B3261E"
+ Command="{Binding DataContext.annul_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+ CommandParameter="{Binding}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

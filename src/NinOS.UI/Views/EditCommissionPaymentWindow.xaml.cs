@@ -33,6 +33,13 @@ namespace NinOS.UI.Views
             if (payment.payment_date != default) PaymentDatePicker.SelectedDate = payment.payment_date;
 
             SelectType(payment.payment_type);
+
+            Loaded += (_, _) =>
+            {
+                InputRestrictions.attach_decimal(AmountBox);
+                InputRestrictions.attach_decimal(RateBox);
+                InputRestrictions.attach_decimal(BsAmountBox);
+            };
         }
 
         private void SelectType(string type)
@@ -81,25 +88,50 @@ namespace NinOS.UI.Views
             {
                 ErrorText.Visibility = Visibility.Collapsed;
 
-                decimal amount_usd = ParseDecimal(AmountBox.Text);
-                if (amount_usd <= 0)
+                if (string.IsNullOrWhiteSpace(AmountBox.Text))
+                {
+                    ShowError("El monto USD es obligatorio.");
+                    return;
+                }
+                if (InputRestrictions.has_letters(AmountBox.Text))
+                {
+                    ShowError("No se permiten letras en el monto USD. Ingrese solo números.");
+                    return;
+                }
+                if (!InputRestrictions.is_valid_decimal(AmountBox.Text, out decimal amount_usd) || amount_usd <= 0)
                 {
                     ShowError("El monto USD debe ser mayor a cero.");
                     return;
                 }
 
-                decimal rate = ParseDecimal(RateBox.Text);
-                if (rate < 0)
+                decimal rate = 0;
+                if (!string.IsNullOrWhiteSpace(RateBox.Text))
                 {
-                    ShowError("La tasa BS/USD no puede ser negativa.");
-                    return;
+                    if (InputRestrictions.has_letters(RateBox.Text))
+                    {
+                        ShowError("No se permiten letras en la tasa. Ingrese solo números.");
+                        return;
+                    }
+                    if (!InputRestrictions.is_valid_decimal(RateBox.Text, out rate) || rate < 0)
+                    {
+                        ShowError("La tasa BS/USD no puede ser negativa.");
+                        return;
+                    }
                 }
 
-                decimal amount_bs = ParseDecimal(BsAmountBox.Text);
-                if (amount_bs < 0)
+                decimal amount_bs = 0;
+                if (!string.IsNullOrWhiteSpace(BsAmountBox.Text))
                 {
-                    ShowError("El monto en Bs no puede ser negativo.");
-                    return;
+                    if (InputRestrictions.has_letters(BsAmountBox.Text))
+                    {
+                        ShowError("No se permiten letras en el monto en Bs. Ingrese solo números.");
+                        return;
+                    }
+                    if (!InputRestrictions.is_valid_decimal(BsAmountBox.Text, out amount_bs) || amount_bs < 0)
+                    {
+                        ShowError("El monto en Bs no puede ser negativo.");
+                        return;
+                    }
                 }
 
                 string reference = ReferenceBox.Text?.Trim() ?? string.Empty;

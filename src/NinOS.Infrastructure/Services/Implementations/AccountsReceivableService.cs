@@ -15,6 +15,12 @@ namespace NinOS.Infrastructure.Services.Implementations
 {
     public class AccountsReceivableService : IAccountsReceivableService
     {
+        /// <summary>
+        /// Codigo del unico vendedor autorizado a operar notas Pro Venta (MAR).
+        /// Regla del negocio: Juan Luis.
+        /// </summary>
+        private const string JuanLuisCode = "3400";
+
         private readonly IServiceScopeFactory _scope_factory;
 
         public AccountsReceivableService(IServiceScopeFactory scope_factory)
@@ -624,6 +630,35 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     if (has_payments)
                         throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos. Elimine primero los pagos registrados.");
+
+                    // Las notas Pro Venta (MAR) cobran por relacion, y esos pagos se guardan con
+                    // id_delivery_note en null. El chequeo de arriba no los ve, asi que sin esto se
+                    // podria anular una nota MAR que ya tiene dinero cobrado y quedaria sin respaldo.
+                    // La comprobacion es por relacion: el abono es de la relacion semanal completa,
+                    // no de una nota suelta, asi que basta con que exista uno para bloquear.
+                    var mar_ids_for_note = await get_pro_venta_type_ids_async(db_context);
+
+                    if (delivery_note.note_type_id != null && mar_ids_for_note.Contains(delivery_note.note_type_id.Value))
+                    {
+                        if (delivery_note.id_relacion == null)
+                            throw new InvalidOperationException("No se puede anular esta nota Pro Venta: no tiene relacion asociada.");
+
+                        // Regla del negocio: las notas Pro Venta (MAR) son solo de Juan Luis (3400).
+                        // Se valida contra el vendedor real de la nota y no contra la pantalla, para
+                        // que la regla se cumpla aunque se llame al servicio desde otro lado.
+                        var mar_seller = await db_context.sellers
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
+
+                        if (mar_seller == null || mar_seller.seller_code != JuanLuisCode)
+                            throw new InvalidOperationException($"Solo Juan Luis ({JuanLuisCode}) puede anular notas Pro Venta.");
+
+                        bool has_mar_payments = await db_context.payments
+                            .AnyAsync(p => p.id_relacion == delivery_note.id_relacion.Value && p.amount_usd > 0);
+
+                        if (has_mar_payments)
+                            throw new InvalidOperationException("No se puede anular una nota Pro Venta que ya tiene pagos MAR registrados. Elimine primero los pagos.");
+                    }
 
                     var has_credit_notes = await db_context.credit_notes
                         .AnyAsync(c => c.id_delivery_note == id_delivery_note);

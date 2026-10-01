@@ -1,4 +1,4 @@
-<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
+﻿<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -22,7 +22,7 @@
             <Setter Property="CanUserResizeColumns" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="22"/>
         </Style>

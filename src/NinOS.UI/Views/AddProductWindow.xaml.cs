@@ -29,6 +29,12 @@ namespace NinOS.UI.Views
                     e.Handled = true;
                 }
             };
+
+            this.Loaded += (s, e) =>
+            {
+                InputRestrictions.attach_integer(QuantityBox);
+                InputRestrictions.attach_decimal(PriceBox);
+            };
         }
 
         private void OnCancelClick(object sender, RoutedEventArgs e)

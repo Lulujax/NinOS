@@ -1,16 +1,49 @@
 ﻿<Application x:Class="NinOS.UI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:converters="clr-namespace:NinOS.UI.Converters">
     <Application.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:IntEqualsToVisibilityConverter x:Key="IntEqualsToVisibilityConverter" />
+
+        <!--
+            La barra horizontal aparece solo cuando la tabla realmente la necesita.
+            Con "Auto" no se dibuja si todo entra, y si una columna se hace mas ancha
+            de lo que entra, aparece en vez de cortar el texto.
+        -->
         <Style TargetType="DataGrid">
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeColumns" Value="False"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
         </Style>
+
+        <!--
+            Escala tipografica de la aplicacion.
+
+            Para que el usuario decida el tamano de la letra y no haya que tocar Windows,
+            todo el texto nuevo usa estos recursos en vez de un numero fijo:
+
+                <TextBlock FontSize="{DynamicResource AppFontSize}" />
+
+            Son DynamicResource (y no StaticResource) a proposito: asi, cuando mas adelante
+            el usuario elija "Grande" o "Muy grande" en Ajustes, cambiar el valor del recurso
+            alcanza para que toda la app cambie de tamaño en vivo.
+
+            Regla de migracion: no se tocan las vistas viejas en un sweep masivo. Cada vista
+            que se vaya tocando por otro motivo, se va convirtiendo de a poco. Ver
+            docs/accesibilidad.md.
+
+            Ojo al migrar: hoy el tamano mas usado en la app es 11 (94 veces) y 12.5 (61
+            veces), asi que pasar a estos valores agranda el texto. Es el objetivo, pero hay
+            que revisar que la vista siga entrando sin cortes ni scrolls nuevos.
+        -->
+        <sys:Double x:Key="AppFontSizeSmall">12</sys:Double>
+        <sys:Double x:Key="AppFontSize">14</sys:Double>
+        <sys:Double x:Key="AppFontSizeLarge">16</sys:Double>
+        <sys:Double x:Key="AppFontSizeTitle">20</sys:Double>
+
     </Application.Resources>
 </Application>

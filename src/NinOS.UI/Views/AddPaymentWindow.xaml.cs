@@ -67,6 +67,9 @@ namespace NinOS.UI.Views
 
             Loaded += async (_, _) =>
             {
+                InputRestrictions.attach_decimal(AmountBox);
+                InputRestrictions.attach_decimal(RateBox);
+                InputRestrictions.attach_decimal(BsAmountBox);
                 if (!_is_edit_mode && !_is_preloaded) await LoadNotesAsync();
             };
         }
@@ -280,7 +283,29 @@ namespace NinOS.UI.Views
             decimal balance = _is_edit_mode
                 ? _edit_effective_balance
                 : _selected_note.balance_due_usd;
-            decimal usd = ParseDecimal(AmountBox.Text);
+
+            string txt = AmountBox.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(txt))
+            {
+                EquivText.Text = "";
+                return;
+            }
+
+            if (InputRestrictions.has_letters(txt) || !InputRestrictions.is_valid_decimal(txt, out decimal usd))
+            {
+                EquivText.Text = "Monto inválido";
+                EquivText.Foreground = RedBrush;
+                return;
+            }
+
+            decimal max_allowed = balance + 2.00m;
+            if (usd > max_allowed)
+            {
+                EquivText.Text = "Excede el monto máximo";
+                EquivText.Foreground = RedBrush;
+                return;
+            }
+
             if (usd > 0)
             {
                 decimal remaining = balance - usd;
@@ -332,6 +357,22 @@ namespace NinOS.UI.Views
 
                 DateTime payDate = PaymentDatePicker.SelectedDate.Value;
 
+                if (string.IsNullOrWhiteSpace(AmountBox.Text))
+                {
+                    ShowError(RequiredMessage());
+                    return;
+                }
+                if (InputRestrictions.has_letters(AmountBox.Text))
+                {
+                    ShowError("No se permiten letras en el Monto USD. Ingrese solo números.");
+                    return;
+                }
+                if (!InputRestrictions.is_valid_decimal(AmountBox.Text, out decimal amount_usd) || amount_usd <= 0)
+                {
+                    ShowError("El Monto USD debe ser un número válido mayor a 0.");
+                    return;
+                }
+
                 if (!_is_edit_mode)
                 {
                     var refreshed = await _vm.search_note_async(_selected_note.note_number);
@@ -341,9 +382,16 @@ namespace NinOS.UI.Views
                     _selected_note = refreshed;
                 }
 
-                decimal amount_usd;
+                decimal current_balance = _is_edit_mode ? _edit_effective_balance : _selected_note.balance_due_usd;
+                decimal max_allowed = current_balance + 2.00m;
+                if (amount_usd > max_allowed)
+                {
+                    ShowError("Se excedió del monto máximo.");
+                    return;
+                }
+
                 decimal amount_bs = 0;
-                decimal? exchange_rate;
+                decimal? exchange_rate = null;
                 string payType;
                 string reference;
                 string bank;
@@ -351,29 +399,54 @@ namespace NinOS.UI.Views
 
                 if (_is_bs_mode)
                 {
-                    amount_usd = ParseDecimal(AmountBox.Text);
-                    bool required_filled = amount_usd > 0 &&
-                                           ParseDecimal(BsAmountBox.Text) > 0 &&
-                                           !string.IsNullOrWhiteSpace(ReferenceBox.Text) &&
-                                           !string.IsNullOrWhiteSpace(BankBox.Text);
-                    if (!required_filled) { ShowError(RequiredMessage()); return; }
-                    decimal rate = ParseDecimal(RateBox.Text);
-                    decimal bs = ParseDecimal(BsAmountBox.Text);
+                    if (string.IsNullOrWhiteSpace(BsAmountBox.Text))
+                    {
+                        ShowError(RequiredMessage());
+                        return;
+                    }
+                    if (InputRestrictions.has_letters(BsAmountBox.Text))
+                    {
+                        ShowError("No se permiten letras en el monto en Bs. Ingrese solo números.");
+                        return;
+                    }
+                    if (!InputRestrictions.is_valid_decimal(BsAmountBox.Text, out decimal bs) || bs <= 0)
+                    {
+                        ShowError("El monto en Bs debe ser un número válido mayor a 0.");
+                        return;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(RateBox.Text))
+                    {
+                        if (InputRestrictions.has_letters(RateBox.Text))
+                        {
+                            ShowError("No se permiten letras en la tasa. Ingrese solo números.");
+                            return;
+                        }
+                        if (!InputRestrictions.is_valid_decimal(RateBox.Text, out decimal rate) || rate <= 0)
+                        {
+                            ShowError("La tasa debe ser un número válido mayor a 0.");
+                            return;
+                        }
+                        exchange_rate = rate;
+                    }
+
                     string refInput = ReferenceBox.Text?.Trim() ?? "";
                     bank = BankBox.Text?.Trim() ?? "";
-                    exchange_rate = rate > 0 ? rate : null;
+                    if (string.IsNullOrWhiteSpace(refInput) || string.IsNullOrWhiteSpace(bank))
+                    {
+                        ShowError(RequiredMessage());
+                        return;
+                    }
+
                     amount_bs = bs;
                     payType = "Bolivares";
                     reference = $"REF-{refInput}";
                 }
                 else
                 {
-                    decimal usd = ParseDecimal(AmountBox.Text);
-                    if (usd <= 0) { ShowError(RequiredMessage()); return; }
-                    amount_usd = usd;
-                    exchange_rate = null;
                     payType = "Efectivo";
-                    reference = $"EF-{usd:0.##}";
+                    exchange_rate = null;
+                    reference = $"EF-{amount_usd:0.##}";
                     bank = "";
                 }
 

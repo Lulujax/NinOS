@@ -22,6 +22,11 @@ namespace NinOS.UI.Views
                 $"MONTO: {row.amount:N2}  |  ABONADO: {row.paid_amount_usd:N2}  |  SALDO PENDIENTE: {row.balance_due_usd:N2}";
 
             PaymentDatePicker.SelectedDate = DateTime.Now;
+
+            Loaded += (_, _) =>
+            {
+                InputRestrictions.attach_decimal(AmountBox);
+            };
         }
 
         private decimal ParseDecimal(string text)
@@ -51,16 +56,27 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                decimal amount_usd = ParseDecimal(AmountBox.Text);
-                if (amount_usd <= 0)
+                if (string.IsNullOrWhiteSpace(AmountBox.Text))
                 {
                     ShowError("Debes llenar los campos marcados con * (Fecha y Monto USD).");
                     return;
                 }
 
-                if (amount_usd > _row.balance_due_usd)
+                if (InputRestrictions.has_letters(AmountBox.Text))
                 {
-                    ShowError("El monto no puede ser mayor al saldo pendiente.");
+                    ShowError("No se permiten letras en el monto USD. Ingrese solo números.");
+                    return;
+                }
+
+                if (!InputRestrictions.is_valid_decimal(AmountBox.Text, out decimal amount_usd) || amount_usd <= 0)
+                {
+                    ShowError("El monto USD debe ser un número válido mayor a 0.");
+                    return;
+                }
+
+                if (amount_usd > _row.balance_due_usd + 2.00m)
+                {
+                    ShowError("Se excedió del monto máximo.");
                     return;
                 }
 

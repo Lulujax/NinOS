@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 
 namespace NinOS.UI.Common
@@ -23,7 +24,7 @@ namespace NinOS.UI.Common
                 total_gastos_15 = notes.Sum(r => r.gastos_15)
             };
 
-            decimal nota_por_pagar = Math.Round(week_dto.total_amount - week_dto.total_gastos_25 - week_dto.total_gastos_15, 2);
+            decimal nota_por_pagar = Money.round(week_dto.total_amount - week_dto.total_gastos_25 - week_dto.total_gastos_15);
             ProVentaPdfGenerator.generate(week_dto, nota_por_pagar, payments, row);
         }
     }

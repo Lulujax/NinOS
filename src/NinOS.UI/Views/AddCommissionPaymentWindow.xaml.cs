@@ -33,6 +33,8 @@ namespace NinOS.UI.Views
         {
             NotesGrid.ItemsSource = _to_pay;
             PaymentDatePicker.SelectedDate = DateTime.Today;
+            InputRestrictions.attach_decimal(RateBox);
+            InputRestrictions.attach_decimal(BsAmountBox);
             RefreshTotals();
         }
 
@@ -188,10 +190,19 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                decimal rate = ParseDecimal(RateBox.Text);
-                if (rate <= 0)
+                if (string.IsNullOrWhiteSpace(RateBox.Text))
                 {
                     ShowError("Tienes que llenar los campos obligatorios.");
+                    return;
+                }
+                if (InputRestrictions.has_letters(RateBox.Text))
+                {
+                    ShowError("No se permiten letras en la tasa. Ingrese solo números.");
+                    return;
+                }
+                if (!InputRestrictions.is_valid_decimal(RateBox.Text, out decimal rate) || rate <= 0)
+                {
+                    ShowError("La tasa debe ser un número mayor a 0.");
                     return;
                 }
                 if (rate > 10_000_000m)
@@ -228,10 +239,19 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                decimal amount_bs = ParseDecimal(BsAmountBox.Text);
-                if (amount_bs <= 0)
+                if (string.IsNullOrWhiteSpace(BsAmountBox.Text))
                 {
                     ShowError("Tienes que llenar los campos obligatorios.");
+                    return;
+                }
+                if (InputRestrictions.has_letters(BsAmountBox.Text))
+                {
+                    ShowError("No se permiten letras en el monto en Bs. Ingrese solo números.");
+                    return;
+                }
+                if (!InputRestrictions.is_valid_decimal(BsAmountBox.Text, out decimal amount_bs) || amount_bs <= 0)
+                {
+                    ShowError("El monto en Bs debe ser un número mayor a 0.");
                     return;
                 }
 

@@ -63,6 +63,13 @@ namespace NinOS.UI
             {
                 log_startup_message("OnStartup begin");
 
+                // Antes que la pantalla de carga: así todas las ventanas, incluidas las
+                // que se abren después, respetan la escala guardada.
+                UiScale.init();
+
+                // Los botones van en mayúsculas (solo visual, la BD y los PDF no cambian).
+                UpperCaseText.EnableGlobally();
+
                 SplashWindow splash = new SplashWindow();
                 splash.ShowWithAnimation();
                 DateTime started_at = DateTime.Now;

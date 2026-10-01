@@ -18,6 +18,7 @@ namespace NinOS.UI.Views
             this.DataContextChanged += OnViewModelChanged;
             this.Loaded += (s, e) =>
             {
+                InputRestrictions.attach_decimal(PriceBox);
                 if (_view_model != null)
                 {
                     _view_model.on_close_add_promotion_window = () => this.Close();
@@ -106,6 +107,11 @@ namespace NinOS.UI.Views
         private void OnPricePreview(object sender, TextCompositionEventArgs e)
         {
             InputRestrictions.numbers_only(sender, e);
+        }
+
+        private void OnQuantityPreview(object sender, TextCompositionEventArgs e)
+        {
+            InputRestrictions.digits_only(sender, e);
         }
     }
 }

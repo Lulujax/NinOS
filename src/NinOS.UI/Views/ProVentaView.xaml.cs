@@ -84,6 +84,27 @@ namespace NinOS.UI.Views
                 window.Owner = Window.GetWindow(this);
                 window.ShowDialog();
             };
+
+            view_model.on_request_annul_note = async (row) =>
+            {
+                string message =
+                    $"Esta seguro de anular la nota {row.note_number}?\n\n" +
+                    $"Cliente: {row.customer_name}\n" +
+                    $"Monto: {row.amount:N2}\n\n" +
+                    $"El stock sera restituido y la nota quedara marcada como Anulada.\n" +
+                    $"Solo Juan Luis puede anular notas Pro Venta.";
+
+                MessageBoxResult result = AppDialog.Show(
+                    message,
+                    "Confirmar Anulacion",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    await view_model.confirm_annul_note_async(row);
+                }
+            };
         }
 
         private System.Windows.Threading.DispatcherTimer? _relationSearchTimer;

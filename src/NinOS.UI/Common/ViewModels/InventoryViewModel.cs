@@ -105,7 +105,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _new_category = string.Empty;
         private string _new_quantity = string.Empty;
         private string _new_price = string.Empty;
-        private string _add_button_text = "+ Añadir Producto";
+        private string _add_button_text = "+ AÑADIR PRODUCTO";
 
         private int _promo_type_index = 0;
         private string _promo_search_query = string.Empty;
@@ -411,7 +411,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void update_category_from_tab()
         {
-            add_button_text = (_selected_tab_index == 11) ? "+ Añadir Promoción" : "+ Añadir Producto";
+            add_button_text = (_selected_tab_index == 11) ? "+ AÑADIR PROMOCIÓN" : "+ AÑADIR PRODUCTO";
 
             switch (_selected_tab_index)
             {
@@ -1038,9 +1038,33 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(new_quantity))
+            {
+                ErrorMessage = "La cantidad es obligatoria.";
+                return;
+            }
+
+            if (InputRestrictions.has_letters(new_quantity))
+            {
+                ErrorMessage = "No se permiten letras en la cantidad. Ingrese solo números enteros.";
+                return;
+            }
+
             if (!int.TryParse(new_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed_quantity) || parsed_quantity < 0)
             {
                 ErrorMessage = "La cantidad debe ser un número entero mayor o igual a 0.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(new_price))
+            {
+                ErrorMessage = "El precio es obligatorio.";
+                return;
+            }
+
+            if (InputRestrictions.has_letters(new_price))
+            {
+                ErrorMessage = "No se permiten letras en el precio. Ingrese solo números.";
                 return;
             }
 
@@ -1117,6 +1141,12 @@ namespace NinOS.UI.Common.ViewModels
             if (string.IsNullOrWhiteSpace(new_promo_price))
             {
                 ErrorMessage = "Tienes que llenar los campos obligatorios.";
+                return;
+            }
+
+            if (InputRestrictions.has_letters(new_promo_price))
+            {
+                ErrorMessage = "No se permiten letras en el precio de la promoción. Ingrese solo números.";
                 return;
             }
 

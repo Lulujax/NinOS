@@ -119,9 +119,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     note_number = n.note_number,
                     customer_name = customer_name ?? string.Empty,
                     amount = amount,
-                    commission_luis = Math.Round(amount * 0.10m, 2),
-                    gastos_25 = Math.Round(amount * 0.25m, 2),
-                    gastos_15 = Math.Round(amount * 0.15m, 2)
+                    commission_luis = Money.round(amount * 0.10m),
+                    gastos_25 = Money.round(amount * 0.25m),
+                    gastos_15 = Money.round(amount * 0.15m)
                 };
             }).ToList();
 
@@ -250,9 +250,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     note_number = n.note_number,
                     customer_name = customer_name ?? string.Empty,
                     amount = amount,
-                    commission_luis = Math.Round(amount * 0.10m, 2),
-                    gastos_25 = Math.Round(amount * 0.25m, 2),
-                    gastos_15 = Math.Round(amount * 0.15m, 2)
+                    commission_luis = Money.round(amount * 0.10m),
+                    gastos_25 = Money.round(amount * 0.25m),
+                    gastos_15 = Money.round(amount * 0.15m)
                 };
             }).ToList();
         }
