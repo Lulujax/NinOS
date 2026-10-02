@@ -112,6 +112,16 @@
                            Foreground="#666666" Margin="0,2,0,8"
                            Visibility="{Binding has_rows, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
+                <!-- Estado inicial: sin mes seleccionado no se carga nada. Se distingue de
+                     "no hay datos" para que quede claro que falta elegir el mes y no que el
+                     reporte vino vacio. -->
+                <Border Margin="0,30,0,0" Background="#FFF8E1" BorderBrush="#F0A500" BorderThickness="1" CornerRadius="4" Padding="18,14"
+                        HorizontalAlignment="Center" MaxWidth="500"
+                        Visibility="{Binding month_not_selected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="Seleccione un mes para ver el reporte."
+                               Foreground="#8D6E00" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
+                </Border>
+
                 <Border Margin="0,30,0,0" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="18,14"
                         HorizontalAlignment="Center" MaxWidth="500"
                         Visibility="{Binding is_empty, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -275,9 +285,13 @@
             <StackPanel>
                 <TextBlock Text="Relacion por cobrar - pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
 
+                <TextBlock Text="Seleccione un mes para ver las relaciones pendientes." Foreground="#8D6E00"
+                           HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
+                           Visibility="{Binding pending_show_month_hint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
                 <TextBlock Text="No hay relaciones pendientes por cobrar." Foreground="#888888" HorizontalAlignment="Center"
                            Margin="0,20,0,0"
-                           Visibility="{Binding pending_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                           Visibility="{Binding pending_show_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Width="900" Visibility="{Binding has_pending, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding pending_rows}"
@@ -354,9 +368,13 @@
             <StackPanel>
                 <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
 
+                <TextBlock Text="Seleccione un mes para ver las relaciones pagadas." Foreground="#8D6E00"
+                           HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
+                           Visibility="{Binding paid_show_month_hint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
                 <TextBlock Text="No hay relaciones pagadas." Foreground="#888888" HorizontalAlignment="Center"
                            Margin="0,20,0,0"
-                           Visibility="{Binding paid_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                           Visibility="{Binding paid_show_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Width="900" Visibility="{Binding has_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding paid_rows}"
