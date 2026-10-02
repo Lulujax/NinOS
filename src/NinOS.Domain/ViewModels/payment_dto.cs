@@ -29,6 +29,15 @@ namespace NinOS.Domain.ViewModels
         public string ult_edicion_display => updated_at.HasValue ? updated_at.Value.ToString("dd/MM/yyyy HH:mm") : "-";
         public string fecha_registro_display => created_at.ToString("dd/MM/yyyy HH:mm");
         public bool es_negativo => amount_usd < 0;
+
+        /// <summary>
+        /// Marca los abonos que no son pagos reales sino el asiento que deja la anulacion de una
+        /// nota. Se guardan con monto negativo para que salgan en rojo igual que una nota de
+        /// credito, pero no se pueden editar: el monto lo fija la nota anulada.
+        /// </summary>
+        public bool es_anulacion => string.Equals(payment_type, AnulacionPaymentType, StringComparison.OrdinalIgnoreCase);
+
+        public const string AnulacionPaymentType = "Anulacion";
         public decimal monto_usd_magnitud => Math.Abs(amount_usd);
     }
 }

@@ -15,7 +15,9 @@ namespace NinOS.Domain.ViewModels
         public string detail_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
 
-        public string fecha_display => date.ToString("dd/MM/yyyy");
+        // La fecha se guarda en UTC; sin convertir a hora local, un documento emitido de noche
+        // se reporta con la fecha del dia anterior.
+        public string fecha_display => date.ToLocalTime().ToString("dd/MM/yyyy");
         public string monto_display => amount_usd.ToString("N2");
     }
 

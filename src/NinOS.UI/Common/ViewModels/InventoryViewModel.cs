@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -114,6 +115,15 @@ namespace NinOS.UI.Common.ViewModels
         private bool _all_brands_selected = true;
         private bool _suppress_brand_sync;
 
+        // Stock que tenia el producto al abrirlo para edicion. Sirve para saber si la
+        // cantidad cambio (y por tanto pedir el motivo del ajuste) y cuanto sumo o resto.
+        private int _original_quantity_for_edit;
+        private int _code_request_generation;
+        private int _adjustment_reason_index = -1;
+        private string _original_code_for_edit = string.Empty;
+        private string _original_brand_for_edit = string.Empty;
+        private string _preview_code_for_new_brand = string.Empty;
+
         public ObservableCollection<string> category_options { get; }
         public ObservableCollection<brand_selection_option> price_list_brand_options { get; }
         public ObservableCollection<inventory_item_dto> todos_list { get; }
@@ -155,12 +165,31 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_close_add_window;
         public Action? on_close_add_promotion_window;
 
-        public bool can_edit_category
-        {
-            get { return _selected_tab_index == 0; }
-        }
+        // La marca se puede cambiar al crear y al editar. Al editar el sistema reasigna el
+        // codigo con la serie de la marca destino, asi que no se rompe el estandar.
+        public bool can_edit_category => true;
 
         public bool is_editing_product => _product_being_edited != null;
+
+        // Al editar, el codigo es solo lectura: lo asigna el sistema y asi el estandar
+        // por marca no se puede romper desde el formulario.
+        public bool is_code_read_only => is_editing_product;
+
+        // Codigo que tenia el producto al abrirlo para editar, y el que le asignaria el
+        // sistema si se confirma el cambio de marca. Solo se muestran si hay cambio.
+        public string original_code_for_edit => is_editing_product ? _original_code_for_edit : string.Empty;
+
+        public string preview_code_for_new_brand => _preview_code_for_new_brand;
+
+        public bool has_pending_brand_change => is_editing_product
+            && _original_brand_for_edit.Length > 0
+            && !string.Equals(new_category, _original_brand_for_edit, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(_preview_code_for_new_brand);
+
+        // Texto de la linea roja de aviso: "DEF30104 → OLE30319".
+        public string brand_change_warning_display => has_pending_brand_change
+            ? $"El codigo cambiara de {original_code_for_edit} a {preview_code_for_new_brand}."
+            : string.Empty;
 
         public string ErrorMessage
         {
@@ -218,9 +247,15 @@ namespace NinOS.UI.Common.ViewModels
                 if (_new_category == value) return;
                 _new_category = value;
                 on_property_changed();
+                on_property_changed(nameof(can_edit_category));
+
                 if (_product_being_edited == null)
                 {
-                    new_code = generate_next_product_code(value);
+                    request_next_code_async(value);
+                }
+                else
+                {
+                    request_brand_change_preview_async(value);
                 }
             }
         }
@@ -228,7 +263,72 @@ namespace NinOS.UI.Common.ViewModels
         public string new_quantity
         {
             get { return _new_quantity; }
-            set { _new_quantity = value; on_property_changed(); }
+            set
+            {
+                if (_new_quantity == value) return;
+                _new_quantity = value;
+                on_property_changed();
+                on_property_changed(nameof(quantity_delta));
+                on_property_changed(nameof(quantity_delta_display));
+                on_property_changed(nameof(requires_adjustment_reason));
+            }
+        }
+
+        // Motivos de ajuste de cantidad, tomados del dominio para que el kardex y el
+        // formulario no se desincronicen.
+        public IReadOnlyList<string> adjustment_reason_options => stock_movement.AdjustmentReasons;
+
+        public string[] adjustment_reason_display_options { get; }
+
+        public static string adjustment_reason_display(string reason)
+        {
+            switch (reason)
+            {
+                case stock_movement.RazonReposicion: return "Reposicion / compra a proveedor";
+                case stock_movement.RazonMerma: return "Merma, rotura o producto vencido";
+                case stock_movement.RazonCorreccionConteo: return "Correccion de conteo fisico";
+                case stock_movement.RazonDevolucionProveedor: return "Devolucion a proveedor";
+                case stock_movement.RazonAjusteSistema: return "Ajuste del sistema";
+                default: return reason;
+            }
+        }
+
+        public int adjustment_reason_index
+        {
+            get { return _adjustment_reason_index; }
+            set
+            {
+                if (_adjustment_reason_index == value) return;
+                _adjustment_reason_index = value;
+                on_property_changed();
+                on_property_changed(nameof(adjustment_reason_selected));
+            }
+        }
+
+        public string? adjustment_reason_selected =>
+            _adjustment_reason_index >= 0 && _adjustment_reason_index < adjustment_reason_options.Count
+                ? adjustment_reason_options[_adjustment_reason_index]
+                : null;
+
+        // Cuanto sumo (positivo) o resto (negativo) el usuario respecto al stock original.
+        // Solo tiene sentido al editar.
+        public int quantity_delta => is_editing_product
+            ? parse_quantity_or_zero(new_quantity) - _original_quantity_for_edit
+            : 0;
+
+        // El selector de motivo solo aparece al editar y solo si la cantidad cambio de verdad.
+        public bool requires_adjustment_reason => is_editing_product && quantity_delta != 0;
+
+        public string quantity_delta_display => quantity_delta > 0
+            ? $"+{quantity_delta}"
+            : quantity_delta.ToString();
+
+        private static int parse_quantity_or_zero(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+            return int.TryParse(value!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+                ? parsed
+                : 0;
         }
 
         public string new_price
@@ -295,7 +395,10 @@ namespace NinOS.UI.Common.ViewModels
             _all_products_source = new List<product>();
             _all_promotions_source = new List<promotion>();
 
-            category_options = new ObservableCollection<string> { "Defile", "Oleos", "Rembrandt", "Bioline", "Amazonia Secret", "Kedam", "Depil Clear", "Estilista", "Cutique", "Otros" };
+            // En mayusculas porque es como queda guardada la categoria en product. Si aqui
+            // estuvieran en mayusculas distintas, al editar el ComboBox no encontraria
+            // coincidencia con el valor que viene de la base y se veria vacio.
+            category_options = new ObservableCollection<string> { "DEFILE", "OLEOS", "REMBRANDT", "BIOLINE", "AMAZONIA SECRET", "KEDAM", "DEPIL CLEAR", "ESTILISTA", "CUTIQUE", "OTROS" };
             
             price_list_brand_options = new ObservableCollection<brand_selection_option>();
 
@@ -318,9 +421,14 @@ namespace NinOS.UI.Common.ViewModels
             promociones_list = new ObservableCollection<inventory_item_dto>();
             
             promo_search_results = new ObservableCollection<product>();
-        builder_items = new ObservableCollection<promo_builder_item>();
+            builder_items = new ObservableCollection<promo_builder_item>();
+
+            adjustment_reason_display_options = stock_movement.AdjustmentReasons
+                .Select(adjustment_reason_display)
+                .ToArray();
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
+
             save_product_command = new RelayCommand(execute_save_product);
             edit_command = new RelayCommand(execute_edit_product);
             delete_command = new RelayCommand(execute_delete_product);
@@ -332,7 +440,7 @@ namespace NinOS.UI.Common.ViewModels
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
             
-            new_category = "Defile";
+            new_category = "DEFILE";
             
             load_initial_data_async();
         }
@@ -415,57 +523,52 @@ namespace NinOS.UI.Common.ViewModels
 
             switch (_selected_tab_index)
             {
-                case 1: new_category = "Defile"; break;
-                case 2: new_category = "Oleos"; break;
-                case 3: new_category = "Rembrandt"; break;
-                case 4: new_category = "Bioline"; break;
-                case 5: new_category = "Amazonia Secret"; break;
-                case 6: new_category = "Kedam"; break;
-                case 7: new_category = "Depil Clear"; break;
-                case 8: new_category = "Estilista"; break;
-                case 9: new_category = "Cutique"; break;
-                case 10: new_category = "Otros"; break;
+                case 1: new_category = "DEFILE"; break;
+                case 2: new_category = "OLEOS"; break;
+                case 3: new_category = "REMBRANDT"; break;
+                case 4: new_category = "BIOLINE"; break;
+                case 5: new_category = "AMAZONIA SECRET"; break;
+                case 6: new_category = "KEDAM"; break;
+                case 7: new_category = "DEPIL CLEAR"; break;
+                case 8: new_category = "ESTILISTA"; break;
+                case 9: new_category = "CUTIQUE"; break;
+                case 10: new_category = "OTROS"; break;
                 default: break;
             }
         }
 
-        private static readonly System.Collections.Generic.Dictionary<string, string> category_code_prefixes = new()
+        /// <summary>
+        /// Pide al servicio el siguiente codigo de la marca y lo deja en new_code. Va al
+        /// servicio (y no aqui) porque el correlativo tiene que considerar tambien los
+        /// productos que estan en la papelera, si no un codigo dado de baja se reutiliza.
+        /// El contador de generación evita que una consulta lenta pise el codigo de una marca nueva.
+        /// </summary>
+        private async void request_next_code_async(string category)
         {
-            ["Defile"] = "DEF",
-            ["Oleos"] = "OLE",
-            ["Rembrandt"] = "REM",
-            ["Bioline"] = "BIO",
-            ["Amazonia Secret"] = "AMA",
-            ["Kedam"] = "KED",
-            ["Depil Clear"] = "DEP",
-            ["Estilista"] = "EST",
-            ["Cutique"] = "CUT",
-            ["Otros"] = "OTR"
-        };
+            if (!product_code_rules.TryGetPrefix(category, out _)) return;
 
-        private string generate_next_product_code(string category)
-        {
-            if (string.IsNullOrWhiteSpace(category) || !category_code_prefixes.TryGetValue(category, out string? prefix))
+            int generation = ++_code_request_generation;
+
+            try
             {
-                return string.Empty;
+                string code = await _inventory_service.get_next_product_code_async(category);
+
+                // El usuario cambio de marca otra vez mientras esperabamos la respuesta.
+                if (generation != _code_request_generation) return;
+                if (_product_being_edited != null) return;
+
+                new_code = code;
             }
-
-            int digit_count = prefix.EndsWith("-") ? 3 : 5;
-            int max_number = 0;
-
-            foreach (product p in _all_products_source)
+            catch (Exception ex)
             {
-                if (string.IsNullOrWhiteSpace(p.product_code)) continue;
-                if (!p.product_code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+                if (generation != _code_request_generation) return;
 
-                string suffix = p.product_code.Substring(prefix.Length);
-                if (suffix.Length == digit_count && int.TryParse(suffix, out int value) && value > max_number)
-                {
-                    max_number = value;
-                }
+                AppLog.Warn($"No se pudo generar el codigo para la marca {category}. " +
+                            $"Detalle: {ex.GetType().Name}: {ex.Message}");
+
+                new_code = string.Empty;
+                ErrorMessage = "No se pudo consultar el siguiente código. Revisa la conexión y vuelve a abrir la ventana.";
             }
-
-            return prefix + (max_number + 1).ToString(new string('0', digit_count));
         }
 
         // 0 = Oferta de un producto, 1 = Kit, 2 = Combo.
@@ -751,15 +854,90 @@ namespace NinOS.UI.Common.ViewModels
             }
 
             _product_being_edited = null;
-            new_code = string.Empty;
+            _original_quantity_for_edit = 0;
+            _original_code_for_edit = string.Empty;
+            _original_brand_for_edit = string.Empty;
+            _preview_code_for_new_brand = string.Empty;
             new_name = string.Empty;
             new_quantity = string.Empty;
             new_price = string.Empty;
+            reset_adjustment_reason();
+
             update_category_from_tab();
-            new_code = generate_next_product_code(new_category);
+
+            // La categoria fija el prefijo del codigo; el correlativo lo pide el servicio.
+            new_code = string.Empty;
+            request_next_code_async(new_category);
+
             on_property_changed(nameof(can_edit_category));
             on_property_changed(nameof(is_editing_product));
+            on_property_changed(nameof(is_code_read_only));
+            on_property_changed(nameof(has_pending_brand_change));
             on_request_add_window?.Invoke();
+        }
+
+        /// <summary>
+        /// Al cambiar la marca de un producto que se esta editando, calcula que codigo le
+        /// tocaria en la marca destino y lo pone en la caja, que es de solo lectura, para
+        /// que se vea de inmediato. Si se vuelve a la marca original, la caja recupera el
+        /// codigo de siempre.
+        ///
+        /// Es solo una previsualizacion: el codigo definitivo lo recalcula y asigna el
+        /// servicio al guardar, asi que esto no puede dejar un codigo mal puesto.
+        /// </summary>
+        private async void request_brand_change_preview_async(string category)
+        {
+            _preview_code_for_new_brand = string.Empty;
+            on_property_changed(nameof(preview_code_for_new_brand));
+            on_property_changed(nameof(has_pending_brand_change));
+            on_property_changed(nameof(brand_change_warning_display));
+
+            if (!is_editing_product) return;
+
+            if (string.Equals(category, _original_brand_for_edit, StringComparison.OrdinalIgnoreCase))
+            {
+                new_code = _original_code_for_edit;
+                return;
+            }
+
+            if (!product_code_rules.TryGetPrefix(category, out _)) return;
+
+            int generation = ++_code_request_generation;
+
+            try
+            {
+                string code = await _inventory_service.get_next_product_code_async(category);
+
+                if (generation != _code_request_generation) return;
+                if (_product_being_edited == null) return;
+                if (!string.Equals(new_category, category, StringComparison.OrdinalIgnoreCase)) return;
+
+                _preview_code_for_new_brand = code;
+
+                // Se muestra el codigo de la marca destino en la propia caja.
+                new_code = code;
+
+                on_property_changed(nameof(preview_code_for_new_brand));
+                on_property_changed(nameof(has_pending_brand_change));
+                on_property_changed(nameof(brand_change_warning_display));
+            }
+            catch (Exception ex)
+            {
+                if (generation != _code_request_generation) return;
+
+                AppLog.Warn($"No se pudo calcular el codigo para la marca {category}. " +
+                            $"Detalle: {ex.GetType().Name}: {ex.Message}");
+
+                // Sin previsualizacion no se pisa el codigo real del producto.
+                new_code = _original_code_for_edit;
+            }
+        }
+
+        private void reset_adjustment_reason()
+        {
+            _adjustment_reason_index = -1;
+            on_property_changed(nameof(adjustment_reason_index));
+            on_property_changed(nameof(adjustment_reason_selected));
         }
 
         private void execute_edit_product(object? parameter)
@@ -767,13 +945,25 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is inventory_item_dto dto && !dto.is_promotion && dto.product_ref != null)
             {
                 _product_being_edited = dto.product_ref;
+                _original_quantity_for_edit = dto.product_ref.stock_quantity;
+                _original_code_for_edit = dto.product_ref.product_code;
+                _original_brand_for_edit = dto.product_ref.category;
+                _preview_code_for_new_brand = string.Empty;
+                reset_adjustment_reason();
+
                 new_code = dto.product_ref.product_code;
                 new_name = dto.product_ref.name;
                 new_category = dto.product_ref.category;
                 new_quantity = dto.product_ref.stock_quantity.ToString();
                 new_price = dto.product_ref.unit_price_usd.ToString();
+
                 on_property_changed(nameof(can_edit_category));
                 on_property_changed(nameof(is_editing_product));
+                on_property_changed(nameof(is_code_read_only));
+                on_property_changed(nameof(quantity_delta));
+                on_property_changed(nameof(requires_adjustment_reason));
+                on_property_changed(nameof(original_code_for_edit));
+                on_property_changed(nameof(has_pending_brand_change));
                 on_request_add_window?.Invoke();
             }
         }
@@ -1074,30 +1264,101 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            bool es_edicion = _product_being_edited != null;
+
+            // Al crear, el codigo lo pone el sistema con el estandar de la marca.
+            if (!es_edicion)
+            {
+                if (string.IsNullOrWhiteSpace(new_code))
+                {
+                    ErrorMessage = "No se pudo generar el código del producto. Cierra la ventana y vuelve a abrirla.";
+                    return;
+                }
+
+                if (!product_code_rules.TryGetPrefix(new_category, out string prefix))
+                {
+                    ErrorMessage = $"La marca {new_category} no tiene un prefijo de código configurado.";
+                    return;
+                }
+
+                if (!product_code_rules.IsValidFor(new_code, new_category))
+                {
+                    ErrorMessage = $"El código debe tener el formato de la marca {new_category} " +
+                                   $"(prefijo {prefix} y {product_code_rules.DigitsFor(prefix)} dígitos).";
+                    return;
+                }
+            }
+
+            // Si se toco la cantidad hay que saber por que: sin motivo el kardex queda
+            // con un "AJUSTE" que no dice nada.
+            if (requires_adjustment_reason && string.IsNullOrEmpty(adjustment_reason_selected))
+            {
+                ErrorMessage = "Indica el motivo por el que cambiaste la cantidad.";
+                return;
+            }
+
+            // Cambiar de marca cambia el codigo, y con el los numeros de serie de esa marca.
+            // Se pide confirmacion para que no sea un cambio sin querer.
+            if (has_pending_brand_change)
+            {
+                MessageBoxResult confirmacion = AppDialog.Show(
+                    $"El producto pasara de la marca {_original_brand_for_edit} a {new_category}.\n\n" +
+                    $"Su codigo cambiara de {original_code_for_edit} a {preview_code_for_new_brand}.\n\n" +
+                    "Las notas ya emitidas siguen mostrando el codigo con el que se crearon.\n\n" +
+                    "¿Deseas continuar?",
+                    "Cambio de marca",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (confirmacion != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
             try
             {
+                bool cambio_de_codigo = es_edicion && has_pending_brand_change;
+
                 if (_product_being_edited != null)
                 {
-                    _product_being_edited.product_code = new_code;
+                    // El codigo no se toca desde aca: si cambio la marca, el servicio calcula
+                    // el codigo de la serie nueva y asigna los dos juntos.
                     _product_being_edited.name = new_name;
-                    _product_being_edited.category = new_category;
                     _product_being_edited.unit_price_usd = parsed_price;
                     _product_being_edited.stock_quantity = parsed_quantity;
-                    await _inventory_service.update_product_async(_product_being_edited);
+
+                    await _inventory_service.update_product_async(
+                        _product_being_edited,
+                        requires_adjustment_reason ? adjustment_reason_selected : null,
+                        has_pending_brand_change ? new_category : null);
                 }
                 else
                 {
-                    product new_prod = new product(new_code, new_name, new_category, parsed_price, parsed_quantity);
+                    product new_prod = new product(new_code.Trim(), new_name, new_category, parsed_price, parsed_quantity);
                     await _inventory_service.add_product_async(new_prod);
                 }
 
-                bool era_edicion = _product_being_edited != null;
                 _product_being_edited = null;
+                _original_quantity_for_edit = 0;
+                _original_code_for_edit = string.Empty;
+                _original_brand_for_edit = string.Empty;
+                _preview_code_for_new_brand = string.Empty;
                 on_property_changed(nameof(is_editing_product));
+                on_property_changed(nameof(is_code_read_only));
+                on_property_changed(nameof(has_pending_brand_change));
                 load_initial_data_async();
+
+                // Las ventanas de ventas, notas y lista de precios tienen el codigo en memoria:
+                // sin este aviso seguirian mostrando el anterior.
+                if (cambio_de_codigo)
+                {
+                    AppDataEvents.raise_catalogs_changed();
+                }
+
                 on_close_add_window?.Invoke();
                 AppDialog.Show(
-                    era_edicion ? "Producto actualizado exitosamente." : "Producto creado exitosamente.",
+                    es_edicion ? "Producto actualizado exitosamente." : "Producto creado exitosamente.",
                     "Exito",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);

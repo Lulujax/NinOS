@@ -41,13 +41,20 @@ namespace NinOS.Domain
             }
         }
 
+        /// <summary>
+        /// Marca o linea del producto. Se guarda siempre en mayusculas porque es la que
+        /// define el prefijo del codigo y la que agrupa la lista de precios: si unos
+        /// productos dijeran 'Defile' y otros 'DEFILE' quedarian en grupos distintos.
+        /// El comparador del PDF de precios es exacto, asi que la caja se normaliza aqui
+        /// y no en cada pantalla que la use.
+        /// </summary>
         public string category
         {
             get { return _category; }
             set
             {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException();
-                _category = value;
+                _category = value.Trim().ToUpperInvariant();
             }
         }
 

@@ -36,8 +36,12 @@ namespace NinOS.UI.Views
                 .ToList();
             HistoryGrid.ItemsSource = payments;
 
-            decimal amount = notes.Sum(n => n.amount);
-            decimal paid = payments.Sum(p => p.amount_usd);
+            // El monto y el saldo se calculan solo con lo que esta vigente: una nota anulada ya no
+            // se cobra y su asiento en rojo es un registro, no un pago. Sumarlo correria el saldo.
+            var vigente = notes.Where(n => !n.esta_anulada).ToList();
+
+            decimal amount = vigente.Sum(n => n.amount);
+            decimal paid = payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd);
             decimal balance = amount - paid;
             if (balance < 0) balance = 0;
 
@@ -48,6 +52,10 @@ namespace NinOS.UI.Views
         private async void EditPayment_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button btn || btn.DataContext is not payment_dto dto) return;
+
+            // El asiento de anulacion no se edita: su monto es el de la nota anulada y su fecha es
+            // el momento en que se anulo. El boton tampoco se muestra, esto es solo por si acaso.
+            if (dto.es_anulacion) return;
 
             var result = PromptEdit(dto);
             if (result == null) return;

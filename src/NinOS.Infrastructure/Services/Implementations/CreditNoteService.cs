@@ -9,6 +9,7 @@ using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Interfaces;
 using NinOS.Infrastructure.Services.Interfaces;
 
@@ -48,10 +49,18 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                // Se descuenta el offset local antes de tomar el anio y el mes, igual que en el
+                // filtro por mes de esta misma vista, para que el combo y el filtro coincidan.
+                double local_offset_hours = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalHours;
+
                 var dates = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada")
-                    .Select(dn => new { dn.creation_date.Year, dn.creation_date.Month })
+                    .Select(dn => new
+                    {
+                        dn.creation_date.AddHours(-local_offset_hours).Year,
+                        dn.creation_date.AddHours(-local_offset_hours).Month
+                    })
                     .Distinct()
                     .OrderBy(d => d.Year)
                     .ThenBy(d => d.Month)
@@ -77,7 +86,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     if (DateTime.TryParseExact(month_year.Trim(), "MMMM yyyy", new CultureInfo("es-VE"), DateTimeStyles.None, out var target_date))
                     {
-                        query = query.Where(dn => dn.creation_date.Year == target_date.Year && dn.creation_date.Month == target_date.Month);
+                        // Se compara contra un rango en UTC, no con Year/Month. La columna guarda
+                        // UTC, asi que extraer el mes de la columna cruda corre el riesgo de poner
+                        // en el mes equivocado un documento creado de noche (ya va en el mes
+                        // siguiente al guardarlo). El rango se arma desde la hora local del
+                        // primer dia del mes y del siguiente, y se convierte a UTC.
+                        var month_start = new DateTime(target_date.Year, target_date.Month, 1, 0, 0, 0, DateTimeKind.Local);
+                        var month_end = month_start.AddMonths(1);
+
+                        query = query.Where(dn => dn.creation_date >= month_start.ToUniversalTime()
+                                              && dn.creation_date < month_end.ToUniversalTime());
                     }
                 }
 
@@ -101,9 +119,32 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var note_types = await db_context.note_types.AsNoTracking().ToDictionaryAsync(t => t.id_note_type, t => t.name);
 
-                var payment_totals = await db_context.payments
+                // Una NC se registra como pago NEGATIVO contra la nota de entrega (payment_type
+                // "NOTA DE CREDITO" y reference_number = numero de NC). Si esa NC despues se
+                // anula, su descuento sigue descontando y la nota original pareceria pagada
+                // cuando en realidad todavia tiene saldo, haciendo que desaparezca del
+                // buscador cuando si se le podria hacer una NC.
+                var annulled_credit_numbers = await db_context.credit_notes
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(c => c.id_delivery_note != null
+                             && note_ids.Contains(c.id_delivery_note.Value)
+                             && c.status == "Anulada")
+                    .Select(c => c.note_number)
+                    .ToListAsync();
+
+                var payment_query = db_context.payments
+                    .AsNoTracking()
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value));
+
+                if (annulled_credit_numbers.Count > 0)
+                {
+                    var anuladas = annulled_credit_numbers;
+                    payment_query = payment_query.Where(p => p.payment_type != "NOTA DE CREDITO"
+                                                       || p.reference_number == null
+                                                       || !anuladas.Contains(p.reference_number));
+                }
+
+                var payment_totals = await payment_query
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
@@ -132,6 +173,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                         type_name = "General";
                     }
 
+                    // Una nota totalmente pagada no admite nota de credito: no queda saldo por
+                    // devolver. Se filtra por el saldo real (adjusted_total - pagado) y no solo por
+                    // el status, porque el status es un valor cacheado que puede quedar desfasado
+                    // si se edito la nota o se registro un pago despues.
+                    decimal balance_due = dn.adjusted_total_usd - paid;
+
+                    if (balance_due <= 0) continue;
+
                     results.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -144,7 +193,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = dn.adjusted_total_usd,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        balance_due_usd = balance_due,
                         note_type_name = type_name,
                         sales_observations = type_name
                     });
@@ -160,9 +209,18 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                // Se descuenta el offset local antes de tomar el anio y el mes. Sin esto el combo
+                // ofrecen un mes distinto del que realmente usa el filtro por mes, y una nota
+                // creada de noche queda en un mes que el combo no lista.
+                double local_offset_hours = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalHours;
+
                 var months = await db_context.credit_notes
                     .AsNoTracking()
-                    .Select(c => new { c.creation_date.Year, c.creation_date.Month })
+                    .Select(c => new
+                    {
+                        c.creation_date.AddHours(-local_offset_hours).Year,
+                        c.creation_date.AddHours(-local_offset_hours).Month
+                    })
                     .Distinct()
                     .OrderBy(c => c.Year)
                     .ThenBy(c => c.Month)
@@ -209,7 +267,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             if (target_date != null)
             {
-                query = query.Where(c => c.creation_date.Year == target_date.Value.Year && c.creation_date.Month == target_date.Value.Month);
+                // Rango en UTC en vez de Year/Month: la columna guarda UTC y una NC emitida de
+                // noche ya cae en el mes siguiente al guardarse, con Year/Month se iba al mes
+                // equivocado. El rango va desde el primer dia del mes local hasta el siguiente.
+                var month_start = new DateTime(target_date.Value.Year, target_date.Value.Month, 1, 0, 0, 0, DateTimeKind.Local);
+                var month_end = month_start.AddMonths(1);
+
+                query = query.Where(c => c.creation_date >= month_start.ToUniversalTime()
+                                      && c.creation_date < month_end.ToUniversalTime());
             }
 
             if (id_seller != null)
@@ -240,21 +305,56 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(n => delivery_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
 
+            // La columna TIPO NOTA de la NC se hereda de la nota de entrega que se esta revirtiendo:
+            // una devolucion no tiene tipo propio, hereda el de la nota que la origina (general,
+            // promocion, pro venta). Asi se puede leer de un vistazo si la devolucion viene de una
+            // nota de promocion, que es el caso que cambia como se revierte el dinero.
+            var note_types = await db_context.note_types
+                .AsNoTracking()
+                .ToDictionaryAsync(t => t.id_note_type, t => t.name);
+
             return notes
                 .OrderByCorrelative(c => c.note_number)
-                .Select(c => new credit_note_dto
+                .Select(c =>
                 {
-                    id_credit_note = c.id_credit_note,
-                    note_number = c.note_number,
-                    id_delivery_note = c.id_delivery_note ?? 0,
-                    source_note_number = c.id_delivery_note.HasValue && originals.TryGetValue(c.id_delivery_note.Value, out var o) ? o.note_number : string.Empty,
-                    customer_name = customers.TryGetValue(c.id_customer, out var cu) ? cu.business_name : string.Empty,
-                    id_seller = c.id_seller,
-                    seller_name = sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty,
-                    creation_date = c.creation_date,
-                    total_amount_usd = c.total_amount_usd,
-                    status = c.status,
-                    category = c.category
+                    string type_name = string.Empty;
+                    if (c.id_delivery_note.HasValue
+                        && originals.TryGetValue(c.id_delivery_note.Value, out var source_note)
+                        && source_note.note_type_id != null
+                        && note_types.TryGetValue(source_note.note_type_id.Value, out var resolved))
+                    {
+                        type_name = resolved;
+                    }
+
+                    // El obsequio no cuelga de ninguna nota de entrega, asi que no hereda tipo.
+                    if (string.IsNullOrWhiteSpace(type_name) && string.Equals(c.category, "Obsequio", StringComparison.OrdinalIgnoreCase))
+                    {
+                        type_name = "Obsequio";
+                    }
+
+                    // Las notas de entrega anteriores a que existiera note_type_id lo tienen en null,
+                    // asi que no hay tipo que heredar y la columna quedaba vacia. Esas notas son
+                    // General por definicion, asi que se cae ahi en vez de dejar un hueco.
+                    if (string.IsNullOrWhiteSpace(type_name) && c.id_delivery_note.HasValue)
+                    {
+                        type_name = "General";
+                    }
+
+                    return new credit_note_dto
+                    {
+                        id_credit_note = c.id_credit_note,
+                        note_number = c.note_number,
+                        id_delivery_note = c.id_delivery_note ?? 0,
+                        source_note_number = c.id_delivery_note.HasValue && originals.TryGetValue(c.id_delivery_note.Value, out var o) ? o.note_number : string.Empty,
+                        customer_name = customers.TryGetValue(c.id_customer, out var cu) ? cu.business_name : string.Empty,
+                        id_seller = c.id_seller,
+                        seller_name = sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty,
+                        creation_date = c.creation_date,
+                        total_amount_usd = c.total_amount_usd,
+                        status = c.status,
+                        category = c.category,
+                        note_type_name = type_name
+                    };
                 })
                 .ToList();
         }
@@ -293,6 +393,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(p => promo_ids.Contains(p.id_promotion))
                     .ToDictionaryAsync(p => p.id_promotion);
 
+                // Descuento que la nota le aplico al cliente. En CxC se trabaja con un unico DCTO
+                // (condicion + volumen ya compactados en discount_percentage), pero se suman los dos
+                // por si alguna nota antigua todavia tiene el volumen separado.
+                decimal note_discount = (note.discount_percentage ?? 0m) + (note.volume_discount_percentage ?? 0m);
+                if (note_discount < 0m) note_discount = 0m;
+                if (note_discount > 100m) note_discount = 100m;
+                decimal net_factor = resolve_net_factor(note_discount);
+
+                // Tipo de la nota de origen (General, Promocion, Pro Venta...). La NC lo hereda
+                // para que se vea de que tipo de nota vino la devolucion.
+                string source_note_type = note.note_type_id == null
+                    ? string.Empty
+                    : await db_context.note_types
+                        .AsNoTracking()
+                        .Where(t => t.id_note_type == note.note_type_id.Value)
+                        .Select(t => t.name)
+                        .FirstOrDefaultAsync() ?? string.Empty;
+
                 var source_dto = new credit_note_source_dto
                 {
                     id_delivery_note = note.id_delivery_note,
@@ -304,6 +422,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     id_seller = note.id_seller,
                     seller_name = seller?.full_name ?? string.Empty,
                     adjusted_total_usd = note.adjusted_total_usd,
+                    discount_percentage = note_discount,
+                    note_type = source_note_type,
                     status = note.status
                 };
 
@@ -337,7 +457,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         string name = string.Empty;
                         if (d.id_product != null && products.TryGetValue(d.id_product.Value, out var prod))
                         {
-                            code = prod.product_code;
+                            // Se imprime el codigo congelado al emitir la nota; el codigo
+                            // actual solo se usa en renglones viejos sin snapshot.
+                            code = d.product_code_snapshot ?? prod.product_code;
                             name = prod.name;
                         }
                         else if (d.id_promotion != null && promotions.TryGetValue(d.id_promotion.Value, out var promo))
@@ -353,6 +475,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                             code = code,
                             name = name,
                             unit_price_usd = d.unit_price_usd,
+                            net_unit_price_usd = resolve_net_unit_price(d, net_factor),
                             delivered_quantity = d.quantity,
                             already_returned_quantity = already_returned,
                             remaining_quantity = Math.Max(d.quantity - already_returned, 0)
@@ -367,7 +490,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         string name = string.Empty;
                         if (d.id_product != null && products.TryGetValue(d.id_product.Value, out var prod))
                         {
-                            code = prod.product_code;
+                            // Codigo congelado al emitir la nota; el actual es solo el respaldo
+                            // para los renglones anteriores a esta columna.
+                            code = d.product_code_snapshot ?? prod.product_code;
                             name = prod.name;
                         }
                         else if (d.id_promotion != null && promotions.TryGetValue(d.id_promotion.Value, out var promo))
@@ -383,6 +508,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                             code = code,
                             name = name,
                             unit_price_usd = d.unit_price_usd,
+                            net_unit_price_usd = resolve_net_unit_price(d, net_factor),
                             delivered_quantity = d.quantity,
                             already_returned_quantity = 0,
                             remaining_quantity = d.quantity
@@ -391,6 +517,91 @@ namespace NinOS.Infrastructure.Services.Implementations
                 }
 
                 return source_dto;
+            }
+        }
+
+        /// <summary>
+        /// Precio unitario NETO de un renglon de la nota de entrega: lo que el cliente realmente
+        /// pago por esa unidad, con el descuento de la nota ya descontado.
+        ///
+        /// Se parte de subtotal_usd y no de unit_price_usd a proposito. En una nota de promocion
+        /// el subtotal ya viene con el precio de promocion resuelto, asi que usar el unit_price
+        /// (precio de lista) devolveria dinero de mas. Encima se aplica el descuento de cabecera,
+        /// que es donde vive el descuento del cliente.
+        ///
+        /// El factor llega ya recortado al rango 0..1 por quien lo arma.
+        /// </summary>
+        private static decimal resolve_net_unit_price(note_detail detail, decimal net_factor)
+        {
+            decimal line_net = detail.quantity > 0
+                ? detail.subtotal_usd / detail.quantity
+                : detail.unit_price_usd;
+
+            return Money.round(line_net * net_factor);
+        }
+
+        /// <summary>
+        /// Factor 1 - descuento/100 de la nota de entrega, acotado a un rango util. Centraliza el
+        /// calculo para que la pantalla y el guardado no puedan discrepar entre si.
+        /// </summary>
+        private static decimal resolve_net_factor(decimal discount_percentage)
+        {
+            if (discount_percentage < 0m) discount_percentage = 0m;
+            if (discount_percentage > 100m) discount_percentage = 100m;
+            return 1m - discount_percentage / 100m;
+        }
+
+        /// <summary>
+        /// Recorta las lineas de una devolucion para que el total no pase del saldo disponible.
+        ///
+        /// No se toca la cantidad devuelta: el cliente devuelve los articulos que devolvio, lo que
+        /// se ajusta es cuanto dinero se acredita por cada uno. Se reparte el mismo factor a todas
+        /// las lineas para que el recorte caiga parejo y no castigue a un solo renglon.
+        ///
+        /// El redondeo no siempre cuadra al centimo. En vez de ajustar linea por linea y terminar
+        /// con un total descuadrado, el residuo se absorbe entero en la ultima linea con cantidad,
+        /// que es la que ya venia movida por el redondeo. Asi la suma final es exactamente el saldo.
+        /// </summary>
+        private static void apply_available_cap(List<credit_note_detail> details, decimal available_usd)
+        {
+            if (details == null || details.Count == 0) return;
+
+            if (available_usd <= 0m)
+            {
+                foreach (var detail in details)
+                {
+                    detail.unit_price_usd = 0m;
+                    detail.subtotal_usd = 0m;
+                }
+                return;
+            }
+
+            var weighted = details
+                .Select((detail, index) => (detail, index, weight: detail.subtotal_usd))
+                .Where(x => x.weight > 0m && x.detail.quantity > 0)
+                .ToList();
+
+            if (weighted.Count == 0) return;
+
+            decimal total = weighted.Sum(x => x.weight);
+            if (total <= 0m) return;
+
+            decimal factor = available_usd / total;
+
+            foreach (var item in weighted)
+            {
+                item.detail.unit_price_usd = Money.round(item.detail.unit_price_usd * factor);
+                item.detail.subtotal_usd = Money.round(item.detail.unit_price_usd * item.detail.quantity);
+            }
+
+            decimal residue = Money.round(available_usd - details.Sum(d => d.subtotal_usd));
+            if (residue == 0m) return;
+
+            var absorber = weighted.OrderByDescending(x => x.index).First();
+            absorber.detail.subtotal_usd = Money.round(absorber.detail.subtotal_usd + residue);
+            if (absorber.detail.quantity > 0)
+            {
+                absorber.detail.unit_price_usd = Money.round(absorber.detail.subtotal_usd / absorber.detail.quantity);
             }
         }
 
@@ -432,6 +643,37 @@ namespace NinOS.Infrastructure.Services.Implementations
                             .FirstOrDefaultAsync(n => n.id_delivery_note == new_note.id_delivery_note);
                         if (original_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                         if (original_note.status == "Anulada") throw new InvalidOperationException("No se puede crear una nota de credito sobre una nota anulada.");
+
+                        // Una nota de entrega totalmente pagada no admite nota de credito: no queda
+                        // saldo por devolver. Se valida aca para que no se pueda saltar saltandose
+                        // el buscador, ya que el saldo pudo cambiar despues de armar la lista.
+                        // El saldo sale de la suma de pagos: los pagos positivos son plata real
+                        // entra y cada NC es un pago negativo que resta. Las NC anuladas se
+                        // excluyen de esa resta porque ya no devuelven nada.
+                        var annulled_numbers_of_note = await db_context.credit_notes
+                            .AsNoTracking()
+                            .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.status == "Anulada")
+                            .Select(c => c.note_number)
+                            .ToListAsync();
+
+                        var note_payments = await db_context.payments
+                            .AsNoTracking()
+                            .Where(p => p.id_delivery_note == original_note.id_delivery_note)
+                            .ToListAsync();
+
+                        decimal balance_of_note = original_note.adjusted_total_usd;
+
+                        foreach (var p in note_payments)
+                        {
+                            bool is_annulled_credit = p.payment_type == "NOTA DE CREDITO"
+                                                      && p.reference_number != null
+                                                      && annulled_numbers_of_note.Contains(p.reference_number);
+
+                            if (!is_annulled_credit) balance_of_note -= p.amount_usd;
+                        }
+
+                        if (balance_of_note <= 0)
+                            throw new InvalidOperationException("La nota de entrega esta pagada: no se le puede crear una nota de credito.");
                     }
 
                     var direct_product_ids = new HashSet<int>();
@@ -554,6 +796,53 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 }
                             }
                         }
+
+                        // El importe de la nota de credito se RECALCULA aqui, sin confiar en lo que
+                        // mando la pantalla, y se recorta al saldo que le queda a la nota.
+                        // Nada de esto bloquea al usuario: si hay que recortar, se recorta y queda
+                        // registrado en el log y en las observaciones de la NC.
+                        decimal applied_net_factor = resolve_net_factor(
+                            (original_note.discount_percentage ?? 0m) + (original_note.volume_discount_percentage ?? 0m));
+
+                        foreach (var detail in detail_list)
+                        {
+                            var original_detail = original_map[(detail.id_product, detail.id_promotion)];
+                            decimal net_unit = resolve_net_unit_price(original_detail, applied_net_factor);
+
+                            detail.unit_price_usd = net_unit;
+                            detail.subtotal_usd = Money.round(net_unit * detail.quantity);
+                        }
+
+                        decimal computed_total = Money.round(detail_list.Sum(d => d.subtotal_usd));
+
+                        decimal already_returned_usd = existing_credit_ids.Count == 0
+                            ? 0m
+                            : await db_context.credit_notes
+                                .AsNoTracking()
+                                .Where(c => existing_credit_ids.Contains(c.id_credit_note))
+                                .SumAsync(c => (decimal?)c.total_amount_usd) ?? 0m;
+
+                        decimal available_usd = Math.Max(original_note.adjusted_total_usd - already_returned_usd, 0m);
+
+                        if (computed_total > available_usd + 0.005m)
+                        {
+                            apply_available_cap(detail_list, available_usd);
+
+                            AppLog.Warn(
+                                $"Nota de credito sobre {original_note.note_number}: el importe calculado " +
+                                $"({computed_total:N2}) supera el saldo disponible ({available_usd:N2}) " +
+                                $"y se recortó en {detail_list.Count} linea(s).");
+
+                            string adjustment_note =
+                                $"Ajuste por saldo disponible de la nota {original_note.note_number}: " +
+                                $"{computed_total:N2} -> {available_usd:N2} USD.";
+
+                            new_note.observations = string.IsNullOrWhiteSpace(new_note.observations)
+                                ? adjustment_note
+                                : new_note.observations.Trim() + " " + adjustment_note;
+                        }
+
+                        new_note.total_amount_usd = Money.round(detail_list.Sum(d => d.subtotal_usd));
                     }
 
                     // El correlativo es por vendedor e independiente del numero de la nota de entrega.
@@ -589,6 +878,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                         if (detail.id_product != null)
                         {
                             var producto = products[detail.id_product.Value];
+
+                            // Codigo congelado al emitir la nota de credito, por si el
+                            // producto despues cambia de marca y le reasignan otro.
+                            detail.product_code_snapshot = producto.product_code;
 
                             if (is_gift)
                             {
@@ -745,7 +1038,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         string name = string.Empty;
                         if (d.id_product != null && products.TryGetValue(d.id_product.Value, out var prod))
                         {
-                            code = prod.product_code;
+                            code = d.product_code_snapshot ?? prod.product_code;
                             name = prod.name;
                         }
                         else if (d.id_promotion != null && promotions.TryGetValue(d.id_promotion.Value, out var promo))

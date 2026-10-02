@@ -109,21 +109,36 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(c => customer_ids.Contains(c.id_customer))
                 .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
 
+            var seller_ids = in_week.Select(n => n.id_seller).Distinct().ToList();
+            var sellers = await db_context.sellers
+                .AsNoTracking()
+                .Where(s => seller_ids.Contains(s.id_seller))
+                .ToDictionaryAsync(s => s.id_seller, s => new { s.full_name, s.seller_code });
+
             var rows = in_week.Select(n =>
             {
                 customers.TryGetValue(n.id_customer, out string? customer_name);
+                sellers.TryGetValue(n.id_seller, out var seller);
                 decimal amount = n.adjusted_total_usd;
                 return new pro_venta_weekly_row
                 {
                     id_delivery_note = n.id_delivery_note,
                     note_number = n.note_number,
                     customer_name = customer_name ?? string.Empty,
+                    seller_name = seller?.full_name ?? string.Empty,
+                    seller_code = seller?.seller_code ?? string.Empty,
                     amount = amount,
                     commission_luis = Money.round(amount * 0.10m),
                     gastos_25 = Money.round(amount * 0.25m),
-                    gastos_15 = Money.round(amount * 0.15m)
+                    gastos_15 = Money.round(amount * 0.15m),
+                    status = n.status ?? string.Empty
                 };
             }).ToList();
+
+            // Se separan las anuladas de las vigentes para que los totales de la semana se calculen
+            // solo con las que cuentan. Las anuladas siguen en rows, para que el usuario las vea.
+            var valid_rows = rows.Where(r => !r.esta_anulada).ToList();
+            var annulled_rows = rows.Where(r => r.esta_anulada).ToList();
 
             relacion? relation = await db_context.relaciones
                 .AsNoTracking()
@@ -142,12 +157,25 @@ namespace NinOS.Infrastructure.Services.Implementations
                 week_end = week.end,
                 city = "MARACAY",
                 rows = rows,
-                total_amount = rows.Sum(r => r.amount),
-                total_commission_luis = rows.Sum(r => r.commission_luis),
-                total_gastos_25 = rows.Sum(r => r.gastos_25),
-                total_gastos_15 = rows.Sum(r => r.gastos_15)
+                // La fila anulada se queda en la tabla para que se vea que existio, pero los
+                // totales salen solo de las vigentes. Si se sumara, la semana regalaria comision
+                // y gastos por una nota que ya no esta.
+                total_amount = Money.round(valid_rows.Sum(r => r.amount)),
+                total_commission_luis = Money.round(valid_rows.Sum(r => r.commission_luis)),
+                total_gastos_25 = Money.round(valid_rows.Sum(r => r.gastos_25)),
+                total_gastos_15 = Money.round(valid_rows.Sum(r => r.gastos_15)),
+                annulled_amount = Money.round(annulled_rows.Sum(r => r.amount)),
+                annulled_count = annulled_rows.Count
             };
         }
+
+        /// <summary>
+        /// Unica forma de decidir si una nota esta anulada en este servicio. Comparar contra
+        /// pro_venta_weekly_row.esta_anulada, que es lo que usa la pantalla para pintar la fila
+        /// en rojo: si las dos no coinciden, la fila se pinta de un color y el total dice otra cosa.
+        /// </summary>
+        private static bool is_annulled(string? status)
+            => string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
 
         private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime date)
         {
@@ -225,7 +253,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var raw_notes = await db_context.delivery_notes
                 .AsNoTracking()
-                .Where(n => n.id_relacion == id_relacion && n.status != "Anulada")
+                .Where(n => n.id_relacion == id_relacion)
                 .OrderBy(n => n.note_number)
                 .ToListAsync();
 
@@ -240,19 +268,29 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(c => customer_ids.Contains(c.id_customer))
                 .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
 
+            var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
+            var sellers = await db_context.sellers
+                .AsNoTracking()
+                .Where(s => seller_ids.Contains(s.id_seller))
+                .ToDictionaryAsync(s => s.id_seller, s => new { s.full_name, s.seller_code });
+
             return notes.Select(n =>
             {
                 customers.TryGetValue(n.id_customer, out string? customer_name);
+                sellers.TryGetValue(n.id_seller, out var seller);
                 decimal amount = n.adjusted_total_usd;
                 return new pro_venta_weekly_row
                 {
                     id_delivery_note = n.id_delivery_note,
                     note_number = n.note_number,
                     customer_name = customer_name ?? string.Empty,
+                    seller_name = seller?.full_name ?? string.Empty,
+                    seller_code = seller?.seller_code ?? string.Empty,
                     amount = amount,
                     commission_luis = Money.round(amount * 0.10m),
                     gastos_25 = Money.round(amount * 0.25m),
-                    gastos_15 = Money.round(amount * 0.15m)
+                    gastos_15 = Money.round(amount * 0.15m),
+                    status = n.status ?? string.Empty
                 };
             }).ToList();
         }
@@ -278,7 +316,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var notes = await db_context.delivery_notes
                 .AsNoTracking()
                 .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value)
-                         && n.status != "Anulada" && n.id_relacion != null)
+                         && n.id_relacion != null)
                 .ToListAsync();
 
             if (notes.Count == 0)
@@ -286,9 +324,31 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var relation_ids = notes.Select(n => n.id_relacion!.Value).Distinct().ToList();
 
-            var payment_totals = await db_context.payments
+            // Solo cuentan los abonos positivos. Los asientos de anulacion van con monto negativo
+            // y existen para dejar rastro en el historial, no para saldo: si se sumaran, una nota
+            // anulada inflaria el saldo pendiente en vez de liberarlo.
+            //
+            // Tampoco cuenta lo que se le pago a una nota que despues se anulo. Si se dejara, el
+            // dinero de esa nota taparia el saldo de las notas vigentes que conviven con ella en
+            // la misma relacion, y la relacion cerraria como pagada con facturas pendientes.
+            var annulled_note_ids = notes
+                .Where(n => is_annulled(n.status))
+                .Select(n => n.id_delivery_note)
+                .ToList();
+
+            var payment_query = db_context.payments
                 .AsNoTracking()
-                .Where(p => p.id_relacion != null && relation_ids.Contains(p.id_relacion.Value))
+                .Where(p => p.id_relacion != null && relation_ids.Contains(p.id_relacion.Value) && p.amount_usd > 0);
+
+            if (annulled_note_ids.Count > 0)
+            {
+                var anuladas = annulled_note_ids;
+                // Los abonos sin nota asociada (pagos a nivel de relacion) se respetan siempre:
+                // son plata que entro de verdad y no pertenece a ninguna nota en particular.
+                payment_query = payment_query.Where(p => p.id_delivery_note == null || !anuladas.Contains(p.id_delivery_note.Value));
+            }
+
+            var payment_totals = await payment_query
                 .GroupBy(p => p.id_relacion!.Value)
                 .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                 .ToDictionaryAsync(x => x.Id, x => x.Total);
@@ -303,10 +363,16 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 if (!relations.TryGetValue(group.Key, out var relation)) continue;
 
-                decimal amount = group.Sum(n => n.adjusted_total_usd);
+                // Una nota anulada deja de ser exigible, asi que sale del monto y del conteo de
+                // notas por cobrar, pero no se borra: si era la unica que habia, la relacion
+                // tiene que aparecer en Pagadas y no desaparecer de las dos tablas.
+                var pending_notes = group.Where(n => !is_annulled(n.status)).ToList();
+                var annulled_notes = group.Where(n => is_annulled(n.status)).ToList();
+
+                decimal amount = pending_notes.Sum(n => n.adjusted_total_usd);
                 decimal paid = payment_totals.TryGetValue(group.Key, out var total) ? total : 0;
                 decimal balance = amount - paid;
-                bool is_fully_paid = balance <= 0.005m;
+                bool is_fully_paid = pending_notes.Count == 0 || balance <= 0.005m;
 
                 if (only_pending == is_fully_paid) continue;
 
@@ -316,11 +382,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                     relation_number = relation.relation_number,
                     week_start = relation.week_start,
                     week_end = relation.week_end,
+                    // El monto es solo de las notas vigentes. Las anuladas se reportan aparte para
+                    // que se vean sin reentrar en el total ni en el saldo a pagar.
                     amount = amount,
                     paid_amount_usd = paid,
                     balance_due_usd = balance < 0 ? 0 : balance,
                     status = is_fully_paid ? "Pagada" : "Pendiente",
-                    note_count = group.Count()
+                    note_count = pending_notes.Count,
+                    annulled_amount = Money.round(annulled_notes.Sum(n => n.adjusted_total_usd)),
+                    annulled_count = annulled_notes.Count
                 });
             }
 

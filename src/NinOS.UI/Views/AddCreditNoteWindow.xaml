@@ -1,10 +1,26 @@
 <Window x:Class="NinOS.UI.Views.AddCreditNoteWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Nota de Credito" Height="620" Width="960"
+        Title="Nota de Credito" Height="640" Width="960"
         WindowStartupLocation="CenterOwner" Background="#F5F5F5"
-        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="520" MinWidth="840">
-    <Grid Margin="14">
+        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="620" MinWidth="840">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Banda de titulo. Antes el nombre de la nota abria pegado al borde de arriba de la
+             ventana y se leia como parte del titulo del sistema; la banda lo separa. -->
+        <Border Grid.Row="0" Background="#FDECEA" BorderBrush="#C62828" BorderThickness="0,0,0,1" Padding="16,9">
+            <StackPanel>
+                <TextBlock Text="Nota de Credito" FontSize="15" FontWeight="Bold" Foreground="#C62828"/>
+                <TextBlock Text="Emision de notas por devolucion de mercancia o por obsequio"
+                           FontSize="10.5" Foreground="#8E6E63" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -14,19 +30,19 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <!-- FILA DE LA TABLA DE PRODUCTOS. El MinHeight reserva un espacio real para la tabla
+                 y su barra vertical: al achicar la ventana, la fila "*" se encoge hasta este
+                 minimo y no mas, asi que la tabla nunca queda aplastada ni recortada. -->
+            <RowDefinition Height="*" MinHeight="150"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Nota de Credito" FontSize="14" FontWeight="Bold"
-                   Foreground="#C62828" Margin="0,0,0,8"/>
-
         <!-- CATEGORIA: Devolucion (anclada a nota de entrega) u Obsequio (regala producto) -->
-        <Grid Grid.Row="1" Margin="0,0,0,6">
+        <Grid Grid.Row="0" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -41,7 +57,7 @@
         </Grid>
 
         <!-- VENDEDOR: se elige primero en ambas categorias (filtra notas en Devolucion o clientes en Obsequio) -->
-        <Grid Grid.Row="2" x:Name="SellerRow" Margin="0,0,0,6">
+        <Grid Grid.Row="1" x:Name="SellerRow" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -54,7 +70,7 @@
         </Grid>
 
         <!-- FECHA DE LA NOTA DE ENTREGA: desplegable de meses (solo devolucion) -->
-        <Grid Grid.Row="3" x:Name="FechaRow" Margin="0,0,0,6">
+        <Grid Grid.Row="2" x:Name="FechaRow" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -67,7 +83,7 @@
         </Grid>
 
         <!-- BUSCADOR DE NOTA: busca entre las notas del vendedor seleccionado (solo devolucion) -->
-        <Grid Grid.Row="4" x:Name="BuscadorRow" Margin="0,0,0,6">
+        <Grid Grid.Row="3" x:Name="BuscadorRow" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -149,7 +165,7 @@
         </Grid>
 
         <!-- CLIENTE: solo obsequio (buscador por nombre, codigo o rif de los clientes del vendedor) -->
-        <Grid Grid.Row="5" x:Name="ClienteRow" Visibility="Collapsed" Margin="0,0,0,6">
+        <Grid Grid.Row="4" x:Name="ClienteRow" Visibility="Collapsed" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -229,7 +245,7 @@
         </Grid>
 
         <!-- PRODUCTO: solo obsequio (buscador para agregar productos individualmente) -->
-        <Grid Grid.Row="6" x:Name="ProductSearchRow" Visibility="Collapsed" Margin="0,0,0,6">
+        <Grid Grid.Row="5" x:Name="ProductSearchRow" Visibility="Collapsed" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -298,7 +314,7 @@
         </Grid>
 
         <!-- INFO DE NOTA DE ENTREGA (solo devolucion) -->
-        <Border Grid.Row="7" x:Name="NoteInfoBorder" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
+        <Border Grid.Row="6" x:Name="NoteInfoBorder" Background="#FDECEA" CornerRadius="3" Padding="8" Margin="0,0,0,6">
             <StackPanel>
                 <TextBlock x:Name="CustomerText" FontSize="11" Foreground="#C62828" FontWeight="SemiBold"/>
                 <TextBlock x:Name="SellerText" FontSize="11" Foreground="#424242" Margin="0,2,0,0"/>
@@ -307,7 +323,7 @@
         </Border>
 
         <!-- BANDA DE GRUPOS DE COLUMNAS -->
-        <Grid Grid.Row="8" x:Name="BandGrid" Height="22" Margin="0,0,0,2">
+        <Grid Grid.Row="7" x:Name="BandGrid" Height="22" Margin="0,0,0,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="90"/>
                 <ColumnDefinition Width="*"/>
@@ -336,11 +352,15 @@
             </Border>
         </Grid>
 
-        <!-- TABLA DE ITEMS -->
-        <DataGrid Grid.Row="9" x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="False"
+        <!-- TABLA DE ITEMS. MinHeight en sync con el MinHeight de la fila "*" de arriba: la tabla
+             nunca baja de ese alto, asi que su barra vertical verticalmente tiene espacio para
+             aparecer y lasUltimas lineas se pueden alcanzar al achicar la ventana. -->
+        <DataGrid Grid.Row="8" x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                   Background="White" BorderThickness="1" BorderBrush="#BDBDBD"
-                  RowHeight="28" FontSize="11" SelectionMode="Single"
+                  RowHeight="28" FontSize="11" SelectionMode="Single" MinHeight="150"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                   CanUserResizeColumns="False" CanUserReorderColumns="False"
                   CellEditEnding="OnCellEditEnding">
             <DataGrid.Resources>
@@ -419,7 +439,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="PRECIO U." Binding="{Binding unit_price_usd, StringFormat=N2}" Width="85" IsReadOnly="True">
+                <DataGridTextColumn Header="PRECIO U." Binding="{Binding display_unit_price_usd, StringFormat=N2}" Width="85" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -466,8 +486,13 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Grid.Row="10" x:Name="HintText" FontSize="9.5" Foreground="#757575" Margin="2,2,0,0"
+        <TextBlock Grid.Row="9" x:Name="HintText" FontSize="9.5" Foreground="#757575" Margin="2,2,0,0"
                    Text="Escriba arriba la cantidad devuelta de cada producto. No puede superar la columna DISPONIBLE."/>
+
+        <!-- Aviso de ajuste por saldo. El recorte se aplica solo; esto solo lo explica. -->
+        <TextBlock Grid.Row="10" x:Name="CapText" Visibility="Collapsed" FontSize="9.5"
+                   Foreground="#EF6C00" Margin="2,2,0,0"
+                   Text="El importe se limitó al saldo que le queda por devolver a la nota."/>
 
         <Grid Grid.Row="11" Margin="0,6,0,0">
             <Grid.ColumnDefinitions>
@@ -505,5 +530,6 @@
                     Background="#E0E0E0" Foreground="#424242" BorderThickness="1" BorderBrush="#BDBDBD"
                     Cursor="Hand" IsCancel="True"/>
         </StackPanel>
+        </Grid>
     </Grid>
 </Window>

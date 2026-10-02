@@ -54,6 +54,11 @@ namespace NinOS.Domain
             set { if (value < 0) throw new ArgumentException(); _subtotal_usd = value; }
         }
 
+        // Codigo que tenia el producto al crear la nota. Se guarda para que una nota vieja
+        // siga imprimiendo el codigo original aunque el producto despues cambie de marca y
+        // el sistema le reasigne otro. Los renglones con promocion quedan en null.
+        public string? product_code_snapshot { get; set; }
+
         protected note_detail() { }
 
         public note_detail(int id_delivery_note, int? id_product, int? id_promotion, int quantity, decimal unit_price_usd, decimal subtotal_usd)

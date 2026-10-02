@@ -22,7 +22,11 @@ namespace NinOS.UI.Common
         private static readonly string LightBorder = "#000000";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        private static readonly Dictionary<string, (string color, string soft)> BrandColors = new()
+        // OrdinalIgnoreCase a proposito: la marca viene directo de product.category y, si
+        // llegara una con otro capitalizado, caeria al gris por defecto en vez de mostrar
+        // el color de la marca.
+        private static readonly Dictionary<string, (string color, string soft)> BrandColors =
+            new(StringComparer.OrdinalIgnoreCase)
         {
             { "DEFILE",       ("#1B3A2D", "#E8F0E4") },
             { "BIOLINE",      ("#00695C", "#E0F2F1") },

@@ -23,10 +23,46 @@ namespace NinOS.UI.Views
         public int? id_promotion { get; set; }
         public string code { get; set; } = string.Empty;
         public string name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Precio unitario NETO de la linea: el que el cliente realmente pago, con el descuento de
+        /// la nota de entrega ya descontado. En un obsequio es el precio del producto, porque ahi
+        /// no hay descuento de por medio.
+        /// </summary>
         public decimal unit_price_usd { get; set; }
+
         public int delivered_quantity { get; set; }
         public int already_returned_quantity { get; set; }
         public int remaining_quantity { get; set; }
+
+        // Factor de recorte por saldo disponible. 1 = sin recorte. Lo aplica la ventana, no el
+        // usuario, para que la nota nunca acredite mas dinero del que le queda a la nota de entrega.
+        private decimal _cap_factor = 1m;
+
+        // Cuanto se absorbs el redondeo del recorte. Es la diferencia entre el saldo disponible y
+        // la suma de los subtotales ya redondeados, y se entera a la ultima linea con cantidad.
+        private decimal? _subtotal_override;
+
+        public void set_cap_factor(decimal factor)
+        {
+            decimal clamped = factor < 0m ? 0m : (factor > 1m ? 1m : factor);
+            _subtotal_override = null;
+            if (_cap_factor == clamped) return;
+            _cap_factor = clamped;
+            on_property_changed(nameof(display_unit_price_usd));
+            on_property_changed(nameof(subtotal_usd));
+        }
+
+        public void set_subtotal_override(decimal? value)
+        {
+            if (_subtotal_override == value) return;
+            _subtotal_override = value;
+            on_property_changed(nameof(subtotal_usd));
+        }
+
+        // Precio que se muestra y se suma. Con recorte activo es el neto ya ajustado, para que
+        // la columna SUBTOTAL siempre cuadre con cantidad por el precio que se ve en pantalla.
+        public decimal display_unit_price_usd => Money.round(unit_price_usd * _cap_factor);
 
         private int _return_quantity;
         public int return_quantity
@@ -42,7 +78,7 @@ namespace NinOS.UI.Views
             }
         }
 
-        public decimal subtotal_usd => return_quantity * unit_price_usd;
+        public decimal subtotal_usd => _subtotal_override ?? (return_quantity * display_unit_price_usd);
     }
 
     public partial class AddCreditNoteWindow : Window
@@ -85,11 +121,36 @@ namespace NinOS.UI.Views
             _productPopupWasOpen = ProductPopup != null && ProductPopup.IsOpen;
         }
 
+        /// <summary>
+        /// Ajusta el tamano al area de trabajo de la pantalla.
+        ///
+        /// Con una altura fija, en una pantalla baja la ventana se pasaba del borde de arriba y el
+        /// contenido quedaba pegado al tope, ademas de que la tabla de productos se quedaba sin
+        /// espacio y su barra de scroll no servia de nada. Limitandola al area util, la banda de
+        /// titulo queda siempre visible y la tabla recibe lo que sobra.
+        /// </summary>
+        private void FitToWorkingArea()
+        {
+            var work_area = SystemParameters.WorkArea;
+
+            // Margen para que la ventana no quede pegada a los bordes de la pantalla.
+            double max_height = work_area.Height - 40;
+            double max_width = work_area.Width - 40;
+
+            if (max_height > 0 && Height > max_height) Height = max_height;
+            if (max_width > 0 && Width > max_width) Width = max_width;
+
+            MaxHeight = max_height > 0 ? max_height : Height;
+            MaxWidth = max_width > 0 ? max_width : Width;
+        }
+
         public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null)
         {
             InitializeComponent();
             _vm = vm;
             _initial_seller_name = initial_seller_name;
+
+            FitToWorkingArea();
 
             Loaded += async (_, _) =>
             {
@@ -702,8 +763,12 @@ namespace NinOS.UI.Views
 
                 var notes = await _vm.get_delivery_notes_for_credit_async(_selected_seller.id_seller, month_label);
 
+                // Solo notas con saldo pendiente: una nota de entrega ya pagada no admite nota de
+                // credito porque no hay nada por devolver. El servicio ya aplica este mismo filtro;
+                // se repite aqui para que la lista sea coherente aunque el dato se haya movido
+                // despues de cargado el combo.
                 _all_combo_items = notes
-                    .Where(n => n.status != "Anulada")
+                    .Where(n => n.status != "Anulada" && n.balance_due_usd > 0)
                     .OrderByCorrelative(n => n.note_number)
                     .Select(n => new note_combo_item
                     {
@@ -821,8 +886,17 @@ namespace NinOS.UI.Views
 
                 CustomerText.Text = $"{source.customer_name}  ({source.customer_code})";
                 SellerText.Text = "Vendedor: " + source.seller_name;
-                string typeLabel = string.IsNullOrEmpty(item.note_type) ? string.Empty : $"   |   Tipo: {item.note_type}";
-                NoteInfoText.Text = $"Nota: {source.note_number}{typeLabel}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD   |   Ya devuelto: {source.already_returned_usd:N2} USD";
+
+                // Tipo heredado de la nota de entrega que se revierte. Se lee de la nota y no del
+                // desplegable para que no pueda quedar desactualizado si el tipo cambia despues.
+                string type_name = !string.IsNullOrWhiteSpace(source.note_type) ? source.note_type : item.note_type;
+                string typeLabel = string.IsNullOrWhiteSpace(type_name) ? string.Empty : $"   |   Tipo: {type_name}";
+
+                string discount_note = source.has_discount
+                    ? $"   |   Descuento nota: {source.discount_percentage:N2}%"
+                    : string.Empty;
+
+                NoteInfoText.Text = $"Nota: {source.note_number}{typeLabel}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD{discount_note}   |   Ya devuelto: {source.already_returned_usd:N2} USD   |   Disponible: {source.available_usd:N2} USD";
                 NoteInfoBorder.Visibility = Visibility.Visible;
 
                 var rows = source.lines
@@ -833,7 +907,7 @@ namespace NinOS.UI.Views
                         id_promotion = line.id_promotion,
                         code = line.code,
                         name = line.name,
-                        unit_price_usd = line.unit_price_usd,
+                        unit_price_usd = line.net_unit_price_usd,
                         delivered_quantity = line.delivered_quantity,
                         already_returned_quantity = line.already_returned_quantity,
                         remaining_quantity = line.remaining_quantity
@@ -898,8 +972,61 @@ namespace NinOS.UI.Views
         private void RecalcTotal()
         {
             if (TotalText == null) return;
-            var rows = (ItemsGrid?.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>();
-            TotalText.Text = rows.Sum(r => r.subtotal_usd).ToString("N2");
+            var rows = (ItemsGrid?.ItemsSource as IEnumerable<credit_note_edit_row>)?.ToList() ?? new List<credit_note_edit_row>();
+
+            bool capped = ApplyAvailableCap(rows);
+            TotalText.Text = Money.round(rows.Sum(r => r.subtotal_usd)).ToString("N2");
+
+            if (CapText != null)
+            {
+                CapText.Visibility = capped ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// Limita el total a lo que le queda por devolver de la nota, sin avisarle al usuario.
+        ///
+        /// No se toca la cantidad devuelta, se reparte el mismo factor entre todas las lineas para
+        /// que el ajuste caiga parejo, y el residuo del redondeo se absorbe en la ultima linea con
+        /// cantidad para que la suma final sea exactamente el saldo disponible.
+        ///
+        /// Devuelve true si hubo que recortar. El mismo calculo se repite en el servicio al guardar,
+        /// que es quien manda; aca esta para que lo que se ve antes de confirmar ya sea el importe final.
+        /// </summary>
+        private bool ApplyAvailableCap(List<credit_note_edit_row> rows)
+        {
+            foreach (var row in rows)
+            {
+                row.set_cap_factor(1m);
+                row.set_subtotal_override(null);
+            }
+
+            // El obsequio no cuelga de una nota de entrega, asi que no tiene saldo que respetar.
+            if (_is_gift || _source == null || rows.Count == 0) return false;
+
+            decimal available_usd = _source.available_usd;
+            decimal raw_total = Money.round(rows.Sum(r => r.subtotal_usd));
+            if (raw_total <= available_usd + 0.005m) return false;
+
+            var weighted = rows
+                .Where(r => r.return_quantity > 0 && r.subtotal_usd > 0m)
+                .ToList();
+            if (weighted.Count == 0) return false;
+
+            decimal factor = available_usd / raw_total;
+            foreach (var row in weighted)
+            {
+                row.set_cap_factor(factor);
+            }
+
+            decimal residue = Money.round(available_usd - rows.Sum(r => r.subtotal_usd));
+            if (residue != 0m)
+            {
+                var absorber = weighted[weighted.Count - 1];
+                absorber.set_subtotal_override(absorber.subtotal_usd + residue);
+            }
+
+            return true;
         }
 
         private async void OnSaveClick(object sender, RoutedEventArgs e) => await SaveAsync(false);
@@ -986,7 +1113,11 @@ namespace NinOS.UI.Views
 
                     new_note = new credit_note(
                         note_number: correlative,
-                        creation_date: _source.creation_date,
+                        // Una nota de credito se emite el dia en que se recibe la mercancia de vuelta,
+                        // no el dia en que se emitio la nota que se esta revirtiendo. Anclar la NC a la
+                        // fecha de la entrega arrastra al karded, al abono negativo y al filtro por mes
+                        // del modulo: una devolucion de una nota de marzo caeria en el mes que se registro.
+                        creation_date: DateTime.UtcNow,
                         id_delivery_note: _source.id_delivery_note,
                         id_seller: _source.id_seller,
                         id_customer: _source.id_customer,

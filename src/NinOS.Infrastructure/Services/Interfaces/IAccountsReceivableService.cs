@@ -22,7 +22,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task update_note_dispatch_date_async(int id_delivery_note, DateTime? dispatch_date);
         Task update_note_sales_observations_async(int id_delivery_note, string? observations);
         Task<IEnumerable<seller>> get_sellers_async();
-        Task annul_delivery_note_async(int id_delivery_note);
+        Task annul_delivery_note_async(int id_delivery_note, bool registrar_asiento_pro_venta = false);
         Task<note_print_dto> get_printable_note_async(int id_delivery_note);
         Task<decimal?> get_sales_goal_async(DateTime year_month, int? id_seller = null);
         Task set_sales_goal_async(DateTime year_month, int? id_seller, decimal amount_usd);

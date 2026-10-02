@@ -49,8 +49,26 @@
                 <DataGridTextColumn Header="NRO NOTA" Binding="{Binding note_number}" Width="120"
                                     ElementStyle="{StaticResource CenterCell}"/>
                 <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"/>
-                <DataGridTextColumn Header="MONTO" Binding="{Binding amount, StringFormat={}{0:N2}}" Width="130"
-                                    ElementStyle="{StaticResource CenterCell}"/>
+                <DataGridTextColumn Header="MONTO" Binding="{Binding amount, StringFormat={}{0:N2}}" Width="130">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding esta_anulada}" Value="True">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="ESTADO" Binding="{Binding status_display}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+                            <Setter Property="Foreground" Value="Red"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
 
@@ -82,10 +100,11 @@
                 <DataGridTemplateColumn Header="ACCION" Width="120">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="Editar" Padding="6,2" FontSize="10" Cursor="Hand"
-                                    Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
-                                    Foreground="#424242" HorizontalAlignment="Center"
-                                    Click="EditPayment_Click"/>
+<Button Content="Editar" Padding="6,2" FontSize="10" Cursor="Hand"
+                                     Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0"
+                                     Foreground="#424242" HorizontalAlignment="Center"
+                                     Visibility="{Binding es_anulacion, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                     Click="EditPayment_Click"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

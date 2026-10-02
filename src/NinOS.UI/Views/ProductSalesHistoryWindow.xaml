@@ -92,7 +92,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="UNIDADES" Binding="{Binding unidades_display}" Width="90">
+                <DataGridTextColumn Header="UNIDADES" Binding="{Binding unidades_con_signo_display}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -138,6 +138,9 @@
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding status}" Value="Pagada">
                                     <Setter Property="Foreground" Value="#1565C0"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding status}" Value="Ajuste manual">
+                                    <Setter Property="Foreground" Value="#E65100"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

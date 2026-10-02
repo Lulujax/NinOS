@@ -21,6 +21,12 @@ namespace NinOS.Domain
 
         public string? deleted_reason { get; set; }
 
+        // Producto que provoco el borrado en cascada de esta promocion. Es la clave real
+        // para saber si hay que devolverla al restaurar: antes se comparaba el codigo
+        // del producto escrito dentro de deleted_reason, que se rompia en cuanto el
+        // producto cambiaba de marca y por tanto de codigo.
+        public int? id_product_deleted_cascade { get; set; }
+
         public promotion(string promotion_code, string name, string category, decimal unit_price_usd)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("El nombre no puede estar vacío.");

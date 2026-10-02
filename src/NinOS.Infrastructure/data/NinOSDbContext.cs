@@ -85,6 +85,10 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_product);
                 entity.Property(e => e.id_product).HasColumnName("id_product").UseIdentityByDefaultColumn();
                 entity.Property(e => e.product_code).HasColumnName("product_code").IsRequired().HasMaxLength(50);
+                // El codigo lo genera el sistema con el estandar PREFIJO DE MARCA + CORRELATIVO,
+                // asi que no puede haber dos productos con el mismo. El indice incluye los
+                // que estan en la papelera: su codigo queda reservado mientras esten ahi.
+                entity.HasIndex(e => e.product_code).IsUnique();
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(250);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(100);
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
@@ -134,6 +138,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.product_code_snapshot).HasColumnName("product_code_snapshot").IsRequired(false).HasMaxLength(50);
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
@@ -213,6 +218,12 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.deleted_at).HasColumnName("deleted_at").IsRequired(false);
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").IsRequired(false).HasMaxLength(200);
+                entity.Property(e => e.id_product_deleted_cascade).HasColumnName("id_product_deleted_cascade").IsRequired(false);
+
+                entity.HasOne<product>()
+                    .WithMany()
+                    .HasForeignKey(e => e.id_product_deleted_cascade)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             model_builder.Entity<promotion_item>(entity =>
@@ -298,6 +309,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.quantity).HasColumnName("quantity").IsRequired();
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.product_code_snapshot).HasColumnName("product_code_snapshot").IsRequired(false).HasMaxLength(50);
 
                 entity.HasOne<credit_note>().WithMany().HasForeignKey(e => e.id_credit_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);

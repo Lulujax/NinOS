@@ -16,6 +16,22 @@ namespace NinOS.UI.Common
         private static readonly string Yellow = "#FFF2A8";
         private static readonly string BorderColor = "#B0BEC5";
 
+        // Colores de la nota anulada. Se imprimen en rojo entero (fondo y texto) en las dos
+        // paginas del reporte, igual que en la pantalla.
+        private static readonly string AnnulledBackground = "#FFEBEE";
+        private static readonly string AnnulledForeground = "#C62828";
+
+        /// <summary>
+        /// Texto de la leyenda de anuladas. Va en las dos paginas del reporte con el mismo texto
+        /// que la pantalla, para que el PDF impreso no se preste a confusion: el TOTAL excluye las
+        /// notas rojas, y eso hay que decirlo en el papel, no solo en la aplicacion.
+        /// </summary>
+        private static string AnulledLegendText(int count, decimal amount)
+        {
+            return "Las notas marcadas en rojo están ANULADAS y no se incluyen en los totales ni en la liquidación. "
+                 + $"Anuladas: {count} nota(s) por {amount:N2} USD.";
+        }
+
         public static void generate(
             pro_venta_weekly_dto dto,
             decimal nota_por_pagar,
@@ -36,9 +52,13 @@ namespace NinOS.UI.Common
             decimal total_cobrado = dto.total_amount - dto.total_commission_luis;
             decimal diferencial = total_cobrado - nota_por_pagar;
 
-            decimal total_notes = dto.rows.Sum(n => n.amount);
+            // Igual que en la ventana del historial: las notas anuladas no cuentan para el monto y
+            // los asientos de anulacion (monto negativo) no cuentan como abono. Sumarlos correria el saldo.
+            var vigente = dto.rows.Where(n => !n.esta_anulada).ToList();
+
+            decimal total_notes = vigente.Sum(n => n.amount);
             decimal total_paid = payments != null && payments.Count > 0
-                ? payments.Sum(p => p.amount_usd)
+                ? payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd)
                 : (relation_info?.paid_amount_usd ?? 0m);
 
             decimal balance_due = relation_info != null
@@ -118,15 +138,20 @@ namespace NinOS.UI.Common
                     bool alternate = false;
                     foreach (var r in dto.rows)
                     {
-                        string bg = alternate ? SoftAccent : Colors.White;
+                        // La nota anulada se imprime entera en rojo para que se note que esta
+                        // pero no cuenta. El cebrao sigue avanzando igual, para que al volver a
+                        // una nota vigente no queden dos filas rosadas seguidas.
+                        bool anulada = r.esta_anulada;
+                        string bg = anulada ? AnnulledBackground : (alternate ? SoftAccent : Colors.White);
+                        string fg = anulada ? AnnulledForeground : Colors.Black;
                         alternate = !alternate;
 
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.note_number);
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text(r.customer_name);
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.amount.ToString("N2"));
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.commission_luis.ToString("N2"));
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_25.ToString("N2"));
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_15.ToString("N2"));
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.note_number).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text(r.customer_name).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.amount.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.commission_luis.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_25.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_15.ToString("N2")).FontColor(fg);
                         // Espacio en blanco con altura suficiente para llenado a mano por el vendedor (lápiz / bolígrafo)
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text("");
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text("");
@@ -145,8 +170,19 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                col.Item().PaddingTop(8).Text("LIQUIDACION").FontSize(9).Bold().FontColor(Accent);
+                if (dto.has_annulled)
+                {
+                    col.Item().PaddingTop(6).Table(legend =>
+                    {
+                        legend.ColumnsDefinition(columns => columns.RelativeColumn());
+                        legend.Cell().Background(AnnulledBackground).Border(0.5f).BorderColor(AnnulledForeground)
+                            .Padding(4)
+                            .Text(AnulledLegendText(dto.annulled_count, dto.annulled_amount))
+                            .FontSize(7).FontColor(AnnulledForeground);
+                    });
+                }
 
+                col.Item().PaddingTop(8).Text("LIQUIDACION").FontSize(9).Bold().FontColor(Accent);
                 col.Item().Table(liquidation =>
                 {
                     liquidation.ColumnsDefinition(columns =>
@@ -180,9 +216,13 @@ namespace NinOS.UI.Common
             page.MarginBottom(1, Unit.Centimetre);
             page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(8));
 
-            decimal total_notes = dto.rows.Sum(n => n.amount);
+            // Igual que en la ventana del historial: las notas anuladas no cuentan para el monto y los
+            // asientos de anulacion (monto negativo) no cuentan como abono. Sumarlos correria el saldo.
+            var vigente = dto.rows.Where(n => !n.esta_anulada).ToList();
+
+            decimal total_notes = vigente.Sum(n => n.amount);
             decimal total_paid = payments != null && payments.Count > 0
-                ? payments.Sum(p => p.amount_usd)
+                ? payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd)
                 : (relation_info?.paid_amount_usd ?? 0m);
 
             decimal balance_due = total_notes - total_paid;
@@ -225,12 +265,15 @@ namespace NinOS.UI.Common
                     bool alternate = false;
                     foreach (var n in dto.rows)
                     {
-                        string bg = alternate ? SoftAccent : Colors.White;
+                        // Mismo criterio que en la pagina 1: la anulada se ve en rojo pero no suma.
+                        bool anulada = n.esta_anulada;
+                        string bg = anulada ? AnnulledBackground : (alternate ? SoftAccent : Colors.White);
+                        string fg = anulada ? AnnulledForeground : Colors.Black;
                         alternate = !alternate;
 
-                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.note_number);
-                        table.Cell().Background(bg).Padding(2).Text(n.customer_name);
-                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.amount.ToString("N2"));
+                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.note_number).FontColor(fg);
+                        table.Cell().Background(bg).Padding(2).Text(n.customer_name).FontColor(fg);
+                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.amount.ToString("N2")).FontColor(fg);
                     }
 
                     if (dto.rows.Count > 0)
@@ -240,6 +283,18 @@ namespace NinOS.UI.Common
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(total_notes.ToString("N2")).Bold();
                     }
                 });
+
+                if (dto.has_annulled)
+                {
+                    col.Item().PaddingTop(6).Table(legend =>
+                    {
+                        legend.ColumnsDefinition(columns => columns.RelativeColumn());
+                        legend.Cell().Background(AnnulledBackground).Border(0.5f).BorderColor(AnnulledForeground)
+                            .Padding(4)
+                            .Text(AnulledLegendText(dto.annulled_count, dto.annulled_amount))
+                            .FontSize(7).FontColor(AnnulledForeground);
+                    });
+                }
 
                 // TABLA 2: REGISTRO DE PAGOS
                 col.Item().PaddingTop(12).PaddingBottom(4).Text("REGISTRO DE PAGOS").FontSize(10).Bold().FontColor(Accent);

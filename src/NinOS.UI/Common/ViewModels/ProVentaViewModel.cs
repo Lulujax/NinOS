@@ -138,6 +138,17 @@ namespace NinOS.UI.Common.ViewModels
         public bool has_rows => _report != null && _report.rows.Count > 0;
         public bool is_empty => !has_rows;
 
+        /// <summary>
+        /// Si la semana tiene alguna nota anulada. Las anuladas no se borran de la tabla: se ven en
+        /// rojo para saber que existieron, pero quedan fuera de los totales y de la liquidacion.
+        /// </summary>
+        public bool has_annulled => _report?.has_annulled ?? false;
+
+        public string annulled_legend_text => _report == null || !_report.has_annulled
+            ? string.Empty
+            : $"Las notas marcadas en rojo están ANULADAS y no se incluyen en los totales ni en la liquidación. " +
+              $"Anuladas: {_report.annulled_count} nota(s) por {_report.annulled_amount:N2} USD.";
+
         public decimal total_amount => _report?.total_amount ?? 0;
         public decimal total_commission_luis => _report?.total_commission_luis ?? 0;
         public decimal total_gastos_25 => _report?.total_gastos_25 ?? 0;
@@ -357,6 +368,8 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(total_cobrado));
             on_property_changed(nameof(nota_por_pagar));
             on_property_changed(nameof(diferencial));
+            on_property_changed(nameof(has_annulled));
+            on_property_changed(nameof(annulled_legend_text));
         }
 
         private async void print_report()
@@ -456,7 +469,7 @@ namespace NinOS.UI.Common.ViewModels
             if (row == null) return;
             try
             {
-                await _accounts_receivable_service.annul_delivery_note_async(row.id_delivery_note);
+                await _accounts_receivable_service.annul_delivery_note_async(row.id_delivery_note, registrar_asiento_pro_venta: true);
                 refresh_data();
             }
             catch (Exception ex)

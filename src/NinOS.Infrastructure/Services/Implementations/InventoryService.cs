@@ -46,6 +46,24 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        /// <summary>
+        /// Calcula el siguiente codigo correlativo de una marca con el estandar
+        /// PREFIJO + 5 digitos. Cuenta tambien los productos que estan en la papelera:
+        /// si no, un producto tirado a la basura liberaria su codigo y al restaurarlo
+        /// quedaria duplicado.
+        /// </summary>
+        public async Task<string> get_next_product_code_async(string category)
+        {
+            if (!product_code_rules.TryGetPrefix(category, out _))
+                return product_code_rules.EmptyCode;
+
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await calcular_siguiente_codigo_async(db_context, category);
+            }
+        }
+
         public async Task add_product_async(product new_product)
         {
             if (new_product == null) throw new ArgumentNullException(nameof(new_product));
@@ -60,7 +78,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                 try
                 {
                     await db_context.products.AddAsync(new_product);
-                    await db_context.SaveChangesAsync();
+                    try
+                    {
+                        await db_context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (is_unique_product_code_violation(ex))
+                    {
+                        throw new InvalidOperationException(
+                            $"Ya existe un producto con el codigo {new_product.product_code}. " +
+                            "Cierre la ventana y vuelva a abrirla para obtener el siguiente codigo disponible.");
+                    }
 
                     stock_movement_writer.registrar_carga_inicial(
                         db_context, new_product, $"ALTA-{new_product.product_code}");
@@ -76,37 +103,170 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task update_product_async(product product_to_update)
+        // Ultima red de seguridad del indice unico de product.product_code, para no
+        // dejarle al usuario un PostgresException crudo.
+        private static bool is_unique_product_code_violation(DbUpdateException ex)
+        {
+            Exception? base_exception = ex.GetBaseException();
+            string message = base_exception?.Message ?? string.Empty;
+            return message.Contains("23505")
+                || message.Contains("IX_product_product_code")
+                || message.Contains("duplicate key");
+        }
+
+        /// <summary>
+        /// Edita un producto. El codigo y la marca NUNCA se tocan: el codigo lo asigna el
+        /// sistema al crear y la marca define el prefijo, asi que dejarlos editables rompe
+        /// el estandar. Si la cantidad cambia, queda asentada en el kardex como ajuste con
+        /// el motivo que eligio el usuario.
+        /// </summary>
+        /// <summary>
+        /// Edita un producto.
+        ///
+        /// El codigo solo lo cambia el sistema. Si nueva_categoria viene con una marca
+        /// distinta a la actual, se recalcula el codigo con la serie de esa marca
+        /// (PREFIJO + maximo + 1) y se asigna aqui, no desde la vista: la pantalla solo
+        /// muestra una previsualizacion, y es aqui donde se decide de verdad para que no
+        /// dependa de lo que haya mandado la pantalla.
+        ///
+        /// Si la cantidad cambia, queda asentada en el kardex con el motivo que eligio el
+        /// usuario.
+        /// </summary>
+        public async Task update_product_async(product product_to_update, string? motivo_ajuste = null, string? nueva_categoria = null)
         {
             if (product_to_update == null) throw new ArgumentNullException(nameof(product_to_update));
             using (IServiceScope scope = _scope_factory.CreateScope())
             {
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                int? stock_actual = await db_context.products
+                product? actual = await db_context.products
                     .AsNoTracking()
-                    .Where(p => p.id_product == product_to_update.id_product)
-                    .Select(p => (int?)p.stock_quantity)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(p => p.id_product == product_to_update.id_product);
 
-                int diferencia = product_to_update.stock_quantity - (stock_actual ?? 0);
+                if (actual == null) throw new InvalidOperationException("El producto ya no existe en el inventario.");
 
-                db_context.products.Update(product_to_update);
+                // Sin cambio de marca el codigo y la marca se restauran desde la base: asi el
+                // estandar no depende de lo que haya mandado la pantalla.
+                product_to_update.product_code = actual.product_code;
+                product_to_update.category = actual.category;
 
-                // Si el usuario edito el stock a mano, queda asentado en el kardex como ajuste.
-                if (stock_actual.HasValue && diferencia != 0)
+                string codigo_anterior = actual.product_code;
+                string marca_anterior = actual.category;
+                bool cambia_marca = !string.IsNullOrWhiteSpace(nueva_categoria)
+                    && !string.Equals(nueva_categoria!.Trim(), actual.category, StringComparison.OrdinalIgnoreCase);
+
+                if (cambia_marca)
                 {
-                    stock_movement_writer.registrar_ajuste(
-                        db_context,
-                        product_to_update.id_product,
-                        diferencia,
-                        $"AJUSTE-{product_to_update.product_code}",
-                        DateTime.UtcNow,
-                        product_to_update.unit_price_usd);
+                    string marca_destino = nueva_categoria!.Trim();
+
+                    if (!product_code_rules.TryGetPrefix(marca_destino, out _))
+                        throw new InvalidOperationException($"La marca {marca_destino} no tiene un prefijo de código configurado.");
+
+                    string codigo_nuevo = await calcular_siguiente_codigo_async(db_context, marca_destino);
+
+                    // El propio producto se excluye del correlativo: al recalcular sobre la
+                    // misma marca (o si el codigo viejo caia en la serie destino) podria
+                    // devolverse a si mismo y chocar contra el indice unico.
+                    if (string.Equals(codigo_nuevo, codigo_anterior, StringComparison.OrdinalIgnoreCase))
+                        codigo_nuevo = await calcular_siguiente_codigo_async(db_context, marca_destino, codigo_nuevo);
+
+                    product_to_update.category = marca_destino;
+                    product_to_update.product_code = codigo_nuevo;
                 }
 
-                await db_context.SaveChangesAsync();
+                int diferencia = product_to_update.stock_quantity - actual.stock_quantity;
+
+                // El producto y su asiento en el kardex van juntos: si el kardex es la fuente
+                // de la verdad del stock, un ajuste a medias dejaria la cantidad real
+                // distinta de la que suma el historial.
+                await using var transaction = await db_context.Database.BeginTransactionAsync();
+                try
+                {
+                    db_context.products.Update(product_to_update);
+
+                    try
+                    {
+                        await db_context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (is_unique_product_code_violation(ex))
+                    {
+                        throw new InvalidOperationException(
+                            $"El codigo {product_to_update.product_code} ya pertenece a otro producto.");
+                    }
+
+                    // Si el usuario edito el stock a mano, queda asentado en el kardex como ajuste.
+                    if (diferencia != 0)
+                    {
+                        stock_movement_writer.registrar_ajuste(
+                            db_context,
+                            product_to_update.id_product,
+                            diferencia,
+                            $"AJUSTE-{product_to_update.product_code}",
+                            DateTime.UtcNow,
+                            product_to_update.unit_price_usd,
+                            motivo_ajuste);
+
+                        await db_context.SaveChangesAsync();
+                    }
+
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+
+                if (cambia_marca)
+                {
+                    AppLog.Info($"Producto {product_to_update.id_product} mudado de marca: " +
+                                $"{codigo_anterior} ({marca_anterior}) -> {product_to_update.product_code} ({product_to_update.category}).");
+                }
             }
+        }
+
+        /// <summary>
+        /// Correlativo de una marca: PREFIJO + maximo + 1. Cuenta los productos de la
+        /// papelera porque su codigo sigue reservado mientras esten ahi.
+        /// Si codigo_reservado viene informado, se salta para no devolverlo.
+        /// </summary>
+        private static async Task<string> calcular_siguiente_codigo_async(NinOSDbContext db_context, string category, string? codigo_reservado = null)
+        {
+            if (!product_code_rules.TryGetPrefix(category, out string prefix))
+                return product_code_rules.EmptyCode;
+
+            int digits = product_code_rules.DigitsFor(prefix);
+
+            List<string> codes = await db_context.products
+                .AsNoTracking()
+                .Select(p => p.product_code)
+                .ToListAsync();
+
+            int max_number = 0;
+            var ya_usados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string code in codes)
+            {
+                if (string.IsNullOrWhiteSpace(code)) continue;
+
+                string limpio = code.Trim();
+                ya_usados.Add(limpio);
+
+                int? number = product_code_rules.TryParseNumber(limpio, prefix);
+                if (number.HasValue && number.Value > max_number)
+                {
+                    max_number = number.Value;
+                }
+            }
+
+            int next_number = max_number + 1;
+            while (ya_usados.Contains(product_code_rules.Format(prefix, next_number, digits))
+                   || string.Equals(product_code_rules.Format(prefix, next_number, digits), codigo_reservado, StringComparison.OrdinalIgnoreCase))
+            {
+                next_number++;
+            }
+
+            return product_code_rules.Format(prefix, next_number, digits);
         }
 
         public async Task<IEnumerable<promotion>> get_promotions_using_product_async(int id_product)
@@ -146,6 +306,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     promo.is_active = false;
                     promo.deleted_at = deleted_at;
                     promo.deleted_reason = cascade_delete_reason(product_to_delete.product_code);
+                    promo.id_product_deleted_cascade = id_product;
                 }
 
                 await db_context.SaveChangesAsync();
@@ -158,8 +319,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        // Reason con el que se marcan las promociones que caen junto con su producto.
-        // Permite devolverlas al restaurarlo, sin tocar las que se borraron a mano.
+        // Reason con el que se muestran las promociones que caen junto con su producto.
+        // Solo es texto para el usuario: la clave para saber si hay que restaurarlas es
+        // id_product_deleted_cascade, porque el codigo del producto puede cambiar de marca.
         internal static string cascade_delete_reason(string product_code)
             => $"Eliminado junto con el producto {product_code}";
 
@@ -176,8 +338,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                 product_to_restore.deleted_at = null;
                 product_to_restore.deleted_reason = null;
 
+                // Se devuelven las promociones que se fueron con ESE producto. Antes se
+                // comparaba el texto del motivo contra el codigo actual, asi que al cambiar
+                // el producto de marca estas promociones quedaban atrapadas en la papelera.
                 List<promotion> promos_to_restore = await db_context.promotions
-                    .Where(p => !p.is_active && p.deleted_reason == cascade_delete_reason(product_to_restore.product_code))
+                    .Where(p => !p.is_active && p.id_product_deleted_cascade == id_product)
                     .ToListAsync();
 
                 foreach (promotion promo in promos_to_restore)
@@ -185,6 +350,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     promo.is_active = true;
                     promo.deleted_at = null;
                     promo.deleted_reason = null;
+                    promo.id_product_deleted_cascade = null;
                 }
 
                 await db_context.SaveChangesAsync();
@@ -300,6 +466,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 promo_to_restore.is_active = true;
                 promo_to_restore.deleted_at = null;
                 promo_to_restore.deleted_reason = null;
+                promo_to_restore.id_product_deleted_cascade = null;
 
                 await db_context.SaveChangesAsync();
 

@@ -3,7 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
     <UserControl.Resources>
+        <!-- Alto fijo: indispensable para que la virtualizacion y la barra vertical funcionen
+             juntas. Con alto automatico segun el texto, WPF asume el alto de la primera fila
+             medida para las que todavia no genero y el scroll nunca alcanza el final. -->
+        <Style x:Key="CustomerRow" TargetType="DataGridRow">
+            <Setter Property="Height" Value="46"/>
+        </Style>
         <Style x:Key="CompactDataGrid" TargetType="DataGrid">
+            <Setter Property="RowStyle" Value="{StaticResource CustomerRow}"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="GridLinesVisibility" Value="All"/>
@@ -17,10 +24,14 @@
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeColumns" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
+            <!-- Virtualizacion activada (igual que Cuentas por Cobrar e Inventario) y scroll por
+                 fila. El alto de fila es fijo (ver DataGridRow) asi que la extension se calcula
+                 exacta; sin virtualizacion hay que medir y generar todas las filas y la pantalla
+                 se demora muchisimo al abrir el modulo. -->
             <Setter Property="EnableRowVirtualization" Value="True"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="MinRowHeight" Value="20"/>
         </Style>
         <Style x:Key="CellText" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
@@ -31,19 +42,28 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
         </Style>
+        <!-- Wrap acotado a 2 lineas: el texto largo se ve completo hasta ese limite y despues va
+             a elipsis. El valor completo esta en el ToolTip de cada columna. -->
         <Style x:Key="CellWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="TextTrimming" Value="None"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
+        <!-- Alto igual al del buscador de al lado (misma tipografia y mismo padding vertical), para
+             que no se vea un boton abultado en la barra. Lo que se mantiene grande es el ancho,
+             que es lo que lo hace destacar como accion principal. -->
         <Style x:Key="HeaderActionButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="12.5"/>
-            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="MinWidth" Value="150"/>
+            <Setter Property="Height" Value="28"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">

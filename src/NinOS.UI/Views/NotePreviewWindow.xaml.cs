@@ -165,9 +165,13 @@ namespace NinOS.UI.Views
             Grid.SetRow(divider2, 3);
             infoGrid.Children.Add(divider2);
 
+            // Una nota de credito no tiene vencimiento: es un abono, no una cuenta por cobrar.
+            // Se deja la celda en blanco para que Telefono siga en la misma columna que en el PDF.
+            bool preview_is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", StringComparison.OrdinalIgnoreCase);
+
             var infoRow3 = MakeTripleRow(
                 MakeInfoCell("Fecha Emision", note.creation_date.ToString("dd/MM/yyyy")),
-                MakeInfoCell("Fecha Vencimiento", note.due_date.ToString("dd/MM/yyyy")),
+                preview_is_credit ? null : MakeInfoCell("Fecha Vencimiento", note.due_date.ToString("dd/MM/yyyy")),
                 MakeInfoCell("Telefono", note.customer_phone));
             Grid.SetRow(infoRow3, 4);
             infoGrid.Children.Add(infoRow3);
@@ -422,17 +426,25 @@ namespace NinOS.UI.Views
             return r;
         }
 
-        private Grid MakeTripleRow(StackPanel cell1, StackPanel cell2, StackPanel cell3)
+        private Grid MakeTripleRow(StackPanel? cell1, StackPanel? cell2, StackPanel? cell3)
         {
             var r = new Grid();
             r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.Children.Add(cell1);
-            Grid.SetColumn(cell2, 1);
-            r.Children.Add(cell2);
-            Grid.SetColumn(cell3, 2);
-            r.Children.Add(cell3);
+            // Las celdas nulas se dejan como hueco: la columna se conserva para que lo que viene
+            // despues no se corra de lugar.
+            if (cell1 != null) r.Children.Add(cell1);
+            if (cell2 != null)
+            {
+                Grid.SetColumn(cell2, 1);
+                r.Children.Add(cell2);
+            }
+            if (cell3 != null)
+            {
+                Grid.SetColumn(cell3, 2);
+                r.Children.Add(cell3);
+            }
             return r;
         }
 

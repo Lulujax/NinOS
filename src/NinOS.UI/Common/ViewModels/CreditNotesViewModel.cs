@@ -194,7 +194,7 @@ namespace NinOS.UI.Common.ViewModels
 
             IEnumerable<credit_note_dto> filtered = string.IsNullOrEmpty(_selected_month)
                 ? Enumerable.Empty<credit_note_dto>()
-                : _all_credit_rows.Where(r => string.Equals(r.delivery_month_label, _selected_month, StringComparison.OrdinalIgnoreCase));
+                : _all_credit_rows.Where(r => string.Equals(r.fecha_nc_month_label, _selected_month, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(_selected_category_filter) && !_selected_category_filter.Equals("Todas", StringComparison.OrdinalIgnoreCase))
             {

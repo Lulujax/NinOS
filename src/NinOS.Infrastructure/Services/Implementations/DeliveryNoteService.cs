@@ -95,6 +95,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                             if (p.stock_quantity < detail.quantity)
                                 throw new InvalidOperationException($"Stock insuficiente para {p.name}");
 
+                            // Se congela el codigo del momento. Si el producto despues cambia de
+                            // marca y el sistema le reasigna otro, esta nota sigue imprimiendo
+                            // el codigo con el que se emitio.
+                            detail.product_code_snapshot = p.product_code;
+
                             stock_movimientos.Add(stock_movement_writer.registrar_salida(
                                 _db_context, p, detail.quantity,
                                 stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,

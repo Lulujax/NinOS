@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
+<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -21,8 +21,12 @@
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeColumns" Value="False"/>
             <Setter Property="SelectionMode" Value="Single"/>
+            <!-- Virtualizacion activada, igual que Cuentas por Cobrar, Ventas e Inventario: sin
+                 esto hay que medir y generar todas las filas y el modulo tarda en abrir. Las
+                 celdas de esta vista no usan TextWrapping, asi que la extension se calcula bien. -->
             <Setter Property="EnableRowVirtualization" Value="True"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="MinRowHeight" Value="22"/>
         </Style>
@@ -229,7 +233,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}"
                           ItemsSource="{Binding notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding delivery_month_label}" Width="95"
+                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
@@ -275,7 +279,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}"
                           ItemsSource="{Binding sandra_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding delivery_month_label}" Width="95"
+                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
@@ -319,7 +323,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}"
                           ItemsSource="{Binding anais_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding delivery_month_label}" Width="95"
+                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
@@ -363,7 +367,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}"
                           ItemsSource="{Binding alejandra_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding delivery_month_label}" Width="95"
+                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
@@ -407,7 +411,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}"
                           ItemsSource="{Binding juan_luis_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding delivery_month_label}" Width="95"
+                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>

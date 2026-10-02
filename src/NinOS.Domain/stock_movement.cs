@@ -17,6 +17,35 @@ namespace NinOS.Domain
         public const string RazonCargaInicial = "CARGA INICIAL";
         public const string RazonAjuste = "AJUSTE";
 
+        // Motivos que elige el usuario cuando edita la cantidad desde el inventario.
+        // Antes solo se guardaba RazonAjuste, que no distinguia una reposicion de una merma.
+        public const string RazonReposicion = "REPOSICION";
+        public const string RazonMerma = "MERMA";
+        public const string RazonCorreccionConteo = "CORRECCION CONTEO";
+        public const string RazonDevolucionProveedor = "DEVOLUCION PROVEEDOR";
+        public const string RazonAjusteSistema = "AJUSTE SISTEMA";
+
+        // Motivos que el formulario ofrece al usuario, en el orden en que se muestran.
+        public static readonly string[] AdjustmentReasons =
+        {
+            RazonReposicion,
+            RazonMerma,
+            RazonCorreccionConteo,
+            RazonDevolucionProveedor,
+            RazonAjusteSistema
+        };
+
+        // Evita que un motivo inventado desde otra parte termine en el kardex.
+        public static bool IsKnownAdjustmentReason(string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason)) return false;
+            foreach (string known in AdjustmentReasons)
+            {
+                if (string.Equals(known, reason, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
         public const string DocumentoEntrega = "NOTA DE ENTREGA";
         public const string DocumentoCredito = "NOTA DE CREDITO";
         public const string DocumentoInventario = "INVENTARIO";

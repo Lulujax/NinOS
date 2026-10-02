@@ -16,10 +16,8 @@ namespace NinOS.Infrastructure.Services.Implementations
     public class AccountsReceivableService : IAccountsReceivableService
     {
         /// <summary>
-        /// Codigo del unico vendedor autorizado a operar notas Pro Venta (MAR).
-        /// Regla del negocio: Juan Luis.
-        /// </summary>
-        private const string JuanLuisCode = "3400";
+        /// <summary>Observacion que deja el asiento de anulacion de una nota Pro Venta.</summary>
+        private const string AnulacionObservation = "Nota anulada";
 
         private readonly IServiceScopeFactory _scope_factory;
 
@@ -610,7 +608,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task annul_delivery_note_async(int id_delivery_note)
+        public async Task annul_delivery_note_async(int id_delivery_note, bool registrar_asiento_pro_venta = false)
         {
             using (var scope = _scope_factory.CreateScope())
             {
@@ -643,16 +641,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                         if (delivery_note.id_relacion == null)
                             throw new InvalidOperationException("No se puede anular esta nota Pro Venta: no tiene relacion asociada.");
 
-                        // Regla del negocio: las notas Pro Venta (MAR) son solo de Juan Luis (3400).
-                        // Se valida contra el vendedor real de la nota y no contra la pantalla, para
-                        // que la regla se cumpla aunque se llame al servicio desde otro lado.
-                        var mar_seller = await db_context.sellers
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
-
-                        if (mar_seller == null || mar_seller.seller_code != JuanLuisCode)
-                            throw new InvalidOperationException($"Solo Juan Luis ({JuanLuisCode}) puede anular notas Pro Venta.");
-
+                        // No se restringe por vendedor: la tabla Pro Venta filtra por tipo de nota y
+                        // hay notas Pro Venta de Anais (3300) ademas de las de Juan Luis (3400) -
+                        // las relaciones 4, 5, 6 y 7 son mezcladas. La regla del negocio es que cada
+                        // vendedor anula sus propias notas, y la app no tiene login con el que
+                        // verificar quien esta operando, asi que el control es de la persona: por eso
+                        // la pantalla pide confirmacion mostrando de quien es la nota.
                         bool has_mar_payments = await db_context.payments
                             .AnyAsync(p => p.id_relacion == delivery_note.id_relacion.Value && p.amount_usd > 0);
 
@@ -731,6 +725,28 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
 
                     delivery_note.status = "Anulada";
+
+                    if (registrar_asiento_pro_venta && delivery_note.id_relacion != null)
+                    {
+                        // Asiento de respaldo, solo para Pro Venta. Va con monto NEGATIVO para que
+                        // en el historial salga en rojo igual que una nota de credito, y con la fecha
+                        // del sistema porque es el momento en que se anulo. No es un pago: por eso
+                        // el calculo de saldos de Pro Venta ignora los abonos negativos.
+                        var asiento_anulacion = new payment(
+                            null,
+                            DateTime.Now,
+                            -delivery_note.adjusted_total_usd,
+                            0,
+                            null,
+                            payment_dto.AnulacionPaymentType,
+                            delivery_note.note_number,
+                            "",
+                            AnulacionObservation,
+                            delivery_note.id_relacion.Value);
+
+                        await db_context.payments.AddAsync(asiento_anulacion);
+                    }
+
                     await db_context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
@@ -800,7 +816,10 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     if (d.id_product != null && products.TryGetValue(d.id_product.Value, out var prod))
                     {
-                        code = prod.product_code;
+                        // La nota imprime el codigo que tenia el producto cuando se emitio,
+                        // no el de hoy: si despues cambio de marca, la nota vieja conserva
+                        // el suyo. El codigo actual solo cubre los renglones sin snapshot.
+                        code = d.product_code_snapshot ?? prod.product_code;
                         name = prod.name;
                     }
                     else if (d.id_promotion != null && promotions.TryGetValue(d.id_promotion.Value, out var promo))

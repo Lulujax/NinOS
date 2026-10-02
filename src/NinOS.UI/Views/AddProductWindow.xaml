@@ -1,11 +1,12 @@
 <Window x:Class="NinOS.UI.Views.AddProductWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Producto" Height="470" Width="600"
+        Title="Producto" Height="520" Width="600"
         WindowStartupLocation="CenterOwner" Background="#F5F5F5"
-        ResizeMode="NoResize" FontSize="12" MinHeight="450" MinWidth="560">
+        ResizeMode="NoResize" FontSize="12" MinHeight="500" MinWidth="560">
     <Grid Margin="14">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -36,11 +37,43 @@
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Codigo:"/><Run Text=" *" Foreground="Red"/></TextBlock>
-            <TextBox x:Name="CodeBox" Grid.Column="1" Height="26" FontSize="11" VerticalContentAlignment="Center"
-                     Padding="4,0" MaxLength="20"
-                     Text="{Binding new_code, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Codigo del producto en el inventario"/>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <!-- BasedOn obligatorio: sin el, el TextBlock se queda sin el estilo del tema. -->
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="Codigo:"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding is_code_read_only}" Value="True">
+                                <Setter Property="Foreground" Value="#757575"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <StackPanel Grid.Column="1">
+                <TextBox x:Name="CodeBox" Height="26" FontSize="11" VerticalContentAlignment="Center"
+                         Padding="4,0" MaxLength="20"
+                         Text="{Binding new_code, UpdateSourceTrigger=PropertyChanged}"
+                         IsReadOnly="{Binding is_code_read_only}">
+                    <TextBox.Style>
+                        <!-- BasedOn obligatorio: sin el, el TextBox pierde borde y fondo del tema. -->
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding is_code_read_only}" Value="True">
+                                    <Setter Property="Background" Value="#EEEEEE"/>
+                                    <Setter Property="Foreground" Value="#616161"/>
+                                    <Setter Property="ToolTip" Value="El codigo lo genera el sistema con el estandar de la marca y no se puede escribir a mano."/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+
+                <!-- Aviso de cambio de marca: el codigo que le tocaria en la marca destino -->
+                <TextBlock Text="{Binding brand_change_warning_display}" FontSize="10" Foreground="#C62828"
+                           Margin="2,3,0,0" TextWrapping="Wrap"
+                           Visibility="{Binding has_pending_brand_change, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            </StackPanel>
         </Grid>
 
         <!-- NOMBRE -->
@@ -66,8 +99,11 @@
                       HorizontalAlignment="Left" HorizontalContentAlignment="Left"
                       ItemsSource="{Binding category_options}"
                       SelectedItem="{Binding new_category, UpdateSourceTrigger=PropertyChanged}"
-                      IsEnabled="{Binding can_edit_category}"
-                      ToolTip="Marca o linea a la que pertenece el producto"/>
+                      IsEnabled="{Binding can_edit_category}">
+                <ComboBox.ToolTip>
+                    <TextBlock Text="Marca o linea a la que pertenece el producto. Al cambiarla en un producto que ya existe, el sistema le reasigna el codigo de la marca nueva."/>
+                </ComboBox.ToolTip>
+            </ComboBox>
         </Grid>
 
         <!-- CANTIDAD Y PRECIO -->
@@ -90,15 +126,39 @@
                      Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}"/>
         </Grid>
 
-        <TextBlock Grid.Row="5" FontSize="9.5" Foreground="#757575" Margin="2,0,0,0" TextWrapping="Wrap"
-                   Text="En la pestana Todos se puede cambiar la categoria. En las demas queda fija segun la pestana donde esta el producto."/>
+        <!-- MOTIVO DEL AJUSTE: solo aparece al editar y solo si la cantidad cambio -->
+        <Grid Grid.Row="5" Margin="0,0,0,6"
+              Visibility="{Binding requires_adjustment_reason, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                <Run Text="Motivo:"/><Run Text=" *" Foreground="Red"/>
+            </TextBlock>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <ComboBox x:Name="AdjustmentReasonCombo" Height="26" FontSize="11" Width="300"
+                          HorizontalContentAlignment="Left"
+                          ItemsSource="{Binding adjustment_reason_display_options}"
+                          SelectedIndex="{Binding adjustment_reason_index, UpdateSourceTrigger=PropertyChanged}"
+                          ToolTip="Queda registrado en el historial del producto como entrada o salida de inventario"/>
+                <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11" Foreground="#424242">
+                    <Run Text="La cantidad cambia "/>
+                    <Run Text="{Binding quantity_delta_display, Mode=OneWay}" FontWeight="Bold" Foreground="#0D62B5"/>
+                    <Run Text=" respecto a la que tenia."/>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
 
-        <Border Grid.Row="6" Background="#FDECEA" CornerRadius="3" Padding="10,6" Margin="0,6,0,0"
+        <TextBlock Grid.Row="6" FontSize="9.5" Foreground="#757575" Margin="2,0,0,0" TextWrapping="Wrap"
+                   Text="El codigo lo genera el sistema con el estandar de cada marca (prefijo + 5 digitos) y no se puede escribir a mano. Si cambias la marca de un producto que ya existe, se le asigna el codigo siguiente de la marca nueva."/>
+
+        <Border Grid.Row="7" Background="#FDECEA" CornerRadius="3" Padding="10,6" Margin="0,6,0,0"
                 Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
             <TextBlock Text="{Binding ErrorMessage}" FontSize="11" Foreground="#C62828" TextWrapping="Wrap"/>
         </Border>
 
-        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="Guardar" Height="30" Padding="18,0" Margin="0,0,8,0"
                     Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand"
                     FontWeight="SemiBold" Command="{Binding save_product_command}"/>

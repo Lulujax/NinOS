@@ -54,6 +54,10 @@ namespace NinOS.Domain
             set { if (value < 0) throw new ArgumentException(); _subtotal_usd = value; }
         }
 
+        // Codigo que tenia el producto al crear la nota de credito. Igual que en
+        // note_detail: la nota vieja conserva el codigo con el que se emitio.
+        public string? product_code_snapshot { get; set; }
+
         protected credit_note_detail() { }
 
         public credit_note_detail(int id_credit_note, int? id_product, int? id_promotion, int quantity, decimal unit_price_usd, decimal subtotal_usd)

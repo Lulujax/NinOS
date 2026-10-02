@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NinOS.Infrastructure.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NinOS.Infrastructure.Migrations
 {
     [DbContext(typeof(NinOSDbContext))]
-    partial class NinOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001195403_UniqueProductCode")]
+    partial class UniqueProductCode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -231,11 +234,6 @@ namespace NinOS.Infrastructure.Migrations
                     b.Property<int?>("id_promotion")
                         .HasColumnType("integer")
                         .HasColumnName("id_promotion");
-
-                    b.Property<string>("product_code_snapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("product_code_snapshot");
 
                     b.Property<int>("quantity")
                         .HasColumnType("integer")
@@ -465,11 +463,6 @@ namespace NinOS.Infrastructure.Migrations
                     b.Property<int?>("id_promotion")
                         .HasColumnType("integer")
                         .HasColumnName("id_promotion");
-
-                    b.Property<string>("product_code_snapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("product_code_snapshot");
 
                     b.Property<int>("quantity")
                         .HasColumnType("integer")
@@ -736,10 +729,6 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("deleted_reason");
 
-                    b.Property<int?>("id_product_deleted_cascade")
-                        .HasColumnType("integer")
-                        .HasColumnName("id_product_deleted_cascade");
-
                     b.Property<bool>("is_active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -764,8 +753,6 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("unit_price_usd");
 
                     b.HasKey("id_promotion");
-
-                    b.HasIndex("id_product_deleted_cascade");
 
                     b.ToTable("promotion", (string)null);
                 });
@@ -1138,14 +1125,6 @@ namespace NinOS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("id_relacion")
                         .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("NinOS.Domain.promotion", b =>
-                {
-                    b.HasOne("NinOS.Domain.product", null)
-                        .WithMany()
-                        .HasForeignKey("id_product_deleted_cascade")
-                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("NinOS.Domain.promotion_item", b =>

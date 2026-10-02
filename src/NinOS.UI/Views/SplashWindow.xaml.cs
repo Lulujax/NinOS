@@ -73,7 +73,10 @@ namespace NinOS.UI.Views
             TranslateTransform translate = new TranslateTransform();
             ProgressRect.RenderTransform = translate;
 
-            DoubleAnimation slide = new DoubleAnimation(-60, 220, TimeSpan.FromMilliseconds(1100));
+            // El recorrido va del ancho de la barra menos el del bloque: -76 entra por la
+            // izquierda y 280 deja el bloque al borde derecho. Los valores viejos (-60, 220)
+            // dejaban el bloque parado antes del final y sobraba hueco a la derecha.
+            DoubleAnimation slide = new DoubleAnimation(-76, 280, TimeSpan.FromMilliseconds(1100));
             slide.RepeatBehavior = RepeatBehavior.Forever;
             translate.BeginAnimation(TranslateTransform.XProperty, slide);
         }

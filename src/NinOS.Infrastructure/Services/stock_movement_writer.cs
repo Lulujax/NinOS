@@ -13,7 +13,12 @@ namespace NinOS.Infrastructure.Services
         public const string VendidoProducto = "Producto";
         public const string VendidoPromocion = "Promocion";
 
+        // Estado con el que se marcan los ajustes manuales, para que la columna ESTADO
+        // del historial no salga vacia en las filas que no vienen de una nota.
+        public const string EstadoAjuste = "Ajuste manual";
+
         // Descuenta del stock y registra la SALIDA.
+
         public static stock_movement registrar_salida(
             NinOSDbContext db_context,
             product producto,
@@ -65,26 +70,36 @@ namespace NinOS.Infrastructure.Services
 
         // Registra el movimiento de un ajuste manual: el stock ya viene cambiado en el
         // producto (por eso no se toca aqui), solo queda dejar constancia de la diferencia.
+        // motivo_ajuste es lo que eligio el usuario en el formulario (reposicion, merma,
+        // correccion de conteo...); si no se reconoce, queda el generico "AJUSTE".
         public static void registrar_ajuste(
             NinOSDbContext db_context,
             int id_product,
             int diferencia,
             string numero_documento,
             DateTime fecha,
-            decimal precio_unitario)
+            decimal precio_unitario,
+            string? motivo_ajuste = null)
         {
             if (diferencia == 0) return;
+
+            string razon = stock_movement.IsKnownAdjustmentReason(motivo_ajuste)
+                ? motivo_ajuste!.Trim().ToUpperInvariant()
+                : stock_movement.RazonAjuste;
 
             var movimiento = new stock_movement(
                 fecha,
                 id_product,
                 Math.Abs(diferencia),
                 diferencia > 0 ? stock_movement.Entrada : stock_movement.Salida,
-                stock_movement.RazonAjuste,
+                razon,
                 stock_movement.DocumentoInventario,
                 numero_documento,
                 VendidoProducto,
-                precio_unitario);
+                precio_unitario)
+            {
+                document_status = EstadoAjuste
+            };
 
             db_context.stock_movements.Add(movimiento);
         }
