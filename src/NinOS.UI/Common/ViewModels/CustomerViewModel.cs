@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -33,6 +34,28 @@ namespace NinOS.UI.Common.ViewModels
             string.IsNullOrWhiteSpace(DeliveryAddress) ? FiscalAddress : DeliveryAddress;
     }
 
+    public class CustomerTabItem : ViewModelBase
+    {
+        private string _header = string.Empty;
+        public int? IdZona { get; set; }
+        public string? ZonaCode { get; set; }
+
+        public string Header
+        {
+            get => _header;
+            set
+            {
+                if (_header != value)
+                {
+                    _header = value;
+                    on_property_changed();
+                }
+            }
+        }
+
+        public ObservableCollection<CustomerRowDto> Customers { get; } = new ObservableCollection<CustomerRowDto>();
+    }
+
     public class CustomerViewModel : ViewModelBase
     {
         private readonly ICustomerService _customerService;
@@ -47,6 +70,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private string _searchQuery = string.Empty;
         private int _selectedTabIndex;
+        private CustomerTabItem? _selectedTab;
         private string _newCustomerCode = string.Empty;
         private string _newBusinessName = string.Empty;
         private string _newRifNumber = string.Empty;
@@ -62,7 +86,13 @@ namespace NinOS.UI.Common.ViewModels
         private string _addOrEditTitle = "Agregar Cliente";
         private string _saveButtonText = "Agregar Cliente";
 
+        // Pestañas dinámicas de Zonas
+        public ObservableCollection<CustomerTabItem> ZonaTabs { get; } = new ObservableCollection<CustomerTabItem>();
+
+        // Colección global
         public ObservableCollection<CustomerRowDto> AllCustomers { get; }
+
+        // Colecciones legacy mantenidas por retrocompatibilidad
         public ObservableCollection<CustomerRowDto> IsabelicaCustomers { get; }
         public ObservableCollection<CustomerRowDto> SanDiegoCustomers { get; }
         public ObservableCollection<CustomerRowDto> TocuyitoCustomers { get; }
@@ -70,7 +100,6 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<CustomerRowDto> FlorAmarilloCustomers { get; }
         public ObservableCollection<CustomerRowDto> MaracayCustomers { get; }
 
-        // Mantenidos para compatibilidad con código o reportes legacy
         public ObservableCollection<CustomerRowDto> AnaisCustomers { get; }
         public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
@@ -98,6 +127,26 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public CustomerTabItem? SelectedTab
+        {
+            get => _selectedTab;
+            set
+            {
+                if (_selectedTab != value)
+                {
+                    _selectedTab = value;
+                    on_property_changed();
+                    int idx = value != null ? ZonaTabs.IndexOf(value) : -1;
+                    if (idx >= 0 && _selectedTabIndex != idx)
+                    {
+                        _selectedTabIndex = idx;
+                        on_property_changed(nameof(SelectedTabIndex));
+                    }
+                    SetDefaultZonaFromTab();
+                }
+            }
+        }
+
         public int SelectedTabIndex
         {
             get => _selectedTabIndex;
@@ -107,8 +156,11 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     _selectedTabIndex = value;
                     on_property_changed();
+                    if (value >= 0 && value < ZonaTabs.Count)
+                    {
+                        SelectedTab = ZonaTabs[value];
+                    }
                     SetDefaultZonaFromTab();
-                    FilterCustomers();
                 }
             }
         }
@@ -136,6 +188,17 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public string NewRifType
+        {
+            get => _newRifType;
+            set
+            {
+                _newRifType = value;
+                on_property_changed();
+                (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
         public string NewRifNumber
         {
             get => _newRifNumber;
@@ -145,12 +208,6 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed();
                 (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
             }
-        }
-
-        public string NewRifType
-        {
-            get => _newRifType;
-            set { _newRifType = value; on_property_changed(); }
         }
 
         public string NewContactName
@@ -285,13 +342,26 @@ namespace NinOS.UI.Common.ViewModels
             EditZonasCommand = new RelayCommand(ExecuteEditZonas);
             LoadCustomersCommand = new RelayCommand(ExecuteLoadCustomers);
 
+            AppDataEvents.CatalogsChanged += OnCatalogsChanged;
+
             LoadCustomersAsync();
+        }
+
+        private void OnCatalogsChanged()
+        {
+            if (Application.Current?.Dispatcher != null)
+            {
+                Application.Current.Dispatcher.InvokeAsync(LoadCustomersAsync);
+            }
+            else
+            {
+                LoadCustomersAsync();
+            }
         }
 
         private void ExecuteEditZonas(object? parameter)
         {
             EditZonasRequested?.Invoke();
-            // Recargar zonas por si se agregaron, editaron o eliminaron
             _ = LoadZonasAsync();
         }
 
@@ -302,16 +372,118 @@ namespace NinOS.UI.Common.ViewModels
 
         public void refresh_data() => LoadCustomersAsync();
 
+        public static string FormatTabHeader(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+            // Si el nombre viene con prefijo numérico como "01 Zona 1" o "05 Zona 5",
+            // quitamos el número inicial para mostrar solo el nombre limpio.
+            var match = Regex.Match(name.Trim(), @"^\d+\s*[-_.]?\s*(.*)$");
+            if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[1].Value))
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return name.Trim();
+        }
+
+        public void SyncZonaTabs(List<zona> activeZonas)
+        {
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => SyncZonaTabs(activeZonas));
+                return;
+            }
+
+            int? previouslySelectedZonaId = SelectedTab?.IdZona;
+            bool wasTodosSelected = SelectedTab != null && SelectedTab.IdZona == null;
+
+            // 1. Asegurar pestaña "Todos" en posición 0
+            CustomerTabItem? todosTab = ZonaTabs.FirstOrDefault(t => t.IdZona == null);
+            if (todosTab == null)
+            {
+                todosTab = new CustomerTabItem { Header = "Todos", IdZona = null };
+                ZonaTabs.Insert(0, todosTab);
+            }
+            else
+            {
+                todosTab.Header = "Todos";
+            }
+
+            var orderedZonas = activeZonas.OrderBy(z => z.code).ToList();
+            var activeIds = new HashSet<int>(orderedZonas.Select(z => z.id_zona));
+
+            // 2. Eliminar pestañas de zonas que ya no existen o fueron desactivadas
+            for (int i = ZonaTabs.Count - 1; i >= 0; i--)
+            {
+                var tab = ZonaTabs[i];
+                if (tab.IdZona.HasValue && !activeIds.Contains(tab.IdZona.Value))
+                {
+                    ZonaTabs.RemoveAt(i);
+                }
+            }
+
+            // 3. Agregar o actualizar pestañas activas en orden
+            for (int i = 0; i < orderedZonas.Count; i++)
+            {
+                var z = orderedZonas[i];
+                int targetIndex = i + 1; // 0 es Todos
+                string cleanHeader = FormatTabHeader(z.name);
+
+                var existingTab = ZonaTabs.FirstOrDefault(t => t.IdZona == z.id_zona);
+                if (existingTab != null)
+                {
+                    existingTab.Header = cleanHeader;
+                    existingTab.ZonaCode = z.code;
+                    int currentIndex = ZonaTabs.IndexOf(existingTab);
+                    if (currentIndex != targetIndex && targetIndex < ZonaTabs.Count)
+                    {
+                        ZonaTabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                else
+                {
+                    var newTab = new CustomerTabItem
+                    {
+                        IdZona = z.id_zona,
+                        ZonaCode = z.code,
+                        Header = cleanHeader
+                    };
+                    if (targetIndex <= ZonaTabs.Count)
+                        ZonaTabs.Insert(targetIndex, newTab);
+                    else
+                        ZonaTabs.Add(newTab);
+                }
+            }
+
+            // 4. Restaurar pestaña seleccionada
+            if (wasTodosSelected)
+            {
+                SelectedTab = todosTab;
+            }
+            else if (previouslySelectedZonaId.HasValue)
+            {
+                SelectedTab = ZonaTabs.FirstOrDefault(t => t.IdZona == previouslySelectedZonaId.Value) ?? todosTab;
+            }
+            else if (SelectedTab == null && ZonaTabs.Count > 0)
+            {
+                SelectedTab = ZonaTabs[0];
+            }
+        }
+
         public async Task LoadZonasAsync()
         {
             try
             {
                 var zonas = await _zonaService.GetActiveAsync();
+                var activeList = zonas?.ToList() ?? new List<zona>();
+
                 ZonasOptions.Clear();
-                foreach (var z in zonas)
+                foreach (var z in activeList)
                 {
                     ZonasOptions.Add(z);
                 }
+
+                SyncZonaTabs(activeList);
+                FilterCustomers();
             }
             catch (Exception ex)
             {
@@ -407,24 +579,9 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (_editingCustomer != null) return;
 
-            string targetCode = _selectedTabIndex switch
+            if (_selectedTab?.IdZona != null)
             {
-                1 => "01",
-                2 => "02",
-                3 => "03",
-                4 => "04",
-                5 => "05",
-                6 => "06",
-                _ => string.Empty
-            };
-
-            if (!string.IsNullOrEmpty(targetCode))
-            {
-                var match = ZonasOptions.FirstOrDefault(z => z.code == targetCode);
-                if (match != null)
-                {
-                    NewZonaId = match.id_zona;
-                }
+                NewZonaId = _selectedTab.IdZona;
             }
         }
 
@@ -457,7 +614,21 @@ namespace NinOS.UI.Common.ViewModels
 
                 UpdateCollection(AllCustomers, filtered);
 
-                // Colecciones divididas por Zona
+                // Actualizar pestañas dinámicas de ZonaTabs
+                foreach (var tab in ZonaTabs)
+                {
+                    if (tab.IdZona == null)
+                    {
+                        UpdateCollection(tab.Customers, filtered);
+                    }
+                    else
+                    {
+                        var tabItems = filtered.Where(c => c.IdZona == tab.IdZona.Value).ToList();
+                        UpdateCollection(tab.Customers, tabItems);
+                    }
+                }
+
+                // Colecciones legacy divididas por Zona
                 UpdateCollection(IsabelicaCustomers, filtered.Where(c => c.ZonaCode == "01" || c.ZonaName.Contains("Zona 1", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Isabelica", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(SanDiegoCustomers, filtered.Where(c => c.ZonaCode == "02" || c.ZonaName.Contains("Zona 2", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("San Diego", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(TocuyitoCustomers, filtered.Where(c => c.ZonaCode == "03" || c.ZonaName.Contains("Zona 3", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Tocuyito", StringComparison.OrdinalIgnoreCase)).ToList());
@@ -479,6 +650,11 @@ namespace NinOS.UI.Common.ViewModels
 
         private void UpdateCollection(ObservableCollection<CustomerRowDto> collection, List<CustomerRowDto> items)
         {
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => UpdateCollection(collection, items));
+                return;
+            }
             collection.Clear();
             foreach (CustomerRowDto item in items)
             {
@@ -554,6 +730,7 @@ namespace NinOS.UI.Common.ViewModels
                 ClearForm();
                 OnCloseAddCustomerWindow?.Invoke();
                 LoadCustomersAsync();
+                AppDataEvents.raise_catalogs_changed();
             }
             catch (Exception ex)
             {
@@ -633,8 +810,8 @@ namespace NinOS.UI.Common.ViewModels
             if (parameter is CustomerRowDto selected && selected.CustomerRef != null)
             {
                 MessageBoxResult confirm = AppDialog.Show(
-                    $"Esta seguro de eliminar el cliente \"{selected.BusinessName}\"?",
-                    "Confirmar eliminacion",
+                    $"¿Está seguro de eliminar el cliente \"{selected.BusinessName}\"?",
+                    "Confirmar eliminación",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
