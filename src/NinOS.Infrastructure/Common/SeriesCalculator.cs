@@ -64,6 +64,13 @@ namespace NinOS.Infrastructure.Common
             return $"{full_number / 1000}_{full_number % 1000:D3}";
         }
 
+        public static string FormatGlobal6(long fullNumber)
+        {
+            long prefix = fullNumber / 1000;
+            long suffix = fullNumber % 1000;
+            return $"{prefix:D3}_{suffix:D3}";
+        }
+
         public static long Seed(string? seller_code)
         {
             if (string.IsNullOrWhiteSpace(seller_code)) return 0;
@@ -86,6 +93,12 @@ namespace NinOS.Infrastructure.Common
         {
             long seed = Seed(seller_code);
             return FormatNumber(GetMax(existing_numbers, seed) + 1);
+        }
+
+        public static string GetNextGlobal6(IEnumerable<string> existing_numbers)
+        {
+            long max = GetMax(existing_numbers, 0L);
+            return FormatGlobal6(max + 1);
         }
     }
 }

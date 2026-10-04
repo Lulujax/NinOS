@@ -5,6 +5,6 @@ namespace NinOS.Infrastructure.Repositories.Interfaces
 {
     public interface ICreditNoteRepository : IGenericRepository<credit_note>
     {
-        Task<string> get_next_credit_correlative_async(int id_seller);
+        Task<string> get_next_credit_correlative_async();
     }
 }

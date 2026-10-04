@@ -61,11 +61,11 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> JuanLuisCustomers { get; }
-        public ObservableCollection<string> SellerOptions { get; }
-        public ObservableCollection<NinOS.Domain.zona> ZonasOptions { get; } = new ObservableCollection<NinOS.Domain.zona>();
-        public int? NewZonaId { get; set; }
-        public Action? EditZonasRequested { get; set; }
+        public ObservableCollection<string> SellerOptions { get; }\r\n        public ObservableCollection<NinOS.Domain.zona> ZonasOptions { get; } = new ObservableCollection<NinOS.Domain.zona>();\r\n        public int? NewZonaId { get; set; }\r\n        public Action? EditZonasRequested { get; set; }
         public ObservableCollection<string> RifTypeOptions { get; }
+
+        public Action? OnRequestAddCustomerWindow { get; set; }
+        public Action<CustomerRowDto>? OnRequestEditCustomerWindow { get; set; }
         public Action? OnCloseAddCustomerWindow { get; set; }
 
         public string SearchQuery

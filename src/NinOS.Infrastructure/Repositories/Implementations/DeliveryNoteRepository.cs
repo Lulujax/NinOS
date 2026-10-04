@@ -19,21 +19,14 @@ namespace NinOS.Infrastructure.Repositories.Implementations
             _context = context;
         }
 
-        public async Task<string> get_next_correlative_async(int id_seller)
+        public async Task<string> get_next_correlative_async()
         {
-            if (id_seller <= 0) throw new ArgumentException(nameof(id_seller));
-
-            seller? current_seller = await _context.sellers.FindAsync(id_seller);
-            if (current_seller == null) throw new InvalidOperationException();
-
-            // Serie independiente por vendedor sobre SOLO notas de entrega (ej: 3200_001, 3200_100,
-            // 3200_999 -> 3201_000). Las notas de credito usan su propia serie.
-            var seller_notes = await _context.delivery_notes
-                .Where(n => n.id_seller == id_seller)
+            var all_note_numbers = await _context.delivery_notes
+                .AsNoTracking()
                 .Select(n => n.note_number)
                 .ToListAsync();
 
-            return SeriesCalculator.GetNext(seller_notes, current_seller.seller_code);
+            return SeriesCalculator.GetNextGlobal6(all_note_numbers);
         }
     }
 }

@@ -37,6 +37,11 @@ namespace NinOS.Domain
         [MaxLength(100)]
         public string seller_name { get; set; }
 
+        public int? id_zona { get; set; }
+
+        [ForeignKey(nameof(id_zona))]
+        public virtual zona? zona { get; set; }
+
         public bool is_active { get; set; } = true;
 
         public DateTime? deleted_at { get; set; }

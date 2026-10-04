@@ -211,6 +211,7 @@ namespace NinOS.UI
             services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
             services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
             services.AddScoped<ICreditNoteService, CreditNoteService>();
+            services.AddScoped<IZonaService, ZonaService>();
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<ICommissionService, CommissionService>();
             services.AddScoped<ICustomerService, CustomerService>();

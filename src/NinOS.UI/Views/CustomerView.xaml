@@ -156,6 +156,7 @@
 
                 <Button Grid.Column="2" Style="{StaticResource HeaderActionButton}" Background="#0078D7"
                         Command="{Binding AddCustomerCommand}" Content="Agregar Cliente"/>
+                        <Button Content="Editar Zonas" Command="{Binding EditZonasCommand}" Background="#6C757D" Foreground="White" Padding="6,4" Margin="6,0,0,0"/>
             </Grid>
         </Border>
 
@@ -377,3 +378,4 @@
         </TabControl>
     </Grid>
 </UserControl>
+

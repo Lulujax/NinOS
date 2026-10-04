@@ -30,7 +30,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scope_factory.CreateScope())
             {
                 var repository = scope.ServiceProvider.GetRequiredService<ICreditNoteRepository>();
-                return await repository.get_next_credit_correlative_async(id_seller);
+                return await repository.get_next_credit_correlative_async();
             }
         }
 
@@ -849,7 +849,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (string.IsNullOrWhiteSpace(new_note.note_number))
                     {
                         var repository = scope.ServiceProvider.GetRequiredService<ICreditNoteRepository>();
-                        new_note.note_number = await repository.get_next_credit_correlative_async(new_note.id_seller);
+                        new_note.note_number = await repository.get_next_credit_correlative_async();
                     }
 
                     await db_context.credit_notes.AddAsync(new_note);

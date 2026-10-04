@@ -21,6 +21,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<credit_note> credit_notes { get; set; }
         public DbSet<credit_note_detail> credit_note_details { get; set; }
         public DbSet<stock_movement> stock_movements { get; set; }
+        public DbSet<zona> zonas { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -74,9 +75,35 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.fiscal_address).HasColumnName("fiscal_address");
                 entity.Property(e => e.delivery_address).HasColumnName("delivery_address");
                 entity.Property(e => e.seller_name).HasColumnName("seller_name").HasMaxLength(100);
+                entity.Property(e => e.id_zona).HasColumnName("id_zona");
                 entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
+                entity.HasOne(e => e.zona)
+                    .WithMany()
+                    .HasForeignKey(e => e.id_zona)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            model_builder.Entity<zona>(entity =>
+            {
+                entity.ToTable("zona");
+                entity.HasKey(e => e.id_zona);
+                entity.Property(e => e.id_zona).HasColumnName("id_zona").UseIdentityByDefaultColumn();
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.code).HasColumnName("code").IsRequired().HasMaxLength(10);
+                entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
+                entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
+
+                entity.HasIndex(e => e.code)
+                    .IsUnique()
+                    .HasFilter("\"deleted_at\" IS NULL");
+
+                entity.HasIndex(e => e.name)
+                    .IsUnique()
+                    .HasFilter("\"deleted_at\" IS NULL");
             });
 
             model_builder.Entity<product>(entity =>

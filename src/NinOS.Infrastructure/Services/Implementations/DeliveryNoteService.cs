@@ -35,7 +35,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             if (id_seller <= 0) throw new ArgumentException(nameof(id_seller));
             using var scope = _scope_factory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
-            return await repo.get_next_correlative_async(id_seller);
+            return await repo.get_next_correlative_async();
         }
 
         public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details)

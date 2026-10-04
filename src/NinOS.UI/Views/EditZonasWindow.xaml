@@ -1,0 +1,98 @@
+<Window x:Class="NinOS.UI.Views.EditZonasWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Editar Zonas de Clientes" Height="600" Width="720"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Zonas" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+
+        <TabControl Grid.Row="1">
+            <TabItem Header="Activas">
+                <DataGrid ItemsSource="{Binding ZonasActivas}" AutoGenerateColumns="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F5F5F5" GridLinesVisibility="Horizontal">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="60"/>
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn Header="Orden" Binding="{Binding SortOrder}" Width="60"/>
+                        <DataGridTemplateColumn Header="Acciones" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Editar" Margin="2" Padding="4,2"
+                                                Command="{Binding DataContext.EditZonaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Eliminar" Margin="2" Padding="4,2" Background="#DC3545" Foreground="White"
+                                                Command="{Binding DataContext.DeleteZonaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem Header="Eliminadas">
+                <DataGrid ItemsSource="{Binding ZonasEliminadas}" AutoGenerateColumns="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F5F5F5" GridLinesVisibility="Horizontal">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="60"/>
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn Header="Eliminado el" Binding="{Binding DeletedAtDisplay}" Width="140"/>
+                        <DataGridTextColumn Header="Motivo" Binding="{Binding DeletedReason}" Width="160"/>
+                        <DataGridTemplateColumn Header="Acciones" Width="90">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Restaurar" Margin="2" Padding="4,2" Background="#28A745" Foreground="White"
+                                            Command="{Binding DataContext.RestoreZonaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,8,0,8" Padding="0,8,0,0"
+                Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="{Binding TitleText}" FontWeight="Bold" Margin="0,0,0,6"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Nombre *" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="2" Text="Orden" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Grid.Column="3" Text="{Binding NewSortOrder}" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Button Content="Cancelar" Command="{Binding CancelEditCommand}" Margin="0,0,6,0" Padding="10,4"/>
+                    <Button Content="Guardar" Command="{Binding SaveZonaCommand}" Background="#0078D7" Foreground="White" Padding="10,4"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="Red" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="Agregar Zona" Command="{Binding AddZonaCommand}" Margin="0,0,6,0" Padding="10,4"/>
+            <Button Content="Cerrar" Click="Cerrar_Click" Padding="10,4"/>
+        </StackPanel>
+    </Grid>
+</Window>
