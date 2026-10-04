@@ -32,13 +32,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" FontWeight="Bold" Margin="0,0,0,5"><Run Text="CÃ³digo del Cliente"/><Run Text=" *" Foreground="Red"/></TextBlock>
+        <TextBlock Grid.Row="0" FontWeight="Bold" Margin="0,0,0,5"><Run Text="Codigo del Cliente"/><Run Text=" *" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="1" Text="{Binding NewCustomerCode}" IsReadOnly="True" Background="#F0F0F0" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="2" FontWeight="Bold" Margin="0,0,0,5"><Run Text="RazÃ³n Social (Negocio/Nombre)"/><Run Text=" *" Foreground="Red"/></TextBlock>
+        <TextBlock Grid.Row="2" FontWeight="Bold" Margin="0,0,0,5"><Run Text="Razon Social (Negocio/Nombre)"/><Run Text=" *" Foreground="Red"/></TextBlock>
         <TextBox Grid.Row="3" Text="{Binding NewBusinessName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" FontWeight="Bold" Margin="0,0,0,5"><Run Text="IdentificaciÃ³n"/><Run Text=" *" Foreground="Red"/></TextBlock>
+        <TextBlock Grid.Row="4" FontWeight="Bold" Margin="0,0,0,5"><Run Text="Identificacion"/><Run Text=" *" Foreground="Red"/></TextBlock>
         <Grid Grid.Row="5" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="80"/>
@@ -51,13 +51,13 @@
         <TextBlock Grid.Row="6" Text="Nombre de Contacto" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBox Grid.Row="7" Text="{Binding NewContactName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="8" Text="TelÃ©fono" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="8" Text="Telefono" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBox Grid.Row="9" Text="{Binding NewPhoneNumber, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="10" Text="DirecciÃ³n Fiscal" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="10" Text="Direccion Fiscal" FontWeight="Bold" Margin="0,0,0,5"/>
             <TextBox Grid.Row="11" Text="{Binding NewFiscalAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,8" TextWrapping="Wrap" Height="42" AcceptsReturn="True"/>
 
-        <TextBlock Grid.Row="12" Text="DirecciÃ³n de Entrega" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="12" Text="Direccion de Entrega" FontWeight="Bold" Margin="0,0,0,5"/>
             <TextBox Grid.Row="13" Text="{Binding NewDeliveryAddress, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,8" TextWrapping="Wrap" Height="42" AcceptsReturn="True"/>
 
         <TextBlock Grid.Row="14" Text="Zona *" FontWeight="Bold" Margin="0,0,0,5"/>

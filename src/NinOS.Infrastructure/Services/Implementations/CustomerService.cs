@@ -27,6 +27,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 return await db_context.customers.AsNoTracking()
+                    .Include(c => c.zona)
                     .Where(c => c.is_active)
                     .OrderBy(c => c.customer_code)
                     .ToListAsync();
@@ -39,6 +40,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 return await db_context.customers.AsNoTracking()
+                    .Include(c => c.zona)
                     .Where(c => !c.is_active)
                     .OrderByDescending(c => c.deleted_at)
                     .ToListAsync();
@@ -50,7 +52,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == id);
+                return await db_context.customers.AsNoTracking()
+                    .Include(c => c.zona)
+                    .FirstOrDefaultAsync(c => c.id_customer == id);
             }
         }
 
@@ -59,7 +63,21 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.customer_code == code);
+                return await db_context.customers.AsNoTracking()
+                    .Include(c => c.zona)
+                    .FirstOrDefaultAsync(c => c.customer_code == code);
+            }
+        }
+
+        public async Task<string> GetNextCustomerCodeAsync()
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var all_codes = await db_context.customers.AsNoTracking()
+                    .Select(c => c.customer_code)
+                    .ToListAsync();
+                return SeriesCalculator.GetNextCustomerCode(all_codes);
             }
         }
 

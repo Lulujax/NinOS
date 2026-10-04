@@ -52,16 +52,39 @@ namespace NinOS.UI.Views
         public string deleted_on { get; set; } = string.Empty;
     }
 
+    public class deleted_seller_row
+    {
+        public int id_seller { get; set; }
+        public string code { get; set; } = string.Empty;
+        public string full_name { get; set; } = string.Empty;
+        public string zonas { get; set; } = string.Empty;
+        public string reason { get; set; } = string.Empty;
+        public string deleted_on { get; set; } = string.Empty;
+    }
+
+    public class deleted_zona_row
+    {
+        public int id_zona { get; set; }
+        public string code { get; set; } = string.Empty;
+        public string name { get; set; } = string.Empty;
+        public string reason { get; set; } = string.Empty;
+        public string deleted_on { get; set; } = string.Empty;
+    }
+
     public partial class AdminPanelWindow : Window
     {
         private readonly ICustomerService? _customer_service;
         private readonly IInventoryService? _inventory_service;
+        private readonly ISellerService? _seller_service;
+        private readonly IZonaService? _zona_service;
         private readonly IServiceScopeFactory? _db_context_provider;
         private bool _backup_in_progress;
 
         public ObservableCollection<deleted_customer_row> DeletedCustomers { get; } = new();
         public ObservableCollection<deleted_product_row> DeletedProducts { get; } = new();
         public ObservableCollection<deleted_promotion_row> DeletedPromotions { get; } = new();
+        public ObservableCollection<deleted_seller_row> DeletedSellers { get; } = new();
+        public ObservableCollection<deleted_zona_row> DeletedZonas { get; } = new();
 
         public AdminPanelWindow()
         {
@@ -69,10 +92,14 @@ namespace NinOS.UI.Views
             CustomersGrid.ItemsSource = DeletedCustomers;
             ProductsGrid.ItemsSource = DeletedProducts;
             PromotionsGrid.ItemsSource = DeletedPromotions;
+            SellersGrid.ItemsSource = DeletedSellers;
+            ZonasGrid.ItemsSource = DeletedZonas;
 
             var service_provider = (Application.Current as App)?.GetServiceProvider();
             _customer_service = service_provider?.GetService(typeof(ICustomerService)) as ICustomerService;
             _inventory_service = service_provider?.GetService(typeof(IInventoryService)) as IInventoryService;
+            _seller_service = service_provider?.GetService(typeof(ISellerService)) as ISellerService;
+            _zona_service = service_provider?.GetService(typeof(IZonaService)) as IZonaService;
             _db_context_provider = service_provider?.GetService(typeof(IServiceScopeFactory)) as IServiceScopeFactory;
 
             Loaded += async (s, e) => await load_all_async();
@@ -84,6 +111,8 @@ namespace NinOS.UI.Views
             await load_customers_async();
             await load_products_async();
             await load_promotions_trash_async();
+            await load_sellers_trash_async();
+            await load_zonas_trash_async();
         }
 
         private async Task load_customers_async()
@@ -232,6 +261,148 @@ namespace NinOS.UI.Views
             catch (System.Exception ex)
             {
                 AppDialog.Show($"No se pudo restaurar el cliente: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task load_sellers_trash_async()
+        {
+            if (_seller_service == null) return;
+            try
+            {
+                var sellers = await _seller_service.GetAllDeletedAsync();
+                DeletedSellers.Clear();
+                foreach (var s in sellers)
+                {
+                    var zonasText = s.seller_zones != null && s.seller_zones.Any()
+                        ? string.Join(", ", s.seller_zones.Where(sz => sz.zona != null).Select(sz => $"{sz.zona!.code} {sz.zona.name}"))
+                        : "Sin zonas";
+
+                    DeletedSellers.Add(new deleted_seller_row
+                    {
+                        id_seller = s.id_seller,
+                        code = s.seller_code ?? string.Empty,
+                        full_name = s.full_name ?? string.Empty,
+                        zonas = zonasText,
+                        reason = s.deleted_reason ?? "Sin motivo",
+                        deleted_on = s.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-"
+                    });
+                }
+                if (SellersCountText != null)
+                {
+                    SellersCountText.Text = $"{DeletedSellers.Count} vendedores en papelera";
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al cargar papelera de vendedores", ex);
+            }
+        }
+
+        private async void OnRefreshSellersClick(object sender, RoutedEventArgs e)
+        {
+            await load_sellers_trash_async();
+        }
+
+        private async void OnRestoreSellerClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not deleted_seller_row row) return;
+
+            MessageBoxResult confirm = AppDialog.Show(
+                $"¿Restaurar el vendedor \"{row.full_name}\" ({row.code})?\n\nVolverá a estar activo con su código y zonas asignadas.",
+                "Restaurar vendedor",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                if (_seller_service != null) await _seller_service.RestoreAsync(row.id_seller);
+                await load_sellers_trash_async();
+                AppDataEvents.raise_catalogs_changed();
+                AppDialog.Show($"Vendedor \"{row.full_name}\" restaurado.", "Listo",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"No se pudo restaurar el vendedor: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnEditZonasClick(object sender, RoutedEventArgs e)
+        {
+            var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+            var zonaService = serviceProvider?.GetService(typeof(IZonaService)) as IZonaService;
+            if (zonaService != null)
+            {
+                var vm = new ZonaEditViewModel(zonaService);
+                var wnd = new EditZonasWindow
+                {
+                    DataContext = vm,
+                    Owner = this
+                };
+                wnd.ShowDialog();
+                AppDataEvents.raise_catalogs_changed();
+            }
+        }
+
+        private async Task load_zonas_trash_async()
+        {
+            if (_zona_service == null) return;
+            try
+            {
+                var zonas = await _zona_service.GetDeletedAsync();
+                DeletedZonas.Clear();
+                foreach (var z in zonas)
+                {
+                    DeletedZonas.Add(new deleted_zona_row
+                    {
+                        id_zona = z.id_zona,
+                        code = z.code,
+                        name = z.name,
+                        reason = z.deleted_reason ?? "Sin motivo",
+                        deleted_on = z.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-"
+                    });
+                }
+                if (ZonasCountText != null)
+                {
+                    ZonasCountText.Text = $"{DeletedZonas.Count} zonas en papelera";
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al cargar papelera de zonas", ex);
+            }
+        }
+
+        private async void OnRefreshZonasClick(object sender, RoutedEventArgs e)
+        {
+            await load_zonas_trash_async();
+        }
+
+        private async void OnRestoreZonaClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not deleted_zona_row row) return;
+
+            MessageBoxResult confirm = AppDialog.Show(
+                $"¿Restaurar la zona \"{row.name}\" ({row.code})?\n\nVolverá a estar activa y disponible para asignación.",
+                "Restaurar zona",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                if (_zona_service != null) await _zona_service.RestoreAsync(row.id_zona);
+                await load_zonas_trash_async();
+                AppDataEvents.raise_catalogs_changed();
+                AppDialog.Show($"Zona \"{row.name}\" restaurada.", "Listo",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"No se pudo restaurar la zona: {ErrorText.Get(ex)}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

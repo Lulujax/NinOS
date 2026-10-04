@@ -1,12 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
-using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Infrastructure.Services.Interfaces;
+using NinOS.UI.Common;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -17,17 +19,16 @@ namespace NinOS.UI.Common.ViewModels
         private string _errorMessage = string.Empty;
         private string _newName = string.Empty;
         private string _newCode = string.Empty;
-        private string _newSortOrder = "0";
         private bool _isEditing;
         private zona? _editingZona;
 
         public ZonaEditViewModel(IZonaService zonaService)
         {
-            _zonaService = zonaService;
+            _zonaService = zonaService ?? throw new ArgumentNullException(nameof(zonaService));
             ZonasActivas = new ObservableCollection<ZonaViewModel>();
             ZonasEliminadas = new ObservableCollection<ZonaViewModel>();
 
-            AddZonaCommand = new RelayCommand(_ => ExecuteAddZona(), _ => CanExecuteAddZona());
+            AddZonaCommand = new RelayCommand(async _ => await ExecuteAddZonaAsync(), _ => CanExecuteAddZona());
             SaveZonaCommand = new RelayCommand(async _ => await ExecuteSaveZonaAsync(), _ => CanExecuteSaveZona());
             EditZonaCommand = new RelayCommand(param => ExecuteEditZona(param), _ => true);
             DeleteZonaCommand = new RelayCommand(async param => await ExecuteDeleteZonaAsync(param), _ => true);
@@ -64,7 +65,12 @@ namespace NinOS.UI.Common.ViewModels
         public string NewName
         {
             get => _newName;
-            set { _newName = value; OnPropertyChanged(); ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged(); }
+            set
+            {
+                _newName = value;
+                OnPropertyChanged();
+                ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged();
+            }
         }
 
         public string NewCode
@@ -73,19 +79,13 @@ namespace NinOS.UI.Common.ViewModels
             set { _newCode = value; OnPropertyChanged(); }
         }
 
-        public string NewSortOrder
-        {
-            get => _newSortOrder;
-            set { _newSortOrder = value; OnPropertyChanged(); }
-        }
-
         public bool IsEditing
         {
             get => _isEditing;
             set { _isEditing = value; OnPropertyChanged(); OnPropertyChanged(nameof(TitleText)); }
         }
 
-        public string TitleText => IsEditing ? "Editar Zona" : "Agregar Zona";
+        public string TitleText => _editingZona != null ? "Editar Zona" : "Agregar Zona";
 
         public async Task LoadZonasAsync()
         {
@@ -98,7 +98,7 @@ namespace NinOS.UI.Common.ViewModels
                 ZonasEliminadas.Clear();
 
                 var activas = await _zonaService.GetActiveAsync();
-                foreach (var z in activas)
+                foreach (var z in activas.OrderBy(x => x.code))
                 {
                     ZonasActivas.Add(new ZonaViewModel
                     {
@@ -111,7 +111,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 var eliminadas = await _zonaService.GetDeletedAsync();
-                foreach (var z in eliminadas)
+                foreach (var z in eliminadas.OrderBy(x => x.code))
                 {
                     ZonasEliminadas.Add(new ZonaViewModel
                     {
@@ -136,13 +136,22 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         private bool CanExecuteAddZona() => true;
-        private void ExecuteAddZona()
+
+        private async Task ExecuteAddZonaAsync()
         {
             _editingZona = null;
             NewName = string.Empty;
-            NewCode = string.Empty;
-            NewSortOrder = "0";
-            IsEditing = false;
+            ErrorMessage = string.Empty;
+            IsEditing = true;
+            try
+            {
+                NewCode = await _zonaService.GetNextCodeAsync();
+            }
+            catch
+            {
+                NewCode = "01";
+            }
+            ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged();
         }
 
         private bool CanExecuteSaveZona() => !string.IsNullOrWhiteSpace(NewName);
@@ -156,20 +165,19 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (string.IsNullOrWhiteSpace(NewName))
                 {
-                    ErrorMessage = "El nombre de la zona es obligatorio";
+                    ErrorMessage = "El nombre de la zona es obligatorio.";
                     return;
                 }
 
-                int sort = 0;
-                int.TryParse(NewSortOrder, out sort);
+                string codeToUse = string.IsNullOrWhiteSpace(NewCode) ? await _zonaService.GetNextCodeAsync() : NewCode.Trim();
 
                 if (_editingZona == null)
                 {
                     var nueva = new zona
                     {
                         name = NewName.Trim(),
-                        code = await _zonaService.GetNextCodeAsync(),
-                        sort_order = sort,
+                        code = codeToUse,
+                        sort_order = int.TryParse(codeToUse, out int n) ? n : 0,
                         is_active = true
                     };
                     await _zonaService.CreateAsync(nueva);
@@ -177,12 +185,12 @@ namespace NinOS.UI.Common.ViewModels
                 else
                 {
                     _editingZona.name = NewName.Trim();
-                    _editingZona.sort_order = sort;
                     await _zonaService.UpdateAsync(_editingZona);
                 }
 
                 ExecuteCancelEdit();
                 await LoadZonasAsync();
+                AppDataEvents.raise_catalogs_changed();
             }
             catch (Exception ex)
             {
@@ -208,8 +216,9 @@ namespace NinOS.UI.Common.ViewModels
                 };
                 NewName = vm.Name;
                 NewCode = vm.Code;
-                NewSortOrder = vm.SortOrder.ToString();
+                ErrorMessage = string.Empty;
                 IsEditing = true;
+                ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged();
             }
         }
 
@@ -217,15 +226,26 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (param is ZonaViewModel vm)
             {
+                MessageBoxResult confirm = AppDialog.Show(
+                    $"¿Está seguro de eliminar la zona \"{vm.Name}\" ({vm.Code})?",
+                    "Confirmar eliminación",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes) return;
+
                 try
                 {
                     IsLoading = true;
+                    ErrorMessage = string.Empty;
                     await _zonaService.DeleteAsync(vm.IdZona, "Eliminado desde Editor de Zonas");
                     await LoadZonasAsync();
+                    AppDataEvents.raise_catalogs_changed();
+                    AppDialog.Show($"Zona \"{vm.Name}\" eliminada exitosamente.", "Zona eliminada", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    ErrorMessage = $"Error al eliminar zona: {ex.Message}";
+                    ErrorMessage = $"Error al eliminar: {ex.Message}";
                 }
                 finally
                 {
@@ -241,12 +261,14 @@ namespace NinOS.UI.Common.ViewModels
                 try
                 {
                     IsLoading = true;
+                    ErrorMessage = string.Empty;
                     await _zonaService.RestoreAsync(vm.IdZona);
                     await LoadZonasAsync();
+                    AppDataEvents.raise_catalogs_changed();
                 }
                 catch (Exception ex)
                 {
-                    ErrorMessage = $"Error al restaurar zona: {ex.Message}";
+                    ErrorMessage = $"Error al restaurar: {ex.Message}";
                 }
                 finally
                 {
@@ -260,13 +282,15 @@ namespace NinOS.UI.Common.ViewModels
             _editingZona = null;
             NewName = string.Empty;
             NewCode = string.Empty;
-            NewSortOrder = "0";
-            IsEditing = false;
             ErrorMessage = string.Empty;
+            IsEditing = false;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }
+

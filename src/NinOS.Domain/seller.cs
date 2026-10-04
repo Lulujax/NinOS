@@ -53,11 +53,18 @@ namespace NinOS.Domain
         // (ej: 3200005 para "3200_005"). Persistido para que un codigo borrado nunca se reutilice.
         public long last_customer_number { get; set; }
 
-        protected seller()
+        public bool is_active { get; set; } = true;
+        public DateTime? deleted_at { get; set; }
+        public string? deleted_reason { get; set; }
+
+        public virtual System.Collections.Generic.ICollection<seller_zone> seller_zones { get; set; } = new System.Collections.Generic.List<seller_zone>();
+
+        public seller()
         {
             _full_name = "-";
             _seller_code = "-";
             _customer_code_prefix = "-";
+            is_active = true;
         }
 
         public seller(string full_name, string seller_code, string customer_code_prefix)
@@ -65,6 +72,7 @@ namespace NinOS.Domain
             this.full_name = full_name;
             this.seller_code = seller_code;
             this.customer_code_prefix = customer_code_prefix;
+            is_active = true;
         }
     }
 }

@@ -14,5 +14,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task UpdateCustomerAsync(customer existingCustomer);
         Task SoftDeleteCustomerAsync(int id, string? reason);
         Task RestoreCustomerAsync(int id);
+        Task<string> GetNextCustomerCodeAsync();
     }
 }

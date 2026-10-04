@@ -31,5 +31,12 @@ namespace NinOS.Domain.ViewModels
         public bool show_paid_balance_summary { get; set; }
         public string empty_text { get; set; } = "Sin registros para el mes seleccionado.";
         public List<monthly_report_row_dto> rows { get; set; } = new();
+
+        public decimal? sales_goal_usd { get; set; }
+        public decimal month_total_usd { get; set; }
+        public double goal_progress_percent { get; set; }
+        public decimal goal_remaining_usd { get; set; }
+        public string goal_status_text { get; set; } = string.Empty;
+        public bool show_goal_block { get; set; }
     }
 }

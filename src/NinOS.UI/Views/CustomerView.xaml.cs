@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using NinOS.UI.Common.ViewModels;
 
@@ -30,6 +30,23 @@ namespace NinOS.UI.Views
                     window.DataContext = viewModel;
                     window.Owner = Window.GetWindow(this);
                     window.ShowDialog();
+                };
+
+                viewModel.EditZonasRequested = () =>
+                {
+                    var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+                    var zonaService = serviceProvider?.GetService(typeof(NinOS.Infrastructure.Services.Interfaces.IZonaService)) as NinOS.Infrastructure.Services.Interfaces.IZonaService;
+                    if (zonaService != null)
+                    {
+                        var vm = new ZonaEditViewModel(zonaService);
+                        var wnd = new EditZonasWindow
+                        {
+                            DataContext = vm,
+                            Owner = Window.GetWindow(this)
+                        };
+                        wnd.ShowDialog();
+                        _ = viewModel.LoadZonasAsync();
+                    }
                 };
             }
         }

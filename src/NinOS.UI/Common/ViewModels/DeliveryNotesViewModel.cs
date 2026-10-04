@@ -428,6 +428,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IInventoryService _inventory_service;
         private readonly IGenericRepository<seller> _seller_repository;
         private readonly IGenericRepository<note_type> _note_type_repository;
+        private readonly ISellerService _seller_service;
         private bool _is_loading;
 
         private List<customer> _all_customers_cache;
@@ -677,7 +678,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void ApplySeller(seller? s)
+        private async void ApplySeller(seller? s)
         {
             _selected_seller = s;
             on_property_changed(nameof(selected_seller));
@@ -688,10 +689,12 @@ namespace NinOS.UI.Common.ViewModels
 
             if (s != null)
             {
-                IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                    !string.IsNullOrWhiteSpace(c.seller_name)
-                        ? string.Equals(c.seller_name.Trim(), s.full_name.Trim(), StringComparison.OrdinalIgnoreCase)
-                        : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)));
+                var assignedZones = await _seller_service.GetAssignedZonasAsync(s.id_seller);
+                var assignedZoneIds = assignedZones.Select(z => z.id_zona).ToHashSet();
+
+                var match = _all_customers_cache
+                    .Where(c => c.id_zona.HasValue && assignedZoneIds.Contains(c.id_zona.Value))
+                    .OrderBy(c => c.business_name);
 
                 foreach (customer c in match)
                 {
@@ -1004,19 +1007,22 @@ namespace NinOS.UI.Common.ViewModels
             ICustomerService customer_service,
             IInventoryService inventory_service,
             IGenericRepository<seller> seller_repository,
-            IGenericRepository<note_type> note_type_repository)
+            IGenericRepository<note_type> note_type_repository,
+            ISellerService seller_service)
         {
             if (delivery_note_service == null) throw new ArgumentNullException(nameof(delivery_note_service));
             if (customer_service == null) throw new ArgumentNullException(nameof(customer_service));
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
             if (seller_repository == null) throw new ArgumentNullException(nameof(seller_repository));
             if (note_type_repository == null) throw new ArgumentNullException(nameof(note_type_repository));
+            if (seller_service == null) throw new ArgumentNullException(nameof(seller_service));
 
             _delivery_note_service = delivery_note_service;
             _customer_service = customer_service;
             _inventory_service = inventory_service;
             _seller_repository = seller_repository;
             _note_type_repository = note_type_repository;
+            _seller_service = seller_service;
 
             _all_customers_cache = new List<customer>();
             _all_note_types_cache = new List<note_type>();
@@ -1043,7 +1049,7 @@ namespace NinOS.UI.Common.ViewModels
                 _all_customers_cache.Clear();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
 
-                var db_sellers = await _seller_repository.get_all_async();
+                var db_sellers = await _seller_service.GetAllActiveAsync();
                 sellers.Clear();
                 foreach (seller s in db_sellers) sellers.Add(s);
 
@@ -1056,10 +1062,11 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_seller != null)
                 {
                     filtered_customers.Clear();
-                    IEnumerable<customer> match = _all_customers_cache.Where(c =>
-                        !string.IsNullOrWhiteSpace(c.seller_name)
-                            ? string.Equals(c.seller_name.Trim(), _selected_seller.full_name.Trim(), StringComparison.OrdinalIgnoreCase)
-                            : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)));
+                    var assignedZones = await _seller_service.GetAssignedZonasAsync(_selected_seller.id_seller);
+                    var assignedZoneIds = assignedZones.Select(z => z.id_zona).ToHashSet();
+                    var match = _all_customers_cache
+                        .Where(c => c.id_zona.HasValue && assignedZoneIds.Contains(c.id_zona.Value))
+                        .OrderBy(c => c.business_name);
                     foreach (customer c in match) filtered_customers.Add(c);
                 }
 
@@ -1314,6 +1321,13 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_seller == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (_selected_customer == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+
+                var assignedZones = (await _seller_service.GetAssignedZonasAsync(_selected_seller.id_seller)).Select(z => z.id_zona).ToHashSet();
+                if (!_selected_customer.id_zona.HasValue || !assignedZones.Contains(_selected_customer.id_zona.Value))
+                {
+                    throw new InvalidOperationException($"El cliente seleccionado no pertenece a las zonas asignadas al vendedor {_selected_seller.full_name}.");
+                }
+
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (note_details.Count > MAX_NOTE_ITEMS) throw new InvalidOperationException($"La nota de entrega no puede tener mas de {MAX_NOTE_ITEMS} items.");
                 if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");

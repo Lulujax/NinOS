@@ -428,7 +428,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (string.IsNullOrWhiteSpace(_newCustomerCode) || string.IsNullOrWhiteSpace(_newBusinessName) || string.IsNullOrWhiteSpace(_newRifNumber))
                 {
-                    ErrorMessage = "Tienes que llenar los campos obligatorios: RazÃ³n Social (Negocio/Nombre) e IdentificaciÃ³n.";
+                    ErrorMessage = "Tienes que llenar los campos obligatorios: Razon Social (Negocio/Nombre) e Identificacion.";
                     return;
                 }
 

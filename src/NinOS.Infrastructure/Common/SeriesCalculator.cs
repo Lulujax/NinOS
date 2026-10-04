@@ -100,5 +100,41 @@ namespace NinOS.Infrastructure.Common
             long max = GetMax(existing_numbers, 0L);
             return FormatGlobal6(max + 1);
         }
+
+        public static string GetNextCustomerCode(IEnumerable<string?> existingCodes)
+        {
+            long max = 0;
+            if (existingCodes != null)
+            {
+                foreach (string? code in existingCodes)
+                {
+                    if (string.IsNullOrWhiteSpace(code)) continue;
+                    var match = System.Text.RegularExpressions.Regex.Match(code.Trim(), @"(?:^|_)(\d+)$");
+                    if (match.Success && long.TryParse(match.Groups[1].Value, out long val))
+                    {
+                        if (val > max) max = val;
+                    }
+                }
+            }
+            return (max + 1).ToString("00000");
+        }
+
+        public static string GetNextSellerCode(IEnumerable<string?> existingCodes)
+        {
+            long max = 0;
+            if (existingCodes != null)
+            {
+                foreach (string? code in existingCodes)
+                {
+                    if (string.IsNullOrWhiteSpace(code)) continue;
+                    string trimmed = code.Trim();
+                    if (long.TryParse(trimmed, out long val) && val <= 999 && val > 0)
+                    {
+                        if (val > max) max = val;
+                    }
+                }
+            }
+            return (max + 1).ToString("000");
+        }
     }
 }

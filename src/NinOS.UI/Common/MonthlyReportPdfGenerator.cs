@@ -193,15 +193,50 @@ namespace NinOS.UI.Common
                             });
                         }
 
-                        bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
-                        bottom.Item().Padding(4).Row(r =>
-                        {
-                            r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
-                            r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(12).Bold().FontColor(PrimaryColor);
-                        });
-                    });
-                });
-            });
+bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                          bottom.Item().Padding(4).Row(r =>
+                          {
+                              r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
+                              r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(12).Bold().FontColor(PrimaryColor);
+                          });
+                      });
+                  });
+
+                  if (report.sales_goal_usd.HasValue || report.month_total_usd != 0m || report.show_goal_block)
+                  {
+                      col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(b =>
+                      {
+                          b.Item().Background(AccentBg).Padding(4).Text("META DE VENTAS").FontSize(8.5f).Bold().FontColor(PrimaryColor);
+                          b.Item().Padding(4).Row(r =>
+                          {
+                              r.RelativeItem().Column(c =>
+                              {
+                                  c.Item().Text("META").FontSize(7.5f).Bold().FontColor("#000000");
+                                  c.Item().Text(report.sales_goal_usd.HasValue ? Money(report.sales_goal_usd.Value) : "Sin meta").FontSize(9).Bold();
+                              });
+                              r.RelativeItem().Column(c =>
+                              {
+                                  c.Item().Text("VENTA DEL MES (Cumplimiento)").FontSize(7.5f).Bold().FontColor("#000000");
+                                  c.Item().Text(Money(report.month_total_usd)).FontSize(9).Bold().FontColor("#2E7D32");
+                              });
+                              r.RelativeItem().Column(c =>
+                              {
+                                  c.Item().Text("PORCENTAJE").FontSize(7.5f).Bold().FontColor("#000000");
+                                  c.Item().Text(report.goal_progress_percent.ToString("0.0", Ve) + "%").FontSize(9).Bold();
+                              });
+                              r.RelativeItem().Column(c =>
+                              {
+                                  c.Item().Text("FALTA PARA META").FontSize(7.5f).Bold().FontColor("#000000");
+                                  c.Item().Text(Money(Math.Max(0m, report.goal_remaining_usd))).FontSize(9).Bold().FontColor("#C62828");
+                              });
+                          });
+                          if (!string.IsNullOrWhiteSpace(report.goal_status_text))
+                          {
+                              b.Item().PaddingHorizontal(4).PaddingBottom(4).Text(report.goal_status_text).FontSize(7.5f).Italic().FontColor("#000000");
+                          }
+                      });
+                  }
+              });
 
             page.Footer().Column(col =>
             {

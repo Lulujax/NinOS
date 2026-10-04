@@ -215,6 +215,7 @@ namespace NinOS.UI
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<ICommissionService, CommissionService>();
             services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<ISellerService, SellerService>();
             services.AddScoped<IProVentaService, ProVentaService>();
 
             services.AddTransient<DeliveryNotesViewModel>();
@@ -223,6 +224,7 @@ namespace NinOS.UI
             services.AddTransient<PaymentsViewModel>();
             services.AddTransient<CommissionsViewModel>();
             services.AddTransient<CustomerViewModel>();
+            services.AddTransient<SellersViewModel>();
             services.AddTransient<InventoryViewModel>();
             services.AddTransient<ProVentaViewModel>();
             services.AddTransient<CreditNotesViewModel>();

@@ -22,6 +22,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<credit_note_detail> credit_note_details { get; set; }
         public DbSet<stock_movement> stock_movements { get; set; }
         public DbSet<zona> zonas { get; set; }
+        public DbSet<seller_zone> seller_zones { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -38,6 +39,37 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.seller_code).HasColumnName("seller_code").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.customer_code_prefix).HasColumnName("customer_code_prefix").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.last_customer_number).HasColumnName("last_customer_number").IsRequired();
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
+                entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
+
+                entity.HasIndex(e => e.seller_code).IsUnique();
+
+                entity.HasMany(e => e.seller_zones)
+                    .WithOne(sz => sz.seller)
+                    .HasForeignKey(sz => sz.id_seller)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            model_builder.Entity<seller_zone>(entity =>
+            {
+                entity.ToTable("seller_zone");
+                entity.HasKey(e => e.id_seller_zone);
+                entity.Property(e => e.id_seller_zone).HasColumnName("id_seller_zone").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
+                entity.Property(e => e.id_zona).HasColumnName("id_zona").IsRequired();
+
+                entity.HasIndex(e => new { e.id_seller, e.id_zona }).IsUnique();
+
+                entity.HasOne(e => e.seller)
+                    .WithMany(s => s.seller_zones)
+                    .HasForeignKey(e => e.id_seller)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.zona)
+                    .WithMany()
+                    .HasForeignKey(e => e.id_zona)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             model_builder.Entity<note_type>(entity =>

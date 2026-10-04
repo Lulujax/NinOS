@@ -1,4 +1,4 @@
-﻿<Window x:Class="NinOS.UI.Views.AdminPanelWindow"
+<Window x:Class="NinOS.UI.Views.AdminPanelWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Panel Administrador - NinOS" Height="640" Width="1000"
@@ -213,6 +213,73 @@
                 </Grid>
             </TabItem>
 
+            <!-- ===== Papelera Vendedores ===== -->
+            <TabItem Header="Papelera Vendedores">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Style="{StaticResource RefreshButton}" Content="Actualizar"
+                                Click="OnRefreshSellersClick"/>
+                        <TextBlock x:Name="SellersCountText" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   FontSize="12" Foreground="#666666"/>
+                    </StackPanel>
+                    <DataGrid x:Name="SellersGrid" Grid.Row="1" Style="{StaticResource PanelGrid}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding id_seller}" Header="#" Width="44"/>
+                            <DataGridTextColumn Binding="{Binding code}" Header="Codigo" Width="90" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding full_name}" Header="Nombre" Width="200" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding zonas}" Header="Zonas" Width="220" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding reason}" Header="Motivo" Width="150" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding deleted_on}" Header="Eliminado el" Width="130" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTemplateColumn Header="Restaurar" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RestoreButton}" Content="Restaurar"
+                                                Click="OnRestoreSellerClick" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== Papelera Zonas ===== -->
+            <TabItem Header="Papelera Zonas">
+                <Grid Margin="0,6,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Style="{StaticResource RefreshButton}" Content="Actualizar"
+                                Click="OnRefreshZonasClick"/>
+                        <TextBlock x:Name="ZonasCountText" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   FontSize="12" Foreground="#666666"/>
+                    </StackPanel>
+                    <DataGrid x:Name="ZonasGrid" Grid.Row="1" Style="{StaticResource PanelGrid}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding id_zona}" Header="#" Width="44"/>
+                            <DataGridTextColumn Binding="{Binding code}" Header="Codigo" Width="80" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding name}" Header="Nombre" Width="220" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding reason}" Header="Motivo" Width="180" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTextColumn Binding="{Binding deleted_on}" Header="Eliminado el" Width="130" ElementStyle="{StaticResource PanelCellWrap}"/>
+                            <DataGridTemplateColumn Header="Restaurar" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RestoreButton}" Content="Restaurar"
+                                                Click="OnRestoreZonaClick" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
             <!-- ===== Backup de la BD ===== -->
             <TabItem Header="Backup de la BD">
                 <Grid Margin="0,6,0,0">
@@ -309,6 +376,17 @@
                                 <Button Style="{StaticResource RefreshButton}" HorizontalAlignment="Left"
                                         Content="Cambiar contrasena de administrador"
                                         Click="OnChangePasswordClick"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Maestro de Zonas"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Gestiona las zonas del sistema, sus nombres, códigos, orden y papelera de zonas."/>
+                                <Button Style="{StaticResource RefreshButton}" HorizontalAlignment="Left"
+                                        Content="Gestionar Zonas..."
+                                        Click="OnEditZonasClick"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

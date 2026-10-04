@@ -38,6 +38,9 @@
             <TabItem Header="Clientes">
                 <views:CustomerView DataContext="{Binding customer_vm}" />
             </TabItem>
+            <TabItem Header="Vendedores">
+                <views:SellersView DataContext="{Binding sellers_vm}" />
+            </TabItem>
             <TabItem Header="Inventario">
                 <views:InventoryView DataContext="{Binding inventory_vm}" />
             </TabItem>

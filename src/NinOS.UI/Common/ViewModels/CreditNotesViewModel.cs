@@ -18,6 +18,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IAccountsReceivableService _receivable_service;
         private readonly IInventoryService _inventory_service;
         private readonly ICustomerService _customer_service;
+        private readonly ISellerService _seller_service;
 
         private string _selected_month = string.Empty;
         private string _selected_category_filter = "Todas";
@@ -93,12 +94,18 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_request_new_credit_note_window { get; set; }
         public Action? OnCreditNoteSaved { get; set; }
 
-        public CreditNotesViewModel(ICreditNoteService credit_note_service, IAccountsReceivableService receivable_service, IInventoryService inventory_service, ICustomerService customer_service)
+        public CreditNotesViewModel(
+            ICreditNoteService credit_note_service,
+            IAccountsReceivableService receivable_service,
+            IInventoryService inventory_service,
+            ICustomerService customer_service,
+            ISellerService seller_service)
         {
             _credit_note_service = credit_note_service ?? throw new ArgumentNullException(nameof(credit_note_service));
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _inventory_service = inventory_service ?? throw new ArgumentNullException(nameof(inventory_service));
             _customer_service = customer_service ?? throw new ArgumentNullException(nameof(customer_service));
+            _seller_service = seller_service ?? throw new ArgumentNullException(nameof(seller_service));
 
             credit_note_months = new ObservableCollection<string>();
             notes = new ObservableCollection<credit_note_dto>();
@@ -289,6 +296,9 @@ namespace NinOS.UI.Common.ViewModels
             => await _customer_service.GetAllCustomersAsync();
 
         public async Task<IEnumerable<seller>> get_sellers_async()
-            => await _credit_note_service.get_sellers_async();
+            => await _seller_service.GetAllActiveAsync();
+
+        public async Task<IEnumerable<zona>> get_assigned_zonas_for_seller_async(int id_seller)
+            => await _seller_service.GetAssignedZonasAsync(id_seller);
     }
 }

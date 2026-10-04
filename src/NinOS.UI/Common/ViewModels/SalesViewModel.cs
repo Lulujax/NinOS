@@ -460,7 +460,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void execute_sales_report(object? parameter)
+        private async void execute_sales_report(object? parameter)
         {
             try
             {
@@ -494,6 +494,48 @@ namespace NinOS.UI.Common.ViewModels
                 string seller_suffix = current_seller == "General" ? string.Empty : current_seller.ToUpperInvariant();
                 string combined = string.Join(" - ", new[] { type_suffix, seller_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
+                DateTime? monthStart = parse_selected_month();
+                int? sellerId = get_selected_seller_id();
+
+                decimal cum_venta = 0m;
+                if (monthStart.HasValue)
+                {
+                    var cum_rows = _all_notes_source
+                        .Where(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1) == new DateTime(monthStart.Value.Year, monthStart.Value.Month, 1))
+                        .Where(n => n.status == "Pendiente" || n.status == "Pagada");
+
+                    if (sellerId.HasValue)
+                    {
+                        cum_rows = cum_rows.Where(n => string.Equals(n.seller_name, current_seller, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (solo_promo || solo_general)
+                    {
+                        cum_rows = cum_rows.Where(n => is_promotion_note(n) == solo_promo);
+                    }
+
+                    cum_venta = cum_rows.Sum(n => n.total_amount_usd);
+                }
+
+                decimal? goal_usd = null;
+                if (monthStart.HasValue)
+                {
+                    goal_usd = await _receivable_service.get_sales_goal_async(monthStart.Value, sellerId);
+                }
+
+                double goal_pct = 0;
+                decimal goal_rem = 0;
+                string goal_txt = string.Empty;
+                if (goal_usd.HasValue && goal_usd.Value > 0)
+                {
+                    decimal progress = cum_venta / goal_usd.Value * 100m;
+                    goal_pct = Math.Min(100d, (double)progress);
+                    goal_rem = Math.Max(0m, goal_usd.Value - cum_venta);
+                    goal_txt = goal_rem > 0
+                        ? $"Falta {goal_rem:N2} $ para la meta"
+                        : "¡Meta alcanzada!";
+                }
+
                 var report = new monthly_report_dto
                 {
                     title = string.IsNullOrEmpty(combined)
@@ -518,7 +560,13 @@ namespace NinOS.UI.Common.ViewModels
                             detail_text = $"{n.paid_amount_usd:N2}",
                             status = n.status
                         })
-                        .ToList()
+                        .ToList(),
+                    sales_goal_usd = goal_usd,
+                    month_total_usd = cum_venta,
+                    goal_progress_percent = goal_pct,
+                    goal_remaining_usd = goal_rem,
+                    goal_status_text = goal_txt,
+                    show_goal_block = true
                 };
 
                 MonthlyReportPdfGenerator.generate(report);

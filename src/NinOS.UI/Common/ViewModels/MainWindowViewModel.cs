@@ -68,6 +68,13 @@ namespace NinOS.UI.Common.ViewModels
             set { _credit_notes_vm = value; on_property_changed(); }
         }
 
+        private SellersViewModel? _sellers_vm;
+        public SellersViewModel? sellers_vm
+        {
+            get => _sellers_vm;
+            set { _sellers_vm = value; on_property_changed(); }
+        }
+
         public MainWindowViewModel(
             DeliveryNotesViewModel deliveryNotesVm,
             AccountsReceivableViewModel accountsReceivableVm,
@@ -77,7 +84,8 @@ namespace NinOS.UI.Common.ViewModels
             CustomerViewModel customerVm,
             InventoryViewModel inventoryVm,
             ProVentaViewModel proVentaVm,
-            CreditNotesViewModel creditNotesVm)
+            CreditNotesViewModel creditNotesVm,
+            SellersViewModel sellersVm)
         {
             delivery_notes_vm = deliveryNotesVm;
             accounts_receivable_vm = accountsReceivableVm;
@@ -88,6 +96,7 @@ namespace NinOS.UI.Common.ViewModels
             inventory_vm = inventoryVm;
             pro_venta_vm = proVentaVm;
             credit_notes_vm = creditNotesVm;
+            sellers_vm = sellersVm;
 
             if (delivery_notes_vm != null)
             {
@@ -112,7 +121,7 @@ namespace NinOS.UI.Common.ViewModels
                 };
             }
 
-            // Cuando el Panel Administrador restaura o elimina clientes/productos,
+            // Cuando el Panel Administrador restaura o elimina clientes/productos/vendedores,
             // todos los listados se recargan para que el cambio se vea de inmediato.
             AppDataEvents.CatalogsChanged += () =>
             {
@@ -125,6 +134,7 @@ namespace NinOS.UI.Common.ViewModels
                 inventory_vm?.refresh_data();
                 pro_venta_vm?.refresh_data();
                 credit_notes_vm?.refresh_data();
+                sellers_vm?.refresh_data();
             };
         }
     }

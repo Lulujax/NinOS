@@ -407,10 +407,9 @@ namespace NinOS.UI.Views
 
                 if (_selected_seller != null)
                 {
+                    var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(_selected_seller.id_seller)).Select(z => z.id_zona).ToHashSet();
                     _seller_customers = _all_customers
-                        .Where(c => !string.IsNullOrWhiteSpace(c.seller_name)
-                            ? string.Equals(c.seller_name.Trim(), _selected_seller.full_name?.Trim(), StringComparison.OrdinalIgnoreCase)
-                            : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(_selected_seller.seller_code)))
+                        .Where(c => c.id_zona.HasValue && assignedZones.Contains(c.id_zona.Value))
                         .OrderBy(c => c.business_name)
                         .ToList();
                     FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
@@ -430,7 +429,7 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void ApplySellerForObsequio(seller? s)
+        private async void ApplySellerForObsequio(seller? s)
         {
             _selected_seller = s;
             _selected_customer = null;
@@ -458,10 +457,9 @@ namespace NinOS.UI.Views
 
             if (s != null)
             {
+                var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(s.id_seller)).Select(z => z.id_zona).ToHashSet();
                 _seller_customers = _all_customers
-                    .Where(c => !string.IsNullOrWhiteSpace(c.seller_name)
-                        ? string.Equals(c.seller_name.Trim(), s.full_name?.Trim(), StringComparison.OrdinalIgnoreCase)
-                        : (!string.IsNullOrWhiteSpace(c.customer_code) && c.customer_code.StartsWith(s.seller_code)))
+                    .Where(c => c.id_zona.HasValue && assignedZones.Contains(c.id_zona.Value))
                     .OrderBy(c => c.business_name)
                     .ToList();
                 FilterCustomers(string.Empty);
@@ -1050,6 +1048,13 @@ namespace NinOS.UI.Views
                     if (_selected_customer == null)
                     {
                         AppDialog.Show("Busque y seleccione el cliente del obsequio.", "Aviso");
+                        return;
+                    }
+
+                    var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(id_seller)).Select(z => z.id_zona).ToHashSet();
+                    if (!_selected_customer.id_zona.HasValue || !assignedZones.Contains(_selected_customer.id_zona.Value))
+                    {
+                        AppDialog.Show("El cliente seleccionado no pertenece a las zonas asignadas a este vendedor.", "Aviso");
                         return;
                     }
 

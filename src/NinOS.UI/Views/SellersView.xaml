@@ -1,0 +1,180 @@
+<UserControl x:Class="NinOS.UI.Views.SellersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <UserControl.Resources>
+        <Style x:Key="SellerRow" TargetType="DataGridRow">
+            <Setter Property="Height" Value="46"/>
+        </Style>
+        <Style x:Key="CompactDataGrid" TargetType="DataGrid">
+            <Setter Property="RowStyle" Value="{StaticResource SellerRow}"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style x:Key="CellText" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="CellWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="HeaderActionButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="MinWidth" Value="140"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowEditButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFF3E0" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFE0B2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#E65100"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFE0B2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RowDeleteButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FFEBEE" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#FFCDD2" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#C62828"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FFCDD2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="#F4F4F4" CornerRadius="4" Grid.Row="0" Margin="0,0,0,10" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontWeight="Bold" Margin="0,0,10,0" Text="Buscar Vendedor:" VerticalAlignment="Center"/>
+                    <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
+                        <Grid Width="240">
+                            <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
+                            <TextBox Margin="26,2,8,2" BorderThickness="0" Background="Transparent"
+                                     VerticalContentAlignment="Center" FontSize="12.5"
+                                     Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <Button Grid.Column="2" Style="{StaticResource HeaderActionButton}" Background="#0078D7"
+                        Command="{Binding AddSellerCommand}" Content="Agregar Vendedor"/>
+            </Grid>
+        </Border>
+
+        <DataGrid Grid.Row="1" Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding ActiveSellers}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding IdSeller}" Header="#" Width="40"/>
+                <DataGridTextColumn Binding="{Binding SellerCode}" Header="Código" Width="80" ElementStyle="{StaticResource CellWrap}"/>
+                <DataGridTemplateColumn Header="Nombre Completo" Width="220">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding FullName}" Style="{StaticResource CellWrap}" ToolTip="{Binding FullName}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Zonas Asignadas" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding AssignedZonasText}" Style="{StaticResource CellWrap}" ToolTip="{Binding AssignedZonasText}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Acciones" Width="140">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <Button Style="{StaticResource RowEditButton}"
+                                        Command="{Binding DataContext.EditSellerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Content="Editar"/>
+                                <Button Style="{StaticResource RowDeleteButton}"
+                                        Command="{Binding DataContext.DeleteSellerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Content="Borrar"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

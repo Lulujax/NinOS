@@ -16,6 +16,8 @@ namespace NinOS.Infrastructure.Data
             db_context.Database.Migrate();
 
             migrate_legacy_series(db_context);
+            initialize_zonas_and_sellers(db_context);
+            migrate_customer_correlatives_to_global5(db_context);
 
             const string brand_header = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
 
@@ -731,6 +733,130 @@ namespace NinOS.Infrastructure.Data
 
             string suffix = code.Substring(separator + 1);
             return suffix.Length != 3 || !suffix.All(char.IsDigit);
+        }
+
+        private static void initialize_zonas_and_sellers(NinOSDbContext db_context)
+        {
+            // 1. Asegurar o actualizar las 6 zonas definitivas
+            var defaultZoneData = new Dictionary<string, string>
+            {
+                { "01", "Zona 1" },
+                { "02", "Zona 2" },
+                { "03", "Zona 3" },
+                { "04", "Zona 4" },
+                { "05", "Zona 5" },
+                { "06", "Maracay" }
+            };
+
+            foreach (var kvp in defaultZoneData)
+            {
+                var existingZona = db_context.zonas.FirstOrDefault(z => z.code == kvp.Key);
+                if (existingZona == null)
+                {
+                    db_context.zonas.Add(new zona
+                    {
+                        code = kvp.Key,
+                        name = kvp.Value,
+                        sort_order = int.Parse(kvp.Key),
+                        is_active = true
+                    });
+                }
+                else
+                {
+                    // Si estaba eliminada (ej: Maracay), restaurarla
+                    if (!existingZona.is_active)
+                    {
+                        existingZona.is_active = true;
+                        existingZona.deleted_at = null;
+                        existingZona.deleted_reason = null;
+                    }
+                    // Actualizar nombre si tenía el nombre anterior
+                    if (existingZona.name != kvp.Value && 
+                        (existingZona.name == "Isabelica" || existingZona.name == "San Diego" || 
+                         existingZona.name == "Tocuyito" || existingZona.name == "Centro" || 
+                         existingZona.name == "Flor Amarillo" || existingZona.code == "06"))
+                    {
+                        existingZona.name = kvp.Value;
+                    }
+                }
+            }
+            db_context.SaveChanges();
+
+            // 2. Backfill clientes sin zona a Zona 01
+            var zona01 = db_context.zonas.FirstOrDefault(z => z.code == "01");
+            if (zona01 != null)
+            {
+                var customersWithoutZona = db_context.customers.Where(c => c.id_zona == null).ToList();
+                if (customersWithoutZona.Count > 0)
+                {
+                    foreach (var c in customersWithoutZona)
+                    {
+                        c.id_zona = zona01.id_zona;
+                    }
+                    db_context.SaveChanges();
+                }
+            }
+
+            // 3. Asegurar vendedores base si no existen
+            if (!db_context.sellers.Any())
+            {
+                db_context.sellers.AddRange(
+                    new seller("Sandra", "3200", "3200"),
+                    new seller("Anais", "3300", "3300"),
+                    new seller("Alejandra", "3500", "3500"),
+                    new seller("Juan Luis", "3400", "3400")
+                );
+                db_context.SaveChanges();
+            }
+            else
+            {
+                var juan = db_context.sellers.FirstOrDefault(s => s.seller_code == "3400" || s.full_name == "Juan Luis");
+                if (juan == null)
+                {
+                    db_context.sellers.Add(new seller("Juan Luis", "3400", "3400"));
+                    db_context.SaveChanges();
+                }
+            }
+
+            // 4. Asignar Maracay (06) a Juan Luis (3400)
+            var juanLuis = db_context.sellers.FirstOrDefault(s => s.seller_code == "3400" || s.full_name == "Juan Luis");
+            var maracayZona = db_context.zonas.FirstOrDefault(z => z.code == "06");
+            if (juanLuis != null && maracayZona != null)
+            {
+                if (!db_context.seller_zones.Any(sz => sz.id_seller == juanLuis.id_seller && sz.id_zona == maracayZona.id_zona))
+                {
+                    db_context.seller_zones.Add(new seller_zone
+                    {
+                        id_seller = juanLuis.id_seller,
+                        id_zona = maracayZona.id_zona
+                    });
+                    db_context.SaveChanges();
+                }
+            }
+        }
+
+        private static void migrate_customer_correlatives_to_global5(NinOSDbContext db_context)
+        {
+            var customers = db_context.customers
+                .OrderBy(c => c.id_customer)
+                .ToList();
+
+            if (customers.Count == 0) return;
+
+            bool needsMigration = customers.Any(c => string.IsNullOrWhiteSpace(c.customer_code) ||
+                                                     c.customer_code.Contains("_") ||
+                                                     c.customer_code.Length != 5 ||
+                                                     !c.customer_code.All(char.IsDigit));
+
+            if (!needsMigration) return;
+
+            long counter = 1;
+            foreach (var c in customers)
+            {
+                c.customer_code = counter.ToString("D5");
+                counter++;
+            }
+            db_context.SaveChanges();
         }
     }
 }

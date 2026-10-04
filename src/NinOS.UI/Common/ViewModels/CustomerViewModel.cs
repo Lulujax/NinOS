@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
@@ -23,6 +24,9 @@ namespace NinOS.UI.Common.ViewModels
         public string FiscalAddress { get; set; } = string.Empty;
         public string DeliveryAddress { get; set; } = string.Empty;
         public string SellerName { get; set; } = string.Empty;
+        public int? IdZona { get; set; }
+        public string ZonaName { get; set; } = string.Empty;
+        public string ZonaCode { get; set; } = string.Empty;
         public customer? CustomerRef { get; set; }
 
         public string EffectiveDeliveryAddress =>
@@ -33,6 +37,7 @@ namespace NinOS.UI.Common.ViewModels
     {
         private readonly ICustomerService _customerService;
         private readonly IGenericRepository<seller> _sellerRepository;
+        private readonly IZonaService _zonaService;
         private readonly Dictionary<string, string> _sellerPrefixMap;
         private readonly Dictionary<string, long> _sellerLastNumberMap;
         private List<CustomerRowDto> _allCustomersSource;
@@ -51,22 +56,33 @@ namespace NinOS.UI.Common.ViewModels
         private string _newFiscalAddress = string.Empty;
         private string _newDeliveryAddress = string.Empty;
         private string _newSellerName = string.Empty;
+        private int? _newZonaId;
         private bool _canEditSeller = true;
         private bool _canEditCode = false;
         private string _addOrEditTitle = "Agregar Cliente";
         private string _saveButtonText = "Agregar Cliente";
 
         public ObservableCollection<CustomerRowDto> AllCustomers { get; }
+        public ObservableCollection<CustomerRowDto> IsabelicaCustomers { get; }
+        public ObservableCollection<CustomerRowDto> SanDiegoCustomers { get; }
+        public ObservableCollection<CustomerRowDto> TocuyitoCustomers { get; }
+        public ObservableCollection<CustomerRowDto> CentroCustomers { get; }
+        public ObservableCollection<CustomerRowDto> FlorAmarilloCustomers { get; }
+        public ObservableCollection<CustomerRowDto> MaracayCustomers { get; }
+
+        // Mantenidos para compatibilidad con código o reportes legacy
         public ObservableCollection<CustomerRowDto> AnaisCustomers { get; }
         public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
         public ObservableCollection<CustomerRowDto> JuanLuisCustomers { get; }
+
         public ObservableCollection<string> SellerOptions { get; }
-        public ObservableCollection<NinOS.Domain.zona> ZonasOptions { get; } = new ObservableCollection<NinOS.Domain.zona>();
-        public int? NewZonaId { get; set; }
+        public ObservableCollection<zona> ZonasOptions { get; } = new ObservableCollection<zona>();
         public Action? EditZonasRequested { get; set; }
         public ObservableCollection<string> RifTypeOptions { get; }
         public Action? OnCloseAddCustomerWindow { get; set; }
+        public Action? OnRequestAddCustomerWindow { get; set; }
+        public Action<CustomerRowDto>? OnRequestEditCustomerWindow { get; set; }
 
         public string SearchQuery
         {
@@ -91,8 +107,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     _selectedTabIndex = value;
                     on_property_changed();
-                    SetDefaultSellerFromTab();
-                    GenerateNextCustomerCode();
+                    SetDefaultZonaFromTab();
                     FilterCustomers();
                 }
             }
@@ -113,13 +128,23 @@ namespace NinOS.UI.Common.ViewModels
         public string NewBusinessName
         {
             get => _newBusinessName;
-            set { _newBusinessName = value; on_property_changed(); }
+            set
+            {
+                _newBusinessName = value;
+                on_property_changed();
+                (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
         }
 
         public string NewRifNumber
         {
             get => _newRifNumber;
-            set { _newRifNumber = value; on_property_changed(); }
+            set
+            {
+                _newRifNumber = value;
+                on_property_changed();
+                (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
         }
 
         public string NewRifType
@@ -155,11 +180,24 @@ namespace NinOS.UI.Common.ViewModels
         public string NewSellerName
         {
             get => _newSellerName;
-            set 
-            { 
-                _newSellerName = value; 
+            set
+            {
+                _newSellerName = value;
                 on_property_changed();
-                GenerateNextCustomerCode();
+            }
+        }
+
+        public int? NewZonaId
+        {
+            get => _newZonaId;
+            set
+            {
+                if (_newZonaId != value)
+                {
+                    _newZonaId = value;
+                    on_property_changed();
+                    (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
             }
         }
 
@@ -200,10 +238,14 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand EditZonasCommand { get; }
         public ICommand LoadCustomersCommand { get; }
 
-        public CustomerViewModel(ICustomerService customerService, IGenericRepository<seller> sellerRepository)
+        public CustomerViewModel(
+            ICustomerService customerService,
+            IGenericRepository<seller> sellerRepository,
+            IZonaService zonaService)
         {
             _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
             _sellerRepository = sellerRepository ?? throw new ArgumentNullException(nameof(sellerRepository));
+            _zonaService = zonaService ?? throw new ArgumentNullException(nameof(zonaService));
 
             _sellerPrefixMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -219,6 +261,13 @@ namespace NinOS.UI.Common.ViewModels
             _isLoading = false;
 
             AllCustomers = new ObservableCollection<CustomerRowDto>();
+            IsabelicaCustomers = new ObservableCollection<CustomerRowDto>();
+            SanDiegoCustomers = new ObservableCollection<CustomerRowDto>();
+            TocuyitoCustomers = new ObservableCollection<CustomerRowDto>();
+            CentroCustomers = new ObservableCollection<CustomerRowDto>();
+            FlorAmarilloCustomers = new ObservableCollection<CustomerRowDto>();
+            MaracayCustomers = new ObservableCollection<CustomerRowDto>();
+
             AnaisCustomers = new ObservableCollection<CustomerRowDto>();
             SandraCustomers = new ObservableCollection<CustomerRowDto>();
             AlejandraCustomers = new ObservableCollection<CustomerRowDto>();
@@ -233,9 +282,17 @@ namespace NinOS.UI.Common.ViewModels
             AddCustomerCommand = new RelayCommand(ExecuteAddCustomer);
             EditCustomerCommand = new RelayCommand(ExecuteEditCustomer, CanExecuteEditCustomer);
             DeleteCustomerCommand = new RelayCommand(ExecuteDeleteCustomer, CanExecuteDeleteCustomer);
+            EditZonasCommand = new RelayCommand(ExecuteEditZonas);
             LoadCustomersCommand = new RelayCommand(ExecuteLoadCustomers);
 
             LoadCustomersAsync();
+        }
+
+        private void ExecuteEditZonas(object? parameter)
+        {
+            EditZonasRequested?.Invoke();
+            // Recargar zonas por si se agregaron, editaron o eliminaron
+            _ = LoadZonasAsync();
         }
 
         private void ExecuteLoadCustomers(object? parameter)
@@ -245,13 +302,32 @@ namespace NinOS.UI.Common.ViewModels
 
         public void refresh_data() => LoadCustomersAsync();
 
+        public async Task LoadZonasAsync()
+        {
+            try
+            {
+                var zonas = await _zonaService.GetActiveAsync();
+                ZonasOptions.Clear();
+                foreach (var z in zonas)
+                {
+                    ZonasOptions.Add(z);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading zonas: {ErrorText.Get(ex)}");
+            }
+        }
+
         private async void LoadCustomersAsync()
         {
             try
             {
                 IsLoading = true;
                 ErrorMessage = string.Empty;
-                
+
+                await LoadZonasAsync();
+
                 IEnumerable<customer> customers = await _customerService.GetAllCustomersAsync();
 
                 try
@@ -273,7 +349,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     System.Diagnostics.Debug.WriteLine($"Error loading sellers: {ErrorText.Get(ex)}");
                 }
-                
+
                 if (customers == null)
                 {
                     _allCustomersSource = new List<CustomerRowDto>();
@@ -292,12 +368,15 @@ namespace NinOS.UI.Common.ViewModels
                         FiscalAddress = c.fiscal_address ?? string.Empty,
                         DeliveryAddress = c.delivery_address ?? string.Empty,
                         SellerName = c.seller_name ?? string.Empty,
+                        IdZona = c.id_zona,
+                        ZonaName = c.zona?.name ?? (c.id_zona.HasValue ? $"Zona {c.id_zona}" : "-"),
+                        ZonaCode = c.zona?.code ?? string.Empty,
                         CustomerRef = c
                     }).ToList();
                 }
 
                 FilterCustomers();
-                GenerateNextCustomerCode();
+                await GenerateNextCustomerCodeAsync();
             }
             catch (Exception ex)
             {
@@ -310,59 +389,42 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private string GetSellerPrefix(string sellerName)
+        private async Task GenerateNextCustomerCodeAsync()
         {
-            if (_sellerPrefixMap.TryGetValue(sellerName ?? string.Empty, out string? prefix) && !string.IsNullOrWhiteSpace(prefix))
+            if (_editingCustomer != null) return;
+            try
             {
-                return prefix;
+                NewCustomerCode = await _customerService.GetNextCustomerCodeAsync();
             }
-
-            return "3300";
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error generating customer code: {ErrorText.Get(ex)}");
+                NewCustomerCode = "00001";
+            }
         }
 
-        private void GenerateNextCustomerCode()
+        private void SetDefaultZonaFromTab()
         {
             if (_editingCustomer != null) return;
 
-            string sellerPrefix = GetSellerPrefix(_newSellerName);
-            string prefix = $"{sellerPrefix}_";
-
-            var existingCodes = _allCustomersSource
-                .Where(c => !string.IsNullOrEmpty(c.CustomerCode) && c.CustomerCode.StartsWith(prefix))
-                .Select(c => c.CustomerCode)
-                .ToList();
-
-            long maxFullNumber = SeriesCalculator.GetMax(existingCodes, SeriesCalculator.Seed(sellerPrefix));
-
-            if (_sellerLastNumberMap.TryGetValue(_newSellerName ?? string.Empty, out long persistedLast) && persistedLast > maxFullNumber)
+            string targetCode = _selectedTabIndex switch
             {
-                maxFullNumber = persistedLast;
-            }
+                1 => "01",
+                2 => "02",
+                3 => "03",
+                4 => "04",
+                5 => "05",
+                6 => "06",
+                _ => string.Empty
+            };
 
-            NewCustomerCode = SeriesCalculator.FormatNumber(maxFullNumber + 1);
-        }
-
-        private void SetDefaultSellerFromTab()
-        {
-            if (_editingCustomer != null) return;
-
-            switch (_selectedTabIndex)
+            if (!string.IsNullOrEmpty(targetCode))
             {
-                case 1:
-                    NewSellerName = "Anais";
-                    break;
-                case 2:
-                    NewSellerName = "Sandra";
-                    break;
-                case 3:
-                    NewSellerName = "Alejandra";
-                    break;
-                case 4:
-                    NewSellerName = "Juan Luis";
-                    break;
-                default:
-                    NewSellerName = "Anais";
-                    break;
+                var match = ZonasOptions.FirstOrDefault(z => z.code == targetCode);
+                if (match != null)
+                {
+                    NewZonaId = match.id_zona;
+                }
             }
         }
 
@@ -387,11 +449,23 @@ namespace NinOS.UI.Common.ViewModels
                         (c.PhoneNumber?.ToLower().Contains(query) ?? false) ||
                         (c.FiscalAddress?.ToLower().Contains(query) ?? false) ||
                         (c.EffectiveDeliveryAddress?.ToLower().Contains(query) ?? false) ||
-                        (c.SellerName?.ToLower().Contains(query) ?? false)
+                        (c.SellerName?.ToLower().Contains(query) ?? false) ||
+                        (c.ZonaName?.ToLower().Contains(query) ?? false) ||
+                        (c.ZonaCode?.ToLower().Contains(query) ?? false)
                     ).ToList();
                 }
 
                 UpdateCollection(AllCustomers, filtered);
+
+                // Colecciones divididas por Zona
+                UpdateCollection(IsabelicaCustomers, filtered.Where(c => c.ZonaCode == "01" || c.ZonaName.Contains("Zona 1", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Isabelica", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(SanDiegoCustomers, filtered.Where(c => c.ZonaCode == "02" || c.ZonaName.Contains("Zona 2", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("San Diego", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(TocuyitoCustomers, filtered.Where(c => c.ZonaCode == "03" || c.ZonaName.Contains("Zona 3", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Tocuyito", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(CentroCustomers, filtered.Where(c => c.ZonaCode == "04" || c.ZonaName.Contains("Zona 4", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Centro", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(FlorAmarilloCustomers, filtered.Where(c => c.ZonaCode == "05" || c.ZonaName.Contains("Zona 5", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Flor Amarillo", StringComparison.OrdinalIgnoreCase)).ToList());
+                UpdateCollection(MaracayCustomers, filtered.Where(c => c.ZonaCode == "06" || c.ZonaName.Contains("Maracay", StringComparison.OrdinalIgnoreCase)).ToList());
+
+                // Colecciones legacy por vendedor
                 UpdateCollection(AnaisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(SandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(AlejandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase)).ToList());
@@ -416,7 +490,8 @@ namespace NinOS.UI.Common.ViewModels
         {
             return !string.IsNullOrWhiteSpace(_newCustomerCode) &&
                    !string.IsNullOrWhiteSpace(_newBusinessName) &&
-                   !string.IsNullOrWhiteSpace(_newRifNumber);
+                   !string.IsNullOrWhiteSpace(_newRifNumber) &&
+                   _newZonaId.HasValue;
         }
 
         private async void ExecuteSaveCustomer(object? parameter)
@@ -426,9 +501,17 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
 
-                if (string.IsNullOrWhiteSpace(_newCustomerCode) || string.IsNullOrWhiteSpace(_newBusinessName) || string.IsNullOrWhiteSpace(_newRifNumber))
+                if (string.IsNullOrWhiteSpace(_newCustomerCode) ||
+                    string.IsNullOrWhiteSpace(_newBusinessName) ||
+                    string.IsNullOrWhiteSpace(_newRifNumber))
                 {
-                    ErrorMessage = "Tienes que llenar los campos obligatorios: RazÃ³n Social (Negocio/Nombre) e IdentificaciÃ³n.";
+                    ErrorMessage = "Tienes que llenar los campos obligatorios: Razón Social (Negocio/Nombre) e Identificación.";
+                    return;
+                }
+
+                if (!_newZonaId.HasValue)
+                {
+                    ErrorMessage = "Debes seleccionar una Zona obligatoriamente.";
                     return;
                 }
 
@@ -443,7 +526,10 @@ namespace NinOS.UI.Common.ViewModels
                     _newFiscalAddress,
                     _newDeliveryAddress,
                     _newSellerName
-                );
+                )
+                {
+                    id_zona = _newZonaId
+                };
 
                 if (_editingCustomer != null)
                 {
@@ -456,6 +542,7 @@ namespace NinOS.UI.Common.ViewModels
                     existing.fiscal_address = _newFiscalAddress;
                     existing.delivery_address = _newDeliveryAddress;
                     existing.seller_name = _newSellerName;
+                    existing.id_zona = _newZonaId;
 
                     await _customerService.UpdateCustomerAsync(existing);
                 }
@@ -478,7 +565,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void ExecuteAddCustomer(object? parameter)
+        private async void ExecuteAddCustomer(object? parameter)
         {
             ClearForm();
             _editingCustomer = null;
@@ -486,8 +573,8 @@ namespace NinOS.UI.Common.ViewModels
             AddOrEditTitle = "Agregar Cliente";
             SaveButtonText = "Agregar Cliente";
             CanEditSeller = true;
-            SetDefaultSellerFromTab();
-            GenerateNextCustomerCode();
+            SetDefaultZonaFromTab();
+            await GenerateNextCustomerCodeAsync();
             OnRequestAddCustomerWindow?.Invoke();
         }
 
@@ -510,7 +597,7 @@ namespace NinOS.UI.Common.ViewModels
             _canEditCode = true;
             NewCustomerCode = selected.CustomerCode;
             NewBusinessName = selected.BusinessName;
-            
+
             if (!string.IsNullOrEmpty(selected.Rif) && selected.Rif.Contains("-"))
             {
                 string[] parts = selected.Rif.Split('-');
@@ -522,15 +609,17 @@ namespace NinOS.UI.Common.ViewModels
                 NewRifType = "J";
                 NewRifNumber = selected.Rif ?? "";
             }
-            
+
             NewContactName = selected.ContactName;
             NewPhoneNumber = selected.PhoneNumber;
             NewFiscalAddress = selected.FiscalAddress;
             NewDeliveryAddress = selected.DeliveryAddress;
             NewSellerName = selected.SellerName;
+            NewZonaId = selected.CustomerRef?.id_zona ?? selected.IdZona;
             CanEditSeller = false;
             AddOrEditTitle = "Editar Cliente";
             SaveButtonText = "Guardar Cambios";
+            (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
             OnRequestEditCustomerWindow?.Invoke(selected);
         }
 
@@ -558,7 +647,7 @@ namespace NinOS.UI.Common.ViewModels
                     await _customerService.SoftDeleteCustomerAsync(selected.CustomerRef.id_customer, null);
                     LoadCustomersAsync();
                     AppDataEvents.raise_catalogs_changed();
-                    AppDialog.Show($"Cliente \"{selected.BusinessName}\" eliminado.",
+                    AppDialog.Show($"Cliente \"{selected.BusinessName}\" eliminado exitosamente.",
                         "Cliente eliminado", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
@@ -584,14 +673,12 @@ namespace NinOS.UI.Common.ViewModels
             NewFiscalAddress = string.Empty;
             NewDeliveryAddress = string.Empty;
             NewSellerName = "Anais";
+            NewZonaId = null;
             _editingCustomer = null;
             _canEditCode = false;
-            SetDefaultSellerFromTab();
-            GenerateNextCustomerCode();
+            SetDefaultZonaFromTab();
+            _ = GenerateNextCustomerCodeAsync();
+            (SaveCustomerCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 }
-
-
-
-
