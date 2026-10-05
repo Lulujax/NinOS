@@ -37,8 +37,9 @@ namespace NinOS.UI.Common.ViewModels
     {
         private readonly IPaymentService _payment_service;
         private readonly IAccountsReceivableService _receivable_service;
+        private readonly ISellerService? _seller_service;
 
-        private int _selected_tab_index;
+        private SellerTabItem<payment_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
         private string _selected_filter = "Pagadas";
@@ -48,6 +49,21 @@ namespace NinOS.UI.Common.ViewModels
         private bool _is_loading;
 
         private List<payment_row_dto> _all_notes_source = new();
+
+        public ObservableCollection<SellerTabItem<payment_row_dto>> seller_tabs { get; } = new();
+
+        public SellerTabItem<payment_row_dto>? selected_tab
+        {
+            get => _selected_tab;
+            set
+            {
+                if (_selected_tab == value) return;
+                _selected_tab = value;
+                on_property_changed();
+                on_property_changed(nameof(selected_tab_index));
+                recalc_totals();
+            }
+        }
 
         public ObservableCollection<string> pending_months { get; }
         public ObservableCollection<string> filter_options { get; }
@@ -65,8 +81,19 @@ namespace NinOS.UI.Common.ViewModels
 
         public int selected_tab_index
         {
-            get => _selected_tab_index;
-            set { _selected_tab_index = value; on_property_changed(); apply_filters(); }
+            get
+            {
+                if (_selected_tab == null) return 0;
+                int idx = seller_tabs.IndexOf(_selected_tab);
+                return idx >= 0 ? idx : 0;
+            }
+            set
+            {
+                if (value >= 0 && value < seller_tabs.Count)
+                {
+                    selected_tab = seller_tabs[value];
+                }
+            }
         }
 
         public string search_query
@@ -103,10 +130,11 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand month_report_command { get; }
         public Action? on_request_add_payment_window { get; set; }
 
-        public PaymentsViewModel(IPaymentService payment_service, IAccountsReceivableService receivable_service)
+        public PaymentsViewModel(IPaymentService payment_service, IAccountsReceivableService receivable_service, ISellerService? seller_service = null)
         {
             _payment_service = payment_service ?? throw new ArgumentNullException(nameof(payment_service));
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
+            _seller_service = seller_service;
 
             pending_months = new ObservableCollection<string>();
             filter_options = new ObservableCollection<string>();
@@ -124,10 +152,64 @@ namespace NinOS.UI.Common.ViewModels
 
             month_report_command = new RelayCommand(execute_month_report);
 
+            AppDataEvents.CatalogsChanged += () =>
+            {
+                System.Windows.Application.Current?.Dispatcher?.InvokeAsync(refresh_data);
+            };
+
             load_all_async();
         }
 
         public void refresh_data() => load_all_async();
+
+        private void sync_seller_tabs(IEnumerable<seller> sellers)
+        {
+            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
+
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
+            {
+                seller_tabs.Insert(0, new SellerTabItem<payment_row_dto>(null, "Todos"));
+            }
+            else
+            {
+                seller_tabs[0].Header = "Todos";
+            }
+
+            var currentSellerTabs = seller_tabs.Skip(1).ToList();
+            foreach (var tab in currentSellerTabs)
+            {
+                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
+                {
+                    seller_tabs.Remove(tab);
+                }
+            }
+
+            int targetIndex = 1;
+            foreach (var s in activeSellers)
+            {
+                var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
+                if (existing == null)
+                {
+                    var newTab = new SellerTabItem<payment_row_dto>(s.id_seller, s.full_name ?? string.Empty);
+                    seller_tabs.Insert(targetIndex, newTab);
+                }
+                else
+                {
+                    existing.Header = s.full_name ?? string.Empty;
+                    int currentIndex = seller_tabs.IndexOf(existing);
+                    if (currentIndex != targetIndex)
+                    {
+                        seller_tabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                targetIndex++;
+            }
+
+            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
+            {
+                selected_tab = seller_tabs[0];
+            }
+        }
 
         private async void load_all_async()
         {
@@ -135,6 +217,11 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var current_selection = _selected_month;
                 _is_loading = true;
+
+                var dbSellers = _seller_service != null
+                    ? await _seller_service.GetAllActiveAsync()
+                    : await _receivable_service.get_sellers_async();
+                sync_seller_tabs(dbSellers);
 
                 var raw = await _receivable_service.get_all_notes_async();
                 var all_rows = raw.Where(n => n.status != "Anulada").Select(map_to_row).ToList();
@@ -217,6 +304,14 @@ namespace NinOS.UI.Common.ViewModels
             update_collection(alejandra_notes, filtered.Where(n => n.seller_name == "Alejandra").ToList());
             update_collection(juan_luis_notes, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
+            foreach (var tab in seller_tabs)
+            {
+                var tabItems = tab.IdSeller == null
+                    ? filtered
+                    : filtered.Where(n => (tab.IdSeller.HasValue && n.id_seller == tab.IdSeller.Value) || string.Equals(n.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+                update_collection(tab.Items, tabItems);
+            }
+
             recalc_totals();
         }
 
@@ -256,15 +351,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalc_totals()
         {
-            var list = _selected_tab_index switch
-            {
-                0 => all_notes.ToList(),
-                1 => sandra_notes.ToList(),
-                2 => anais_notes.ToList(),
-                3 => alejandra_notes.ToList(),
-                4 => juan_luis_notes.ToList(),
-                _ => new List<payment_row_dto>()
-            };
+            var list = (selected_tab != null ? selected_tab.Items.ToList() : all_notes.ToList());
 
             total_invoiced_usd = list.Sum(n => n.total_amount_usd);
             total_paid_usd = list.Sum(n => n.paid_amount_usd);

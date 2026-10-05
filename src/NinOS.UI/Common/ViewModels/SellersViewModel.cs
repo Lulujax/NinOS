@@ -292,41 +292,26 @@ namespace NinOS.UI.Common.ViewModels
             AvailableZonas.Clear();
             var zonas = await _zonaService.GetActiveAsync();
 
-            bool isJuanLuis = string.Equals(_newSellerCode?.Trim(), "3400", StringComparison.OrdinalIgnoreCase)
-                           || string.Equals(_newFullName?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase);
-
             foreach (var z in zonas)
             {
-                bool isMaracay = z.code == "06" || z.name.ToLower().Contains("maracay");
                 AvailableZonas.Add(new SellerZonaCheckboxItem
                 {
                     IdZona = z.id_zona,
                     Code = z.code,
                     Name = z.name,
                     IsSelected = assignedIds.Contains(z.id_zona),
-                    IsEnabled = !isMaracay || isJuanLuis,
-                    ToolTip = (isMaracay && !isJuanLuis) ? "Zona exclusiva para Juan Luis (3400)" : string.Empty
+                    IsEnabled = true,
+                    ToolTip = string.Empty
                 });
             }
         }
 
         private void UpdateZonaExclusivity()
         {
-            bool isJuanLuis = string.Equals(_newSellerCode?.Trim(), "3400", StringComparison.OrdinalIgnoreCase)
-                           || string.Equals(_newFullName?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase);
-
             foreach (var item in AvailableZonas)
             {
-                bool isMaracay = item.Code == "06" || item.Name.ToLower().Contains("maracay");
-                if (isMaracay)
-                {
-                    item.IsEnabled = isJuanLuis;
-                    item.ToolTip = isJuanLuis ? string.Empty : "Zona exclusiva para Juan Luis (3400)";
-                    if (!isJuanLuis && item.IsSelected)
-                    {
-                        item.IsSelected = false;
-                    }
-                }
+                item.IsEnabled = true;
+                item.ToolTip = string.Empty;
             }
         }
 
@@ -353,16 +338,6 @@ namespace NinOS.UI.Common.ViewModels
                     .Where(z => z.IsSelected)
                     .Select(z => z.IdZona)
                     .ToList();
-
-                bool isJuanLuis = string.Equals(_newSellerCode?.Trim(), "3400", StringComparison.OrdinalIgnoreCase)
-                               || string.Equals(_newFullName?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase);
-
-                var maracayItem = AvailableZonas.FirstOrDefault(z => z.Code == "06" || z.Name.ToLower().Contains("maracay"));
-                if (maracayItem != null && maracayItem.IsSelected && !isJuanLuis)
-                {
-                    ErrorMessage = "La zona Maracay (06) es exclusiva para Juan Luis (3400).";
-                    return;
-                }
 
                 if (_editingSeller != null && _editingSeller.SellerRef != null)
                 {

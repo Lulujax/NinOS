@@ -18,6 +18,25 @@ namespace NinOS.UI.Views
             _viewModel = viewModel;
             DataContext = viewModel;
             Closed += (s, e) => AppLog.Info("Aplicación cerrada");
+            Closing += (s, e) =>
+            {
+                if (_viewModel?.delivery_notes_vm?.has_pending_data == true)
+                {
+                    MessageBoxResult result = AppDialog.Show(
+                        "Hay datos sin guardar en la Nota de Entrega. Si sales de la aplicación se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?",
+                        "Datos sin guardar",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    _viewModel.delivery_notes_vm.reset_unsaved_note();
+                }
+            };
         }
 
         private DateTime _last_title_click;

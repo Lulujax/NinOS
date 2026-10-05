@@ -218,10 +218,10 @@ namespace NinOS.Infrastructure.Data
             if (!db_context.sellers.Any())
             {
                 db_context.sellers.AddRange(
-                    new seller("Sandra", "3200", "3200"),
-                    new seller("Anais", "3300", "3300"),
-                    new seller("Alejandra", "3500", "3500"),
-                    new seller("Juan Luis", "3400", "3400")
+                    new seller("Sandra", "001", "001"),
+                    new seller("Anais", "002", "002"),
+                    new seller("Alejandra", "003", "003"),
+                    new seller("Juan Luis", "004", "004")
                 );
                 db_context.SaveChanges();
             }
@@ -230,7 +230,7 @@ namespace NinOS.Infrastructure.Data
                 var juan = db_context.sellers.FirstOrDefault(s => s.full_name == "Juan Luis");
                 if (juan == null)
                 {
-                    db_context.sellers.Add(new seller("Juan Luis", "3400", "3400"));
+                    db_context.sellers.Add(new seller("Juan Luis", "004", "004"));
                     db_context.SaveChanges();
                 }
             }
@@ -801,25 +801,25 @@ namespace NinOS.Infrastructure.Data
             if (!db_context.sellers.Any())
             {
                 db_context.sellers.AddRange(
-                    new seller("Sandra", "3200", "3200"),
-                    new seller("Anais", "3300", "3300"),
-                    new seller("Alejandra", "3500", "3500"),
-                    new seller("Juan Luis", "3400", "3400")
+                    new seller("Sandra", "001", "001"),
+                    new seller("Anais", "002", "002"),
+                    new seller("Alejandra", "003", "003"),
+                    new seller("Juan Luis", "004", "004")
                 );
                 db_context.SaveChanges();
             }
             else
             {
-                var juan = db_context.sellers.FirstOrDefault(s => s.seller_code == "3400" || s.full_name == "Juan Luis");
+                var juan = db_context.sellers.FirstOrDefault(s => s.seller_code == "004" || s.seller_code == "3400" || s.full_name == "Juan Luis");
                 if (juan == null)
                 {
-                    db_context.sellers.Add(new seller("Juan Luis", "3400", "3400"));
+                    db_context.sellers.Add(new seller("Juan Luis", "004", "004"));
                     db_context.SaveChanges();
                 }
             }
 
-            // 4. Asignar Maracay (06) a Juan Luis (3400)
-            var juanLuis = db_context.sellers.FirstOrDefault(s => s.seller_code == "3400" || s.full_name == "Juan Luis");
+            // 4. Asignar Maracay (06) a Juan Luis (004)
+            var juanLuis = db_context.sellers.FirstOrDefault(s => s.seller_code == "004" || s.seller_code == "3400" || s.full_name == "Juan Luis");
             var maracayZona = db_context.zonas.FirstOrDefault(z => z.code == "06");
             if (juanLuis != null && maracayZona != null)
             {

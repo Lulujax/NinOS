@@ -430,9 +430,11 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IGenericRepository<note_type> _note_type_repository;
         private readonly ISellerService _seller_service;
         private bool _is_loading;
+        private bool _is_updating_note_types;
 
         private List<customer> _all_customers_cache;
         private List<note_type> _all_note_types_cache;
+        private List<zona> _seller_assigned_zones = new();
         private seller? _selected_seller;
         private note_type? _selected_note_type;
         private customer? _selected_customer;
@@ -478,7 +480,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_seller == value) return;
 
-                if (value != null && has_pending_data)
+                if (has_pending_data)
                 {
                     MessageBoxResult result = AppDialog.Show(
                         "Hay datos sin guardar en la nota actual. Si cambias de vendedora se descartarán y el stock será liberado.\n\n¿Desea continuar?",
@@ -488,7 +490,10 @@ namespace NinOS.UI.Common.ViewModels
 
                     if (result != MessageBoxResult.Yes)
                     {
-                        on_property_changed(nameof(selected_seller));
+                        System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
+                        {
+                            on_property_changed(nameof(selected_seller));
+                        });
                         return;
                     }
 
@@ -496,13 +501,6 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 ApplySeller(value);
-
-                RefreshNoteTypeOptions();
-
-                _selected_note_type = null;
-                ApplyNoteType(null);
-                on_property_changed(nameof(selected_note_type));
-                on_property_changed(nameof(has_selection));
             }
         }
 
@@ -511,9 +509,10 @@ namespace NinOS.UI.Common.ViewModels
             get { return _selected_note_type; }
             set
             {
+                if (_is_updating_note_types) return;
                 if (_selected_note_type == value) return;
 
-                if (value != null && has_pending_data)
+                if (has_pending_data)
                 {
                     MessageBoxResult result = AppDialog.Show(
                         "Hay datos sin guardar en la nota actual. Si cambias el tipo de nota se descartarán y el stock será liberado.\n\n¿Desea continuar?",
@@ -523,7 +522,10 @@ namespace NinOS.UI.Common.ViewModels
 
                     if (result != MessageBoxResult.Yes)
                     {
-                        on_property_changed(nameof(selected_note_type));
+                        System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
+                        {
+                            on_property_changed(nameof(selected_note_type));
+                        });
                         return;
                     }
 
@@ -531,6 +533,16 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 ApplyNoteType(value);
+                if (value != null)
+                {
+                    filter_customers();
+                    update_correlative_async();
+                }
+                else
+                {
+                    filtered_customers.Clear();
+                    note_number = string.Empty;
+                }
                 on_property_changed(nameof(has_selection));
             }
         }
@@ -653,47 +665,125 @@ namespace NinOS.UI.Common.ViewModels
             get { return is_pro_venta ? "BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986" : "BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042"; }
         }
 
-        private void RefreshNoteTypeOptions()
+        private static bool IsMaracay(zona? z)
         {
-            note_type_options.Clear();
-            if (_selected_seller == null) return;
+            if (z == null) return false;
+            return z.code == "06" || (!string.IsNullOrWhiteSpace(z.name) && z.name.IndexOf("maracay", StringComparison.OrdinalIgnoreCase) >= 0);
+        }
 
-            bool is_juan_luis = string.Equals(_selected_seller.full_name, "Juan Luis", StringComparison.OrdinalIgnoreCase);
-
-            foreach (note_type nt in _all_note_types_cache
-                .Where(t => t.is_active)
-                .OrderBy(t => t.sort_order))
+        private void RefreshNoteTypeOptions(bool keepSelection = false)
+        {
+            _is_updating_note_types = true;
+            try
             {
-                if (is_juan_luis)
+                var previousSelection = _selected_note_type;
+                note_type_options.Clear();
+                if (_selected_seller != null)
                 {
-                    // Juan Luis solo puede crear notas Pro Venta (Pro Venta o Promocion Pro Venta).
-                    if (nt.code != "MAR" && nt.code != "PVP") continue;
+                    bool hasMaracay = _seller_assigned_zones.Any(IsMaracay);
+                    bool hasOther = _seller_assigned_zones.Any(z => !IsMaracay(z));
+
+                    foreach (note_type nt in _all_note_types_cache
+                        .Where(t => t.is_active)
+                        .OrderBy(t => t.sort_order))
+                    {
+                        bool isPv = NoteTypeCodes.is_pro_venta(nt.code);
+                        bool isGen = !isPv;
+
+                        if (isPv && hasMaracay)
+                        {
+                            note_type_options.Add(nt);
+                        }
+                        else if (isGen && hasOther)
+                        {
+                            note_type_options.Add(nt);
+                        }
+                    }
+                }
+
+                if (keepSelection && previousSelection != null && note_type_options.Any(nt => nt.code == previousSelection.code))
+                {
+                    _selected_note_type = note_type_options.First(nt => nt.code == previousSelection.code);
                 }
                 else
                 {
-                    // Las demas vendedoras solo crean General o Promocion.
-                    if (nt.code != "GEN" && nt.code != "PRM") continue;
+                    _selected_note_type = null;
                 }
-                note_type_options.Add(nt);
+
+                ApplyNoteType(_selected_note_type);
             }
+            finally
+            {
+                _is_updating_note_types = false;
+            }
+
+            on_property_changed(nameof(selected_note_type));
+            on_property_changed(nameof(has_selection));
         }
 
         private async void ApplySeller(seller? s)
         {
             _selected_seller = s;
             on_property_changed(nameof(selected_seller));
-            on_property_changed(nameof(has_selection));
+
+            // Reiniciar todo al estado base
+            _is_updating_note_types = true;
+            try
+            {
+                _selected_note_type = null;
+                ApplyNoteType(null);
+                note_type_options.Clear();
+            }
+            finally
+            {
+                _is_updating_note_types = false;
+            }
 
             filtered_customers.Clear();
-            selected_customer = null;
+            _selected_customer = null;
+            customer_code_text = string.Empty;
+            contact_name_text = string.Empty;
+            note_number = string.Empty;
+
+            on_property_changed(nameof(selected_note_type));
+            on_property_changed(nameof(selected_customer));
+            on_property_changed(nameof(customer_code_text));
+            on_property_changed(nameof(contact_name_text));
+            on_property_changed(nameof(note_number));
+            on_property_changed(nameof(has_selection));
 
             if (s != null)
             {
-                var assignedZones = await _seller_service.GetAssignedZonasAsync(s.id_seller);
-                var assignedZoneIds = assignedZones.Select(z => z.id_zona).ToHashSet();
+                int sellerId = s.id_seller;
+                var assignedZones = await _seller_service.GetAssignedZonasAsync(sellerId);
+                if (_selected_seller?.id_seller != sellerId) return;
+
+                _seller_assigned_zones = assignedZones.ToList();
+                RefreshNoteTypeOptions(keepSelection: false);
+            }
+            else
+            {
+                _seller_assigned_zones.Clear();
+            }
+        }
+
+        private void filter_customers()
+        {
+            filtered_customers.Clear();
+
+            if (_selected_seller != null && _selected_note_type != null)
+            {
+                var assignedZoneIds = _seller_assigned_zones.Select(z => z.id_zona).ToHashSet();
+                bool isPv = NoteTypeCodes.is_pro_venta(_selected_note_type.code);
 
                 var match = _all_customers_cache
                     .Where(c => c.id_zona.HasValue && assignedZoneIds.Contains(c.id_zona.Value))
+                    .Where(c =>
+                    {
+                        int idZona = c.id_zona!.Value;
+                        var custZona = c.zona ?? _seller_assigned_zones.FirstOrDefault(z => z.id_zona == idZona);
+                        return isPv ? IsMaracay(custZona) : !IsMaracay(custZona);
+                    })
                     .OrderBy(c => c.business_name);
 
                 foreach (customer c in match)
@@ -702,7 +792,15 @@ namespace NinOS.UI.Common.ViewModels
                 }
             }
 
-            update_correlative_async();
+            if (_selected_customer != null && !filtered_customers.Any(c => c.id_customer == _selected_customer.id_customer))
+            {
+                _selected_customer = null;
+                customer_code_text = string.Empty;
+                contact_name_text = string.Empty;
+                on_property_changed(nameof(selected_customer));
+                on_property_changed(nameof(customer_code_text));
+                on_property_changed(nameof(contact_name_text));
+            }
         }
 
         public customer? selected_customer
@@ -717,7 +815,15 @@ namespace NinOS.UI.Common.ViewModels
                     customer_code_text = _selected_customer.customer_code;
                     contact_name_text = _selected_customer.contact_name;
                 }
+                else
+                {
+                    customer_code_text = string.Empty;
+                    contact_name_text = string.Empty;
+                }
                 on_property_changed();
+                on_property_changed(nameof(customer_code_text));
+                on_property_changed(nameof(contact_name_text));
+                on_property_changed(nameof(has_pending_data));
             }
         }
 
@@ -1036,6 +1142,11 @@ namespace NinOS.UI.Common.ViewModels
             remove_item_command = new RelayCommand(execute_remove_item);
             save_note_command = new RelayCommand(execute_save_note);
 
+            AppDataEvents.CatalogsChanged += () =>
+            {
+                System.Windows.Application.Current?.Dispatcher?.InvokeAsync(refresh_data);
+            };
+
             load_initial_data_async();
         }
 
@@ -1057,18 +1168,22 @@ namespace NinOS.UI.Common.ViewModels
                 _all_note_types_cache.Clear();
                 foreach (note_type nt in db_note_types) _all_note_types_cache.Add(nt);
 
-                RefreshNoteTypeOptions();
-
                 if (_selected_seller != null)
                 {
-                    filtered_customers.Clear();
+                    seller? reconnected = sellers.FirstOrDefault(s => s.id_seller == _selected_seller.id_seller);
+                    _selected_seller = reconnected ?? _selected_seller;
+                    on_property_changed(nameof(selected_seller));
+
                     var assignedZones = await _seller_service.GetAssignedZonasAsync(_selected_seller.id_seller);
-                    var assignedZoneIds = assignedZones.Select(z => z.id_zona).ToHashSet();
-                    var match = _all_customers_cache
-                        .Where(c => c.id_zona.HasValue && assignedZoneIds.Contains(c.id_zona.Value))
-                        .OrderBy(c => c.business_name);
-                    foreach (customer c in match) filtered_customers.Add(c);
+                    _seller_assigned_zones = assignedZones.ToList();
                 }
+                else
+                {
+                    _seller_assigned_zones.Clear();
+                }
+
+                RefreshNoteTypeOptions();
+                filter_customers();
 
                 all_items.Clear();
                 IEnumerable<promotion> db_promotions = await _inventory_service.get_all_promotions_async();
@@ -1105,13 +1220,6 @@ namespace NinOS.UI.Common.ViewModels
                         available_stock = p.stock_quantity
                     });
                 }
-
-                if (_selected_seller != null)
-                {
-                    seller? reconnected = sellers.FirstOrDefault(s => s.id_seller == _selected_seller.id_seller);
-                    _selected_seller = reconnected ?? _selected_seller;
-                    on_property_changed(nameof(selected_seller));
-                }
             }
             catch (Exception ex)
             {
@@ -1131,7 +1239,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void update_correlative_async()
         {
-            if (_selected_seller == null)
+            if (_selected_seller == null || _selected_note_type == null)
             {
                 note_number = string.Empty;
                 return;
@@ -1321,11 +1429,26 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_seller == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (_selected_customer == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
+                if (_selected_note_type == null) throw new InvalidOperationException("Tienes que seleccionar un tipo de nota.");
 
-                var assignedZones = (await _seller_service.GetAssignedZonasAsync(_selected_seller.id_seller)).Select(z => z.id_zona).ToHashSet();
-                if (!_selected_customer.id_zona.HasValue || !assignedZones.Contains(_selected_customer.id_zona.Value))
+                var assignedZones = (await _seller_service.GetAssignedZonasAsync(_selected_seller.id_seller)).ToList();
+                var assignedZoneIds = assignedZones.Select(z => z.id_zona).ToHashSet();
+                if (!_selected_customer.id_zona.HasValue || !assignedZoneIds.Contains(_selected_customer.id_zona.Value))
                 {
                     throw new InvalidOperationException($"El cliente seleccionado no pertenece a las zonas asignadas al vendedor {_selected_seller.full_name}.");
+                }
+
+                var custZona = _selected_customer.zona ?? assignedZones.FirstOrDefault(z => z.id_zona == _selected_customer.id_zona);
+                bool isCustMaracay = IsMaracay(custZona);
+                bool isPv = NoteTypeCodes.is_pro_venta(_selected_note_type.code);
+
+                if (isPv && !isCustMaracay)
+                {
+                    throw new InvalidOperationException("Las notas Pro Venta son exclusivas para clientes de la zona Maracay.");
+                }
+                if (!isPv && isCustMaracay)
+                {
+                    throw new InvalidOperationException("La zona Maracay solo trabaja con notas de tipo Pro Venta (MAR / PVP).");
                 }
 
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");

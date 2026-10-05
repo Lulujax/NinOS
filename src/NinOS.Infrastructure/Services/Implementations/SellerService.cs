@@ -100,9 +100,6 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            // Validar exclusividad de Maracay (06) para Juan Luis (3400)
-            await ValidateMaracayExclusivityAsync(db, newSeller, assignedList);
-
             newSeller.is_active = true;
             newSeller.deleted_at = null;
             newSeller.deleted_reason = null;
@@ -143,9 +140,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                 throw new InvalidOperationException($"No se encontró el vendedor con ID {updatedSeller.id_seller}.");
 
             var assignedList = assignedZonaIds?.Distinct().ToList() ?? new List<int>();
-
-            // Validar exclusividad de Maracay (06) para Juan Luis (3400)
-            await ValidateMaracayExclusivityAsync(db, existing, assignedList);
 
             existing.full_name = updatedSeller.full_name;
             if (!string.IsNullOrWhiteSpace(updatedSeller.seller_code))
@@ -219,26 +213,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(z => z != null && z.is_active)
                 .OrderBy(z => z.code)
                 .ToListAsync();
-        }
-
-        private async Task ValidateMaracayExclusivityAsync(NinOSDbContext db, seller sellerEntity, List<int> assignedZonaIds)
-        {
-            if (assignedZonaIds == null || assignedZonaIds.Count == 0) return;
-
-            bool isJuanLuis = string.Equals(sellerEntity.seller_code?.Trim(), "3400", StringComparison.OrdinalIgnoreCase)
-                           || string.Equals(sellerEntity.full_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase);
-
-            if (isJuanLuis) return;
-
-            // Buscar si alguna de las zonas asignadas es Maracay (código "06" o nombre "Maracay")
-            var maracayZonas = await db.zonas
-                .Where(z => assignedZonaIds.Contains(z.id_zona) && (z.code == "06" || z.name.ToLower().Contains("maracay")))
-                .ToListAsync();
-
-            if (maracayZonas.Any())
-            {
-                throw new InvalidOperationException("La zona Maracay (06) es exclusiva y solo puede asignarse al vendedor Juan Luis (3400).");
-            }
         }
     }
 }

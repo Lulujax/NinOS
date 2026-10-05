@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -64,8 +65,9 @@ namespace NinOS.UI.Common.ViewModels
     public class CommissionsViewModel : ViewModelBase
     {
         private readonly ICommissionService _commission_service;
+        private readonly ISellerService? _seller_service;
 
-        private int _selected_tab_index;
+        private SellerTabItem<commission_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
         private string _selected_filter = "Pendientes";
@@ -75,6 +77,21 @@ namespace NinOS.UI.Common.ViewModels
         private bool _is_loading;
 
         private List<commission_row_dto> _all_rows_source = new();
+
+        public ObservableCollection<SellerTabItem<commission_row_dto>> seller_tabs { get; } = new();
+
+        public SellerTabItem<commission_row_dto>? selected_tab
+        {
+            get => _selected_tab;
+            set
+            {
+                if (_selected_tab == value) return;
+                _selected_tab = value;
+                on_property_changed();
+                on_property_changed(nameof(selected_tab_index));
+                recalc_totals();
+            }
+        }
 
         public ObservableCollection<string> pending_months { get; }
         public ObservableCollection<string> filter_options { get; }
@@ -92,8 +109,19 @@ namespace NinOS.UI.Common.ViewModels
 
         public int selected_tab_index
         {
-            get => _selected_tab_index;
-            set { _selected_tab_index = value; on_property_changed(); if (!_is_loading) apply_filters(); }
+            get
+            {
+                if (_selected_tab == null) return 0;
+                int idx = seller_tabs.IndexOf(_selected_tab);
+                return idx >= 0 ? idx : 0;
+            }
+            set
+            {
+                if (value >= 0 && value < seller_tabs.Count)
+                {
+                    selected_tab = seller_tabs[value];
+                }
+            }
         }
 
         public string search_query
@@ -131,9 +159,10 @@ namespace NinOS.UI.Common.ViewModels
         public Action<List<commission_row_dto>>? on_request_add_commission_payment_window { get; set; }
         public Action<commission_row_dto>? on_request_commission_history_window { get; set; }
 
-        public CommissionsViewModel(ICommissionService commission_service)
+        public CommissionsViewModel(ICommissionService commission_service, ISellerService? seller_service = null)
         {
             _commission_service = commission_service ?? throw new ArgumentNullException(nameof(commission_service));
+            _seller_service = seller_service;
 
             pending_months = new ObservableCollection<string>();
             filter_options = new ObservableCollection<string>();
@@ -150,10 +179,64 @@ namespace NinOS.UI.Common.ViewModels
             add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
             print_commission_pdf_command = new RelayCommand(execute_print_commission_pdf);
 
+            AppDataEvents.CatalogsChanged += () =>
+            {
+                System.Windows.Application.Current?.Dispatcher?.InvokeAsync(refresh_data);
+            };
+
             load_all_async();
         }
 
         public void refresh_data() => load_all_async();
+
+        private void sync_seller_tabs(IEnumerable<seller> sellers)
+        {
+            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
+
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
+            {
+                seller_tabs.Insert(0, new SellerTabItem<commission_row_dto>(null, "Todos"));
+            }
+            else
+            {
+                seller_tabs[0].Header = "Todos";
+            }
+
+            var currentSellerTabs = seller_tabs.Skip(1).ToList();
+            foreach (var tab in currentSellerTabs)
+            {
+                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
+                {
+                    seller_tabs.Remove(tab);
+                }
+            }
+
+            int targetIndex = 1;
+            foreach (var s in activeSellers)
+            {
+                var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
+                if (existing == null)
+                {
+                    var newTab = new SellerTabItem<commission_row_dto>(s.id_seller, s.full_name ?? string.Empty);
+                    seller_tabs.Insert(targetIndex, newTab);
+                }
+                else
+                {
+                    existing.Header = s.full_name ?? string.Empty;
+                    int currentIndex = seller_tabs.IndexOf(existing);
+                    if (currentIndex != targetIndex)
+                    {
+                        seller_tabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                targetIndex++;
+            }
+
+            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
+            {
+                selected_tab = seller_tabs[0];
+            }
+        }
 
         private async void load_all_async()
         {
@@ -161,6 +244,11 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var current_selection = _selected_month;
                 _is_loading = true;
+
+                var dbSellers = _seller_service != null
+                    ? await _seller_service.GetAllActiveAsync()
+                    : await _commission_service.get_sellers_with_commissions_async();
+                sync_seller_tabs(dbSellers);
 
                 var raw = await _commission_service.get_all_commissions_async();
                 var all_rows = raw.Select(map_to_row).ToList();
@@ -242,6 +330,14 @@ namespace NinOS.UI.Common.ViewModels
             update_collection(alejandra_rows, filtered.Where(n => n.seller_name == "Alejandra").ToList());
             update_collection(juan_luis_rows, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
+            foreach (var tab in seller_tabs)
+            {
+                var tabItems = tab.IdSeller == null
+                    ? filtered
+                    : filtered.Where(n => (tab.IdSeller.HasValue && n.id_seller == tab.IdSeller.Value) || string.Equals(n.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+                update_collection(tab.Items, tabItems);
+            }
+
             recalc_totals();
         }
 
@@ -289,15 +385,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalc_totals()
         {
-            var list = _selected_tab_index switch
-            {
-                0 => all_rows.ToList(),
-                1 => sandra_rows.ToList(),
-                2 => anais_rows.ToList(),
-                3 => alejandra_rows.ToList(),
-                4 => juan_luis_rows.ToList(),
-                _ => new List<commission_row_dto>()
-            };
+            var list = (selected_tab != null ? selected_tab.Items.ToList() : all_rows.ToList());
 
             total_sold_usd = list.Sum(n => n.sale_amount_usd);
             total_commission_usd = list.Sum(n => n.amount_usd);
@@ -337,15 +425,8 @@ namespace NinOS.UI.Common.ViewModels
 
         private List<commission_row_dto> get_available_pending_rows()
         {
-            return _selected_tab_index switch
-            {
-                0 => all_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
-                1 => sandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
-                2 => anais_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
-                3 => alejandra_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
-                4 => juan_luis_rows.Where(r => r.remaining_amount_usd > 0.005m).ToList(),
-                _ => new List<commission_row_dto>()
-            };
+            var list = (selected_tab != null ? selected_tab.Items : all_rows);
+            return list.Where(r => r.remaining_amount_usd > 0.005m).ToList();
         }
 
         private void execute_add_commission_payment(object? parameter)

@@ -1,4 +1,4 @@
-<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
+﻿<UserControl x:Class="NinOS.UI.Views.CreditNotesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -121,7 +121,7 @@
                           ItemsSource="{Binding category_filters}"
                           SelectedItem="{Binding selected_category_filter}"
                           FontSize="12.5" Height="26"
-                          HorizontalContentAlignment="Center" ToolTip="Filtrar por categoría"/>
+                          HorizontalContentAlignment="Center" ToolTip="Filtrar por categorÃ­a"/>
                 <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="130"
                           ItemsSource="{Binding credit_note_months}"
                           SelectedItem="{Binding selected_month}"
@@ -223,15 +223,16 @@
         </Popup>
 
         <!-- FILA 1: TABS DE VENDEDORES -->
-        <TabControl Grid.Row="1" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4">
-
-            <!-- TODOS -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="Todos" FontWeight="SemiBold" FontSize="12.5"/>
-                </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}"
-                          ItemsSource="{Binding notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
+        <TabControl Grid.Row="1" ItemsSource="{Binding seller_tabs}" SelectedItem="{Binding selected_tab, Mode=TwoWay}" Margin="0,0,0,4">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="12.5"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <DataGrid Style="{StaticResource CompactDataGrid}"
+                              ItemsSource="{Binding Items}" MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
@@ -269,183 +270,8 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-            </TabItem>
-
-            <!-- SANDRA -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="Sandra" FontWeight="SemiBold" FontSize="12.5"/>
-                </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}"
-                          ItemsSource="{Binding sandra_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="TIPO NOTA" Binding="{Binding note_type_name}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NRO NC" Binding="{Binding note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NOTA DE ENTREGA" Binding="{Binding source_note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                                            ElementStyle="{StaticResource CellTextWrap}"/>
-                        <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="85">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
-                                    <Setter Property="Foreground" Value="#C62828"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="ACCIONES" Width="132">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" Style="{StaticResource PreviewButton}"
-                                                Click="PreviewButton_Click" Tag="{Binding}"/>
-                                        <Button Content="PDF" Style="{StaticResource PdfButton}"
-                                                Click="PdfButton_Click" Tag="{Binding}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <!-- ANAIS -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="Anais" FontWeight="SemiBold" FontSize="12.5"/>
-                </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}"
-                          ItemsSource="{Binding anais_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="TIPO NOTA" Binding="{Binding note_type_name}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NRO NC" Binding="{Binding note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NOTA DE ENTREGA" Binding="{Binding source_note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                                            ElementStyle="{StaticResource CellTextWrap}"/>
-                        <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="85">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
-                                    <Setter Property="Foreground" Value="#C62828"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="ACCIONES" Width="132">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" Style="{StaticResource PreviewButton}"
-                                                Click="PreviewButton_Click" Tag="{Binding}"/>
-                                        <Button Content="PDF" Style="{StaticResource PdfButton}"
-                                                Click="PdfButton_Click" Tag="{Binding}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <!-- ALEJANDRA -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="Alejandra" FontWeight="SemiBold" FontSize="12.5"/>
-                </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}"
-                          ItemsSource="{Binding alejandra_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="TIPO NOTA" Binding="{Binding note_type_name}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NRO NC" Binding="{Binding note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NOTA DE ENTREGA" Binding="{Binding source_note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                                            ElementStyle="{StaticResource CellTextWrap}"/>
-                        <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="85">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
-                                    <Setter Property="Foreground" Value="#C62828"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="ACCIONES" Width="132">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" Style="{StaticResource PreviewButton}"
-                                                Click="PreviewButton_Click" Tag="{Binding}"/>
-                                        <Button Content="PDF" Style="{StaticResource PdfButton}"
-                                                Click="PdfButton_Click" Tag="{Binding}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <!-- JUAN LUIS -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="Juan Luis" FontWeight="SemiBold" FontSize="12.5"/>
-                </TabItem.Header>
-                <DataGrid Style="{StaticResource CompactDataGrid}"
-                          ItemsSource="{Binding juan_luis_notes}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA NC" Binding="{Binding fecha_nc_display}" Width="90"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CATEGORIA" Binding="{Binding category}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="TIPO NOTA" Binding="{Binding note_type_name}" Width="95"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NRO NC" Binding="{Binding note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="NOTA DE ENTREGA" Binding="{Binding source_note_number}" Width="105"
-                                            ElementStyle="{StaticResource CellTextCenter}"/>
-                        <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                                            ElementStyle="{StaticResource CellTextWrap}"/>
-                        <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="85">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
-                                    <Setter Property="Foreground" Value="#C62828"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="ACCIONES" Width="132">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" Style="{StaticResource PreviewButton}"
-                                                Click="PreviewButton_Click" Tag="{Binding}"/>
-                                        <Button Content="PDF" Style="{StaticResource PdfButton}"
-                                                Click="PdfButton_Click" Tag="{Binding}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
+            </DataTemplate>
+        </TabControl.ContentTemplate>
         </TabControl>
 
         <!-- FILA 2: FOOTER -->

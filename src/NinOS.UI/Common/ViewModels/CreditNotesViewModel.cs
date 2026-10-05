@@ -25,7 +25,6 @@ namespace NinOS.UI.Common.ViewModels
         private List<credit_note_dto> _all_credit_rows = new();
         private bool _is_loading;
         private decimal _total_credit_usd;
-        private int _selected_tab_index;
 
         public ObservableCollection<string> credit_note_months { get; }
         public ObservableCollection<string> category_filters { get; } = new() { "Todas", "Devolución", "Obsequio" };
@@ -60,15 +59,36 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public int selected_tab_index
+        public ObservableCollection<SellerTabItem<credit_note_dto>> seller_tabs { get; } = new();
+        private SellerTabItem<credit_note_dto>? _selected_tab;
+
+        public SellerTabItem<credit_note_dto>? selected_tab
         {
-            get => _selected_tab_index;
+            get => _selected_tab;
             set
             {
-                if (_selected_tab_index == value) return;
-                _selected_tab_index = value;
+                if (_selected_tab == value) return;
+                _selected_tab = value;
                 on_property_changed();
+                on_property_changed(nameof(selected_tab_index));
                 recalc_totals();
+            }
+        }
+
+        public int selected_tab_index
+        {
+            get
+            {
+                if (_selected_tab == null) return 0;
+                int idx = seller_tabs.IndexOf(_selected_tab);
+                return idx >= 0 ? idx : 0;
+            }
+            set
+            {
+                if (value >= 0 && value < seller_tabs.Count)
+                {
+                    selected_tab = seller_tabs[value];
+                }
             }
         }
 
@@ -116,10 +136,64 @@ namespace NinOS.UI.Common.ViewModels
 
             new_credit_note_command = new RelayCommand(execute_new_credit_note);
 
+            AppDataEvents.CatalogsChanged += () =>
+            {
+                System.Windows.Application.Current?.Dispatcher?.InvokeAsync(refresh_data);
+            };
+
             load_months_async();
         }
 
         public void refresh_data() => load_months_async();
+
+        private void sync_seller_tabs(IEnumerable<seller> sellers)
+        {
+            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
+
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
+            {
+                seller_tabs.Insert(0, new SellerTabItem<credit_note_dto>(null, "Todos"));
+            }
+            else
+            {
+                seller_tabs[0].Header = "Todos";
+            }
+
+            var currentSellerTabs = seller_tabs.Skip(1).ToList();
+            foreach (var tab in currentSellerTabs)
+            {
+                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
+                {
+                    seller_tabs.Remove(tab);
+                }
+            }
+
+            int targetIndex = 1;
+            foreach (var s in activeSellers)
+            {
+                var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
+                if (existing == null)
+                {
+                    var newTab = new SellerTabItem<credit_note_dto>(s.id_seller, s.full_name ?? string.Empty);
+                    seller_tabs.Insert(targetIndex, newTab);
+                }
+                else
+                {
+                    existing.Header = s.full_name ?? string.Empty;
+                    int currentIndex = seller_tabs.IndexOf(existing);
+                    if (currentIndex != targetIndex)
+                    {
+                        seller_tabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                targetIndex++;
+            }
+
+            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
+            {
+                selected_tab = seller_tabs[0];
+            }
+        }
 
         private async void load_months_async()
         {
@@ -127,6 +201,9 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var current_selection = _selected_month;
                 _is_loading = true;
+
+                var dbSellers = await _seller_service.GetAllActiveAsync();
+                sync_seller_tabs(dbSellers);
 
                 var months = (await _credit_note_service.get_credit_note_months_async()).ToList();
 
@@ -219,21 +296,28 @@ namespace NinOS.UI.Common.ViewModels
             foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase))) alejandra_notes.Add(row);
             foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase))) juan_luis_notes.Add(row);
 
+            foreach (var tab in seller_tabs)
+            {
+                tab.Items.Clear();
+                if (tab.IdSeller == null)
+                {
+                    foreach (var row in rows) tab.Items.Add(row);
+                }
+                else
+                {
+                    foreach (var row in rows.Where(r => (tab.IdSeller.HasValue && r.id_seller == tab.IdSeller.Value) || string.Equals(r.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        tab.Items.Add(row);
+                    }
+                }
+            }
+
             recalc_totals();
         }
 
         private void recalc_totals()
         {
-            var list = _selected_tab_index switch
-            {
-                0 => notes.ToList(),
-                1 => sandra_notes.ToList(),
-                2 => anais_notes.ToList(),
-                3 => alejandra_notes.ToList(),
-                4 => juan_luis_notes.ToList(),
-                _ => new List<credit_note_dto>()
-            };
-
+            var list = (selected_tab?.Items ?? notes).ToList();
             total_credit_usd = list.Sum(r => r.total_amount_usd);
         }
 

@@ -306,10 +306,10 @@ namespace NinOS.UI.Common.ViewModels
 
             _sellerPrefixMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                { "Sandra", "3200" },
-                { "Anais", "3300" },
-                { "Alejandra", "3500" },
-                { "Juan Luis", "3400" }
+                { "Sandra", "001" },
+                { "Anais", "002" },
+                { "Alejandra", "003" },
+                { "Juan Luis", "004" }
             };
 
             _sellerLastNumberMap = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
