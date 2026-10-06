@@ -32,7 +32,8 @@ namespace NinOS.UI.Common.ViewModels
         public int IdZona { get; set; }
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string DisplayText => $"{Code} - {Name}";
+        public bool IsProVenta { get; set; }
+        public string DisplayText => $"{Code} - {Name}{(IsProVenta ? " [Pro Venta]" : "")}";
 
         private bool _isSelected;
         public bool IsSelected
@@ -299,6 +300,7 @@ namespace NinOS.UI.Common.ViewModels
                     IdZona = z.id_zona,
                     Code = z.code,
                     Name = z.name,
+                    IsProVenta = z.is_pro_venta,
                     IsSelected = assignedIds.Contains(z.id_zona),
                     IsEnabled = true,
                     ToolTip = string.Empty

@@ -758,7 +758,8 @@ namespace NinOS.Infrastructure.Data
                         code = kvp.Key,
                         name = kvp.Value,
                         sort_order = int.Parse(kvp.Key),
-                        is_active = true
+                        is_active = true,
+                        is_pro_venta = kvp.Key == "06"
                     });
                 }
                 else
@@ -769,6 +770,10 @@ namespace NinOS.Infrastructure.Data
                         existingZona.is_active = true;
                         existingZona.deleted_at = null;
                         existingZona.deleted_reason = null;
+                    }
+                    if (existingZona.code == "06" && !existingZona.is_pro_venta)
+                    {
+                        existingZona.is_pro_venta = true;
                     }
                     // Actualizar nombre si tenía el nombre anterior
                     if (existingZona.name != kvp.Value && 

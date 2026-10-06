@@ -118,6 +118,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
+                var note_payments = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .OrderBy(p => p.payment_date)
+                    .GroupBy(p => p.id_delivery_note!.Value)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
                 var result = new List<accounts_receivable_dto>();
                 foreach (var dn in notes)
                 {
@@ -127,6 +134,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     string customer_name = cust?.business_name ?? string.Empty;
                     int? id_zona = cust?.id_zona;
                     string zone_name = cust?.zona?.name ?? "Sin zona";
+
+                    string cxc_obs = dn.cxc_observations ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(cxc_obs) && note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
+                    {
+                        var pObs = pList.Select(p => p.observations?.Trim()).Where(o => !string.IsNullOrWhiteSpace(o)).Distinct();
+                        cxc_obs = string.Join(" | ", pObs);
+                    }
+
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -142,7 +157,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         status = dn.status,
                         paid_amount_usd = paid,
                         balance_due_usd = dn.adjusted_total_usd - paid,
-                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        cxc_observations = cxc_obs,
                         sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
@@ -242,6 +257,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
                     customers.TryGetValue(dn.id_customer, out string? customer_name);
+
+                    string cxc_obs = dn.cxc_observations ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(cxc_obs) && note_payments.TryGetValue(dn.id_delivery_note, out var pListObs) && pListObs.Count > 0)
+                    {
+                        var pObs = pListObs.Select(p => p.observations?.Trim()).Where(o => !string.IsNullOrWhiteSpace(o)).Distinct();
+                        cxc_obs = string.Join(" | ", pObs);
+                    }
+
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -262,7 +285,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText,
-                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        cxc_observations = cxc_obs,
                         sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
@@ -397,6 +420,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                         note_type_code = note_type_row.code ?? string.Empty;
                     }
 
+                    string cxc_obs = dn.cxc_observations ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(cxc_obs) && note_payments.TryGetValue(dn.id_delivery_note, out var pListObs) && pListObs.Count > 0)
+                    {
+                        var pObs = pListObs.Select(p => p.observations?.Trim()).Where(o => !string.IsNullOrWhiteSpace(o)).Distinct();
+                        cxc_obs = string.Join(" | ", pObs);
+                    }
+
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -421,7 +451,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText,
-                        cxc_observations = dn.cxc_observations ?? string.Empty,
+                        cxc_observations = cxc_obs,
                         sales_observations = dn.sales_observations ?? string.Empty
                     });
                 }
@@ -460,6 +490,17 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 bool is_promo_note = dn.promo_discount_percentage != null && dn.promo_discount_percentage > 0;
 
+                string cxc_obs = dn.cxc_observations ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(cxc_obs))
+                {
+                    var pObs = await db_context.payments
+                        .AsNoTracking()
+                        .Where(p => p.id_delivery_note == dn.id_delivery_note && !string.IsNullOrWhiteSpace(p.observations))
+                        .Select(p => p.observations)
+                        .ToListAsync();
+                    cxc_obs = string.Join(" | ", pObs.Select(o => o.Trim()).Distinct());
+                }
+
                 return new accounts_receivable_dto
                 {
                     id_delivery_note = dn.id_delivery_note,
@@ -478,7 +519,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     status = dn.status,
                     paid_amount_usd = paid,
                     balance_due_usd = dn.adjusted_total_usd - paid,
-                    cxc_observations = dn.cxc_observations ?? string.Empty,
+                    cxc_observations = cxc_obs,
                     sales_observations = dn.sales_observations ?? string.Empty
                 };
             }

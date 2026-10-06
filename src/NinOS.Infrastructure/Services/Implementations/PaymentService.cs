@@ -94,6 +94,20 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (string.IsNullOrEmpty(new_payment.bank_name)) new_payment.bank_name = "";
                 if (string.IsNullOrEmpty(new_payment.observations)) new_payment.observations = "";
                 await _db_context.payments.AddAsync(new_payment);
+
+                if (!string.IsNullOrWhiteSpace(new_payment.observations))
+                {
+                    string obsTrim = new_payment.observations.Trim();
+                    if (string.IsNullOrWhiteSpace(target_note.cxc_observations))
+                    {
+                        target_note.cxc_observations = obsTrim;
+                    }
+                    else if (!target_note.cxc_observations.Contains(obsTrim, StringComparison.OrdinalIgnoreCase))
+                    {
+                        target_note.cxc_observations = $"{target_note.cxc_observations} | {obsTrim}";
+                    }
+                }
+
                 await _db_context.SaveChangesAsync();
 
                 payment[] all_payments = await _db_context.payments
@@ -216,6 +230,19 @@ namespace NinOS.Infrastructure.Services.Implementations
                 existing.bank_name = updated_payment.bank_name ?? "";
                 existing.observations = updated_payment.observations ?? "";
                 existing.updated_at = DateTime.UtcNow;
+
+                if (!string.IsNullOrWhiteSpace(updated_payment.observations))
+                {
+                    string obsTrim = updated_payment.observations.Trim();
+                    if (string.IsNullOrWhiteSpace(target_note.cxc_observations))
+                    {
+                        target_note.cxc_observations = obsTrim;
+                    }
+                    else if (!target_note.cxc_observations.Contains(obsTrim, StringComparison.OrdinalIgnoreCase))
+                    {
+                        target_note.cxc_observations = $"{target_note.cxc_observations} | {obsTrim}";
+                    }
+                }
 
                 await _db_context.SaveChangesAsync();
 

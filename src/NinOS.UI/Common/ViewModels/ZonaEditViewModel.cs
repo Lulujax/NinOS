@@ -20,6 +20,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _newName = string.Empty;
         private string _newCode = string.Empty;
         private bool _isEditing;
+        private int _selectedModalidadIndex;
         private zona? _editingZona;
 
         public ZonaEditViewModel(IZonaService zonaService)
@@ -85,6 +86,12 @@ namespace NinOS.UI.Common.ViewModels
             set { _isEditing = value; OnPropertyChanged(); OnPropertyChanged(nameof(TitleText)); }
         }
 
+        public int SelectedModalidadIndex
+        {
+            get => _selectedModalidadIndex;
+            set { _selectedModalidadIndex = value; OnPropertyChanged(); }
+        }
+
         public string TitleText => _editingZona != null ? "Editar Zona" : "Agregar Zona";
 
         public async Task LoadZonasAsync()
@@ -106,7 +113,8 @@ namespace NinOS.UI.Common.ViewModels
                         Code = z.code,
                         Name = z.name,
                         SortOrder = z.sort_order,
-                        IsActive = z.is_active
+                        IsActive = z.is_active,
+                        IsProVenta = z.is_pro_venta
                     });
                 }
 
@@ -120,6 +128,7 @@ namespace NinOS.UI.Common.ViewModels
                         Name = z.name,
                         SortOrder = z.sort_order,
                         IsActive = z.is_active,
+                        IsProVenta = z.is_pro_venta,
                         DeletedAt = z.deleted_at,
                         DeletedReason = z.deleted_reason
                     });
@@ -141,6 +150,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             _editingZona = null;
             NewName = string.Empty;
+            SelectedModalidadIndex = 0;
             ErrorMessage = string.Empty;
             IsEditing = true;
             try
@@ -170,6 +180,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 string codeToUse = string.IsNullOrWhiteSpace(NewCode) ? await _zonaService.GetNextCodeAsync() : NewCode.Trim();
+                bool isProVenta = SelectedModalidadIndex == 1;
 
                 if (_editingZona == null)
                 {
@@ -178,13 +189,15 @@ namespace NinOS.UI.Common.ViewModels
                         name = NewName.Trim(),
                         code = codeToUse,
                         sort_order = int.TryParse(codeToUse, out int n) ? n : 0,
-                        is_active = true
+                        is_active = true,
+                        is_pro_venta = isProVenta
                     };
                     await _zonaService.CreateAsync(nueva);
                 }
                 else
                 {
                     _editingZona.name = NewName.Trim();
+                    _editingZona.is_pro_venta = isProVenta;
                     await _zonaService.UpdateAsync(_editingZona);
                 }
 
@@ -212,10 +225,12 @@ namespace NinOS.UI.Common.ViewModels
                     code = vm.Code,
                     name = vm.Name,
                     sort_order = vm.SortOrder,
-                    is_active = vm.IsActive
+                    is_active = vm.IsActive,
+                    is_pro_venta = vm.IsProVenta
                 };
                 NewName = vm.Name;
                 NewCode = vm.Code;
+                SelectedModalidadIndex = vm.IsProVenta ? 1 : 0;
                 ErrorMessage = string.Empty;
                 IsEditing = true;
                 ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged();
@@ -282,6 +297,7 @@ namespace NinOS.UI.Common.ViewModels
             _editingZona = null;
             NewName = string.Empty;
             NewCode = string.Empty;
+            SelectedModalidadIndex = 0;
             ErrorMessage = string.Empty;
             IsEditing = false;
         }

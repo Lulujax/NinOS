@@ -28,5 +28,8 @@ namespace NinOS.Domain
 
         [MaxLength(200)]
         public string? deleted_reason { get; set; }
+
+        [Required]
+        public bool is_pro_venta { get; set; } = false;
     }
 }

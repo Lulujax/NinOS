@@ -460,6 +460,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _promo_title_text = "PROMOCIÓN";
         private string _customer_code_text = string.Empty;
         private string _contact_name_text = string.Empty;
+        private string _observations_text = string.Empty;
 
         public ObservableCollection<seller> sellers { get; }
         public ObservableCollection<note_type> note_type_options { get; }
@@ -695,10 +696,10 @@ namespace NinOS.UI.Common.ViewModels
             get { return is_pro_venta ? "BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986" : "BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042"; }
         }
 
-        private static bool IsMaracay(zona? z)
+        private static bool IsProVentaZona(zona? z)
         {
             if (z == null) return false;
-            return z.code == "06" || (!string.IsNullOrWhiteSpace(z.name) && z.name.IndexOf("maracay", StringComparison.OrdinalIgnoreCase) >= 0);
+            return z.is_pro_venta;
         }
 
         private void RefreshNoteTypeOptions(bool keepSelection = false)
@@ -710,8 +711,8 @@ namespace NinOS.UI.Common.ViewModels
                 note_type_options.Clear();
                 if (_selected_seller != null)
                 {
-                    bool hasMaracay = _seller_assigned_zones.Any(IsMaracay);
-                    bool hasOther = _seller_assigned_zones.Any(z => !IsMaracay(z));
+                    bool hasProVenta = _seller_assigned_zones.Any(IsProVentaZona);
+                    bool hasOther = _seller_assigned_zones.Any(z => !IsProVentaZona(z));
 
                     foreach (note_type nt in _all_note_types_cache
                         .Where(t => t.is_active)
@@ -720,7 +721,7 @@ namespace NinOS.UI.Common.ViewModels
                         bool isPv = NoteTypeCodes.is_pro_venta(nt.code);
                         bool isGen = !isPv;
 
-                        if (isPv && hasMaracay)
+                        if (isPv && hasProVenta)
                         {
                             note_type_options.Add(nt);
                         }
@@ -812,7 +813,7 @@ namespace NinOS.UI.Common.ViewModels
                     {
                         int idZona = c.id_zona!.Value;
                         var custZona = c.zona ?? _seller_assigned_zones.FirstOrDefault(z => z.id_zona == idZona);
-                        return isPv ? IsMaracay(custZona) : !IsMaracay(custZona);
+                        return isPv ? IsProVentaZona(custZona) : !IsProVentaZona(custZona);
                     })
                     .OrderBy(c => c.business_name);
 
@@ -1134,6 +1135,17 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_contact_name_text == value) return;
                 _contact_name_text = value;
+                on_property_changed();
+            }
+        }
+
+        public string observations_text
+        {
+            get { return _observations_text; }
+            set
+            {
+                if (_observations_text == value) return;
+                _observations_text = value;
                 on_property_changed();
             }
         }
@@ -1469,16 +1481,16 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 var custZona = _selected_customer.zona ?? assignedZones.FirstOrDefault(z => z.id_zona == _selected_customer.id_zona);
-                bool isCustMaracay = IsMaracay(custZona);
+                bool isCustPv = IsProVentaZona(custZona);
                 bool isPv = NoteTypeCodes.is_pro_venta(_selected_note_type.code);
 
-                if (isPv && !isCustMaracay)
+                if (isPv && !isCustPv)
                 {
-                    throw new InvalidOperationException("Las notas Pro Venta son exclusivas para clientes de la zona Maracay.");
+                    throw new InvalidOperationException($"Las notas Pro Venta (MAR / PVP) solo se pueden emitir para zonas configuradas en modalidad Pro Venta.");
                 }
-                if (!isPv && isCustMaracay)
+                if (!isPv && isCustPv)
                 {
-                    throw new InvalidOperationException("La zona Maracay solo trabaja con notas de tipo Pro Venta (MAR / PVP).");
+                    throw new InvalidOperationException($"La zona de este cliente ({custZona?.name ?? ""}) trabaja en modalidad Pro Venta y solo admite notas MAR / PVP.");
                 }
 
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
@@ -1545,6 +1557,11 @@ namespace NinOS.UI.Common.ViewModels
                 new_note.volume_discount_percentage = null;
                 new_note.original_discount_percentage = cond_pct;
                 new_note.original_volume_discount_percentage = vol_pct;
+                if (!string.IsNullOrWhiteSpace(_observations_text))
+                {
+                    new_note.cxc_observations = _observations_text.Trim();
+                    new_note.sales_observations = _observations_text.Trim();
+                }
 
                 List<note_detail> domain_details = new List<note_detail>();
                 foreach (note_detail_row row in note_details)
@@ -1603,6 +1620,7 @@ namespace NinOS.UI.Common.ViewModels
                 volume_discount_percentage_text = string.Empty;
                 customer_code_text = string.Empty;
                 contact_name_text = string.Empty;
+                observations_text = string.Empty;
                 _selected_customer = null;
                 on_property_changed(nameof(selected_customer));
                 on_property_changed(nameof(customer_code_text));
@@ -1627,6 +1645,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (note_details.Count > 0) return true;
                 if (!string.IsNullOrWhiteSpace(customer_code_text)) return true;
+                if (!string.IsNullOrWhiteSpace(observations_text)) return true;
                 return false;
             }
         }
@@ -1645,6 +1664,7 @@ namespace NinOS.UI.Common.ViewModels
             volume_discount_percentage_text = string.Empty;
             customer_code_text = string.Empty;
             contact_name_text = string.Empty;
+            observations_text = string.Empty;
             _selected_customer = null;
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));

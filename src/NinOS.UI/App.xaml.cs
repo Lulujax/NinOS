@@ -202,7 +202,11 @@ namespace NinOS.UI
 
         private void configure_services(ServiceCollection services)
         {
-            services.AddDbContext<NinOSDbContext>(options => options.UseNpgsql(DbConnectionFactory.GetConnectionString()));
+            services.AddDbContext<NinOSDbContext>(options =>
+            {
+                options.UseNpgsql(DbConnectionFactory.GetConnectionString());
+                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            });
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
             services.AddScoped<IInventoryService, InventoryService>();
