@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NinOS.Domain;
+using NinOS.Domain.ViewModels;
 
 namespace NinOS.Infrastructure.Services.Interfaces
 {
@@ -15,5 +16,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task SoftDeleteCustomerAsync(int id, string? reason);
         Task RestoreCustomerAsync(int id);
         Task<string> GetNextCustomerCodeAsync();
+        Task<CustomerHistoryDataDto?> GetCustomerHistoryAsync(int customerId);
     }
 }
