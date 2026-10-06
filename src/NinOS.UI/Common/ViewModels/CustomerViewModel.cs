@@ -112,6 +112,7 @@ namespace NinOS.UI.Common.ViewModels
         public Action? OnCloseAddCustomerWindow { get; set; }
         public Action? OnRequestAddCustomerWindow { get; set; }
         public Action<CustomerRowDto>? OnRequestEditCustomerWindow { get; set; }
+        public Action<CustomerRowDto>? OnRequestCustomerHistoryWindow { get; set; }
 
         public string SearchQuery
         {
