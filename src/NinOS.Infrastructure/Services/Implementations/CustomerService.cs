@@ -178,16 +178,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .FirstOrDefaultAsync(c => c.id_customer == customerId);
                 if (cust == null) return null;
 
+                var sellers_map = await db_context.sellers.AsNoTracking().ToDictionaryAsync(s => s.id_seller);
+                var note_types_map = await db_context.note_types.AsNoTracking().ToDictionaryAsync(t => t.id_note_type);
+
                 // 1. Delivery notes
                 var raw_notes = await db_context.delivery_notes.AsNoTracking()
-                    .Include(n => n.seller)
-                    .Include(n => n.note_type)
-                    .Include(n => n.zona)
                     .Where(n => n.id_customer == customerId)
+                    .OrderByDescending(n => n.creation_date)
                     .ToListAsync();
 
-                var notes = raw_notes.OrderByCorrelative(n => n.note_number).OrderByDescending(n => n.creation_date).ToList();
-                var note_ids = notes.Select(n => n.id_delivery_note).ToList();
+                var note_ids = raw_notes.Select(n => n.id_delivery_note).ToList();
 
                 // 2. Payments
                 var payments = new List<payment>();
@@ -206,7 +206,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 // Delivery note DTOs
                 var deliveryNoteDtos = new List<accounts_receivable_dto>();
-                foreach (var note in notes)
+                foreach (var note in raw_notes)
                 {
                     decimal paid = 0;
                     if (payments_by_note.TryGetValue(note.id_delivery_note, out var notePayments))
@@ -218,15 +218,22 @@ namespace NinOS.Infrastructure.Services.Implementations
                     decimal balance = total - paid;
                     if (balance < 0) balance = 0;
 
+                    sellers_map.TryGetValue(note.id_seller, out var seller);
+                    note_type? noteType = null;
+                    if (note.note_type_id.HasValue)
+                    {
+                        note_types_map.TryGetValue(note.note_type_id.Value, out noteType);
+                    }
+
                     var dto = new accounts_receivable_dto
                     {
                         id_delivery_note = note.id_delivery_note,
                         note_number = note.note_number,
                         customer_name = cust.business_name,
                         id_seller = note.id_seller,
-                        seller_name = note.seller?.full_name ?? string.Empty,
-                        id_zona = note.id_zona,
-                        zone_name = note.zona?.name ?? (note.id_zona.HasValue ? $"Zona {note.id_zona}" : "-"),
+                        seller_name = seller?.full_name ?? string.Empty,
+                        id_zona = cust.id_zona,
+                        zone_name = cust.zona?.name ?? (cust.id_zona.HasValue ? $"Zona {cust.id_zona}" : "-"),
                         creation_date = note.creation_date,
                         dispatch_date = note.dispatch_date,
                         total_amount_usd = total,
@@ -235,24 +242,30 @@ namespace NinOS.Infrastructure.Services.Implementations
                         balance_due_usd = balance,
                         status = note.status,
                         sales_observations = note.sales_observations ?? string.Empty,
-                        observations = note.observations ?? string.Empty
+                        cxc_observations = note.cxc_observations ?? string.Empty,
+                        note_type_name = noteType?.name ?? string.Empty,
+                        note_type_code = noteType?.code ?? string.Empty
                     };
-                    dto.set_note_type(note.note_type?.name ?? string.Empty, note.note_type?.code ?? string.Empty);
                     deliveryNoteDtos.Add(dto);
                 }
 
                 // Payment DTOs
-                var notes_dict = notes.ToDictionary(n => n.id_delivery_note);
+                var notes_dict = raw_notes.ToDictionary(n => n.id_delivery_note);
                 var paymentDtos = payments.Select(p =>
                 {
                     notes_dict.TryGetValue(p.id_delivery_note ?? 0, out var parentNote);
+                    seller? seller = null;
+                    if (parentNote != null)
+                    {
+                        sellers_map.TryGetValue(parentNote.id_seller, out seller);
+                    }
                     return new payment_dto
                     {
                         id_payment = p.id_payment,
                         id_delivery_note = p.id_delivery_note ?? 0,
                         note_number = parentNote?.note_number ?? "-",
                         customer_name = cust.business_name,
-                        seller_name = parentNote?.seller?.full_name ?? "-",
+                        seller_name = seller?.full_name ?? "-",
                         payment_date = p.payment_date,
                         created_at = p.payment_date,
                         amount_usd = p.amount_usd,
@@ -267,7 +280,6 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 // 3. Credit notes
                 var raw_credit_notes = await db_context.credit_notes.AsNoTracking()
-                    .Include(c => c.seller)
                     .Where(c => c.id_customer == customerId)
                     .OrderByDescending(c => c.creation_date)
                     .ToListAsync();
@@ -281,19 +293,33 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .ToDictionaryAsync(n => n.id_delivery_note, n => n.note_number);
                 }
 
-                var creditNoteDtos = raw_credit_notes.Select(c => new credit_note_dto
+                var creditNoteDtos = raw_credit_notes.Select(c =>
                 {
-                    id_credit_note = c.id_credit_note,
-                    note_number = c.note_number,
-                    source_note_number = c.id_delivery_note.HasValue && delivery_note_numbers.TryGetValue(c.id_delivery_note.Value, out var sn) ? sn : (c.category == "Obsequio" ? "OBSEQUIO" : "-"),
-                    id_delivery_note = c.id_delivery_note ?? 0,
-                    customer_name = cust.business_name,
-                    id_seller = c.id_seller,
-                    seller_name = c.seller?.full_name ?? "-",
-                    creation_date = c.creation_date,
-                    total_amount_usd = c.total_amount_usd,
-                    status = c.status,
-                    category = c.category
+                    sellers_map.TryGetValue(c.id_seller, out var crSeller);
+                    string sn = "-";
+                    if (c.id_delivery_note.HasValue && delivery_note_numbers.TryGetValue(c.id_delivery_note.Value, out var foundSn))
+                    {
+                        sn = foundSn;
+                    }
+                    else if (c.category == "Obsequio")
+                    {
+                        sn = "OBSEQUIO";
+                    }
+
+                    return new credit_note_dto
+                    {
+                        id_credit_note = c.id_credit_note,
+                        note_number = c.note_number,
+                        source_note_number = sn,
+                        id_delivery_note = c.id_delivery_note ?? 0,
+                        customer_name = cust.business_name,
+                        id_seller = c.id_seller,
+                        seller_name = crSeller?.full_name ?? "-",
+                        creation_date = c.creation_date,
+                        total_amount_usd = c.total_amount_usd,
+                        status = c.status,
+                        category = c.category
+                    };
                 }).ToList();
 
                 // 4. Top purchased products
@@ -301,26 +327,29 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (note_ids.Count > 0)
                 {
                     var details = await db_context.note_details.AsNoTracking()
-                        .Include(d => d.product)
-                        .Where(d => note_ids.Contains(d.id_delivery_note))
+                        .Where(d => note_ids.Contains(d.id_delivery_note) && d.id_product != null)
                         .ToListAsync();
 
+                    var product_ids = details.Select(d => d.id_product!.Value).Distinct().ToList();
+                    var products_map = await db_context.products.AsNoTracking()
+                        .Where(p => product_ids.Contains(p.id_product))
+                        .ToDictionaryAsync(p => p.id_product);
+
                     topProducts = details
-                        .Where(d => d.product != null)
-                        .GroupBy(d => d.id_product)
+                        .GroupBy(d => d.id_product!.Value)
                         .Select(g =>
                         {
-                            var prod = g.First().product!;
+                            products_map.TryGetValue(g.Key, out var prod);
                             var latestDetail = g.OrderByDescending(d => d.id_delivery_note).First();
-                            var latestNote = notes.FirstOrDefault(n => n.id_delivery_note == latestDetail.id_delivery_note);
+                            notes_dict.TryGetValue(latestDetail.id_delivery_note, out var latestNote);
                             return new CustomerHistoryProductDto
                             {
-                                ProductCode = prod.code ?? string.Empty,
-                                ProductName = prod.name ?? string.Empty,
+                                ProductCode = prod?.product_code ?? string.Empty,
+                                ProductName = prod?.name ?? string.Empty,
                                 TotalQuantity = g.Sum(d => d.quantity),
-                                LastPriceUsd = latestDetail.unit_price,
+                                LastPriceUsd = latestDetail.unit_price_usd,
                                 LastPurchaseDate = latestNote?.creation_date ?? DateTime.MinValue,
-                                TotalAmountUsd = g.Sum(d => d.quantity * d.unit_price)
+                                TotalAmountUsd = g.Sum(d => d.quantity * d.unit_price_usd)
                             };
                         })
                         .OrderByDescending(p => p.TotalQuantity)

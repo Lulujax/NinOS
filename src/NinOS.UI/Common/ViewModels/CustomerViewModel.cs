@@ -295,6 +295,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand DeleteCustomerCommand { get; }
         public ICommand EditZonasCommand { get; }
         public ICommand LoadCustomersCommand { get; }
+        public ICommand OpenCustomerHistoryCommand { get; }
 
         public CustomerViewModel(
             ICustomerService customerService,
@@ -342,6 +343,7 @@ namespace NinOS.UI.Common.ViewModels
             DeleteCustomerCommand = new RelayCommand(ExecuteDeleteCustomer, CanExecuteDeleteCustomer);
             EditZonasCommand = new RelayCommand(ExecuteEditZonas);
             LoadCustomersCommand = new RelayCommand(ExecuteLoadCustomers);
+            OpenCustomerHistoryCommand = new RelayCommand(ExecuteOpenCustomerHistory);
 
             AppDataEvents.CatalogsChanged += OnCatalogsChanged;
 
@@ -755,6 +757,14 @@ namespace NinOS.UI.Common.ViewModels
             SetDefaultZonaFromTab();
             await GenerateNextCustomerCodeAsync();
             OnRequestAddCustomerWindow?.Invoke();
+        }
+
+        private void ExecuteOpenCustomerHistory(object? parameter)
+        {
+            if (parameter is CustomerRowDto selected)
+            {
+                OnRequestCustomerHistoryWindow?.Invoke(selected);
+            }
         }
 
         private bool CanExecuteEditCustomer(object? parameter)
