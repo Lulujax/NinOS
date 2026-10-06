@@ -188,7 +188,6 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Binding="{Binding ZonaName}" Header="Zona" Width="110" ElementStyle="{StaticResource CellWrap}"/>
-                            <DataGridTextColumn Binding="{Binding SellerName}" Header="Vendedor" Width="85" ElementStyle="{StaticResource CellWrap}"/>
                             <DataGridTemplateColumn Header="Acciones" Width="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

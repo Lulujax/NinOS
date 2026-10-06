@@ -99,9 +99,21 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scopeFactory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                db_context.customers.Update(existingCustomer);
-                await db_context.SaveChangesAsync();
-                await UpdateSellerLastCustomerNumberAsync(db_context, existingCustomer);
+                var dbCust = await db_context.customers.FirstOrDefaultAsync(c => c.id_customer == existingCustomer.id_customer);
+                if (dbCust != null)
+                {
+                    dbCust.customer_code = existingCustomer.customer_code;
+                    dbCust.business_name = existingCustomer.business_name;
+                    dbCust.rif = existingCustomer.rif;
+                    dbCust.contact_name = existingCustomer.contact_name;
+                    dbCust.phone_number = existingCustomer.phone_number;
+                    dbCust.fiscal_address = existingCustomer.fiscal_address;
+                    dbCust.delivery_address = existingCustomer.delivery_address;
+                    dbCust.seller_name = existingCustomer.seller_name;
+                    dbCust.id_zona = existingCustomer.id_zona;
+                    await db_context.SaveChangesAsync();
+                    await UpdateSellerLastCustomerNumberAsync(db_context, dbCust);
+                }
             }
         }
 

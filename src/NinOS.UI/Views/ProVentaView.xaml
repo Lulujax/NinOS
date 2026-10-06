@@ -283,7 +283,18 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding is_pending, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
-                <TextBlock Text="Relacion por cobrar - pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
+                <Border BorderBrush="#B0B0B0" BorderThickness="1" Padding="8" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
+                                  DisplayMemberPath="label" Width="180" Margin="0,0,12,0"/>
+                        <Button Content="Ver todas las relaciones" Command="{Binding clear_month_filter_command}"
+                                Padding="10,3" Cursor="Hand" Background="#E3F2FD" BorderBrush="#1565C0" BorderThickness="1"
+                                Foreground="#1565C0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Relacion por cobrar - pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
                 <TextBlock Text="Seleccione un mes para ver las relaciones pendientes." Foreground="#8D6E00"
                            HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
@@ -366,7 +377,18 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding is_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
-                <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0"/>
+                <Border BorderBrush="#B0B0B0" BorderThickness="1" Padding="8" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
+                                  DisplayMemberPath="label" Width="180" Margin="0,0,12,0"/>
+                        <Button Content="Ver todas las relaciones" Command="{Binding clear_month_filter_command}"
+                                Padding="10,3" Cursor="Hand" Background="#E3F2FD" BorderBrush="#1565C0" BorderThickness="1"
+                                Foreground="#1565C0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
                 <TextBlock Text="Seleccione un mes para ver las relaciones pagadas." Foreground="#8D6E00"
                            HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"

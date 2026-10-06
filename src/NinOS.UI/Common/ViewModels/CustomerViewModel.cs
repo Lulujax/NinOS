@@ -344,18 +344,18 @@ namespace NinOS.UI.Common.ViewModels
 
             AppDataEvents.CatalogsChanged += OnCatalogsChanged;
 
-            LoadCustomersAsync();
+            _ = LoadCustomersAsync();
         }
 
         private void OnCatalogsChanged()
         {
             if (Application.Current?.Dispatcher != null)
             {
-                Application.Current.Dispatcher.InvokeAsync(LoadCustomersAsync);
+                Application.Current.Dispatcher.InvokeAsync(async () => await LoadCustomersAsync());
             }
             else
             {
-                LoadCustomersAsync();
+                _ = LoadCustomersAsync();
             }
         }
 
@@ -367,10 +367,10 @@ namespace NinOS.UI.Common.ViewModels
 
         private void ExecuteLoadCustomers(object? parameter)
         {
-            LoadCustomersAsync();
+            _ = LoadCustomersAsync();
         }
 
-        public void refresh_data() => LoadCustomersAsync();
+        public void refresh_data() => _ = LoadCustomersAsync();
 
         public static string FormatTabHeader(string? name)
         {
@@ -491,7 +491,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private async void LoadCustomersAsync()
+        public async Task LoadCustomersAsync()
         {
             try
             {
@@ -719,6 +719,7 @@ namespace NinOS.UI.Common.ViewModels
                     existing.delivery_address = _newDeliveryAddress;
                     existing.seller_name = _newSellerName;
                     existing.id_zona = _newZonaId;
+                    existing.zona = null;
 
                     await _customerService.UpdateCustomerAsync(existing);
                 }
@@ -729,7 +730,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 ClearForm();
                 OnCloseAddCustomerWindow?.Invoke();
-                LoadCustomersAsync();
+                await LoadCustomersAsync();
                 AppDataEvents.raise_catalogs_changed();
             }
             catch (Exception ex)
@@ -822,7 +823,7 @@ namespace NinOS.UI.Common.ViewModels
                     IsLoading = true;
                     ErrorMessage = string.Empty;
                     await _customerService.SoftDeleteCustomerAsync(selected.CustomerRef.id_customer, null);
-                    LoadCustomersAsync();
+                    await LoadCustomersAsync();
                     AppDataEvents.raise_catalogs_changed();
                     AppDialog.Show($"Cliente \"{selected.BusinessName}\" eliminado exitosamente.",
                         "Cliente eliminado", MessageBoxButton.OK, MessageBoxImage.Information);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -42,6 +42,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand note_pdf_command { get; }
         public ICommand note_preview_command { get; }
         public ICommand annul_note_command { get; }
+        public ICommand clear_month_filter_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
@@ -65,6 +66,14 @@ namespace NinOS.UI.Common.ViewModels
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
             annul_note_command = new RelayCommand(execute_annul_note);
+            clear_month_filter_command = new RelayCommand(_ => show_all_relations());
+        }
+
+        private bool _show_all_months;
+        public bool show_all_months
+        {
+            get => _show_all_months;
+            private set { _show_all_months = value; on_property_changed(); }
         }
 
         public int selected_report_index
@@ -78,6 +87,19 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(is_weekly));
                 on_property_changed(nameof(is_pending));
                 on_property_changed(nameof(is_paid));
+
+                if (is_pending)
+                {
+                    _ = load_pending_async();
+                }
+                else if (is_paid)
+                {
+                    _ = load_paid_async();
+                }
+                else if (is_weekly && _selected_month != null)
+                {
+                    refresh_weeks_async();
+                }
             }
         }
 
@@ -85,17 +107,12 @@ namespace NinOS.UI.Common.ViewModels
         public bool is_pending => _selected_report_index == 1;
         public bool is_paid => _selected_report_index == 2;
 
-        // Mientras no haya mes elegido no se carga nada, asi que las tablas arrancan vacias a
-        // proposito. Esta propiedad distingue "todavia no elegiste mes" de "elegiste un mes que
-        // no tiene datos", para que el mensaje sea distinto en cada caso.
-        public bool month_not_selected => _selected_month == null;
+        public bool month_not_selected => _selected_month == null && !_show_all_months;
 
-        // Los mensajes de "no hay datos" solo tienen sentido cuando ya se eligio un mes. Sin mes
-        // las listas estan vacias a proposito, asi que se muestra el aviso de "seleccione un mes".
-        public bool pending_show_empty => _selected_month != null && pending_empty;
-        public bool paid_show_empty => _selected_month != null && paid_empty;
-        public bool pending_show_month_hint => _selected_month == null;
-        public bool paid_show_month_hint => _selected_month == null;
+        public bool pending_show_empty => (_selected_month != null || _show_all_months) && pending_empty;
+        public bool paid_show_empty => (_selected_month != null || _show_all_months) && paid_empty;
+        public bool pending_show_month_hint => _selected_month == null && !_show_all_months;
+        public bool paid_show_month_hint => _selected_month == null && !_show_all_months;
 
         public pro_venta_month_option? selected_month
         {
@@ -104,12 +121,15 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_month == value) return;
                 _selected_month = value;
+                if (_selected_month != null)
+                {
+                    _show_all_months = false;
+                    on_property_changed(nameof(show_all_months));
+                }
                 on_property_changed();
                 on_property_changed(nameof(month_not_selected));
 
-                // Si el usuario limpia el combo, se vuelve al estado vacio en vez de dejar
-                // los datos de un mes que ya no esta elegido.
-                if (_selected_month == null)
+                if (_selected_month == null && !_show_all_months)
                 {
                     weeks = new List<pro_venta_week_info>();
                     on_property_changed(nameof(weeks));
@@ -140,7 +160,18 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                refresh_weeks_async();
+                if (is_pending)
+                {
+                    _ = load_pending_async();
+                }
+                else if (is_paid)
+                {
+                    _ = load_paid_async();
+                }
+                else
+                {
+                    refresh_weeks_async();
+                }
             }
         }
 
@@ -297,13 +328,54 @@ namespace NinOS.UI.Common.ViewModels
             foreach (var r in filtered) available_relations.Add(r);
         }
 
+        private void show_all_relations()
+        {
+            _show_all_months = true;
+            _selected_month = null;
+            on_property_changed(nameof(selected_month));
+            on_property_changed(nameof(show_all_months));
+            on_property_changed(nameof(month_not_selected));
+            on_property_changed(nameof(pending_show_month_hint));
+            on_property_changed(nameof(paid_show_month_hint));
+            if (is_pending)
+            {
+                _ = load_pending_async();
+            }
+            else if (is_paid)
+            {
+                _ = load_paid_async();
+            }
+        }
+
         public async Task load_pending_async()
         {
             try
             {
-                var rows = await _pro_venta_service.get_pending_relations_async();
+                if (_selected_month == null && !_show_all_months)
+                {
+                    pending_rows.Clear();
+                    on_property_changed(nameof(has_pending));
+                    on_property_changed(nameof(pending_empty));
+                    on_property_changed(nameof(pending_show_empty));
+                    on_property_changed(nameof(pending_show_month_hint));
+                    on_property_changed(nameof(pending_total_amount));
+                    on_property_changed(nameof(pending_total_balance));
+                    return;
+                }
+
+                var all_rows = await _pro_venta_service.get_pending_relations_async();
+                IEnumerable<pro_venta_relation_row> filtered = all_rows;
+                if (_selected_month != null)
+                {
+                    int year = _selected_month.value.Year;
+                    int month = _selected_month.value.Month;
+                    filtered = all_rows.Where(r =>
+                        (r.week_start.Year == year && r.week_start.Month == month) ||
+                        (r.week_end.Year == year && r.week_end.Month == month));
+                }
+
                 pending_rows.Clear();
-                foreach (var row in rows) pending_rows.Add(row);
+                foreach (var row in filtered) pending_rows.Add(row);
 
                 on_property_changed(nameof(has_pending));
                 on_property_changed(nameof(pending_empty));
@@ -322,9 +394,30 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var rows = await _pro_venta_service.get_paid_relations_async();
+                if (_selected_month == null && !_show_all_months)
+                {
+                    paid_rows.Clear();
+                    on_property_changed(nameof(has_paid));
+                    on_property_changed(nameof(paid_empty));
+                    on_property_changed(nameof(paid_show_empty));
+                    on_property_changed(nameof(paid_show_month_hint));
+                    on_property_changed(nameof(paid_total_amount));
+                    return;
+                }
+
+                var all_rows = await _pro_venta_service.get_paid_relations_async();
+                IEnumerable<pro_venta_relation_row> filtered = all_rows;
+                if (_selected_month != null)
+                {
+                    int year = _selected_month.value.Year;
+                    int month = _selected_month.value.Month;
+                    filtered = all_rows.Where(r =>
+                        (r.week_start.Year == year && r.week_start.Month == month) ||
+                        (r.week_end.Year == year && r.week_end.Month == month));
+                }
+
                 paid_rows.Clear();
-                foreach (var row in rows) paid_rows.Add(row);
+                foreach (var row in filtered) paid_rows.Add(row);
 
                 on_property_changed(nameof(has_paid));
                 on_property_changed(nameof(paid_empty));
