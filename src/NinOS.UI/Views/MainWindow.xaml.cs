@@ -116,9 +116,9 @@ namespace NinOS.UI.Views
             if (target == null) return;
 
             int target_index = MainTabControl.Items.IndexOf(target);
-            if (target_index == 0) return;
+            if (target_index == MainTabControl.SelectedIndex) return;
 
-            if (_viewModel.delivery_notes_vm?.has_pending_data == true)
+            if (MainTabControl.SelectedIndex == 0 && _viewModel.delivery_notes_vm?.has_pending_data == true)
             {
                 MessageBoxResult result = AppDialog.Show(
                     "Hay datos sin guardar en la Nota de Entrega. Si sales de esta pestaña se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?",
@@ -126,7 +126,7 @@ namespace NinOS.UI.Views
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
-                if (result == MessageBoxResult.No)
+                if (result != MessageBoxResult.Yes)
                 {
                     e.Handled = true;
                     return;

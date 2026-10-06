@@ -38,35 +38,56 @@ namespace NinOS.UI.Common
 
             var month_cap = Capitalize(report.month);
             var rows = report.rows ?? new List<monthly_report_row_dto>();
-
-            var grouped = rows
-                .GroupBy(r => string.IsNullOrWhiteSpace(r.seller_name) ? "SIN VENDEDOR" : r.seller_name.Trim())
-                .OrderBy(g => g.Key)
-                .ToList();
+            string mode = string.IsNullOrWhiteSpace(report.group_mode) ? "Por Vendedor" : report.group_mode;
 
             var document = Document.Create(container =>
             {
-                if (grouped.Count == 0)
+                if (rows.Count == 0)
                 {
-                    container.Page(page => BuildSellerPage(page, report, month_cap, null, null));
+                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", null, null));
                     return;
                 }
 
-                foreach (var g in grouped)
+                if (mode == "Por Zona")
                 {
-                    container.Page(page => BuildSellerPage(page, report, month_cap, g.Key, g.ToList()));
+                    var grouped = rows
+                        .GroupBy(r => string.IsNullOrWhiteSpace(r.zone_name) ? "SIN ZONA" : r.zone_name.Trim())
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    foreach (var g in grouped)
+                    {
+                        container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList()));
+                    }
+                }
+                else if (mode == "Consolidado")
+                {
+                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", "CONSOLIDADO GENERAL", rows));
+                }
+                else // Por Vendedor
+                {
+                    var grouped = rows
+                        .GroupBy(r => string.IsNullOrWhiteSpace(r.seller_name) ? "SIN VENDEDOR" : r.seller_name.Trim())
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    foreach (var g in grouped)
+                    {
+                        container.Page(page => BuildPage(page, report, month_cap, "VENDEDOR", g.Key, g.ToList()));
+                    }
                 }
             });
 
             document.GeneratePdf(save_dialog.FileName);
         }
 
-        private static void BuildSellerPage(
+        private static void BuildPage(
             PageDescriptor page,
             monthly_report_dto report,
             string month_cap,
-            string? seller_name,
-            List<monthly_report_row_dto>? seller_rows)
+            string group_type,
+            string? group_title,
+            List<monthly_report_row_dto>? group_rows)
         {
             page.Size(PageSizes.Letter);
             page.MarginLeft(1, Unit.Centimetre);
@@ -87,13 +108,13 @@ namespace NinOS.UI.Common
 
             page.Content().PaddingVertical(4).Column(col =>
             {
-                if (seller_name == null)
+                if (group_title == null)
                 {
                     col.Item().Text(report.empty_text).FontSize(11).FontColor("#000000");
                     return;
                 }
 
-                var srows = (seller_rows ?? new List<monthly_report_row_dto>())
+                var srows = (group_rows ?? new List<monthly_report_row_dto>())
                     .OrderByCorrelative(r => r.document_number)
                     .ToList();
                 var detail_header = string.IsNullOrWhiteSpace(report.detail_column_header) ? "DETALLE" : report.detail_column_header;
@@ -103,8 +124,9 @@ namespace NinOS.UI.Common
                 {
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
-                        c.Item().PaddingTop(1).Text(seller_name).FontSize(9).Bold();
+                        string badge = group_type == "ZONA" ? "ZONA" : (group_type == "VENDEDOR" ? "VENDEDOR" : "REPORTE");
+                        c.Item().Text(badge).FontSize(6.5f).Bold().FontColor("#000000");
+                        c.Item().PaddingTop(1).Text(group_title).FontSize(9).Bold();
                     });
                 });
 
@@ -112,12 +134,16 @@ namespace NinOS.UI.Common
                 {
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.RelativeColumn(1.15f);
-                        columns.RelativeColumn(1.05f);
-                        columns.RelativeColumn(3.1f);
-                        columns.RelativeColumn(1.25f);
-                        columns.RelativeColumn(1.25f);
-                        columns.RelativeColumn(1.15f);
+                        columns.RelativeColumn(1.05f); // FECHA
+                        columns.RelativeColumn(1.05f); // DOCUMENTO
+                        columns.RelativeColumn(2.6f);  // CLIENTE
+                        columns.RelativeColumn(1.4f);  // ZONA o VENDEDOR
+                        columns.RelativeColumn(1.15f); // MONTO $
+                        if (report.show_paid_balance_summary)
+                        {
+                            columns.RelativeColumn(1.15f); // ABONADO
+                        }
+                        columns.RelativeColumn(1.1f);  // ESTADO
                     });
 
                     table.Header(header =>
@@ -132,8 +158,13 @@ namespace NinOS.UI.Common
                         h("FECHA");
                         h("DOCUMENTO");
                         h("CLIENTE", left: true);
+                        string colTitle = group_type == "ZONA" ? "VENDEDOR" : (group_type == "VENDEDOR" ? "ZONA" : "VEND / ZONA");
+                        h(colTitle, left: true);
                         h("MONTO $");
-                        h(detail_header);
+                        if (report.show_paid_balance_summary)
+                        {
+                            h(detail_header);
+                        }
                         h(status_header);
                     });
 
@@ -151,20 +182,28 @@ namespace NinOS.UI.Common
                             if (bold) t.Bold();
                         }
 
+                        string secondary = group_type == "ZONA"
+                            ? r.seller_name
+                            : (group_type == "VENDEDOR" ? r.zone_name : $"{r.seller_name} ({r.zone_name})");
+
                         cell(r.fecha_display);
                         cell(r.document_number);
                         cell(r.customer_name, left: true);
+                        cell(secondary, left: true);
                         cell(Money(r.amount_usd));
-                        cell(r.detail_text);
+                        if (report.show_paid_balance_summary)
+                        {
+                            cell(r.detail_text);
+                        }
                         cell(r.status, color: StatusColor(r.status), bold: true);
 
                         alternate = !alternate;
                     }
                 });
 
-                decimal seller_total = srows.Sum(x => x.amount_usd);
-                decimal seller_paid = srows.Sum(x => x.paid_amount_usd);
-                decimal seller_balance = srows.Sum(x => x.balance_due_usd);
+                decimal group_total = srows.Sum(x => x.amount_usd);
+                decimal group_paid = srows.Sum(x => x.paid_amount_usd);
+                decimal group_balance = srows.Sum(x => x.balance_due_usd);
 
                 col.Item().PaddingTop(10).Row(outerRow =>
                 {
@@ -175,7 +214,7 @@ namespace NinOS.UI.Common
                         bottom.Item().Padding(4).Row(r =>
                         {
                             r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
-                            r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(10).Bold();
+                            r.ConstantItem(120).AlignRight().Text(Money(group_total)).FontSize(10).Bold();
                         });
 
                         if (report.show_paid_balance_summary)
@@ -184,59 +223,59 @@ namespace NinOS.UI.Common
                             bottom.Item().Padding(4).Row(r =>
                             {
                                 r.RelativeItem().Text("ABONADO $").FontSize(9).Bold().FontColor("#2E7D32");
-                                r.ConstantItem(120).AlignRight().Text(Money(seller_paid)).FontSize(10).Bold().FontColor("#2E7D32");
+                                r.ConstantItem(120).AlignRight().Text(Money(group_paid)).FontSize(10).Bold().FontColor("#2E7D32");
                             });
                             bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
                             {
                                 r.RelativeItem().Text("SALDO $").FontSize(9).Bold().FontColor("#C62828");
-                                r.ConstantItem(120).AlignRight().Text(Money(seller_balance)).FontSize(10).Bold().FontColor("#C62828");
+                                r.ConstantItem(120).AlignRight().Text(Money(group_balance)).FontSize(10).Bold().FontColor("#C62828");
                             });
                         }
 
-bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
-                          bottom.Item().Padding(4).Row(r =>
-                          {
-                              r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
-                              r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(12).Bold().FontColor(PrimaryColor);
-                          });
-                      });
-                  });
+                        bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                        bottom.Item().Padding(4).Row(r =>
+                        {
+                            r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
+                            r.ConstantItem(120).AlignRight().Text(Money(group_total)).FontSize(12).Bold().FontColor(PrimaryColor);
+                        });
+                    });
+                });
 
-                  if (report.sales_goal_usd.HasValue || report.month_total_usd != 0m || report.show_goal_block)
-                  {
-                      col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(b =>
-                      {
-                          b.Item().Background(AccentBg).Padding(4).Text("META DE VENTAS").FontSize(8.5f).Bold().FontColor(PrimaryColor);
-                          b.Item().Padding(4).Row(r =>
-                          {
-                              r.RelativeItem().Column(c =>
-                              {
-                                  c.Item().Text("META").FontSize(7.5f).Bold().FontColor("#000000");
-                                  c.Item().Text(report.sales_goal_usd.HasValue ? Money(report.sales_goal_usd.Value) : "Sin meta").FontSize(9).Bold();
-                              });
-                              r.RelativeItem().Column(c =>
-                              {
-                                  c.Item().Text("VENTA DEL MES (Cumplimiento)").FontSize(7.5f).Bold().FontColor("#000000");
-                                  c.Item().Text(Money(report.month_total_usd)).FontSize(9).Bold().FontColor("#2E7D32");
-                              });
-                              r.RelativeItem().Column(c =>
-                              {
-                                  c.Item().Text("PORCENTAJE").FontSize(7.5f).Bold().FontColor("#000000");
-                                  c.Item().Text(report.goal_progress_percent.ToString("0.0", Ve) + "%").FontSize(9).Bold();
-                              });
-                              r.RelativeItem().Column(c =>
-                              {
-                                  c.Item().Text("FALTA PARA META").FontSize(7.5f).Bold().FontColor("#000000");
-                                  c.Item().Text(Money(Math.Max(0m, report.goal_remaining_usd))).FontSize(9).Bold().FontColor("#C62828");
-                              });
-                          });
-                          if (!string.IsNullOrWhiteSpace(report.goal_status_text))
-                          {
-                              b.Item().PaddingHorizontal(4).PaddingBottom(4).Text(report.goal_status_text).FontSize(7.5f).Italic().FontColor("#000000");
-                          }
-                      });
-                  }
-              });
+                if (report.show_goal_block && (report.sales_goal_usd.HasValue || report.month_total_usd != 0m))
+                {
+                    col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(b =>
+                    {
+                        b.Item().Background(AccentBg).Padding(4).Text("META DE VENTAS").FontSize(8.5f).Bold().FontColor(PrimaryColor);
+                        b.Item().Padding(4).Row(r =>
+                        {
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("META").FontSize(7.5f).Bold().FontColor("#000000");
+                                c.Item().Text(report.sales_goal_usd.HasValue ? Money(report.sales_goal_usd.Value) : "Sin meta").FontSize(9).Bold();
+                            });
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("VENTA DEL MES (Cumplimiento)").FontSize(7.5f).Bold().FontColor("#000000");
+                                c.Item().Text(Money(report.month_total_usd)).FontSize(9).Bold().FontColor("#2E7D32");
+                            });
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("PORCENTAJE").FontSize(7.5f).Bold().FontColor("#000000");
+                                c.Item().Text(report.goal_progress_percent.ToString("0.0", Ve) + "%").FontSize(9).Bold();
+                            });
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("FALTA PARA META").FontSize(7.5f).Bold().FontColor("#000000");
+                                c.Item().Text(Money(Math.Max(0m, report.goal_remaining_usd))).FontSize(9).Bold().FontColor("#C62828");
+                            });
+                        });
+                        if (!string.IsNullOrWhiteSpace(report.goal_status_text))
+                        {
+                            b.Item().PaddingHorizontal(4).PaddingBottom(4).Text(report.goal_status_text).FontSize(7.5f).Italic().FontColor("#000000");
+                        }
+                    });
+                }
+            });
 
             page.Footer().Column(col =>
             {
@@ -267,6 +306,7 @@ bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
         private static string StatusColor(string status)
         {
             if (string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)) return "#C62828";
+            if (string.Equals(status?.Trim(), "Devuelta", StringComparison.OrdinalIgnoreCase)) return "#7B1FA2";
             if (string.Equals(status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)) return "#E65100";
             if (string.Equals(status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)) return "#2E7D32";
             return "#333333";

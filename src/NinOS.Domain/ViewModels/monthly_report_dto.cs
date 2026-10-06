@@ -9,6 +9,7 @@ namespace NinOS.Domain.ViewModels
         public string document_number { get; set; } = string.Empty;
         public string customer_name { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;
+        public string zone_name { get; set; } = string.Empty;
         public decimal amount_usd { get; set; }
         public decimal paid_amount_usd { get; set; }
         public decimal balance_due_usd { get; set; }
@@ -26,6 +27,7 @@ namespace NinOS.Domain.ViewModels
         public string title { get; set; } = string.Empty;
         public string month { get; set; } = string.Empty;
         public string report_name { get; set; } = string.Empty;
+        public string group_mode { get; set; } = "Por Vendedor";
         public string detail_column_header { get; set; } = string.Empty;
         public string status_column_header { get; set; } = "ESTADO";
         public bool show_paid_balance_summary { get; set; }

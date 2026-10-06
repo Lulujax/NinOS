@@ -17,11 +17,21 @@ namespace NinOS.UI.Common.ViewModels
     {
         private readonly IAccountsReceivableService _receivable_service;
         private readonly ISellerService? _seller_service;
+        private readonly IZonaService? _zona_service;
 
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
+        private string _selected_zone = "Todas";
         private string _selected_filter = "Todas";
         private string _selected_report_type = "Ambas";
+        private string _selected_report_group = "Por Vendedor";
+        private bool _report_include_goal = true;
+        private bool _report_include_collections = true;
+        private bool _report_include_voided_and_returned = false;
+        private bool _all_report_sellers_selected = true;
+        private bool _all_report_zones_selected = true;
+        private bool _suppress_seller_sync;
+        private bool _suppress_zone_sync;
         private decimal _total_sales_usd;
         private bool _is_loading;
 
@@ -75,8 +85,12 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public ObservableCollection<string> pending_months { get; }
+        public ObservableCollection<string> zone_options { get; } = new();
         public ObservableCollection<string> filter_options { get; }
         public ObservableCollection<string> report_type_options { get; }
+        public ObservableCollection<string> report_group_options { get; } = new();
+        public ObservableCollection<filter_selection_option> report_seller_options { get; } = new();
+        public ObservableCollection<filter_selection_option> report_zone_options { get; } = new();
         public ObservableCollection<accounts_receivable_dto> all_notes { get; }
         public ObservableCollection<accounts_receivable_dto> sandra_notes { get; }
         public ObservableCollection<accounts_receivable_dto> anais_notes { get; }
@@ -98,6 +112,21 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public string selected_zone
+        {
+            get => string.IsNullOrWhiteSpace(_selected_zone) ? "Todas" : _selected_zone;
+            set
+            {
+                if (_is_loading && string.IsNullOrWhiteSpace(value)) return;
+                var normalized = string.IsNullOrWhiteSpace(value) ? "Todas" : value.Trim();
+                if (_selected_zone == normalized) return;
+                _selected_zone = normalized;
+                on_property_changed();
+                if (_is_loading) return;
+                apply_filters();
+            }
+        }
+
         public string selected_filter
         {
             get => _selected_filter;
@@ -108,6 +137,58 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _selected_report_type;
             set { if (_selected_report_type == value) return; _selected_report_type = value ?? "Ambas"; on_property_changed(); }
+        }
+
+        public string selected_report_group
+        {
+            get => _selected_report_group;
+            set { if (_selected_report_group == value) return; _selected_report_group = value ?? "Por Vendedor"; on_property_changed(); }
+        }
+
+        public bool report_include_goal
+        {
+            get => _report_include_goal;
+            set { if (_report_include_goal == value) return; _report_include_goal = value; on_property_changed(); }
+        }
+
+        public bool report_include_collections
+        {
+            get => _report_include_collections;
+            set { if (_report_include_collections == value) return; _report_include_collections = value; on_property_changed(); }
+        }
+
+        public bool report_include_voided_and_returned
+        {
+            get => _report_include_voided_and_returned;
+            set { if (_report_include_voided_and_returned == value) return; _report_include_voided_and_returned = value; on_property_changed(); }
+        }
+
+        public bool all_report_sellers_selected
+        {
+            get => _all_report_sellers_selected;
+            set
+            {
+                if (_all_report_sellers_selected == value) return;
+                _all_report_sellers_selected = value;
+                on_property_changed();
+                _suppress_seller_sync = true;
+                foreach (var opt in report_seller_options) opt.is_checked = value;
+                _suppress_seller_sync = false;
+            }
+        }
+
+        public bool all_report_zones_selected
+        {
+            get => _all_report_zones_selected;
+            set
+            {
+                if (_all_report_zones_selected == value) return;
+                _all_report_zones_selected = value;
+                on_property_changed();
+                _suppress_zone_sync = true;
+                foreach (var opt in report_zone_options) opt.is_checked = value;
+                _suppress_zone_sync = false;
+            }
         }
 
         public string search_query
@@ -194,13 +275,19 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand save_goal_command { get; }
         public ICommand edit_goal_command { get; }
         public ICommand cancel_goal_edit_command { get; }
+        public ICommand clear_report_sellers_command { get; }
+        public ICommand clear_report_zones_command { get; }
 
         public Action<accounts_receivable_dto>? on_request_preview_window;
 
-        public SalesViewModel(IAccountsReceivableService receivable_service, ISellerService? seller_service = null)
+        public SalesViewModel(
+            IAccountsReceivableService receivable_service,
+            ISellerService? seller_service = null,
+            IZonaService? zona_service = null)
         {
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _seller_service = seller_service;
+            _zona_service = zona_service;
 
             pending_months = new ObservableCollection<string>();
             filter_options = new ObservableCollection<string>();
@@ -215,10 +302,17 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Pagadas");
             filter_options.Add("Anuladas");
 
+            zone_options.Add("Todas");
+            _selected_zone = "Todas";
+
             report_type_options = new ObservableCollection<string>();
             report_type_options.Add("Ambas");
             report_type_options.Add("General");
             report_type_options.Add("Promocion");
+
+            report_group_options.Add("Por Vendedor");
+            report_group_options.Add("Por Zona");
+            report_group_options.Add("Consolidado");
 
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
@@ -227,6 +321,8 @@ namespace NinOS.UI.Common.ViewModels
             save_goal_command = new RelayCommand(execute_save_goal);
             edit_goal_command = new RelayCommand(execute_edit_goal);
             cancel_goal_edit_command = new RelayCommand(execute_cancel_goal_edit);
+            clear_report_sellers_command = new RelayCommand(execute_clear_report_sellers);
+            clear_report_zones_command = new RelayCommand(execute_clear_report_zones);
 
             AppDataEvents.CatalogsChanged += () =>
             {
@@ -292,8 +388,49 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private void on_report_seller_option_changed()
+        {
+            if (_suppress_seller_sync) return;
+            bool allChecked = report_seller_options.Count > 0 && report_seller_options.All(o => o.is_checked);
+            if (_all_report_sellers_selected != allChecked)
+            {
+                _all_report_sellers_selected = allChecked;
+                on_property_changed(nameof(all_report_sellers_selected));
+            }
+        }
+
+        private void on_report_zone_option_changed()
+        {
+            if (_suppress_zone_sync) return;
+            bool allChecked = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            if (_all_report_zones_selected != allChecked)
+            {
+                _all_report_zones_selected = allChecked;
+                on_property_changed(nameof(all_report_zones_selected));
+            }
+        }
+
+        private void execute_clear_report_sellers(object? parameter)
+        {
+            _suppress_seller_sync = true;
+            foreach (var opt in report_seller_options) opt.is_checked = false;
+            _suppress_seller_sync = false;
+            _all_report_sellers_selected = false;
+            on_property_changed(nameof(all_report_sellers_selected));
+        }
+
+        private void execute_clear_report_zones(object? parameter)
+        {
+            _suppress_zone_sync = true;
+            foreach (var opt in report_zone_options) opt.is_checked = false;
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = false;
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
         private async void load_all_async()
         {
+            if (_is_loading) return;
             try
             {
                 var previous_selection = _selected_month;
@@ -304,6 +441,10 @@ namespace NinOS.UI.Common.ViewModels
                     : await _receivable_service.get_sellers_async();
                 _seller_name_to_id = dbSellers.ToDictionary(s => s.full_name, s => s.id_seller, StringComparer.OrdinalIgnoreCase);
                 sync_seller_tabs(dbSellers);
+
+                var dbZones = _zona_service != null
+                    ? await _zona_service.GetActiveAsync()
+                    : new List<zona>();
 
                 var raw = await _receivable_service.get_all_sales_notes_async();
                 var all_rows = raw.ToList();
@@ -319,9 +460,6 @@ namespace NinOS.UI.Common.ViewModels
                 var new_months = new List<string> { "" };
                 new_months.AddRange(unique_months);
 
-                // Si el usuario ya tenia un mes seleccionado y sigue existiendo, conservarlo.
-                // Si tenia un mes que ya no existe, buscar el mes actual o el mas reciente.
-                // Si nunca habia seleccionado nada (primera carga, string.Empty), dejarlo vacio.
                 string desired = previous_selection ?? string.Empty;
                 if (!string.IsNullOrEmpty(desired) && !new_months.Contains(desired))
                 {
@@ -331,7 +469,6 @@ namespace NinOS.UI.Common.ViewModels
                         : (unique_months.Count > 0 ? unique_months[unique_months.Count - 1] : string.Empty);
                 }
 
-                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde y el orden cronologico estricto se preserva.
                 for (int i = pending_months.Count - 1; i >= 0; i--)
                 {
                     if (!new_months.Contains(pending_months[i]))
@@ -346,6 +483,59 @@ namespace NinOS.UI.Common.ViewModels
                     else if (currentIndex != i)
                         pending_months.Move(currentIndex, i);
                 }
+
+                // Poblar opciones de zona para filtro en pantalla
+                var prev_zone = string.IsNullOrWhiteSpace(_selected_zone) ? "Todas" : _selected_zone;
+                var new_zones = new List<string> { "Todas" };
+                new_zones.AddRange(dbZones.Select(z => z.name));
+                if (all_rows.Any(n => string.IsNullOrWhiteSpace(n.zone_name) || n.zone_name == "Sin zona"))
+                {
+                    if (!new_zones.Contains("Sin zona")) new_zones.Add("Sin zona");
+                }
+
+                for (int i = zone_options.Count - 1; i >= 0; i--)
+                {
+                    if (!new_zones.Contains(zone_options[i]))
+                        zone_options.RemoveAt(i);
+                }
+                for (int i = 0; i < new_zones.Count; i++)
+                {
+                    var item = new_zones[i];
+                    int currentIndex = zone_options.IndexOf(item);
+                    if (currentIndex < 0)
+                        zone_options.Insert(i, item);
+                    else if (currentIndex != i)
+                        zone_options.Move(currentIndex, i);
+                }
+
+                _selected_zone = zone_options.Contains(prev_zone) ? prev_zone : "Todas";
+                on_property_changed(nameof(selected_zone));
+
+                // Poblar opciones para el reporte de vendedores
+                _suppress_seller_sync = true;
+                report_seller_options.Clear();
+                foreach (var s in dbSellers.Where(s => s.is_active).OrderBy(s => s.seller_code))
+                {
+                    report_seller_options.Add(new filter_selection_option(s.full_name, on_report_seller_option_changed, true, s.id_seller));
+                }
+                _suppress_seller_sync = false;
+                _all_report_sellers_selected = true;
+                on_property_changed(nameof(all_report_sellers_selected));
+
+                // Poblar opciones para el reporte de zonas
+                _suppress_zone_sync = true;
+                report_zone_options.Clear();
+                foreach (var z in dbZones)
+                {
+                    report_zone_options.Add(new filter_selection_option(z.name, on_report_zone_option_changed, true, z.id_zona));
+                }
+                if (all_rows.Any(n => string.IsNullOrWhiteSpace(n.zone_name) || n.zone_name == "Sin zona"))
+                {
+                    report_zone_options.Add(new filter_selection_option("Sin zona", on_report_zone_option_changed, true, null));
+                }
+                _suppress_zone_sync = false;
+                _all_report_zones_selected = true;
+                on_property_changed(nameof(all_report_zones_selected));
 
                 _all_notes_source = all_rows;
 
@@ -370,9 +560,18 @@ namespace NinOS.UI.Common.ViewModels
         private void apply_filters()
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query)
-                .OrderByCorrelative(n => n.note_number)
-                .ToList();
+            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
+
+            if (!string.IsNullOrEmpty(_selected_zone) && _selected_zone != "Todas")
+            {
+                filtered = filtered.Where(n =>
+                {
+                    var noteZone = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim();
+                    return string.Equals(noteZone, _selected_zone.Trim(), StringComparison.OrdinalIgnoreCase);
+                }).ToList();
+            }
+
+            filtered = filtered.OrderByCorrelative(n => n.note_number).ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
@@ -412,6 +611,7 @@ namespace NinOS.UI.Common.ViewModels
                         n.note_number,
                         n.customer_name,
                         n.seller_name,
+                        n.zone_name,
                         n.status,
                         n.note_type_name,
                         n.sales_observations,
@@ -451,9 +651,17 @@ namespace NinOS.UI.Common.ViewModels
         {
             var list = (selected_tab?.Items ?? all_notes).ToList();
 
-            total_sales_usd = list.Sum(n => n.total_amount_usd);
+            total_sales_usd = list.Where(n => n.status == "Pendiente" || n.status == "Pagada").Sum(n => n.total_amount_usd);
 
             var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
+            if (!string.IsNullOrEmpty(_selected_zone) && _selected_zone != "Todas")
+            {
+                month_rows = month_rows.Where(n =>
+                {
+                    var noteZone = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim();
+                    return string.Equals(noteZone, _selected_zone.Trim(), StringComparison.OrdinalIgnoreCase);
+                }).ToList();
+            }
             var eligible_notes = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada");
 
             string current_seller = get_selected_tab_name();
@@ -541,70 +749,78 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
-                    .ToList();
+                var selected_sellers = report_seller_options.Where(o => o.is_checked).Select(o => o.name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (selected_sellers.Count == 0)
+                {
+                    AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
 
+                var selected_zones = report_zone_options.Where(o => o.is_checked).Select(o => o.name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (selected_zones.Count == 0)
+                {
+                    AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
+                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty).ToList();
+
+                // Filtro de vendedores
+                month_rows = month_rows.Where(n => selected_sellers.Contains(n.seller_name)).ToList();
+
+                // Filtro de zonas
+                month_rows = month_rows.Where(n => selected_zones.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name)).ToList();
+
+                // Filtro de tipo de nota
                 bool solo_promo = string.Equals(_selected_report_type, "Promocion", StringComparison.OrdinalIgnoreCase);
                 bool solo_general = string.Equals(_selected_report_type, "General", StringComparison.OrdinalIgnoreCase);
                 if (solo_promo || solo_general)
                 {
-                    month_rows = month_rows
-                        .Where(n => is_promotion_note(n) == solo_promo)
-                        .ToList();
+                    month_rows = month_rows.Where(n => is_promotion_note(n) == solo_promo).ToList();
                 }
 
-                string current_seller = get_selected_tab_name();
-                if (current_seller != "General")
+                // Filtro de estado de nota
+                if (!_report_include_voided_and_returned)
                 {
-                    month_rows = month_rows
-                        .Where(n => string.Equals(n.seller_name, current_seller, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
+                    month_rows = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").ToList();
                 }
 
                 string type_suffix = solo_promo ? "PROMOCION" : solo_general ? "GENERAL" : string.Empty;
-                string seller_suffix = current_seller == "General" ? string.Empty : current_seller.ToUpperInvariant();
-                string combined = string.Join(" - ", new[] { type_suffix, seller_suffix }.Where(s => !string.IsNullOrEmpty(s)));
+                string seller_suffix = selected_sellers.Count == report_seller_options.Count ? string.Empty : (selected_sellers.Count == 1 ? selected_sellers.First().ToUpperInvariant() : "VARIOS VENDEDORES");
+                string zone_suffix = selected_zones.Count == report_zone_options.Count ? string.Empty : (selected_zones.Count == 1 ? selected_zones.First().ToUpperInvariant() : "VARIAS ZONAS");
+                string combined = string.Join(" - ", new[] { type_suffix, seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
                 DateTime? monthStart = parse_selected_month();
-                int? sellerId = get_selected_seller_id();
-
-                decimal cum_venta = 0m;
-                if (monthStart.HasValue)
-                {
-                    var cum_rows = _all_notes_source
-                        .Where(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1) == new DateTime(monthStart.Value.Year, monthStart.Value.Month, 1))
-                        .Where(n => n.status == "Pendiente" || n.status == "Pagada");
-
-                    if (sellerId.HasValue)
-                    {
-                        cum_rows = cum_rows.Where(n => string.Equals(n.seller_name, current_seller, StringComparison.OrdinalIgnoreCase));
-                    }
-
-                    if (solo_promo || solo_general)
-                    {
-                        cum_rows = cum_rows.Where(n => is_promotion_note(n) == solo_promo);
-                    }
-
-                    cum_venta = cum_rows.Sum(n => n.total_amount_usd);
-                }
+                decimal cum_venta = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").Sum(n => n.total_amount_usd);
 
                 decimal? goal_usd = null;
-                if (monthStart.HasValue)
-                {
-                    goal_usd = await _receivable_service.get_sales_goal_async(monthStart.Value, sellerId);
-                }
-
                 double goal_pct = 0;
                 decimal goal_rem = 0;
                 string goal_txt = string.Empty;
-                if (goal_usd.HasValue && goal_usd.Value > 0)
+
+                if (_report_include_goal && monthStart.HasValue)
                 {
-                    decimal progress = cum_venta / goal_usd.Value * 100m;
-                    goal_pct = Math.Min(100d, (double)progress);
-                    goal_rem = Math.Max(0m, goal_usd.Value - cum_venta);
-                    goal_txt = goal_rem > 0
-                        ? $"Falta {goal_rem:N2} $ para la meta"
-                        : "¡Meta alcanzada!";
+                    int? targetSellerId = null;
+                    if (selected_sellers.Count == 1)
+                    {
+                        var singleSeller = report_seller_options.FirstOrDefault(o => o.is_checked);
+                        targetSellerId = singleSeller?.id;
+                    }
+                    else if (selected_sellers.Count == report_seller_options.Count)
+                    {
+                        targetSellerId = null; // meta global
+                    }
+
+                    goal_usd = await _receivable_service.get_sales_goal_async(monthStart.Value, targetSellerId);
+                    if (goal_usd.HasValue && goal_usd.Value > 0)
+                    {
+                        decimal progress = cum_venta / goal_usd.Value * 100m;
+                        goal_pct = Math.Min(100d, (double)progress);
+                        goal_rem = Math.Max(0m, goal_usd.Value - cum_venta);
+                        goal_txt = goal_rem > 0
+                            ? $"Falta {goal_rem:N2} $ para la meta"
+                            : "¡Meta alcanzada!";
+                    }
                 }
 
                 var report = new monthly_report_dto
@@ -615,8 +831,9 @@ namespace NinOS.UI.Common.ViewModels
                     month = _selected_month,
                     report_name = "ventas",
                     detail_column_header = "ABONADO",
-                    show_paid_balance_summary = true,
-                    empty_text = "Sin ventas para el mes seleccionado.",
+                    show_paid_balance_summary = _report_include_collections,
+                    empty_text = "Sin ventas para los filtros seleccionados.",
+                    group_mode = _selected_report_group,
                     rows = month_rows
                         .OrderByCorrelative(n => n.note_number)
                         .Select(n => new monthly_report_row_dto
@@ -625,6 +842,7 @@ namespace NinOS.UI.Common.ViewModels
                             document_number = n.note_number,
                             customer_name = n.customer_name,
                             seller_name = n.seller_name,
+                            zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
                             amount_usd = n.total_amount_usd,
                             paid_amount_usd = n.paid_amount_usd,
                             balance_due_usd = n.balance_due_usd,
@@ -637,7 +855,7 @@ namespace NinOS.UI.Common.ViewModels
                     goal_progress_percent = goal_pct,
                     goal_remaining_usd = goal_rem,
                     goal_status_text = goal_txt,
-                    show_goal_block = true
+                    show_goal_block = _report_include_goal
                 };
 
                 MonthlyReportPdfGenerator.generate(report);

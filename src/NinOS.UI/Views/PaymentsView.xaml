@@ -229,6 +229,9 @@
                                                 <Setter Property="Foreground" Value="#9E9E9E"/>
                                                 <Setter Property="FontStyle" Value="Italic"/>
                                             </DataTrigger>
+                                            <DataTrigger Binding="{Binding status}" Value="Devuelta">
+                                                <Setter Property="Foreground" Value="#7B1FA2"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>

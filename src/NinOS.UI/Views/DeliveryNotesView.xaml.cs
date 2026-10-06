@@ -10,6 +10,33 @@ namespace NinOS.UI.Views
         public DeliveryNotesView()
         {
             InitializeComponent();
+            DataContextChanged += OnDataContextChanged;
+        }
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.OldValue is Common.ViewModels.DeliveryNotesViewModel oldVm)
+            {
+                oldVm.RequestRevertSellerSelection = null;
+                oldVm.RequestRevertNoteTypeSelection = null;
+            }
+            if (e.NewValue is Common.ViewModels.DeliveryNotesViewModel newVm)
+            {
+                newVm.RequestRevertSellerSelection = () =>
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        SellerComboBox.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateTarget();
+                    }, System.Windows.Threading.DispatcherPriority.Loaded);
+                };
+                newVm.RequestRevertNoteTypeSelection = () =>
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        NoteTypeComboBox.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateTarget();
+                    }, System.Windows.Threading.DispatcherPriority.Loaded);
+                };
+            }
         }
 
         private void OnDiscountPercentPreview(object sender, TextCompositionEventArgs e)

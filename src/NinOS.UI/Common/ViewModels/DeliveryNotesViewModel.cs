@@ -472,12 +472,16 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand save_note_command { get; }
 
         public Action? OnNoteSaved;
+        public Action? RequestRevertSellerSelection;
+        public Action? RequestRevertNoteTypeSelection;
+        private bool _is_reverting_selection;
 
         public seller? selected_seller
         {
             get { return _selected_seller; }
             set
             {
+                if (_is_reverting_selection) return;
                 if (_selected_seller == value) return;
 
                 if (has_pending_data)
@@ -490,10 +494,23 @@ namespace NinOS.UI.Common.ViewModels
 
                     if (result != MessageBoxResult.Yes)
                     {
+                        var previous = _selected_seller;
                         System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
                         {
-                            on_property_changed(nameof(selected_seller));
-                        });
+                            _is_reverting_selection = true;
+                            try
+                            {
+                                _selected_seller = null;
+                                on_property_changed(nameof(selected_seller));
+                                _selected_seller = previous;
+                                on_property_changed(nameof(selected_seller));
+                            }
+                            finally
+                            {
+                                _is_reverting_selection = false;
+                            }
+                            RequestRevertSellerSelection?.Invoke();
+                        }, System.Windows.Threading.DispatcherPriority.Loaded);
                         return;
                     }
 
@@ -509,7 +526,7 @@ namespace NinOS.UI.Common.ViewModels
             get { return _selected_note_type; }
             set
             {
-                if (_is_updating_note_types) return;
+                if (_is_updating_note_types || _is_reverting_selection) return;
                 if (_selected_note_type == value) return;
 
                 if (has_pending_data)
@@ -522,10 +539,23 @@ namespace NinOS.UI.Common.ViewModels
 
                     if (result != MessageBoxResult.Yes)
                     {
+                        var previous = _selected_note_type;
                         System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
                         {
-                            on_property_changed(nameof(selected_note_type));
-                        });
+                            _is_reverting_selection = true;
+                            try
+                            {
+                                _selected_note_type = null;
+                                on_property_changed(nameof(selected_note_type));
+                                _selected_note_type = previous;
+                                on_property_changed(nameof(selected_note_type));
+                            }
+                            finally
+                            {
+                                _is_reverting_selection = false;
+                            }
+                            RequestRevertNoteTypeSelection?.Invoke();
+                        }, System.Windows.Threading.DispatcherPriority.Loaded);
                         return;
                     }
 

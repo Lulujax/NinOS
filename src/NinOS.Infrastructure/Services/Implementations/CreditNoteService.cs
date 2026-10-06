@@ -55,7 +55,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var dates = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada")
+                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta")
                     .Select(dn => new
                     {
                         dn.creation_date.AddHours(-local_offset_hours).Year,
@@ -80,7 +80,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var query = db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada");
+                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta");
 
                 if (!string.IsNullOrWhiteSpace(month_year))
                 {
@@ -643,13 +643,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                             .FirstOrDefaultAsync(n => n.id_delivery_note == new_note.id_delivery_note);
                         if (original_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                         if (original_note.status == "Anulada") throw new InvalidOperationException("No se puede crear una nota de credito sobre una nota anulada.");
+                        if (original_note.status == "Devuelta") throw new InvalidOperationException("Esta nota de entrega ya fue devuelta en su totalidad.");
 
                         // Una nota de entrega totalmente pagada no admite nota de credito: no queda
                         // saldo por devolver. Se valida aca para que no se pueda saltar saltandose
                         // el buscador, ya que el saldo pudo cambiar despues de armar la lista.
-                        // El saldo sale de la suma de pagos: los pagos positivos son plata real
-                        // entra y cada NC es un pago negativo que resta. Las NC anuladas se
-                        // excluyen de esa resta porque ya no devuelven nada.
+                        // El saldo sale de la suma de pagos y notas de credito aplicadas. Las NC
+                        // anuladas se excluyen porque ya no devuelven nada.
                         var annulled_numbers_of_note = await db_context.credit_notes
                             .AsNoTracking()
                             .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.status == "Anulada")
@@ -673,7 +673,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
 
                         if (balance_of_note <= 0)
-                            throw new InvalidOperationException("La nota de entrega esta pagada: no se le puede crear una nota de credito.");
+                            throw new InvalidOperationException("La nota de entrega no tiene saldo pendiente por devolver.");
                     }
 
                     var direct_product_ids = new HashSet<int>();
@@ -956,7 +956,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                     }
 
-                    // Solo la devolucion se registra como pago NEGATIVO para que reste en el historial y en el saldo;
+                    // La devolucion se registra como abono para que compense la deuda en el historial y en el saldo;
                     // el obsequio no es deuda y solo afecta el inventario.
                     if (!is_gift && original_note != null)
                     {
@@ -967,7 +967,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         payment nc_payment = new payment(
                             original_note.id_delivery_note,
                             new_note.creation_date,
-                            -new_note.total_amount_usd,
+                            new_note.total_amount_usd,
                             0m,
                             null,
                             "NOTA DE CREDITO",
@@ -978,15 +978,62 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         await db_context.payments.AddAsync(nc_payment);
 
-                        if (original_note.status == "Pagada")
+                        // Comprobar si se devolvieron todos los renglones de la nota de entrega
+                        var all_original_details = await db_context.note_details
+                            .AsNoTracking()
+                            .Where(d => d.id_delivery_note == original_note.id_delivery_note)
+                            .ToListAsync();
+
+                        var all_credit_ids = await db_context.credit_notes
+                            .AsNoTracking()
+                            .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.id_credit_note != new_note.id_credit_note)
+                            .Select(c => c.id_credit_note)
+                            .ToListAsync();
+
+                        var past_returns = all_credit_ids.Count == 0
+                            ? new List<credit_note_detail>()
+                            : await db_context.credit_note_details
+                                .AsNoTracking()
+                                .Where(d => all_credit_ids.Contains(d.id_credit_note))
+                                .ToListAsync();
+
+                        bool is_fully_returned = all_original_details.Count > 0 && all_original_details.All(od =>
                         {
+                            int already = past_returns
+                                .Where(r => r.id_product == od.id_product && r.id_promotion == od.id_promotion)
+                                .Sum(r => r.quantity);
+                            int in_this_nc = detail_list
+                                .Where(d => d.id_product == od.id_product && d.id_promotion == od.id_promotion)
+                                .Sum(d => d.quantity);
+                            return (already + in_this_nc) >= od.quantity;
+                        });
+
+                        if (is_fully_returned)
+                        {
+                            original_note.status = "Devuelta";
+
+                            // Si existia comision pendiente de liquidar generada previamente, se cancela/elimina
+                            var existing_comm = await db_context.commissions
+                                .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
+                            if (existing_comm != null && !existing_comm.is_paid)
+                            {
+                                db_context.commissions.Remove(existing_comm);
+                            }
+                        }
+                        else
+                        {
+                            // Devolución parcial: comprobar si el saldo restante ya quedo cubierto
                             decimal existing_paid = await db_context.payments
                                 .AsNoTracking()
                                 .Where(p => p.id_delivery_note == original_note.id_delivery_note)
                                 .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
                             decimal total_paid_after = existing_paid + nc_payment.amount_usd;
-                            if (total_paid_after < original_note.adjusted_total_usd)
+                            if (total_paid_after >= original_note.adjusted_total_usd)
+                            {
+                                original_note.status = "Pagada";
+                            }
+                            else
                             {
                                 original_note.status = "Pendiente";
                             }

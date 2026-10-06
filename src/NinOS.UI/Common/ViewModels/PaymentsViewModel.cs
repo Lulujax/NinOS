@@ -146,6 +146,7 @@ namespace NinOS.UI.Common.ViewModels
 
             filter_options.Add("Pagadas");
             filter_options.Add("Pendientes");
+            filter_options.Add("Devueltas");
             filter_options.Add("Todas");
 
             add_payment_command = new RelayCommand(execute_add_payment);
@@ -287,9 +288,18 @@ namespace NinOS.UI.Common.ViewModels
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
 
-            // Mostrar notas abonadas (pendiente con abono) o pagadas completas.
-            IEnumerable<payment_row_dto> source = _all_notes_source
-                .Where(n => n.status == "Pagada" || n.paid_amount_usd > 0);
+            // Filtrar según la opción seleccionada (Pagadas, Pendientes, Devueltas, Todas).
+            IEnumerable<payment_row_dto> source = _all_notes_source;
+            if (_selected_filter == "Pagadas")
+                source = source.Where(n => n.status == "Pagada");
+            else if (_selected_filter == "Pendientes")
+                source = source.Where(n => n.status == "Pendiente" && n.paid_amount_usd > 0);
+            else if (_selected_filter == "Devueltas")
+                source = source.Where(n => n.status == "Devuelta");
+            else if (_selected_filter == "Todas")
+                source = source.Where(n => n.status == "Pagada" || n.status == "Devuelta" || n.paid_amount_usd > 0);
+            else
+                source = source.Where(n => n.status == "Pagada" || n.paid_amount_usd > 0);
 
             // Sin mes seleccionado (estado vacio) no mostrar filas.
             var filtered = string.IsNullOrEmpty(_selected_month)

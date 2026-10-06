@@ -11,9 +11,9 @@
         <Border Grid.Row="0" BorderBrush="{Binding note_accent_color}" BorderThickness="1" Padding="8" Margin="0,0,0,8" Background="{Binding note_soft_color}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"><Run Text="Vendedor:"/><Run Text="*" Foreground="Red"/></TextBlock>
-                <ComboBox ItemsSource="{Binding sellers}" SelectedItem="{Binding selected_seller, Mode=TwoWay}" DisplayMemberPath="full_name" Width="180" Margin="0,0,30,0"/>
+                <ComboBox x:Name="SellerComboBox" ItemsSource="{Binding sellers}" SelectedItem="{Binding selected_seller, Mode=TwoWay}" DisplayMemberPath="full_name" Width="180" Margin="0,0,30,0"/>
                 <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"><Run Text="Tipo de nota:"/><Run Text="*" Foreground="Red"/></TextBlock>
-                <ComboBox ItemsSource="{Binding note_type_options}" SelectedItem="{Binding selected_note_type, Mode=TwoWay}" DisplayMemberPath="name" Width="140"/>
+                <ComboBox x:Name="NoteTypeComboBox" ItemsSource="{Binding note_type_options}" SelectedItem="{Binding selected_note_type, Mode=TwoWay}" DisplayMemberPath="name" Width="140"/>
 
                 <StackPanel Orientation="Horizontal" Margin="15,0,0,0">
                     <StackPanel.Style>

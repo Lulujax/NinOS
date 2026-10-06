@@ -875,6 +875,11 @@ namespace NinOS.UI.Views
                     AppDialog.Show("La nota de entrega esta anulada; no se pueden registrar devoluciones.", "Aviso");
                     return;
                 }
+                if (source.status == "Devuelta")
+                {
+                    AppDialog.Show("Esta nota ya fue devuelta por completo; no quedan cantidades disponibles.", "Aviso");
+                    return;
+                }
 
                 _source = source;
                 NoteTextBox.Text = item.Display;

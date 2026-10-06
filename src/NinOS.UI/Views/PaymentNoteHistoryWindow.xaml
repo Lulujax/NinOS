@@ -109,7 +109,20 @@
                             <Button Content="&#x270F;" ToolTip="Editar abono" FontSize="14"
                                     Background="Transparent" BorderThickness="0" Cursor="Hand"
                                     Click="EditButton_Click" Width="26" Height="22"
-                                    Foreground="#0D62B5" Padding="0" HorizontalAlignment="Center"/>
+                                    Foreground="#0D62B5" Padding="0" HorizontalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding payment_type}" Value="NOTA DE CREDITO">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding es_anulacion}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

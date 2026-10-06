@@ -50,8 +50,8 @@ namespace NinOS.Domain
             }
         }
 
-        // Puede ser negativo: una Nota de Credito se registra como pago negativo para
-        // restar en el historial y en el saldo (el saldo se deriva de la suma de pagos).
+        // Puede ser negativo en asientos de respaldo (como las anulaciones de Pro Venta).
+        // Las notas de crédito se registran como abonos positivos contra la deuda de la entrega.
         public decimal amount_usd
         {
             get { return _amount_usd; }

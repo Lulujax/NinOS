@@ -46,7 +46,8 @@ namespace NinOS.UI.Views
             SaldoPendienteText.Text = balance.ToString("N2");
             SaldoPendienteText.Foreground = balance <= 0 ? new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)) : new SolidColorBrush(Color.FromRgb(0xE6, 0x51, 0x00));
 
-            BtnAddAbono.IsEnabled = balance > 0;
+            bool isDevuelta = string.Equals(_note?.status, "Devuelta", StringComparison.OrdinalIgnoreCase);
+            BtnAddAbono.IsEnabled = balance > 0 && !isDevuelta;
 
             if (_note != null)
             {
@@ -67,6 +68,12 @@ namespace NinOS.UI.Views
         {
             if (sender is Button btn && btn.DataContext is payment_dto payment)
             {
+                if (payment.payment_type == "NOTA DE CREDITO" || payment.es_anulacion)
+                {
+                    AppDialog.Show("Las notas de crédito se gestionan desde el módulo de Notas de Crédito y no pueden editarse como abonos comunes.", "Aviso");
+                    return;
+                }
+
                 try
                 {
                     var window = new AddPaymentWindow(_vm, "", payment);
@@ -84,6 +91,11 @@ namespace NinOS.UI.Views
         private async void AddAbonoButton_Click(object sender, RoutedEventArgs e)
         {
             if (_note == null) return;
+            if (string.Equals(_note.status, "Devuelta", StringComparison.OrdinalIgnoreCase))
+            {
+                AppDialog.Show("Esta nota fue devuelta en su totalidad; no admite abonos.", "Aviso");
+                return;
+            }
             var window = new AddPaymentWindow(_vm, "", null, _note);
             window.Owner = Window.GetWindow(this);
             window.PaymentRegistered += async (_, _) => await ReloadAsync();

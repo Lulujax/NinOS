@@ -81,6 +81,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 delivery_note target_note = await _db_context.delivery_notes.FindAsync(new_payment.id_delivery_note);
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
                 if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
+                if (target_note.status == "Devuelta") throw new InvalidOperationException("No se puede abonar una nota devuelta en su totalidad.");
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
 
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
@@ -105,22 +106,27 @@ namespace NinOS.Infrastructure.Services.Implementations
                     total_paid_usd += all_payments[i].amount_usd;
                 }
 
-                if (total_paid_usd >= target_note.adjusted_total_usd && target_note.status != "Pagada")
+                if (total_paid_usd >= target_note.adjusted_total_usd && target_note.status != "Pagada" && target_note.status != "Devuelta")
                 {
                     target_note.status = "Pagada";
 
                     if (!is_pro_venta)
                     {
-                        decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
-                        commission new_commission = new commission(
-                            target_note.id_seller,
-                            target_note.id_delivery_note,
-                            0.10m,
-                            generated_amount_usd,
-                            false,
-                            null);
+                        decimal cash_collected = all_payments.Where(p => p.payment_type != "NOTA DE CREDITO").Sum(p => p.amount_usd);
+                        decimal commissionable = Math.Min(cash_collected, target_note.adjusted_total_usd);
+                        if (commissionable > 0)
+                        {
+                            decimal generated_amount_usd = Math.Round(commissionable * 0.10m, 2);
+                            commission new_commission = new commission(
+                                target_note.id_seller,
+                                target_note.id_delivery_note,
+                                0.10m,
+                                generated_amount_usd,
+                                false,
+                                null);
 
-                        await _db_context.commissions.AddAsync(new_commission);
+                            await _db_context.commissions.AddAsync(new_commission);
+                        }
                     }
                 }
 
@@ -226,21 +232,26 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 if (is_fully_paid)
                 {
-                    if (target_note.status != "Pagada")
+                    if (target_note.status != "Pagada" && target_note.status != "Devuelta")
                     {
                         target_note.status = "Pagada";
 
                         if (!is_pro_venta && existing_commission == null)
                         {
-                            decimal generated_amount_usd = target_note.adjusted_total_usd * 0.10m;
-                            commission new_commission = new commission(
-                                target_note.id_seller,
-                                target_note.id_delivery_note,
-                                0.10m,
-                                generated_amount_usd,
-                                false,
-                                null);
-                            await _db_context.commissions.AddAsync(new_commission);
+                            decimal cash_collected = all_payments.Where(p => p.payment_type != "NOTA DE CREDITO").Sum(p => p.amount_usd);
+                            decimal commissionable = Math.Min(cash_collected, target_note.adjusted_total_usd);
+                            if (commissionable > 0)
+                            {
+                                decimal generated_amount_usd = Math.Round(commissionable * 0.10m, 2);
+                                commission new_commission = new commission(
+                                    target_note.id_seller,
+                                    target_note.id_delivery_note,
+                                    0.10m,
+                                    generated_amount_usd,
+                                    false,
+                                    null);
+                                await _db_context.commissions.AddAsync(new_commission);
+                            }
                         }
                     }
                 }

@@ -107,8 +107,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
                 var customers = await db_context.customers
                     .AsNoTracking()
+                    .Include(c => c.zona)
                     .Where(c => customer_ids.Contains(c.id_customer))
-                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+                    .ToDictionaryAsync(c => c.id_customer);
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
@@ -122,14 +123,19 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     decimal paid = payment_totals.TryGetValue(dn.id_delivery_note, out var total) ? total : 0;
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
-                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    customers.TryGetValue(dn.id_customer, out var cust);
+                    string customer_name = cust?.business_name ?? string.Empty;
+                    int? id_zona = cust?.id_zona;
+                    string zone_name = cust?.zona?.name ?? "Sin zona";
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
                         note_number = dn.note_number,
-                        customer_name = customer_name ?? string.Empty,
+                        customer_name = customer_name,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
+                        id_zona = id_zona,
+                        zone_name = zone_name,
                         creation_date = dn.creation_date,
                         dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
@@ -321,8 +327,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
                 var customers = await db_context.customers
                     .AsNoTracking()
+                    .Include(c => c.zona)
                     .Where(c => customer_ids.Contains(c.id_customer))
-                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+                    .ToDictionaryAsync(c => c.id_customer);
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
@@ -377,7 +384,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
-                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    customers.TryGetValue(dn.id_customer, out var cust);
+                    string customer_name = cust?.business_name ?? string.Empty;
+                    int? id_zona = cust?.id_zona;
+                    string zone_name = cust?.zona?.name ?? "Sin zona";
+
                     string note_type_name = string.Empty;
                     string note_type_code = string.Empty;
                     if (dn.note_type_id != null && note_types.TryGetValue(dn.note_type_id.Value, out var note_type_row))
@@ -392,9 +403,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                         note_number = dn.note_number,
                         note_type_name = note_type_name,
                         note_type_code = note_type_code,
-                        customer_name = customer_name ?? string.Empty,
+                        customer_name = customer_name,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
+                        id_zona = id_zona,
+                        zone_name = zone_name,
                         creation_date = dn.creation_date,
                         dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
@@ -432,7 +445,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 if (dn == null) return null;
 
-                var customer = await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == dn.id_customer);
+                var customer = await db_context.customers.AsNoTracking().Include(c => c.zona).FirstOrDefaultAsync(c => c.id_customer == dn.id_customer);
                 var seller = await db_context.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == dn.id_seller);
 
                 decimal paid = await db_context.payments
@@ -454,6 +467,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_name = customer?.business_name ?? string.Empty,
                     id_seller = dn.id_seller,
                     seller_name = seller?.full_name ?? string.Empty,
+                    id_zona = customer?.id_zona,
+                    zone_name = customer?.zona?.name ?? "Sin zona",
                     creation_date = dn.creation_date,
                     total_amount_usd = dn.adjusted_total_usd,
                     gross_total_usd = is_promo_note ? dn.adjusted_total_usd : detail_sum,
@@ -526,6 +541,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
                     if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
+                    if (delivery_note.status == "Devuelta") throw new InvalidOperationException("No se puede editar una nota devuelta.");
 
                     var mar_ids = await get_pro_venta_type_ids_async(db_context);
                     bool is_pro_venta = delivery_note.note_type_id != null && mar_ids.Contains(delivery_note.note_type_id.Value);
@@ -561,7 +577,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     if (total_paid >= adjusted)
                     {
-                        if (delivery_note.status != "Pagada")
+                        if (delivery_note.status != "Pagada" && delivery_note.status != "Devuelta")
                         {
                             delivery_note.status = "Pagada";
 
@@ -622,6 +638,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("La nota ya esta anulada.");
+                    if (delivery_note.status == "Devuelta") throw new InvalidOperationException("Esta nota fue devuelta en su totalidad; no se puede anular.");
 
                     var has_payments = await db_context.payments
                         .AnyAsync(p => p.id_delivery_note == id_delivery_note && p.amount_usd > 0);

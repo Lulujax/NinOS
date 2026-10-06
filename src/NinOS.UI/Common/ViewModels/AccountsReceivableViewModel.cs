@@ -308,6 +308,7 @@ namespace NinOS.UI.Common.ViewModels
 
             filter_options.Add("Por Cobrar");
             filter_options.Add("Anuladas");
+            filter_options.Add("Devueltas");
             filter_options.Add("Todas");
 
             annul_note_command = new RelayCommand(execute_annul_note);
@@ -461,6 +462,8 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(n => n.status == "Pendiente").ToList();
             else if (_selected_filter == "Anuladas")
                 filtered = filtered.Where(n => n.status == "Anulada").ToList();
+            else if (_selected_filter == "Devueltas")
+                filtered = filtered.Where(n => n.status == "Devuelta").ToList();
             else if (_selected_filter == "Todas")
                 filtered = filtered.Where(n => n.status != "Pagada").ToList();
 
@@ -579,6 +582,11 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is accounts_receivable_row_dto note)
             {
+                if (note.status == "Devuelta")
+                {
+                    AppDialog.Show("Esta nota fue devuelta en su totalidad; no se puede anular.", "Aviso");
+                    return;
+                }
                 selected_note = note;
                 on_request_confirmation_window?.Invoke();
             }
@@ -633,6 +641,12 @@ namespace NinOS.UI.Common.ViewModels
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 return;
             }
+            if (note.status == "Devuelta")
+            {
+                AppDialog.Show("Esta nota fue devuelta en su totalidad y no puede editarse.", "Editar Nota",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
             if (note.status == "Anulada") return;
             foreach (var row in _all_notes_source) row.is_editing = false;
             note.begin_edit();
@@ -647,7 +661,7 @@ namespace NinOS.UI.Common.ViewModels
         private async void execute_apply_edit(object? parameter)
         {
             if (parameter is not accounts_receivable_row_dto note) return;
-            if (note.status == "Anulada" || note.status == "Pagada") { note.is_editing = false; return; }
+            if (note.status == "Anulada" || note.status == "Pagada" || note.status == "Devuelta") { note.is_editing = false; return; }
             try
             {
                 decimal monto = accounts_receivable_row_dto.parse_numeric(note.edit_monto_text);
@@ -677,7 +691,14 @@ namespace NinOS.UI.Common.ViewModels
         private void execute_request_payment(object? parameter)
         {
             if (parameter is accounts_receivable_row_dto note)
+            {
+                if (note.status == "Devuelta")
+                {
+                    AppDialog.Show("Esta nota fue devuelta en su totalidad; no admite abonos.", "Aviso");
+                    return;
+                }
                 on_request_add_payment_for_note?.Invoke(note);
+            }
         }
 
         public async Task save_observations_async(accounts_receivable_row_dto note, string text)
