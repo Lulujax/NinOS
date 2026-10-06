@@ -112,6 +112,28 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        <Style x:Key="RowHistoryButton" TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#E3F2FD" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}" BorderBrush="#BBDEFB" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="#0D47A1"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#BBDEFB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
     <Grid Margin="10">
@@ -159,7 +181,8 @@
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
                 <DataTemplate>
-                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Customers}">
+                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Customers}"
+                              MouseDoubleClick="CustomerGrid_MouseDoubleClick">
                         <DataGrid.Columns>
                             <DataGridTextColumn Binding="{Binding IdDisplay}" Header="#" Width="36"/>
                             <DataGridTextColumn Binding="{Binding CustomerCode}" Header="Código" Width="70" ElementStyle="{StaticResource CellWrap}"/>
@@ -188,10 +211,14 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Binding="{Binding ZonaName}" Header="Zona" Width="110" ElementStyle="{StaticResource CellWrap}"/>
-                            <DataGridTemplateColumn Header="Acciones" Width="140">
+                            <DataGridTemplateColumn Header="Acciones" Width="185">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                            <Button Style="{StaticResource RowHistoryButton}"
+                                                    Command="{Binding DataContext.OpenCustomerHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="Historial"/>
                                             <Button Style="{StaticResource RowEditButton}"
                                                     Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"

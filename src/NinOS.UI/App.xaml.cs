@@ -228,6 +228,7 @@ namespace NinOS.UI
             services.AddTransient<PaymentsViewModel>();
             services.AddTransient<CommissionsViewModel>();
             services.AddTransient<CustomerViewModel>();
+            services.AddTransient<CustomerHistoryViewModel>();
             services.AddTransient<SellersViewModel>();
             services.AddTransient<InventoryViewModel>();
             services.AddTransient<ProVentaViewModel>();
