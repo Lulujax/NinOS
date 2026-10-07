@@ -104,6 +104,11 @@ namespace NinOS.UI.Views
         private void on_reporte_click(object sender, RoutedEventArgs e)
         {
             popup_reporte.IsOpen = !popup_reporte.IsOpen;
+
+            // Al abrir, las checklist quedan reflejando lo que está en pantalla
+            // (mes, zona y pestaña) hasta que el usuario pida cambiar el alcance.
+            if (popup_reporte.IsOpen && DataContext is SalesViewModel vm && !vm.report_manual_scope)
+                vm.sync_report_scope_from_screen();
         }
 
         private void on_descargar_sales_report_click(object sender, RoutedEventArgs e)

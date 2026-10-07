@@ -82,6 +82,56 @@ namespace NinOS.UI.Common.ViewModels
         }
     }
 
+    public abstract class InventoryTabItemBase : ViewModelBase
+    {
+        private string _header = string.Empty;
+        public string Header
+        {
+            get => _header;
+            set
+            {
+                if (_header != value)
+                {
+                    _header = value;
+                    on_property_changed();
+                }
+            }
+        }
+
+        public ObservableCollection<inventory_item_dto> Items { get; } = new ObservableCollection<inventory_item_dto>();
+    }
+
+    public class TodosTabItem : InventoryTabItemBase
+    {
+        public TodosTabItem()
+        {
+            Header = "Todos";
+        }
+    }
+
+    public class BrandTabItem : InventoryTabItemBase
+    {
+        public int? IdProductLine { get; set; }
+        public string BrandName { get; set; } = string.Empty;
+        public string CodePrefix { get; set; } = string.Empty;
+
+        public BrandTabItem(string brandName, string codePrefix = "", int? idProductLine = null)
+        {
+            BrandName = brandName;
+            CodePrefix = codePrefix;
+            IdProductLine = idProductLine;
+            Header = brandName;
+        }
+    }
+
+    public class PromocionesTabItem : InventoryTabItemBase
+    {
+        public PromocionesTabItem()
+        {
+            Header = "Promociones";
+        }
+    }
+
     public class InventoryViewModel : ViewModelBase
     {
         // Codigos de promocion con el mismo formato correlativo de los productos: prefijo + 5 digitos.
@@ -90,7 +140,13 @@ namespace NinOS.UI.Common.ViewModels
         public const string promo_prefix_combo = "COM";
         private const int promo_code_digits = 5;
 
+        private static readonly string[] DefaultProductLines = new[]
+        {
+            "DEFILE", "OLEOS", "REMBRANDT", "BIOLINE", "AMAZONIA SECRET", "KEDAM", "DEPIL CLEAR", "ESTILISTA", "CUTIQUE", "OTROS"
+        };
+
         private readonly IInventoryService _inventory_service;
+        private readonly IProductLineService? _product_line_service;
         private List<product> _all_products_source;
         private List<promotion> _all_promotions_source;
         private HashSet<string> _trashed_promotion_codes = new(StringComparer.Ordinal);
@@ -101,6 +157,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private string _search_query = string.Empty;
         private int _selected_tab_index = 0;
+        private InventoryTabItemBase? _selected_tab;
         private string _new_code = string.Empty;
         private string _new_name = string.Empty;
         private string _new_category = string.Empty;
@@ -124,6 +181,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _original_brand_for_edit = string.Empty;
         private string _preview_code_for_new_brand = string.Empty;
 
+        public ObservableCollection<InventoryTabItemBase> inventory_tabs { get; } = new ObservableCollection<InventoryTabItemBase>();
         public ObservableCollection<string> category_options { get; }
         public ObservableCollection<brand_selection_option> price_list_brand_options { get; }
         public ObservableCollection<inventory_item_dto> todos_list { get; }
@@ -149,6 +207,7 @@ namespace NinOS.UI.Common.ViewModels
         public bool can_add_products => _promo_type_index != 0 || builder_items.Count == 0;
 
         public ICommand open_add_window_command { get; }
+        public ICommand edit_lines_command { get; }
         public ICommand save_product_command { get; }
         public ICommand edit_command { get; }
         public ICommand delete_command { get; }
@@ -162,6 +221,7 @@ namespace NinOS.UI.Common.ViewModels
         
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
+        public Action? on_request_edit_lines_window;
         public Action? on_close_add_window;
         public Action? on_close_add_promotion_window;
 
@@ -209,15 +269,46 @@ namespace NinOS.UI.Common.ViewModels
             set { _search_query = value; on_property_changed(); filter_data(); }
         }
 
+        public InventoryTabItemBase? selected_tab
+        {
+            get => _selected_tab;
+            set
+            {
+                if (_selected_tab != value)
+                {
+                    _selected_tab = value;
+                    on_property_changed();
+                    int idx = value != null ? inventory_tabs.IndexOf(value) : -1;
+                    if (idx >= 0 && _selected_tab_index != idx)
+                    {
+                        _selected_tab_index = idx;
+                        on_property_changed(nameof(selected_tab_index));
+                    }
+                    update_category_from_tab();
+                    on_property_changed(nameof(can_edit_category));
+                }
+            }
+        }
+
         public int selected_tab_index
         {
             get { return _selected_tab_index; }
             set 
             { 
-                _selected_tab_index = value; 
-                on_property_changed(); 
-                update_category_from_tab(); 
-                on_property_changed(nameof(can_edit_category)); 
+                if (_selected_tab_index != value)
+                {
+                    _selected_tab_index = value; 
+                    on_property_changed(); 
+                    if (value >= 0 && value < inventory_tabs.Count)
+                    {
+                        selected_tab = inventory_tabs[value];
+                    }
+                    else
+                    {
+                        update_category_from_tab(); 
+                        on_property_changed(nameof(can_edit_category)); 
+                    }
+                }
             }
         }
 
@@ -387,10 +478,12 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public InventoryViewModel(IInventoryService inventory_service)
+        public InventoryViewModel(IInventoryService inventory_service, IProductLineService? product_line_service = null)
         {
             if (inventory_service == null) throw new ArgumentNullException(nameof(inventory_service));
             _inventory_service = inventory_service;
+            _product_line_service = product_line_service
+                ?? ((Application.Current as App)?.GetServiceProvider()?.GetService(typeof(IProductLineService)) as IProductLineService);
 
             _all_products_source = new List<product>();
             _all_promotions_source = new List<promotion>();
@@ -398,7 +491,7 @@ namespace NinOS.UI.Common.ViewModels
             // En mayusculas porque es como queda guardada la categoria en product. Si aqui
             // estuvieran en mayusculas distintas, al editar el ComboBox no encontraria
             // coincidencia con el valor que viene de la base y se veria vacio.
-            category_options = new ObservableCollection<string> { "DEFILE", "OLEOS", "REMBRANDT", "BIOLINE", "AMAZONIA SECRET", "KEDAM", "DEPIL CLEAR", "ESTILISTA", "CUTIQUE", "OTROS" };
+            category_options = new ObservableCollection<string>(DefaultProductLines);
             
             price_list_brand_options = new ObservableCollection<brand_selection_option>();
 
@@ -428,6 +521,7 @@ namespace NinOS.UI.Common.ViewModels
                 .ToArray();
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
+            edit_lines_command = new RelayCommand(execute_edit_lines);
 
             save_product_command = new RelayCommand(execute_save_product);
             edit_command = new RelayCommand(execute_edit_product);
@@ -441,8 +535,190 @@ namespace NinOS.UI.Common.ViewModels
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
             
             new_category = "DEFILE";
-            
+
+            // Inicializar pestañas con valores predeterminados de inmediato
+            sync_tabs(new List<product_line>());
+
+            AppDataEvents.CatalogsChanged += OnCatalogsChanged;
+
             load_initial_data_async();
+        }
+
+        private void OnCatalogsChanged()
+        {
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.InvokeAsync(refresh_data);
+            }
+            else
+            {
+                refresh_data();
+            }
+        }
+
+        private void execute_edit_lines(object? parameter)
+        {
+            on_request_edit_lines_window?.Invoke();
+        }
+
+        public void sync_tabs(List<product_line> active_lines)
+        {
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => sync_tabs(active_lines));
+                return;
+            }
+
+            string? previouslySelectedBrand = (_selected_tab as BrandTabItem)?.BrandName;
+            bool wasPromocionesSelected = _selected_tab is PromocionesTabItem;
+            bool wasTodosSelected = _selected_tab is TodosTabItem;
+
+            // 1. Asegurar pestaña "Todos" en posición 0
+            TodosTabItem? todosTab = inventory_tabs.OfType<TodosTabItem>().FirstOrDefault();
+            if (todosTab == null)
+            {
+                todosTab = new TodosTabItem();
+                inventory_tabs.Insert(0, todosTab);
+            }
+
+            // 2. Líneas ordenadas
+            List<product_line> orderedLines;
+            if (active_lines != null && active_lines.Count > 0)
+            {
+                orderedLines = active_lines.OrderBy(l => l.sort_order).ThenBy(l => l.name).ToList();
+            }
+            else
+            {
+                orderedLines = DefaultProductLines.Select((name, idx) => new product_line
+                {
+                    name = name,
+                    code_prefix = product_code_rules.TryGetPrefix(name, out var p) ? p : "OTR",
+                    sort_order = idx,
+                    is_active = true
+                }).ToList();
+            }
+
+            // 3. Eliminar pestañas de marcas que ya no estén activas
+            var activeNames = new HashSet<string>(orderedLines.Select(l => l.name), StringComparer.OrdinalIgnoreCase);
+            for (int i = inventory_tabs.Count - 1; i >= 0; i--)
+            {
+                if (inventory_tabs[i] is BrandTabItem bTab && !activeNames.Contains(bTab.BrandName))
+                {
+                    inventory_tabs.RemoveAt(i);
+                }
+            }
+
+            // 4. Asegurar pestaña Promociones
+            PromocionesTabItem? promoTab = inventory_tabs.OfType<PromocionesTabItem>().FirstOrDefault();
+            if (promoTab == null)
+            {
+                promoTab = new PromocionesTabItem();
+            }
+            else
+            {
+                inventory_tabs.Remove(promoTab);
+            }
+
+            // 5. Agregar o actualizar pestañas de marcas en orden
+            for (int i = 0; i < orderedLines.Count; i++)
+            {
+                var line = orderedLines[i];
+                int targetIndex = i + 1; // 0 es Todos
+                var existingTab = inventory_tabs.OfType<BrandTabItem>()
+                    .FirstOrDefault(t => string.Equals(t.BrandName, line.name, StringComparison.OrdinalIgnoreCase));
+
+                if (existingTab != null)
+                {
+                    existingTab.Header = line.name;
+                    existingTab.BrandName = line.name;
+                    existingTab.CodePrefix = line.code_prefix;
+                    existingTab.IdProductLine = line.id_product_line;
+                    int currentIndex = inventory_tabs.IndexOf(existingTab);
+                    if (currentIndex != targetIndex && targetIndex < inventory_tabs.Count)
+                    {
+                        inventory_tabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                else
+                {
+                    var newTab = new BrandTabItem(line.name, line.code_prefix, line.id_product_line);
+                    if (targetIndex <= inventory_tabs.Count)
+                        inventory_tabs.Insert(targetIndex, newTab);
+                    else
+                        inventory_tabs.Add(newTab);
+                }
+            }
+
+            // 6. Colocar Promociones al final
+            inventory_tabs.Add(promoTab);
+
+            // 7. Sincronizar category_options y price_list_brand_options
+            category_options.Clear();
+            var checkedBrands = new HashSet<string>(
+                price_list_brand_options.Where(o => o.is_checked).Select(o => o.name),
+                StringComparer.OrdinalIgnoreCase);
+
+            price_list_brand_options.Clear();
+
+            foreach (var line in orderedLines)
+            {
+                category_options.Add(line.name);
+                var opt = new brand_selection_option(line.name, on_brand_option_changed);
+                if (_all_brands_selected || checkedBrands.Contains(line.name))
+                {
+                    opt.is_checked = true;
+                }
+                price_list_brand_options.Add(opt);
+            }
+
+            if (!category_options.Contains(new_category))
+            {
+                new_category = category_options.FirstOrDefault() ?? "DEFILE";
+            }
+
+            // 8. Restaurar pestaña seleccionada
+            if (wasPromocionesSelected)
+            {
+                selected_tab = promoTab;
+            }
+            else if (!string.IsNullOrEmpty(previouslySelectedBrand))
+            {
+                selected_tab = inventory_tabs.OfType<BrandTabItem>()
+                    .FirstOrDefault(t => string.Equals(t.BrandName, previouslySelectedBrand, StringComparison.OrdinalIgnoreCase))
+                    ?? (InventoryTabItemBase)todosTab;
+            }
+            else if (wasTodosSelected)
+            {
+                selected_tab = todosTab;
+            }
+            else if (selected_tab == null && inventory_tabs.Count > 0)
+            {
+                selected_tab = inventory_tabs[0];
+            }
+        }
+
+        private async Task load_product_lines_async()
+        {
+            try
+            {
+                List<product_line> activeLines;
+                if (_product_line_service != null)
+                {
+                    var lines = await _product_line_service.GetActiveAsync();
+                    activeLines = lines?.ToList() ?? new List<product_line>();
+                }
+                else
+                {
+                    activeLines = new List<product_line>();
+                }
+
+                sync_tabs(activeLines);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn($"Error loading product lines: {ErrorText.Get(ex)}");
+                sync_tabs(new List<product_line>());
+            }
         }
 
         private async void load_initial_data_async()
@@ -452,6 +728,8 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
                 
+                await load_product_lines_async();
+
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
                 _all_products_source = products.ToList();
                 
@@ -476,6 +754,8 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
+                await load_product_lines_async();
+
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
                 _all_products_source = products.ToList();
                 
@@ -519,21 +799,18 @@ namespace NinOS.UI.Common.ViewModels
 
         private void update_category_from_tab()
         {
-            add_button_text = (_selected_tab_index == 11) ? "+ AÑADIR PROMOCIÓN" : "+ AÑADIR PRODUCTO";
-
-            switch (_selected_tab_index)
+            if (_selected_tab is PromocionesTabItem)
             {
-                case 1: new_category = "DEFILE"; break;
-                case 2: new_category = "OLEOS"; break;
-                case 3: new_category = "REMBRANDT"; break;
-                case 4: new_category = "BIOLINE"; break;
-                case 5: new_category = "AMAZONIA SECRET"; break;
-                case 6: new_category = "KEDAM"; break;
-                case 7: new_category = "DEPIL CLEAR"; break;
-                case 8: new_category = "ESTILISTA"; break;
-                case 9: new_category = "CUTIQUE"; break;
-                case 10: new_category = "OTROS"; break;
-                default: break;
+                add_button_text = "+ AÑADIR PROMOCIÓN";
+            }
+            else
+            {
+                add_button_text = "+ AÑADIR PRODUCTO";
+
+                if (_selected_tab is BrandTabItem brandTab)
+                {
+                    new_category = brandTab.BrandName;
+                }
             }
         }
 
@@ -748,14 +1025,36 @@ namespace NinOS.UI.Common.ViewModels
             otros_list.Clear();
             promociones_list.Clear();
 
+            foreach (var tab in inventory_tabs)
+            {
+                tab.Items.Clear();
+            }
+
+            var todosTab = inventory_tabs.OfType<TodosTabItem>().FirstOrDefault();
+            var promoTab = inventory_tabs.OfType<PromocionesTabItem>().FirstOrDefault();
+            var brandTabMap = inventory_tabs.OfType<BrandTabItem>()
+                .ToDictionary(t => t.BrandName, t => t, StringComparer.OrdinalIgnoreCase);
+
             foreach (product p in filtered_products)
             {
-                todos_list.Add(create_product_dto(p));
+                var dto = create_product_dto(p);
+                todos_list.Add(dto);
+                todosTab?.Items.Add(dto);
 
+                string safe_category = (p.category ?? string.Empty).Trim();
+
+                // Pestaña dinámica por marca
+                if (brandTabMap.TryGetValue(safe_category, out var bTab))
+                {
+                    bTab.Items.Add(create_product_dto(p));
+                }
+                else if (brandTabMap.TryGetValue("OTROS", out var otrosTabDynamic))
+                {
+                    otrosTabDynamic.Items.Add(create_product_dto(p));
+                }
+
+                // Colecciones legacy para retrocompatibilidad
                 inventory_item_dto category_dto = create_product_dto(p);
-
-                string safe_category = p.category ?? string.Empty;
-
                 if (safe_category.Equals("Defile", StringComparison.OrdinalIgnoreCase))
                     defile_list.Add(category_dto);
                 else if (safe_category.Equals("Oleos", StringComparison.OrdinalIgnoreCase))
@@ -798,7 +1097,10 @@ namespace NinOS.UI.Common.ViewModels
                     promo_type_from_code(p.promotion_code, p.items.Count, false));
 
                 todos_list.Add(new_dto);
+                todosTab?.Items.Add(new_dto);
+
                 promociones_list.Add(new_dto);
+                promoTab?.Items.Add(new_dto);
             }
 
             assign_row_numbers(todos_list);
@@ -813,6 +1115,11 @@ namespace NinOS.UI.Common.ViewModels
             assign_row_numbers(cutique_list);
             assign_row_numbers(otros_list);
             assign_row_numbers(promociones_list);
+
+            foreach (var tab in inventory_tabs)
+            {
+                assign_row_numbers(tab.Items);
+            }
         }
 
         private void filter_promo_search()
@@ -837,7 +1144,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_open_add_window(object? parameter)
         {
-            if (_selected_tab_index == 11)
+            if (_selected_tab is PromocionesTabItem || _selected_tab_index == inventory_tabs.Count - 1)
             {
                 _promotion_being_edited = null;
                 on_property_changed(nameof(is_editing_promotion));

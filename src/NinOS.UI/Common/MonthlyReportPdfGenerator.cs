@@ -60,10 +60,6 @@ namespace NinOS.UI.Common
                         container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList()));
                     }
                 }
-                else if (mode == "Consolidado")
-                {
-                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", "CONSOLIDADO GENERAL", rows));
-                }
                 else // Por Vendedor
                 {
                     var grouped = rows
@@ -259,37 +255,70 @@ namespace NinOS.UI.Common
                     });
                 });
 
-                if (report.show_goal_block && (report.sales_goal_usd.HasValue || report.month_total_usd != 0m))
+                // Bloque de meta: la meta es por vendedor, nunca por zona. En "Por Vendedor"
+                // cada pagina lleva la meta de SU vendedor contra la venta de ese vendedor. Si el
+                // alcance del reporte no coincide con lo que cubre la meta, SalesViewModel deja
+                // show_goal_block en false para no imprimir un cumplimiento que seria mentira.
+                bool show_goal = report.show_goal_block;
+                decimal? goal_value = report.sales_goal_usd;
+                decimal goal_sale = report.month_total_usd;
+                string goal_label = string.IsNullOrWhiteSpace(report.goal_scope_label) ? "META DEL MES" : report.goal_scope_label;
+                string sale_label = "VENTA DEL MES (Cumplimiento)";
+
+                if (show_goal && group_type == "VENDEDOR")
                 {
+                    if (group_title != null && report.goal_by_group.TryGetValue(group_title, out var seller_goal))
+                    {
+                        goal_value = seller_goal;
+                        goal_sale = group_total;
+                        goal_label = "META DEL VENDEDOR";
+                        sale_label = "VENTA DEL VENDEDOR (Cumplimiento)";
+                    }
+                    else
+                    {
+                        show_goal = false; // este vendedor no tiene meta que comparar
+                    }
+                }
+
+                if (show_goal && (goal_value.HasValue || goal_sale != 0m))
+                {
+                    decimal goal_amount = goal_value.GetValueOrDefault();
+                    bool has_goal = goal_value.HasValue && goal_amount > 0m;
+                    decimal goal_pct = has_goal ? Math.Min(100m, goal_sale / goal_amount * 100m) : 0m;
+                    decimal goal_missing = has_goal ? Math.Max(0m, goal_amount - goal_sale) : 0m;
+                    string goal_status = !has_goal
+                        ? string.Empty
+                        : (goal_missing > 0 ? $"Falta {goal_missing:N2} $ para la meta" : "¡Meta alcanzada!");
+
                     col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(b =>
                     {
-                        b.Item().Background(AccentBg).Padding(4).Text("META DE VENTAS").FontSize(8.5f).Bold().FontColor(PrimaryColor);
+                        b.Item().Background(AccentBg).Padding(4).Text(goal_label).FontSize(8.5f).Bold().FontColor(PrimaryColor);
                         b.Item().Padding(4).Row(r =>
                         {
                             r.RelativeItem().Column(c =>
                             {
                                 c.Item().Text("META").FontSize(7.5f).Bold().FontColor("#000000");
-                                c.Item().Text(report.sales_goal_usd.HasValue ? Money(report.sales_goal_usd.Value) : "Sin meta").FontSize(9).Bold();
+                                c.Item().Text(has_goal ? Money(goal_amount) : "Sin meta").FontSize(9).Bold();
                             });
                             r.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("VENTA DEL MES (Cumplimiento)").FontSize(7.5f).Bold().FontColor("#000000");
-                                c.Item().Text(Money(report.month_total_usd)).FontSize(9).Bold().FontColor("#2E7D32");
+                                c.Item().Text(sale_label).FontSize(7.5f).Bold().FontColor("#000000");
+                                c.Item().Text(Money(goal_sale)).FontSize(9).Bold().FontColor("#2E7D32");
                             });
                             r.RelativeItem().Column(c =>
                             {
                                 c.Item().Text("PORCENTAJE").FontSize(7.5f).Bold().FontColor("#000000");
-                                c.Item().Text(report.goal_progress_percent.ToString("0.0", Ve) + "%").FontSize(9).Bold();
+                                c.Item().Text(has_goal ? goal_pct.ToString("0.0", Ve) + "%" : "-").FontSize(9).Bold();
                             });
                             r.RelativeItem().Column(c =>
                             {
                                 c.Item().Text("FALTA PARA META").FontSize(7.5f).Bold().FontColor("#000000");
-                                c.Item().Text(Money(Math.Max(0m, report.goal_remaining_usd))).FontSize(9).Bold().FontColor("#C62828");
+                                c.Item().Text(has_goal ? Money(goal_missing) : "-").FontSize(9).Bold().FontColor("#C62828");
                             });
                         });
-                        if (!string.IsNullOrWhiteSpace(report.goal_status_text))
+                        if (!string.IsNullOrWhiteSpace(goal_status))
                         {
-                            b.Item().PaddingHorizontal(4).PaddingBottom(4).Text(report.goal_status_text).FontSize(7.5f).Italic().FontColor("#000000");
+                            b.Item().PaddingHorizontal(4).PaddingBottom(4).Text(goal_status).FontSize(7.5f).Italic().FontColor("#000000");
                         }
                     });
                 }

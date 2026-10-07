@@ -347,6 +347,23 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void OnEditProductLinesClick(object sender, RoutedEventArgs e)
+        {
+            var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+            var lineService = serviceProvider?.GetService(typeof(IProductLineService)) as IProductLineService;
+            if (lineService != null)
+            {
+                var vm = new ProductLineEditViewModel(lineService);
+                var wnd = new EditProductLinesWindow
+                {
+                    DataContext = vm,
+                    Owner = this
+                };
+                wnd.ShowDialog();
+                AppDataEvents.raise_catalogs_changed();
+            }
+        }
+
         private async Task load_zonas_trash_async()
         {
             if (_zona_service == null) return;

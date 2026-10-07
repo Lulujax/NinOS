@@ -17,6 +17,7 @@ namespace NinOS.Infrastructure.Data
 
             migrate_legacy_series(db_context);
             initialize_zonas_and_sellers(db_context);
+            initialize_product_lines(db_context);
             migrate_customer_correlatives_to_global5(db_context);
 
             const string brand_header = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
@@ -837,6 +838,52 @@ namespace NinOS.Infrastructure.Data
                     });
                     db_context.SaveChanges();
                 }
+            }
+        }
+
+        private static void initialize_product_lines(NinOSDbContext db_context)
+        {
+            var defaultLines = new (string name, string prefix, int sortOrder)[]
+            {
+                ("DEFILE", "DEF", 1),
+                ("OLEOS", "OLE", 2),
+                ("REMBRANDT", "REM", 3),
+                ("BIOLINE", "BIO", 4),
+                ("AMAZONIA SECRET", "AMA", 5),
+                ("KEDAM", "KED", 6),
+                ("DEPIL CLEAR", "DEP", 7),
+                ("ESTILISTA", "EST", 8),
+                ("CUTIQUE", "CUT", 9),
+                ("OTROS", "OTR", 10)
+            };
+
+            bool changed = false;
+            foreach (var item in defaultLines)
+            {
+                var existing = db_context.product_lines.FirstOrDefault(l => l.name == item.name || l.code_prefix == item.prefix);
+                if (existing == null)
+                {
+                    db_context.product_lines.Add(new product_line
+                    {
+                        name = item.name,
+                        code_prefix = item.prefix,
+                        sort_order = item.sortOrder,
+                        is_active = true
+                    });
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                db_context.SaveChanges();
+            }
+
+            // Registrar todos los prefijos activos en product_code_rules para acceso rápido
+            var allLines = db_context.product_lines.Where(l => l.is_active).ToList();
+            foreach (var line in allLines)
+            {
+                product_code_rules.RegisterPrefix(line.name, line.code_prefix);
             }
         }
 

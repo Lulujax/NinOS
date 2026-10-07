@@ -1,7 +1,7 @@
-<Window x:Class="NinOS.UI.Views.EditZonasWindow"
+<Window x:Class="NinOS.UI.Views.EditProductLinesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Editar Zonas de Clientes" Height="540" Width="640"
+        Title="Editar Líneas de Productos" Height="540" Width="680"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
         ShowInTaskbar="False">
     <Window.Resources>
@@ -16,27 +16,34 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Zonas" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="0" Text="Líneas de Productos" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <!-- Listado de Zonas Activas -->
-        <DataGrid Grid.Row="1" ItemsSource="{Binding ZonasActivas}" AutoGenerateColumns="False" IsReadOnly="True"
-                  AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                  SelectionMode="Single" CanUserAddRows="False" CanUserDeleteRows="False" FontSize="12">
+        <DataGrid Grid.Row="1" ItemsSource="{Binding LineasActivas}" AutoGenerateColumns="False" IsReadOnly="True" 
+                  CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single"
+                  GridLinesVisibility="All" HeadersVisibility="Column" RowHeight="32">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="70" FontWeight="Bold"/>
+                <DataGridTextColumn Header="Prefijo" Binding="{Binding CodePrefix}" Width="70" FontWeight="Bold"/>
                 <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Modalidad" Binding="{Binding TipoOperacionDisplay}" Width="120"/>
-                <DataGridTemplateColumn Header="Acciones" Width="160">
+                <DataGridTextColumn Header="Orden" Binding="{Binding SortOrder}" Width="55"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding EstadoDisplay}" Width="75"/>
+                <DataGridTemplateColumn Header="Acciones" Width="220">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="Editar" Margin="3,1" Padding="8,3" Background="#FFF3E0" Foreground="#E65100"
-                                        BorderBrush="#FFE0B2" BorderThickness="1" Cursor="Hand" FontWeight="SemiBold"
-                                        Command="{Binding DataContext.EditZonaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                <Button Content="Editar" Margin="2,1" Padding="7,3"
+                                        Background="#FFF3E0" Foreground="#E65100" BorderBrush="#FFE0B2" BorderThickness="1"
+                                        Cursor="Hand" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.EditLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"/>
-                                <Button Content="Eliminar" Margin="3,1" Padding="8,3" Background="#FFEBEE" Foreground="#C62828"
-                                        BorderBrush="#FFCDD2" BorderThickness="1" Cursor="Hand" FontWeight="SemiBold"
-                                        Command="{Binding DataContext.DeleteZonaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                <Button Content="{Binding ToggleVisibilityText}" Margin="2,1" Padding="7,3"
+                                        Background="#E8F0EA" Foreground="#1B3A2D" BorderBrush="#C9D6CF" BorderThickness="1"
+                                        Cursor="Hand" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.ToggleVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Content="Eliminar" Margin="2,1" Padding="7,3"
+                                        Background="#FFEBEE" Foreground="#C62828" BorderBrush="#FFCDD2" BorderThickness="1"
+                                        Cursor="Hand" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.DeleteLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"/>
                             </StackPanel>
                         </DataTemplate>
@@ -45,7 +52,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Formulario inline Agregar / Editar Zona -->
+        <!-- Formulario inline Agregar / Editar Linea -->
         <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Background="#F8F9FA"
                 Margin="0,10,0,6" Padding="12"
                 Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -54,30 +61,29 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="60"/>
+                        <ColumnDefinition Width="80"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="155"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0" Text="Código" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding NewCode}" IsReadOnly="True" Background="#ECEFF1" Padding="5" Margin="0,0,12,0" VerticalContentAlignment="Center"/>
+                    <TextBlock Grid.Column="0" Text="Prefijo *" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding NewPrefix, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="4" CharacterCasing="Upper"
+                             IsReadOnly="{Binding PrefixReadOnly}"
+                             Padding="5" Margin="0,0,12,0" VerticalContentAlignment="Center"/>
 
                     <TextBlock Grid.Column="2" Text="Nombre *" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
                     <TextBox Grid.Column="3" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,12,0" VerticalContentAlignment="Center"/>
 
-                    <TextBlock Grid.Column="4" Text="Modalidad" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                    <ComboBox Grid.Column="5" SelectedIndex="{Binding SelectedModalidadIndex}" VerticalContentAlignment="Center" Padding="5,4">
-                        <ComboBoxItem Content="General"/>
-                        <ComboBoxItem Content="Pro Venta"/>
-                    </ComboBox>
+                    <CheckBox Grid.Column="4" Content="Visible en inventario" IsChecked="{Binding NewIsActive}"
+                              VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,4,0"/>
                 </Grid>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
                     <Button Content="Cancelar" Command="{Binding CancelEditCommand}" Background="#6C757D" Foreground="White"
                             Margin="0,0,8,0" Padding="14,5" Cursor="Hand"/>
-                    <Button Content="Guardar" Command="{Binding SaveZonaCommand}" Background="#0078D7" Foreground="White"
+                    <Button Content="Guardar" Command="{Binding SaveLineCommand}" Background="#0078D7" Foreground="White"
                             FontWeight="Bold" Padding="14,5" Cursor="Hand"/>
                 </StackPanel>
             </StackPanel>
@@ -85,16 +91,14 @@
 
         <!-- Mensaje de Error -->
         <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="Red" FontWeight="SemiBold"
-                   Margin="0,4,0,0" TextWrapping="Wrap"
-                   Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+                   Margin="0,4,0,0" TextWrapping="Wrap"/>
 
         <!-- Botones de la ventana -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="Agregar Zona" Command="{Binding AddZonaCommand}" Background="#1B3A2D" Foreground="White"
+            <Button Content="Agregar Línea" Command="{Binding AddLineCommand}" Background="#1B3A2D" Foreground="White"
                     FontWeight="SemiBold" Margin="0,0,8,0" Padding="14,6" Cursor="Hand"/>
             <Button Content="Cerrar" Click="Cerrar_Click" Background="#6C757D" Foreground="White"
                     Padding="14,6" Cursor="Hand"/>
         </StackPanel>
     </Grid>
 </Window>
-

@@ -23,11 +23,13 @@ namespace NinOS.UI.Common.ViewModels
         private string _selected_month = string.Empty;
         private string _selected_zone = "Todas";
         private string _selected_filter = "Todas";
-        private string _selected_report_type = "Ambas";
+        private string _selected_report_type = "Todas"; // = TipoNotaTodas
         private string _selected_report_group = "Por Vendedor";
         private bool _report_include_goal = true;
         private bool _report_include_collections = true;
         private bool _report_include_voided_and_returned = false;
+        // false = el reporte hereda mes/zona/vendedor de la pantalla; true = el usuario lo arma a mano.
+        private bool _report_manual_scope;
         private bool _all_report_sellers_selected = true;
         private bool _all_report_zones_selected = true;
         private bool _suppress_seller_sync;
@@ -57,6 +59,7 @@ namespace NinOS.UI.Common.ViewModels
                 _selected_tab = value;
                 on_property_changed();
                 on_property_changed(nameof(selected_tab_index));
+                on_property_changed(nameof(report_scope_text));
                 if (!_is_loading)
                 {
                     is_editing_goal = false;
@@ -105,6 +108,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_month == value) return;
                 _selected_month = value ?? string.Empty;
                 on_property_changed();
+                on_property_changed(nameof(report_scope_text));
                 if (_is_loading) return;
                 update_goal_month_display();
                 apply_filters();
@@ -122,6 +126,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_selected_zone == normalized) return;
                 _selected_zone = normalized;
                 on_property_changed();
+                on_property_changed(nameof(report_scope_text));
                 if (_is_loading) return;
                 apply_filters();
             }
@@ -136,7 +141,7 @@ namespace NinOS.UI.Common.ViewModels
         public string selected_report_type
         {
             get => _selected_report_type;
-            set { if (_selected_report_type == value) return; _selected_report_type = value ?? "Ambas"; on_property_changed(); }
+            set { if (_selected_report_type == value) return; _selected_report_type = value ?? "Todas"; on_property_changed(); } // "Todas" = TipoNotaTodas
         }
 
         public string selected_report_group
@@ -161,6 +166,39 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _report_include_voided_and_returned;
             set { if (_report_include_voided_and_returned == value) return; _report_include_voided_and_returned = value; on_property_changed(); }
+        }
+
+        /// <summary>
+        /// false (por defecto): el reporte usa el mes, la zona del combo y la pestaña de vendedor
+        /// que ya están en pantalla, y las checklist quedan bloqueadas. true: el usuario arma el
+        /// alcance a mano en el popup.
+        /// </summary>
+        public bool report_manual_scope
+        {
+            get => _report_manual_scope;
+            set
+            {
+                if (_report_manual_scope == value) return;
+                _report_manual_scope = value;
+                on_property_changed();
+                if (!value) sync_report_scope_from_screen();
+            }
+        }
+
+        /// <summary>Resumen del alcance heredado: lo que va a salir en el PDF.</summary>
+        public string report_scope_text
+        {
+            get
+            {
+                string mes = string.IsNullOrEmpty(_selected_month) ? "sin mes seleccionado" : _selected_month;
+                string zona = string.IsNullOrWhiteSpace(_selected_zone) || _selected_zone.Trim() == "Todas"
+                    ? "todas las zonas"
+                    : _selected_zone.Trim();
+                string vendedor = selected_tab?.IdSeller == null
+                    ? "todos los vendedores"
+                    : (selected_tab.Header ?? "todos los vendedores");
+                return $"Se usará: Mes {mes} · Zona {zona} · Vendedor {vendedor}";
+            }
         }
 
         public bool all_report_sellers_selected
@@ -277,6 +315,8 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand cancel_goal_edit_command { get; }
         public ICommand clear_report_sellers_command { get; }
         public ICommand clear_report_zones_command { get; }
+        public ICommand select_all_report_options_command { get; }
+        public ICommand clear_all_report_options_command { get; }
 
         public Action<accounts_receivable_dto>? on_request_preview_window;
 
@@ -306,13 +346,14 @@ namespace NinOS.UI.Common.ViewModels
             _selected_zone = "Todas";
 
             report_type_options = new ObservableCollection<string>();
-            report_type_options.Add("Ambas");
-            report_type_options.Add("General");
-            report_type_options.Add("Promocion");
+            report_type_options.Add(TipoNotaTodas);
+            report_type_options.Add(TipoNotaGeneral);
+            report_type_options.Add(TipoNotaPromocion);
+            report_type_options.Add(TipoNotaProVenta);
+            report_type_options.Add(TipoNotaPromoProVenta);
 
             report_group_options.Add("Por Vendedor");
             report_group_options.Add("Por Zona");
-            report_group_options.Add("Consolidado");
 
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
@@ -323,6 +364,8 @@ namespace NinOS.UI.Common.ViewModels
             cancel_goal_edit_command = new RelayCommand(execute_cancel_goal_edit);
             clear_report_sellers_command = new RelayCommand(execute_clear_report_sellers);
             clear_report_zones_command = new RelayCommand(execute_clear_report_zones);
+            select_all_report_options_command = new RelayCommand(execute_select_all_report_options);
+            clear_all_report_options_command = new RelayCommand(execute_clear_all_report_options);
 
             AppDataEvents.CatalogsChanged += () =>
             {
@@ -428,6 +471,49 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(all_report_zones_selected));
         }
 
+        // Seleccionar / Quitar vendedores y zonas de una sola vez. Al tocarlos el reporte
+        // sale del modo heredado y pasa a alcance manual.
+        private void execute_select_all_report_options(object? parameter)
+        {
+            report_manual_scope = true;
+            all_report_sellers_selected = true;
+            all_report_zones_selected = true;
+        }
+
+        private void execute_clear_all_report_options(object? parameter)
+        {
+            report_manual_scope = true;
+            execute_clear_report_sellers(null);
+            execute_clear_report_zones(null);
+        }
+
+        /// <summary>
+        /// Deja las checklist del popup reflejando lo que está en pantalla (mes, zona del combo y
+        /// pestaña de vendedor), para que al abrir el reporte se vea qué va a salir.
+        /// </summary>
+        public void sync_report_scope_from_screen()
+        {
+            string tab_name = (selected_tab?.Header ?? string.Empty).Trim();
+            bool all_sellers = selected_tab?.IdSeller == null || tab_name.Length == 0;
+
+            _suppress_seller_sync = true;
+            foreach (var opt in report_seller_options)
+                opt.is_checked = all_sellers || string.Equals(opt.name.Trim(), tab_name, StringComparison.OrdinalIgnoreCase);
+            _suppress_seller_sync = false;
+            _all_report_sellers_selected = report_seller_options.Count > 0 && report_seller_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_sellers_selected));
+
+            bool all_zones = string.IsNullOrWhiteSpace(_selected_zone) || _selected_zone.Trim() == "Todas";
+            string zone_name = _selected_zone.Trim();
+
+            _suppress_zone_sync = true;
+            foreach (var opt in report_zone_options)
+                opt.is_checked = all_zones || string.Equals(opt.name.Trim(), zone_name, StringComparison.OrdinalIgnoreCase);
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
         private async void load_all_async()
         {
             if (_is_loading) return;
@@ -439,7 +525,6 @@ namespace NinOS.UI.Common.ViewModels
                 var dbSellers = _seller_service != null
                     ? await _seller_service.GetAllActiveAsync()
                     : await _receivable_service.get_sellers_async();
-                _seller_name_to_id = dbSellers.ToDictionary(s => s.full_name, s => s.id_seller, StringComparer.OrdinalIgnoreCase);
                 sync_seller_tabs(dbSellers);
 
                 var dbZones = _zona_service != null
@@ -448,6 +533,21 @@ namespace NinOS.UI.Common.ViewModels
 
                 var raw = await _receivable_service.get_all_sales_notes_async();
                 var all_rows = raw.ToList();
+
+                // Mapa nombre -> id del vendedor. Además de los activos se completa con los que
+                // aparezcan en las notas: un vendedor desactivado sigue teniendo documentos y hay
+                // que poder resolver su meta para el reporte.
+                _seller_name_to_id = dbSellers
+                    .GroupBy(s => (s.full_name ?? string.Empty).Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Where(g => g.Key.Length > 0)
+                    .ToDictionary(g => g.Key, g => g.First().id_seller, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var row in all_rows)
+                {
+                    string row_seller = (row.seller_name ?? string.Empty).Trim();
+                    if (row_seller.Length > 0 && row.id_seller > 0 && !_seller_name_to_id.ContainsKey(row_seller))
+                        _seller_name_to_id[row_seller] = row.id_seller;
+                }
 
                 var unique_months = all_rows
                     .Where(n => n.creation_date.Year >= 2000)
@@ -511,31 +611,76 @@ namespace NinOS.UI.Common.ViewModels
                 _selected_zone = zone_options.Contains(prev_zone) ? prev_zone : "Todas";
                 on_property_changed(nameof(selected_zone));
 
-                // Poblar opciones para el reporte de vendedores
+                // Poblar opciones para el reporte de vendedores: los activos primero y, además,
+                // cualquiera que tenga notas en el mes aunque esté desactivado. Si no, sus notas
+                // quedarían fuera del reporte sin avisar.
+                var active_seller_names = dbSellers
+                    .Select(s => (s.full_name ?? string.Empty).Trim())
+                    .Where(n => n.Length > 0)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var report_seller_rows = dbSellers
+                    .OrderBy(s => s.seller_code)
+                    .Select(s => (name: (s.full_name ?? string.Empty).Trim(), active: true, id: (int?)s.id_seller))
+                    .Where(t => t.name.Length > 0)
+                    .ToList();
+
+                foreach (var note_seller in all_rows
+                    .Select(n => (n.seller_name ?? string.Empty).Trim())
+                    .Where(n => n.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    if (active_seller_names.Contains(note_seller)) continue;
+                    int? note_seller_id = _seller_name_to_id.TryGetValue(note_seller, out var mapped_id) ? (int?)mapped_id : null;
+                    report_seller_rows.Add((note_seller, false, note_seller_id));
+                }
+
                 _suppress_seller_sync = true;
                 report_seller_options.Clear();
-                foreach (var s in dbSellers.Where(s => s.is_active).OrderBy(s => s.seller_code))
+                foreach (var (name, active, id) in report_seller_rows)
                 {
-                    report_seller_options.Add(new filter_selection_option(s.full_name, on_report_seller_option_changed, true, s.id_seller));
+                    report_seller_options.Add(new filter_selection_option(
+                        name, on_report_seller_option_changed, true, id,
+                        active ? name : $"{name} (inactivo)"));
                 }
                 _suppress_seller_sync = false;
                 _all_report_sellers_selected = true;
                 on_property_changed(nameof(all_report_sellers_selected));
 
-                // Poblar opciones para el reporte de zonas
+                // Poblar opciones para el reporte de zonas: las activas y, además, las que tengan
+                // notas en el mes aunque ya no estén activas.
+                var active_zone_names = dbZones
+                    .Select(z => z.name.Trim())
+                    .Where(n => n.Length > 0)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var report_zone_rows = dbZones
+                    .Select(z => (name: z.name.Trim(), active: true))
+                    .Where(t => t.name.Length > 0)
+                    .ToList();
+
+                foreach (var note_zone in all_rows
+                    .Select(n => string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    if (!active_zone_names.Contains(note_zone))
+                        report_zone_rows.Add((note_zone, false));
+                }
+
                 _suppress_zone_sync = true;
                 report_zone_options.Clear();
-                foreach (var z in dbZones)
+                foreach (var (name, active) in report_zone_rows)
                 {
-                    report_zone_options.Add(new filter_selection_option(z.name, on_report_zone_option_changed, true, z.id_zona));
-                }
-                if (all_rows.Any(n => string.IsNullOrWhiteSpace(n.zone_name) || n.zone_name == "Sin zona"))
-                {
-                    report_zone_options.Add(new filter_selection_option("Sin zona", on_report_zone_option_changed, true, null));
+                    report_zone_options.Add(new filter_selection_option(
+                        name, on_report_zone_option_changed, true, null,
+                        active ? name : $"{name} (inactiva)"));
                 }
                 _suppress_zone_sync = false;
                 _all_report_zones_selected = true;
                 on_property_changed(nameof(all_report_zones_selected));
+
+                // Las checklist quedan reflejando la pantalla hasta que el usuario pida cambiarlas.
+                if (!_report_manual_scope) sync_report_scope_from_screen();
 
                 _all_notes_source = all_rows;
 
@@ -633,9 +778,42 @@ namespace NinOS.UI.Common.ViewModels
             return result.ToList();
         }
 
-        // La nota de promocion es el tipo PRM ("Promocion"). PVP es pro venta, no entra aqui.
-        private static bool is_promotion_note(accounts_receivable_dto note) =>
-            string.Equals(note.note_type_code?.Trim(), "PRM", StringComparison.OrdinalIgnoreCase);
+        // Etiquetas del combo TIPO DE NOTA. Cada una cubre una familia de códigos del sistema:
+        // GEN = General, PRM = Promocion, MAR = Pro Venta, PVP = Promocion Pro Venta.
+        private const string TipoNotaTodas = "Todas";
+        private const string TipoNotaGeneral = "General";
+        private const string TipoNotaPromocion = "Promocion";
+        private const string TipoNotaProVenta = "Pro Venta";
+        private const string TipoNotaPromoProVenta = "Promocion Pro Venta";
+
+        // Familias de nota del negocio. "Pro Venta" abarca MAR y PVP porque las zonas Pro Venta
+        // trabajan con las dos; "Promocion Pro Venta" deja ver solo las PVP. En pantalla van con
+        // el nombre del tipo, sin códigos: el cliente no tiene por qué ver MAR/PVP. Las notas sin
+        // tipo se tratan como General: son legacy y siempre lo fueron.
+        private static bool matches_note_type(accounts_receivable_dto note, string filter)
+        {
+            string code = note.note_type_code.Trim().ToUpperInvariant();
+
+            if (string.Equals(filter, TipoNotaGeneral, StringComparison.OrdinalIgnoreCase))
+                return code.Length == 0 || code == "GEN";
+            if (string.Equals(filter, TipoNotaPromocion, StringComparison.OrdinalIgnoreCase))
+                return code == "PRM";
+            if (string.Equals(filter, TipoNotaProVenta, StringComparison.OrdinalIgnoreCase))
+                return code == "MAR" || code == "PVP";
+            if (string.Equals(filter, TipoNotaPromoProVenta, StringComparison.OrdinalIgnoreCase))
+                return code == "PVP";
+            return true; // "Todas" (y "Ambas", por compatibilidad con el nombre viejo)
+        }
+
+        // Sufijo del título del PDF para cada tipo de nota.
+        private static string note_type_suffix(string filter)
+        {
+            if (string.Equals(filter, TipoNotaGeneral, StringComparison.OrdinalIgnoreCase)) return "GENERAL";
+            if (string.Equals(filter, TipoNotaPromocion, StringComparison.OrdinalIgnoreCase)) return "PROMOCION";
+            if (string.Equals(filter, TipoNotaProVenta, StringComparison.OrdinalIgnoreCase)) return "PRO VENTA";
+            if (string.Equals(filter, TipoNotaPromoProVenta, StringComparison.OrdinalIgnoreCase)) return "PROMOCION PRO VENTA";
+            return string.Empty;
+        }
 
         private int? get_selected_seller_id()
         {
@@ -756,15 +934,46 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                var selected_sellers = report_seller_options.Where(o => o.is_checked).Select(o => o.name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                if (selected_sellers.Count == 0)
+                // --- Alcance del reporte -------------------------------------------------
+                // Por defecto se hereda lo de la pantalla (mes + zona del combo + pestaña de
+                // vendedor) para que el PDF coincida con lo que el usuario ve. Si activó
+                // "Cambiar alcance manualmente" manda las checklist del popup.
+                var seller_scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var zone_scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                bool filter_sellers;
+                bool filter_zones;
+
+                if (_report_manual_scope)
+                {
+                    seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    // Con "Todos/Todas" marcado no se filtra: así también entran notas de
+                    // vendedores o zonas que no aparezcan en la lista, sin excluirlos a escondidas.
+                    filter_sellers = !_all_report_sellers_selected;
+                    filter_zones = !_all_report_zones_selected;
+                }
+                else
+                {
+                    string tab_name = (selected_tab?.Header ?? string.Empty).Trim();
+                    bool por_vendedor = selected_tab?.IdSeller != null && tab_name.Length > 0;
+                    if (por_vendedor) seller_scope.Add(tab_name);
+                    filter_sellers = por_vendedor;
+
+                    bool por_zona = !string.IsNullOrWhiteSpace(_selected_zone) && _selected_zone.Trim() != "Todas";
+                    if (por_zona) zone_scope.Add(_selected_zone.Trim());
+                    filter_zones = por_zona;
+                }
+
+                if (filter_sellers && seller_scope.Count == 0)
                 {
                     AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
 
-                var selected_zones = report_zone_options.Where(o => o.is_checked).Select(o => o.name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                if (selected_zones.Count == 0)
+                if (filter_zones && zone_scope.Count == 0)
                 {
                     AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
@@ -773,17 +982,19 @@ namespace NinOS.UI.Common.ViewModels
                 var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty).ToList();
 
                 // Filtro de vendedores
-                month_rows = month_rows.Where(n => selected_sellers.Contains(n.seller_name)).ToList();
+                if (filter_sellers)
+                    month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
 
                 // Filtro de zonas
-                month_rows = month_rows.Where(n => selected_zones.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name)).ToList();
+                if (filter_zones)
+                    month_rows = month_rows.Where(n => zone_scope.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())).ToList();
 
                 // Filtro de tipo de nota
-                bool solo_promo = string.Equals(_selected_report_type, "Promocion", StringComparison.OrdinalIgnoreCase);
-                bool solo_general = string.Equals(_selected_report_type, "General", StringComparison.OrdinalIgnoreCase);
-                if (solo_promo || solo_general)
+                string tipo_nota = string.IsNullOrWhiteSpace(_selected_report_type) ? TipoNotaTodas : _selected_report_type;
+                if (!string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase))
                 {
-                    month_rows = month_rows.Where(n => is_promotion_note(n) == solo_promo).ToList();
+                    month_rows = month_rows.Where(n => matches_note_type(n, tipo_nota)).ToList();
                 }
 
                 // Filtro de estado de nota
@@ -792,9 +1003,13 @@ namespace NinOS.UI.Common.ViewModels
                     month_rows = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").ToList();
                 }
 
-                string type_suffix = solo_promo ? "PROMOCION" : solo_general ? "GENERAL" : string.Empty;
-                string seller_suffix = selected_sellers.Count == report_seller_options.Count ? string.Empty : (selected_sellers.Count == 1 ? selected_sellers.First().ToUpperInvariant() : "VARIOS VENDEDORES");
-                string zone_suffix = selected_zones.Count == report_zone_options.Count ? string.Empty : (selected_zones.Count == 1 ? selected_zones.First().ToUpperInvariant() : "VARIAS ZONAS");
+                string type_suffix = note_type_suffix(tipo_nota);
+                string seller_suffix = !filter_sellers
+                    ? string.Empty
+                    : (seller_scope.Count == 1 ? seller_scope.First().ToUpperInvariant() : "VARIOS VENDEDORES");
+                string zone_suffix = !filter_zones
+                    ? string.Empty
+                    : (zone_scope.Count == 1 ? zone_scope.First().ToUpperInvariant() : "VARIAS ZONAS");
                 string combined = string.Join(" - ", new[] { type_suffix, seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
                 DateTime? monthStart = parse_selected_month();
@@ -804,33 +1019,49 @@ namespace NinOS.UI.Common.ViewModels
                               || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
                     .Sum(n => n.total_amount_usd);
 
+                string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
+
+                // --- Meta de ventas -------------------------------------------------------
+                // La meta es por vendedor o del mes completo, nunca por zona. Solo se imprime
+                // cuando el alcance del reporte coincide con lo que cubre la meta: si el PDF
+                // filtra zonas o tipos de nota, la venta que queda no es la del mes completo y
+                // el cumplimiento que saldría sería mentira.
+                bool filtrado_por_tipo = !string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
+                                      && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase);
                 decimal? goal_usd = null;
-                double goal_pct = 0;
-                decimal goal_rem = 0;
-                string goal_txt = string.Empty;
+                var goal_by_group = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
+                bool show_goal = _report_include_goal && monthStart.HasValue && !filter_zones && !filtrado_por_tipo;
+                string goal_scope_label = "META DEL MES";
 
-                if (_report_include_goal && monthStart.HasValue)
+                if (show_goal && monthStart.HasValue)
                 {
-                    int? targetSellerId = null;
-                    if (selected_sellers.Count == 1)
-                    {
-                        var singleSeller = report_seller_options.FirstOrDefault(o => o.is_checked);
-                        targetSellerId = singleSeller?.id;
-                    }
-                    else if (selected_sellers.Count == report_seller_options.Count)
-                    {
-                        targetSellerId = null; // meta global
-                    }
+                    DateTime month_start_date = monthStart.Value;
 
-                    goal_usd = await _receivable_service.get_sales_goal_async(monthStart.Value, targetSellerId);
-                    if (goal_usd.HasValue && goal_usd.Value > 0)
+                    if (string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase))
                     {
-                        decimal progress = cum_venta / goal_usd.Value * 100m;
-                        goal_pct = Math.Min(100d, (double)progress);
-                        goal_rem = Math.Max(0m, goal_usd.Value - cum_venta);
-                        goal_txt = goal_rem > 0
-                            ? $"Falta {goal_rem:N2} $ para la meta"
-                            : "¡Meta alcanzada!";
+                        show_goal = false; // las metas no son por zona
+                    }
+                    else if (string.Equals(group_mode, "Por Vendedor", StringComparison.OrdinalIgnoreCase))
+                    {
+                        goal_scope_label = "META DEL VENDEDOR";
+
+                        // Una meta por página: la del vendedor de esa página, contra su propia venta.
+                        foreach (var seller_name in month_rows
+                            .Select(n => (n.seller_name ?? string.Empty).Trim())
+                            .Where(s => s.Length > 0)
+                            .Distinct(StringComparer.OrdinalIgnoreCase))
+                        {
+                            int? seller_id = _seller_name_to_id.TryGetValue(seller_name, out var mapped_id) ? (int?)mapped_id : null;
+                            goal_by_group[seller_name] = await _receivable_service.get_sales_goal_async(month_start_date, seller_id);
+                        }
+
+                        if (goal_by_group.Count == 0) show_goal = false;
+                    }
+                    else
+                    {
+                        // Solo existen "Por Vendedor" y "Por Zona". Si algún día aparece otra
+                        // agrupación, no se imprime meta: no hay una que le corresponda.
+                        show_goal = false;
                     }
                 }
 
@@ -844,7 +1075,7 @@ namespace NinOS.UI.Common.ViewModels
                     detail_column_header = "ABONADO",
                     show_paid_balance_summary = _report_include_collections,
                     empty_text = "Sin ventas para los filtros seleccionados.",
-                    group_mode = _selected_report_group,
+                    group_mode = group_mode,
                     rows = month_rows
                         .OrderByCorrelative(n => n.note_number)
                         .Select(n => new monthly_report_row_dto
@@ -863,10 +1094,9 @@ namespace NinOS.UI.Common.ViewModels
                         .ToList(),
                     sales_goal_usd = goal_usd,
                     month_total_usd = cum_venta,
-                    goal_progress_percent = goal_pct,
-                    goal_remaining_usd = goal_rem,
-                    goal_status_text = goal_txt,
-                    show_goal_block = _report_include_goal
+                    goal_by_group = goal_by_group,
+                    goal_scope_label = goal_scope_label,
+                    show_goal_block = show_goal
                 };
 
                 MonthlyReportPdfGenerator.generate(report);

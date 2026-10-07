@@ -127,12 +127,24 @@ namespace NinOS.UI.Views
             DockPanel.SetDock(left, Dock.Left);
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
             right.Children.Add(MakeText(note.document_label, 16, true, PrimaryBrush));
-            right.Children.Add(MakeText($"Nro: {note.note_number}", 11, true, Brushes.Black, new Thickness(0, 2, 0, 0)));
             DockPanel.SetDock(right, Dock.Right);
             header.Children.Add(right);
             header.Children.Add(left);
             p.Children.Add(header);
-            p.Children.Add(MakeLine(2, PrimaryBrush, new Thickness(0, 8, 0, 0)));
+
+            var subHeader = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 4, 0, 0) };
+            var nroText = MakeText($"Nro: {note.note_number}", 11, true, Brushes.Black);
+            DockPanel.SetDock(nroText, Dock.Right);
+            subHeader.Children.Add(nroText);
+
+            if (!string.IsNullOrWhiteSpace(note.seller_name))
+            {
+                var sellerText = MakeText($"Vendedor: {note.seller_name}", 11, true, Brushes.Black);
+                DockPanel.SetDock(sellerText, Dock.Left);
+                subHeader.Children.Add(sellerText);
+            }
+            p.Children.Add(subHeader);
+            p.Children.Add(MakeLine(2, PrimaryBrush, new Thickness(0, 6, 0, 0)));
 
             // CAJA DE DATOS DEL CLIENTE
             var infoBox = MakeBox(padding: new Thickness(6));

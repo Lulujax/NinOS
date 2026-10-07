@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace NinOS.Domain
@@ -8,23 +9,34 @@ namespace NinOS.Domain
     // siguiente codigo y la validacion hablen todos del mismo formato.
     public static class product_code_rules
     {
-        // Prefijo de 3 letras por marca. Las claves van en mayusculas porque asi es como
-        // queda guardada la categoria en product (ver product.category). El comparador es
-        // OrdinalIgnoreCase, asi que da igual si llega en minuscula o con otro capitalizado.
-        public static readonly IReadOnlyDictionary<string, string> CategoryPrefixes =
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        // Prefijo de 3 letras por marca. Se inicializa con los predeterminados y se
+        // sincroniza dinámicamente con la base de datos (tabla product_line).
+        private static readonly ConcurrentDictionary<string, string> _prefixes =
+            new ConcurrentDictionary<string, string>(
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["DEFILE"] = "DEF",
+                    ["OLEOS"] = "OLE",
+                    ["REMBRANDT"] = "REM",
+                    ["BIOLINE"] = "BIO",
+                    ["AMAZONIA SECRET"] = "AMA",
+                    ["KEDAM"] = "KED",
+                    ["DEPIL CLEAR"] = "DEP",
+                    ["ESTILISTA"] = "EST",
+                    ["CUTIQUE"] = "CUT",
+                    ["OTROS"] = "OTR"
+                },
+                StringComparer.OrdinalIgnoreCase);
+
+        public static IReadOnlyDictionary<string, string> CategoryPrefixes => _prefixes;
+
+        public static void RegisterPrefix(string category, string prefix)
+        {
+            if (!string.IsNullOrWhiteSpace(category) && !string.IsNullOrWhiteSpace(prefix))
             {
-                ["DEFILE"] = "DEF",
-                ["OLEOS"] = "OLE",
-                ["REMBRANDT"] = "REM",
-                ["BIOLINE"] = "BIO",
-                ["AMAZONIA SECRET"] = "AMA",
-                ["KEDAM"] = "KED",
-                ["DEPIL CLEAR"] = "DEP",
-                ["ESTILISTA"] = "EST",
-                ["CUTIQUE"] = "CUT",
-                ["OTROS"] = "OTR"
-            };
+                _prefixes[category.Trim().ToUpperInvariant()] = prefix.Trim().ToUpperInvariant();
+            }
+        }
 
         public const int DefaultCodeDigits = 5;
 
@@ -38,7 +50,7 @@ namespace NinOS.Domain
             prefix = string.Empty;
 
             if (string.IsNullOrWhiteSpace(category)) return false;
-            return CategoryPrefixes.TryGetValue(category!, out prefix!);
+            return _prefixes.TryGetValue(category!, out prefix!);
         }
 
         public static int DigitsFor(string prefix)

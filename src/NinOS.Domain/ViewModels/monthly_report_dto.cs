@@ -35,6 +35,16 @@ namespace NinOS.Domain.ViewModels
         public List<monthly_report_row_dto> rows { get; set; } = new();
 
         public decimal? sales_goal_usd { get; set; }
+
+        /// <summary>
+        /// Meta por grupo para el agrupado "Por Vendedor": clave = nombre del vendedor tal como
+        /// aparece en la fila, valor = meta de ese vendedor (null = no tiene meta definida).
+        /// La meta es por vendedor o del mes completo; nunca por zona.
+        /// </summary>
+        public Dictionary<string, decimal?> goal_by_group { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Etiqueta del bloque: "META DEL MES" o "META DEL VENDEDOR".</summary>
+        public string goal_scope_label { get; set; } = "META DEL MES";
         public decimal month_total_usd { get; set; }
         public double goal_progress_percent { get; set; }
         public decimal goal_remaining_usd { get; set; }

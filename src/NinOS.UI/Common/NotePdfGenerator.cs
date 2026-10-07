@@ -108,8 +108,13 @@ namespace NinOS.UI.Common
                     row.RelativeItem(2).Column(right =>
                     {
                         right.Item().AlignRight().Text(note.document_label).FontSize(15).Bold().FontColor(primary);
-                        right.Item().PaddingTop(2).AlignRight().Text($"Nro: {note.note_number}").FontSize(10.5f).Bold();
                     });
+                });
+
+                col.Item().PaddingTop(2).Row(subRow =>
+                {
+                    subRow.RelativeItem().Text(string.IsNullOrWhiteSpace(note.seller_name) ? "" : $"Vendedor: {note.seller_name}").FontSize(10.5f).Bold();
+                    subRow.RelativeItem().AlignRight().Text($"Nro: {note.note_number}").FontSize(10.5f).Bold();
                 });
 
                 col.Item().PaddingTop(2).LineHorizontal(1.5f).LineColor(primary);

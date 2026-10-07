@@ -67,6 +67,22 @@ namespace NinOS.UI.Views
                             _active_promotion_window = null;
                         }
                     };
+
+                    view_model.on_request_edit_lines_window = () =>
+                    {
+                        var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+                        var lineService = serviceProvider?.GetService(typeof(NinOS.Infrastructure.Services.Interfaces.IProductLineService)) as NinOS.Infrastructure.Services.Interfaces.IProductLineService;
+                        if (lineService != null)
+                        {
+                            var vm = new ProductLineEditViewModel(lineService);
+                            var wnd = new EditProductLinesWindow
+                            {
+                                DataContext = vm,
+                                Owner = Window.GetWindow(this) ?? Application.Current.MainWindow
+                            };
+                            wnd.ShowDialog();
+                        }
+                    };
                 }
             };
         }

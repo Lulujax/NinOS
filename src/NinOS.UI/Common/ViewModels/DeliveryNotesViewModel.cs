@@ -1486,11 +1486,11 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (isPv && !isCustPv)
                 {
-                    throw new InvalidOperationException($"Las notas Pro Venta (MAR / PVP) solo se pueden emitir para zonas configuradas en modalidad Pro Venta.");
+                    throw new InvalidOperationException($"Las notas Pro Venta solo se pueden emitir para zonas configuradas en modalidad Pro Venta.");
                 }
                 if (!isPv && isCustPv)
                 {
-                    throw new InvalidOperationException($"La zona de este cliente ({custZona?.name ?? ""}) trabaja en modalidad Pro Venta y solo admite notas MAR / PVP.");
+                    throw new InvalidOperationException($"La zona de este cliente ({custZona?.name ?? ""}) trabaja en modalidad Pro Venta y solo admite notas Pro Venta.");
                 }
 
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");

@@ -1,0 +1,350 @@
+using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using NinOS.Domain;
+using NinOS.Infrastructure.Services.Interfaces;
+using NinOS.UI.Common;
+
+namespace NinOS.UI.Common.ViewModels
+{
+    public class ProductLineEditViewModel : INotifyPropertyChanged
+    {
+        private readonly IProductLineService _productLineService;
+
+        public ObservableCollection<ProductLineViewModel> LineasActivas { get; set; } = new();
+        public ObservableCollection<ProductLineViewModel> LineasEliminadas { get; set; } = new();
+
+        public Action? OnCloseWindow { get; set; }
+
+        private string _title = "Agregar Línea";
+        public string Title
+        {
+            get => _title;
+            set { _title = value; OnPropertyChanged(); OnPropertyChanged(nameof(TitleText)); }
+        }
+
+        public string TitleText => Title;
+
+        private string _newName = string.Empty;
+        public string NewName
+        {
+            get => _newName;
+            set
+            {
+                _newName = value;
+                OnPropertyChanged();
+                ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
+            }
+        }
+
+        private string _newPrefix = string.Empty;
+        public string NewPrefix
+        {
+            get => _newPrefix;
+            set
+            {
+                _newPrefix = value?.ToUpper() ?? string.Empty;
+                OnPropertyChanged();
+                ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
+            }
+        }
+
+        private int _newSortOrder;
+        public int NewSortOrder
+        {
+            get => _newSortOrder;
+            set { _newSortOrder = value; OnPropertyChanged(); }
+        }
+
+        private bool _newIsActive = true;
+        public bool NewIsActive
+        {
+            get => _newIsActive;
+            set { _newIsActive = value; OnPropertyChanged(); }
+        }
+
+        private bool _isEditing;
+        public bool IsEditing
+        {
+            get => _isEditing;
+            set { _isEditing = value; OnPropertyChanged(); }
+        }
+        
+        private bool _canEditPrefix = true;
+        public bool CanEditPrefix
+        {
+            get => _canEditPrefix;
+            set { _canEditPrefix = value; OnPropertyChanged(); OnPropertyChanged(nameof(PrefixReadOnly)); }
+        }
+
+        public bool PrefixReadOnly => !CanEditPrefix;
+
+        private string _errorMessage = string.Empty;
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set { _errorMessage = value; OnPropertyChanged(); }
+        }
+
+        private ProductLineViewModel? _editingLine;
+        public ProductLineViewModel? EditingLine
+        {
+            get => _editingLine;
+            set { _editingLine = value; OnPropertyChanged(); }
+        }
+
+        public ICommand AddLineCommand { get; }
+        public ICommand SaveLineCommand { get; }
+        public ICommand EditLineCommand { get; }
+        public ICommand DeleteLineCommand { get; }
+        public ICommand RestoreLineCommand { get; }
+        public ICommand ToggleVisibilityCommand { get; }
+        public ICommand CancelEditCommand { get; }
+
+        public ProductLineEditViewModel(IProductLineService productLineService)
+        {
+            _productLineService = productLineService ?? throw new ArgumentNullException(nameof(productLineService));
+
+            AddLineCommand = new RelayCommand(ExecuteAddLine);
+            SaveLineCommand = new RelayCommand(async _ => await ExecuteSaveLineAsync(), CanExecuteSaveLine);
+            EditLineCommand = new RelayCommand(ExecuteEditLine);
+            DeleteLineCommand = new RelayCommand(async param => await ExecuteDeleteLineAsync(param));
+            RestoreLineCommand = new RelayCommand(async param => await ExecuteRestoreLineAsync(param));
+            ToggleVisibilityCommand = new RelayCommand(async param => await ExecuteToggleVisibilityAsync(param));
+            CancelEditCommand = new RelayCommand(ExecuteCancelEdit);
+        }
+
+        public async Task LoadLineasAsync() => await LoadDataAsync();
+
+        public async Task LoadDataAsync()
+        {
+            try
+            {
+                ErrorMessage = string.Empty;
+                var allLines = await _productLineService.GetAllAsync(includeInactive: true);
+                var deletedLines = await _productLineService.GetDeletedAsync();
+
+                LineasActivas.Clear();
+                foreach (var line in allLines)
+                {
+                    bool hasProducts = await _productLineService.HasProductsAsync(line.id_product_line);
+                    LineasActivas.Add(new ProductLineViewModel
+                    {
+                        IdProductLine = line.id_product_line,
+                        Name = line.name,
+                        CodePrefix = line.code_prefix,
+                        SortOrder = line.sort_order,
+                        IsActive = line.is_active,
+                        HasProducts = hasProducts
+                    });
+                }
+
+                LineasEliminadas.Clear();
+                foreach (var line in deletedLines)
+                {
+                    LineasEliminadas.Add(new ProductLineViewModel
+                    {
+                        IdProductLine = line.id_product_line,
+                        Name = line.name,
+                        CodePrefix = line.code_prefix,
+                        SortOrder = line.sort_order,
+                        IsActive = line.is_active,
+                        DeletedAt = line.deleted_at,
+                        DeletedReason = line.deleted_reason
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error al cargar líneas: {ex.Message}";
+            }
+        }
+
+        private void ExecuteAddLine(object? parameter)
+        {
+            Title = "Agregar Línea";
+            IsEditing = true;
+            CanEditPrefix = true;
+            EditingLine = null;
+            NewName = string.Empty;
+            NewPrefix = string.Empty;
+            NewIsActive = true;
+            NewSortOrder = (LineasActivas.Count > 0 ? LineasActivas.Max(x => x.SortOrder) : 0) + 1;
+            ErrorMessage = string.Empty;
+            ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
+        }
+
+        private void ExecuteEditLine(object? parameter)
+        {
+            if (parameter is ProductLineViewModel line)
+            {
+                Title = "Editar Línea";
+                IsEditing = true;
+                EditingLine = line;
+                NewName = line.Name;
+                NewPrefix = line.CodePrefix;
+                NewSortOrder = line.SortOrder;
+                NewIsActive = line.IsActive;
+                CanEditPrefix = !line.HasProducts;
+                ErrorMessage = string.Empty;
+                ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
+            }
+        }
+
+        private bool CanExecuteSaveLine(object? parameter)
+        {
+            return !string.IsNullOrWhiteSpace(NewName) && 
+                   !string.IsNullOrWhiteSpace(NewPrefix) && 
+                   NewPrefix.Trim().Length >= 2 && NewPrefix.Trim().Length <= 4 &&
+                   NewPrefix.Trim().All(char.IsLetter);
+        }
+
+        private async Task ExecuteSaveLineAsync()
+        {
+            if (!CanExecuteSaveLine(null)) return;
+            
+            ErrorMessage = string.Empty;
+            
+            bool exists = await _productLineService.ExistsActiveAsync(
+                NewName.Trim(), 
+                NewPrefix.Trim(), 
+                EditingLine?.IdProductLine);
+                
+            if (exists)
+            {
+                ErrorMessage = "Ya existe una línea con ese nombre o prefijo de código.";
+                return;
+            }
+
+            try
+            {
+                if (EditingLine == null)
+                {
+                    var line = new product_line
+                    {
+                        name = NewName.Trim().ToUpperInvariant(),
+                        code_prefix = NewPrefix.Trim().ToUpperInvariant(),
+                        sort_order = NewSortOrder,
+                        is_active = NewIsActive
+                    };
+                    await _productLineService.CreateAsync(line);
+                }
+                else
+                {
+                    var line = await _productLineService.GetByIdAsync(EditingLine.IdProductLine);
+                    if (line != null)
+                    {
+                        line.name = NewName.Trim().ToUpperInvariant();
+                        line.sort_order = NewSortOrder;
+                        line.is_active = NewIsActive;
+                        if (CanEditPrefix)
+                        {
+                            line.code_prefix = NewPrefix.Trim().ToUpperInvariant();
+                        }
+                        await _productLineService.UpdateAsync(line);
+                    }
+                }
+
+                IsEditing = false;
+                await LoadDataAsync();
+                AppDataEvents.raise_catalogs_changed();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error al guardar: {ex.Message}";
+            }
+        }
+
+        private async Task ExecuteToggleVisibilityAsync(object? parameter)
+        {
+            if (parameter is ProductLineViewModel line)
+            {
+                try
+                {
+                    var entity = await _productLineService.GetByIdAsync(line.IdProductLine);
+                    if (entity != null)
+                    {
+                        entity.is_active = !entity.is_active;
+                        await _productLineService.UpdateAsync(entity);
+                        await LoadDataAsync();
+                        AppDataEvents.raise_catalogs_changed();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"Error al cambiar estado: {ex.Message}";
+                }
+            }
+        }
+
+        private async Task ExecuteDeleteLineAsync(object? parameter)
+        {
+            if (parameter is ProductLineViewModel line)
+            {
+                if (line.HasProducts)
+                {
+                    AppDialog.Show(
+                        $"No se puede eliminar la línea \"{line.Name}\" porque tiene productos asociados en el inventario.\n\nPuedes ocultarla usando el botón \"Ocultar\" para que no aparezca en las pestañas.",
+                        "Línea con productos",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                MessageBoxResult confirm = AppDialog.Show(
+                    $"¿Está seguro de eliminar la línea de productos \"{line.Name}\" ({line.CodePrefix})?",
+                    "Confirmar eliminación",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes) return;
+                
+                try
+                {
+                    await _productLineService.DeleteAsync(line.IdProductLine, "Eliminado desde Editor de Líneas");
+                    await LoadDataAsync();
+                    AppDataEvents.raise_catalogs_changed();
+                    AppDialog.Show($"Línea \"{line.Name}\" eliminada exitosamente.", "Línea eliminada", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"Error al eliminar: {ex.Message}";
+                }
+            }
+        }
+
+        private async Task ExecuteRestoreLineAsync(object? parameter)
+        {
+            if (parameter is ProductLineViewModel line)
+            {
+                try
+                {
+                    await _productLineService.RestoreAsync(line.IdProductLine);
+                    await LoadDataAsync();
+                    AppDataEvents.raise_catalogs_changed();
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"Error al restaurar: {ex.Message}";
+                }
+            }
+        }
+
+        private void ExecuteCancelEdit(object? parameter)
+        {
+            IsEditing = false;
+            ErrorMessage = string.Empty;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}

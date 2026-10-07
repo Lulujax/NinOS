@@ -389,6 +389,17 @@
                                         Click="OnEditZonasClick"/>
                             </StackPanel>
                         </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Maestro de Líneas de Productos"/>
+                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
+                                           Text="Gestiona las líneas (marcas) de productos, sus nombres, prefijos de código, orden y visibilidad."/>
+                                <Button Style="{StaticResource RefreshButton}" HorizontalAlignment="Left"
+                                        Content="Gestionar Líneas..."
+                                        Click="OnEditProductLinesClick"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

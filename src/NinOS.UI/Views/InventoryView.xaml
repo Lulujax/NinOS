@@ -1,7 +1,8 @@
-﻿<UserControl x:Class="NinOS.UI.Views.InventoryView"
+<UserControl x:Class="NinOS.UI.Views.InventoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:NinOS.UI.Converters"
+             xmlns:viewmodels="clr-namespace:NinOS.UI.Common.ViewModels"
              Background="White">
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -146,8 +147,12 @@
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <Button Grid.Column="3" Style="{StaticResource HeaderAddButton}"
-                        Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
+                            Command="{Binding edit_lines_command}" Content="Editar Líneas" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource HeaderAddButton}"
+                            Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -209,290 +214,92 @@
             </Border>
         </Popup>
 
-        <TabControl Grid.Row="2" SelectedIndex="{Binding selected_tab_index, UpdateSourceTrigger=PropertyChanged}">
-            <TabItem Header="Todos">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding todos_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre / Combo" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="180">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+        <TabControl Grid.Row="2"
+                    ItemsSource="{Binding inventory_tabs}"
+                    SelectedItem="{Binding selected_tab, Mode=TwoWay}">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Header}" FontSize="12.5" Padding="4,2"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.Resources>
+                <DataTemplate DataType="{x:Type viewmodels:TodosTabItem}">
+                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Items}" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
+                            <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="110"/>
+                            <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre / Combo" Width="*"
+                              ElementStyle="{StaticResource CellText}"/>
+                            <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
+                            <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
+                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTemplateColumn Header="Acciones" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                                <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
+                                                <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DataTemplate>
+
+                <DataTemplate DataType="{x:Type viewmodels:BrandTabItem}">
+                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Items}" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
+                            <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
+                            <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
+                              ElementStyle="{StaticResource CellText}"/>
+                            <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
+                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTemplateColumn Header="Acciones" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                             <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
                                             <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DataTemplate>
+
+                <DataTemplate DataType="{x:Type viewmodels:PromocionesTabItem}">
+                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Items}" MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
+                            <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="90"/>
+                            <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre del Combo/Kit" Width="*"
+                              ElementStyle="{StaticResource CellText}"/>
+                            <DataGridTextColumn Binding="{Binding promo_type_display}" Header="Tipo" Width="70"/>
+                            <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
+                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTemplateColumn Header="Acciones" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                             <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
                                             <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
                                         </StackPanel>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Defile">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding defile_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Oleos">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding oleos_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Rembrandt">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding rembrandt_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Bioline">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding bioline_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Amazonia Secret">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding amazonia_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Kedam">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding kedam_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Depil Clear">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding depil_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Estilista">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding estilista_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Cutique">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding cutique_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Otros">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding otros_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="100"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-
-            <TabItem Header="Promociones">
-                <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding promociones_list}" MouseDoubleClick="DataGrid_MouseDoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding RowNumber}" Header="#" Width="50"/>
-                        <DataGridTextColumn Binding="{Binding item_code}" Header="Código" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre del Combo/Kit" Width="*"
-                          ElementStyle="{StaticResource CellText}"/>
-                        <DataGridTextColumn Binding="{Binding promo_type_display}" Header="Tipo" Width="70"/>
-                        <DataGridTextColumn Binding="{Binding item_quantity}" FontWeight="Bold" Header="Disponibles" Width="90"/>
-                        <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
-                        <DataGridTemplateColumn Header="Acciones" Width="180">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                        <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DataTemplate>
+            </TabControl.Resources>
         </TabControl>
     </Grid>
 </UserControl>

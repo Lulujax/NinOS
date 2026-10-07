@@ -23,6 +23,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<stock_movement> stock_movements { get; set; }
         public DbSet<zona> zonas { get; set; }
         public DbSet<seller_zone> seller_zones { get; set; }
+        public DbSet<product_line> product_lines { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -131,6 +132,27 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.is_pro_venta).HasColumnName("is_pro_venta").IsRequired().HasDefaultValue(false);
 
                 entity.HasIndex(e => e.code)
+                    .IsUnique()
+                    .HasFilter("\"deleted_at\" IS NULL");
+
+                entity.HasIndex(e => e.name)
+                    .IsUnique()
+                    .HasFilter("\"deleted_at\" IS NULL");
+            });
+
+            model_builder.Entity<product_line>(entity =>
+            {
+                entity.ToTable("product_line");
+                entity.HasKey(e => e.id_product_line);
+                entity.Property(e => e.id_product_line).HasColumnName("id_product_line").UseIdentityByDefaultColumn();
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.code_prefix).HasColumnName("code_prefix").IsRequired().HasMaxLength(10);
+                entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
+                entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
+
+                entity.HasIndex(e => e.code_prefix)
                     .IsUnique()
                     .HasFilter("\"deleted_at\" IS NULL");
 

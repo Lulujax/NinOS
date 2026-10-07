@@ -176,91 +176,141 @@
                     <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
                 </Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="CONFIGURAR REPORTE DE VENTAS" FontSize="11.5" FontWeight="Bold"
-                               Foreground="#00897B"/>
+                    <Grid>
+                        <TextBlock Text="CONFIGURAR REPORTE DE VENTAS" FontSize="11.5" FontWeight="Bold"
+                                   Foreground="#00897B" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Seleccionar todo" Background="Transparent" Foreground="#00897B"
+                                    FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"
+                                    Margin="0,0,10,0"
+                                    ToolTip="Marca todos los vendedores y zonas. Pasa el reporte a alcance manual."
+                                    Command="{Binding select_all_report_options_command}"/>
+                            <Button Content="Quitar todo" Background="Transparent" Foreground="#C62828"
+                                    FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"
+                                    ToolTip="Desmarca todos los vendedores y zonas. Pasa el reporte a alcance manual."
+                                    Command="{Binding clear_all_report_options_command}"/>
+                        </StackPanel>
+                    </Grid>
                     <TextBlock Text="Personalice las opciones que desea incluir en el PDF."
                                FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
                     <ScrollViewer MaxHeight="430" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,0,4,0">
-                            <!-- SECCION 1: VENDEDORES -->
+                            <!-- SECCION 1: ALCANCE (hereda de la pantalla por defecto) -->
                             <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <CheckBox Content="Todos" IsChecked="{Binding all_report_sellers_selected, Mode=TwoWay}"
-                                                      FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
-                                            <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
-                                                    FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
-                                                    Command="{Binding clear_report_sellers_command}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                    <ItemsControl ItemsSource="{Binding report_seller_options}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <CheckBox Content="{Binding name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                                          FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <CheckBox Content="Cambiar alcance manualmente"
+                                              IsChecked="{Binding report_manual_scope, Mode=TwoWay}"
+                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Cursor="Hand"
+                                              ToolTip="Si está apagado, el reporte sale con el mes, la zona y la pestaña de vendedor que tiene en pantalla."/>
+
+                                    <TextBlock FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="18,2,0,6">
+                                        <TextBlock.Text>
+                                            <Binding Path="report_scope_text"/>
+                                        </TextBlock.Text>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding report_manual_scope}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <TextBlock Text="Alcance manual: elegido abajo, sin usar la pantalla."
+                                               FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="18,2,0,6">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding report_manual_scope}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <StackPanel IsEnabled="{Binding report_manual_scope}">
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <CheckBox Content="Todos" IsChecked="{Binding all_report_sellers_selected, Mode=TwoWay}"
+                                                          FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                                <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                                        FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                                        Command="{Binding clear_report_sellers_command}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding report_seller_options}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                              FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <StackPanel IsEnabled="{Binding report_manual_scope}" Margin="0,6,0,0">
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <CheckBox Content="Todas" IsChecked="{Binding all_report_zones_selected, Mode=TwoWay}"
+                                                          FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                                <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                                        FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                                        Command="{Binding clear_report_zones_command}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding report_zone_options}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                              FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
-                            <!-- SECCION 2: ZONAS -->
+                            <!-- SECCION 2: TIPO DE NOTA -->
                             <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <Grid Margin="0,0,0,4">
-                                        <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <CheckBox Content="Todas" IsChecked="{Binding all_report_zones_selected, Mode=TwoWay}"
-                                                      FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
-                                            <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
-                                                    FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
-                                                    Command="{Binding clear_report_zones_command}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                    <ItemsControl ItemsSource="{Binding report_zone_options}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <CheckBox Content="{Binding name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                                          FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- SECCION 3: TIPO DE NOTA Y AGRUPACION -->
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="TIPO DE NOTA" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                                    <TextBlock Text="TIPO DE NOTA" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,4"/>
                                     <ComboBox ItemsSource="{Binding report_type_options}"
                                               SelectedItem="{Binding selected_report_type, Mode=TwoWay}"
                                               FontSize="11.5" Height="25" Cursor="Hand"/>
                                 </StackPanel>
+                            </Border>
 
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="AGRUPAR POR" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                            <!-- SECCION 3: AGRUPAR EN -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="AGRUPAR EN (páginas del PDF)" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
                                     <ComboBox ItemsSource="{Binding report_group_options}"
                                               SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
                                               FontSize="11.5" Height="25" Cursor="Hand"/>
+                                    <TextBlock Text="Por Vendedor: una página por vendedor, con la meta de ese vendedor. Por Zona: una página por zona."
+                                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
                             </Grid>
 
@@ -268,15 +318,34 @@
                             <Border Background="#F9FBF9" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
                                 <StackPanel>
                                     <TextBlock Text="OPCIONES DEL REPORTE" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,4"/>
-                                    <CheckBox Content="Incluir bloque de Meta de Ventas"
-                                              IsChecked="{Binding report_include_goal, Mode=TwoWay}"
-                                              FontSize="11" Foreground="#333333" Margin="0,2,0,4" Cursor="Hand"/>
+
+                                    <!-- En "Por Zona" la meta no tiene sentido: las metas son por vendedor -->
+                                    <StackPanel>
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding selected_report_group}" Value="Por Zona">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <CheckBox Content="Incluir bloque de Meta de Ventas"
+                                                  IsChecked="{Binding report_include_goal, Mode=TwoWay}"
+                                                  FontSize="11" Foreground="#333333" Margin="0,2,0,4" Cursor="Hand"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="La meta se imprime por vendedor o total del mes. No aparece si el reporte agrupa por zona o si filtra zonas / tipos de nota."
+                                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="2,0,0,4"/>
+
                                     <CheckBox Content="Incluir cobranza (Abonado y Saldo)"
                                               IsChecked="{Binding report_include_collections, Mode=TwoWay}"
                                               FontSize="11" Foreground="#333333" Margin="0,0,0,4" Cursor="Hand"/>
                                     <CheckBox Content="Incluir anuladas / devueltas"
                                               IsChecked="{Binding report_include_voided_and_returned, Mode=TwoWay}"
-                                              FontSize="11" Foreground="#757575" Margin="0,0,0,2" Cursor="Hand"/>
+                                              FontSize="11" Foreground="#333333" Margin="0,0,0,2" Cursor="Hand"
+                                              ToolTip="Se marcan en rojo y aparte del total: nunca suman a los subtotales ni al cumplimiento."/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

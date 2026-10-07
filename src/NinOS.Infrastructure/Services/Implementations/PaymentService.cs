@@ -86,7 +86,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
-                    throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
+                    throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
 
                 await verificar_exceso_permitido_async(_db_context, target_note, new_payment.amount_usd);
 
@@ -216,7 +216,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
-                    throw new InvalidOperationException("Los pagos de notas Pro Venta (MAR) se gestionan en el modulo Pro Venta.");
+                    throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
 
                 await verificar_exceso_permitido_async(_db_context, target_note, updated_payment.amount_usd, existing.id_payment);
 
