@@ -72,8 +72,10 @@ namespace NinOS.UI.Views
             if (vm == null) return;
 
             string? initial_seller = vm.selected_tab?.IdSeller != null ? vm.selected_tab.Header : null;
+            string? initial_zona = vm.selected_tab?.IdZona != null ? vm.selected_tab.Header : null;
+            string? initial_category = vm.selected_category_filter;
 
-            var window = new AddCreditNoteWindow(vm, vm.selected_month, initial_seller)
+            var window = new AddCreditNoteWindow(vm, vm.selected_month, initial_seller, initial_category, initial_zona)
             {
                 Owner = Window.GetWindow(this)
             };

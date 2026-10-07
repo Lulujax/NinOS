@@ -142,6 +142,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         cxc_obs = string.Join(" | ", pObs);
                     }
 
+                    bool isAnulada = string.Equals(dn.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -156,7 +157,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = dn.adjusted_total_usd,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        balance_due_usd = isAnulada ? 0m : Math.Max(0m, dn.adjusted_total_usd - paid),
                         cxc_observations = cxc_obs,
                         sales_observations = dn.sales_observations ?? string.Empty
                     });
@@ -265,6 +266,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         cxc_obs = string.Join(" | ", pObs);
                     }
 
+                    bool isAnulada = string.Equals(dn.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -281,7 +283,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         volume_discount_percentage = dn.volume_discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        balance_due_usd = isAnulada ? 0m : Math.Max(0m, dn.adjusted_total_usd - paid),
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText,
@@ -427,6 +429,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         cxc_obs = string.Join(" | ", pObs);
                     }
 
+                    bool isAnulada = string.Equals(dn.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
                     result.Add(new accounts_receivable_dto
                     {
                         id_delivery_note = dn.id_delivery_note,
@@ -447,7 +450,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         volume_discount_percentage = dn.volume_discount_percentage,
                         status = dn.status,
                         paid_amount_usd = paid,
-                        balance_due_usd = dn.adjusted_total_usd - paid,
+                        balance_due_usd = isAnulada ? 0m : Math.Max(0m, dn.adjusted_total_usd - paid),
                         last_payment_date = lastDate,
                         payment_method_text = paymentMethod,
                         bank_name_text = bankText,
@@ -518,7 +521,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     volume_discount_percentage = dn.volume_discount_percentage,
                     status = dn.status,
                     paid_amount_usd = paid,
-                    balance_due_usd = dn.adjusted_total_usd - paid,
+                    balance_due_usd = string.Equals(dn.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase) ? 0m : Math.Max(0m, dn.adjusted_total_usd - paid),
                     cxc_observations = cxc_obs,
                     sales_observations = dn.sales_observations ?? string.Empty
                 };
@@ -803,6 +806,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                             delivery_note.id_relacion.Value);
 
                         await db_context.payments.AddAsync(asiento_anulacion);
+                    }
+
+                    // Limpieza preventiva de comisiones asociadas a la nota que se anula
+                    var related_commissions = await db_context.commissions
+                        .Where(c => c.id_delivery_note == id_delivery_note)
+                        .ToListAsync();
+                    if (related_commissions.Count > 0)
+                    {
+                        db_context.commissions.RemoveRange(related_commissions);
                     }
 
                     await db_context.SaveChangesAsync();

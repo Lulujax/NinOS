@@ -42,7 +42,6 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand note_pdf_command { get; }
         public ICommand note_preview_command { get; }
         public ICommand annul_note_command { get; }
-        public ICommand clear_month_filter_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
@@ -66,14 +65,6 @@ namespace NinOS.UI.Common.ViewModels
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
             annul_note_command = new RelayCommand(execute_annul_note);
-            clear_month_filter_command = new RelayCommand(_ => show_all_relations());
-        }
-
-        private bool _show_all_months;
-        public bool show_all_months
-        {
-            get => _show_all_months;
-            private set { _show_all_months = value; on_property_changed(); }
         }
 
         public int selected_report_index
@@ -107,12 +98,12 @@ namespace NinOS.UI.Common.ViewModels
         public bool is_pending => _selected_report_index == 1;
         public bool is_paid => _selected_report_index == 2;
 
-        public bool month_not_selected => _selected_month == null && !_show_all_months;
+        public bool month_not_selected => _selected_month == null;
 
-        public bool pending_show_empty => (_selected_month != null || _show_all_months) && pending_empty;
-        public bool paid_show_empty => (_selected_month != null || _show_all_months) && paid_empty;
-        public bool pending_show_month_hint => _selected_month == null && !_show_all_months;
-        public bool paid_show_month_hint => _selected_month == null && !_show_all_months;
+        public bool pending_show_empty => _selected_month != null && pending_empty;
+        public bool paid_show_empty => _selected_month != null && paid_empty;
+        public bool pending_show_month_hint => _selected_month == null;
+        public bool paid_show_month_hint => _selected_month == null;
 
         public pro_venta_month_option? selected_month
         {
@@ -121,15 +112,10 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_month == value) return;
                 _selected_month = value;
-                if (_selected_month != null)
-                {
-                    _show_all_months = false;
-                    on_property_changed(nameof(show_all_months));
-                }
                 on_property_changed();
                 on_property_changed(nameof(month_not_selected));
 
-                if (_selected_month == null && !_show_all_months)
+                if (_selected_month == null)
                 {
                     weeks = new List<pro_venta_week_info>();
                     on_property_changed(nameof(weeks));
@@ -256,6 +242,11 @@ namespace NinOS.UI.Common.ViewModels
 
                 var previous = _selected_month?.value;
                 available_months.Clear();
+                available_months.Add(new pro_venta_month_option
+                {
+                    value = DateTime.MinValue,
+                    label = "Todas"
+                });
                 foreach (var month in months) available_months.Add(month);
 
                 // El mes NO se preselecciona. Antes se elegia sola el mes actual (o el ultimo
@@ -325,25 +316,16 @@ namespace NinOS.UI.Common.ViewModels
                 .ToList();
 
             available_relations.Clear();
-            foreach (var r in filtered) available_relations.Add(r);
-        }
-
-        private void show_all_relations()
-        {
-            _show_all_months = true;
-            _selected_month = null;
-            on_property_changed(nameof(selected_month));
-            on_property_changed(nameof(show_all_months));
-            on_property_changed(nameof(month_not_selected));
-            on_property_changed(nameof(pending_show_month_hint));
-            on_property_changed(nameof(paid_show_month_hint));
-            if (is_pending)
+            if (_selected_month != null && _selected_month.value == DateTime.MinValue)
             {
-                _ = load_pending_async();
+                foreach (var r in _all_relations_cache.OrderBy(r => r.relation_number))
+                {
+                    available_relations.Add(r);
+                }
             }
-            else if (is_paid)
+            else
             {
-                _ = load_paid_async();
+                foreach (var r in filtered) available_relations.Add(r);
             }
         }
 
@@ -351,7 +333,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                if (_selected_month == null && !_show_all_months)
+                if (_selected_month == null)
                 {
                     pending_rows.Clear();
                     on_property_changed(nameof(has_pending));
@@ -365,7 +347,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 var all_rows = await _pro_venta_service.get_pending_relations_async();
                 IEnumerable<pro_venta_relation_row> filtered = all_rows;
-                if (_selected_month != null)
+                if (_selected_month.value != DateTime.MinValue)
                 {
                     int year = _selected_month.value.Year;
                     int month = _selected_month.value.Month;
@@ -394,7 +376,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                if (_selected_month == null && !_show_all_months)
+                if (_selected_month == null)
                 {
                     paid_rows.Clear();
                     on_property_changed(nameof(has_paid));
@@ -407,7 +389,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 var all_rows = await _pro_venta_service.get_paid_relations_async();
                 IEnumerable<pro_venta_relation_row> filtered = all_rows;
-                if (_selected_month != null)
+                if (_selected_month.value != DateTime.MinValue)
                 {
                     int year = _selected_month.value.Year;
                     int month = _selected_month.value.Month;
@@ -438,14 +420,36 @@ namespace NinOS.UI.Common.ViewModels
             _is_loading = true;
             try
             {
-                var new_weeks = _pro_venta_service.build_weeks(_selected_month.value.Year, _selected_month.value.Month);
-                var previous_index = _selected_week?.week_index;
-                weeks = new_weeks;
-                on_property_changed(nameof(weeks));
-                _selected_week = weeks.FirstOrDefault(w => w.week_index == previous_index) ?? weeks.FirstOrDefault();
-                on_property_changed(nameof(selected_week));
-                refresh_month_relations();
-                sync_relation_with_week();
+                if (_selected_month.value == DateTime.MinValue)
+                {
+                    var previous_index = _selected_week?.week_index;
+                    weeks = _all_relations_cache
+                        .OrderBy(r => r.relation_number)
+                        .Select(r => new pro_venta_week_info
+                        {
+                            week_index = r.relation_number,
+                            start = r.week_start,
+                            end = r.week_end,
+                            label = $"Semana {r.relation_number} ({r.week_start:dd/MM} - {r.week_end:dd/MM})"
+                        })
+                        .ToList();
+                    on_property_changed(nameof(weeks));
+                    _selected_week = weeks.FirstOrDefault(w => w.week_index == previous_index) ?? weeks.FirstOrDefault();
+                    on_property_changed(nameof(selected_week));
+                    refresh_month_relations();
+                    sync_relation_with_week();
+                }
+                else
+                {
+                    var new_weeks = _pro_venta_service.build_weeks(_selected_month.value.Year, _selected_month.value.Month);
+                    var previous_index = _selected_week?.week_index;
+                    weeks = new_weeks;
+                    on_property_changed(nameof(weeks));
+                    _selected_week = weeks.FirstOrDefault(w => w.week_index == previous_index) ?? weeks.FirstOrDefault();
+                    on_property_changed(nameof(selected_week));
+                    refresh_month_relations();
+                    sync_relation_with_week();
+                }
             }
             finally
             {
@@ -757,6 +761,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 // 2. Not in current month: find which month contains this week
                 var target_month = available_months.FirstOrDefault(m =>
+                    m.value != DateTime.MinValue &&
                     _pro_venta_service.build_weeks(m.value.Year, m.value.Month).Any(w => w.start.Date == target_start));
 
                 if (target_month == null)

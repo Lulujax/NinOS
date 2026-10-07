@@ -29,3 +29,4 @@ namespace NinOS.Domain.ViewModels
         public decimal TotalCreditNotesUsd { get; set; }
     }
 }
+

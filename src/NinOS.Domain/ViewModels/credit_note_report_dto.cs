@@ -24,6 +24,9 @@ namespace NinOS.Domain.ViewModels
         public string category { get; set; } = string.Empty;
         public string customer_name { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;
+        public int id_seller { get; set; }
+        public int? id_zona { get; set; }
+        public string zone_name { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public DateTime creation_date { get; set; }
         public decimal total_amount_usd { get; set; }

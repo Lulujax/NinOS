@@ -140,18 +140,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                 NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
                 product? actual = await db_context.products
-                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.id_product == product_to_update.id_product);
 
                 if (actual == null) throw new InvalidOperationException("El producto ya no existe en el inventario.");
 
-                // Sin cambio de marca el codigo y la marca se restauran desde la base: asi el
-                // estandar no depende de lo que haya mandado la pantalla.
-                product_to_update.product_code = actual.product_code;
-                product_to_update.category = actual.category;
-
                 string codigo_anterior = actual.product_code;
                 string marca_anterior = actual.category;
+                string codigo_ingresado = (product_to_update.product_code ?? string.Empty).Trim().ToUpperInvariant();
+
                 bool cambia_marca = !string.IsNullOrWhiteSpace(nueva_categoria)
                     && !string.Equals(nueva_categoria!.Trim(), actual.category, StringComparison.OrdinalIgnoreCase);
 
@@ -170,11 +166,40 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (string.Equals(codigo_nuevo, codigo_anterior, StringComparison.OrdinalIgnoreCase))
                         codigo_nuevo = await calcular_siguiente_codigo_async(db_context, marca_destino, codigo_nuevo);
 
-                    product_to_update.category = marca_destino;
-                    product_to_update.product_code = codigo_nuevo;
+                    actual.category = marca_destino;
+                    actual.product_code = codigo_nuevo;
+                }
+                else
+                {
+                    // No cambio de marca, pero el usuario pudo editar el codigo a mano. Nos aseguramos
+                    // de que quede en mayusculas, sin espacios, y no choque con otro producto.
+                    if (string.IsNullOrWhiteSpace(codigo_ingresado))
+                    {
+                        throw new InvalidOperationException("El código del producto no puede estar vacío.");
+                    }
+
+                    if (!string.Equals(codigo_ingresado, codigo_anterior, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Comprobamos que no exista otro producto con ese codigo.
+                        var ya_existe = await db_context.products
+                            .AsNoTracking()
+                            .AnyAsync(p => p.product_code == codigo_ingresado && p.id_product != actual.id_product && p.deleted_at == null);
+                        if (ya_existe)
+                            throw new InvalidOperationException($"Ya existe un producto con el código {codigo_ingresado}. Por favor usa otro código.");
+                    }
+
+                    actual.product_code = codigo_ingresado;
                 }
 
+                actual.name = product_to_update.name;
+                actual.unit_price_usd = product_to_update.unit_price_usd;
+
                 int diferencia = product_to_update.stock_quantity - actual.stock_quantity;
+                actual.stock_quantity = product_to_update.stock_quantity;
+
+                // Sincronizamos los valores finales en el objeto recibido
+                product_to_update.product_code = actual.product_code;
+                product_to_update.category = actual.category;
 
                 // El producto y su asiento en el kardex van juntos: si el kardex es la fuente
                 // de la verdad del stock, un ajuste a medias dejaria la cantidad real
@@ -182,8 +207,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                 await using var transaction = await db_context.Database.BeginTransactionAsync();
                 try
                 {
-                    db_context.products.Update(product_to_update);
-
                     try
                     {
                         await db_context.SaveChangesAsync();
@@ -191,7 +214,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     catch (DbUpdateException ex) when (is_unique_product_code_violation(ex))
                     {
                         throw new InvalidOperationException(
-                            $"El codigo {product_to_update.product_code} ya pertenece a otro producto.");
+                            $"El código {actual.product_code} ya pertenece a otro producto.");
                     }
 
                     // Si el usuario edito el stock a mano, queda asentado en el kardex como ajuste.
@@ -199,11 +222,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         stock_movement_writer.registrar_ajuste(
                             db_context,
-                            product_to_update.id_product,
+                            actual.id_product,
                             diferencia,
-                            $"AJUSTE-{product_to_update.product_code}",
+                            $"AJUSTE-{actual.product_code}",
                             DateTime.UtcNow,
-                            product_to_update.unit_price_usd,
+                            actual.unit_price_usd,
                             motivo_ajuste);
 
                         await db_context.SaveChangesAsync();
@@ -219,8 +242,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 if (cambia_marca)
                 {
-                    AppLog.Info($"Producto {product_to_update.id_product} mudado de marca: " +
-                                $"{codigo_anterior} ({marca_anterior}) -> {product_to_update.product_code} ({product_to_update.category}).");
+                    AppLog.Info($"Producto {actual.id_product} mudado de marca: " +
+                                $"{codigo_anterior} ({marca_anterior}) -> {actual.product_code} ({actual.category}).");
                 }
             }
         }

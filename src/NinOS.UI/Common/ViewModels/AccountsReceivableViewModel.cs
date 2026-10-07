@@ -534,7 +534,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalc_totals()
         {
-            var list = (selected_tab?.Items ?? all_notes).Where(n => n.status != "Anulada").ToList();
+            var list = (selected_tab?.Items ?? all_notes)
+                .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
             total_invoiced_usd = list.Sum(n => n.total_amount_usd);
             total_paid_usd = list.Sum(n => n.paid_amount_usd);
@@ -739,7 +741,7 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
-                    .Where(n => n.status != "Anulada")
+                    .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 var report = new monthly_report_dto

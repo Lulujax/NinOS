@@ -214,9 +214,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                         paid = notePayments.Where(p => p.amount_usd > 0).Sum(p => p.amount_usd);
                     }
 
+                    bool isAnulada = string.Equals(note.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
                     decimal total = note.adjusted_total_usd;
-                    decimal balance = total - paid;
-                    if (balance < 0) balance = 0;
+                    decimal balance = isAnulada ? 0m : Math.Max(0m, total - paid);
 
                     sellers_map.TryGetValue(note.id_seller, out var seller);
                     note_type? noteType = null;
@@ -322,12 +322,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     };
                 }).ToList();
 
-                // 4. Top purchased products
+                // 4. Top purchased products (solo de notas vigentes, excluyendo anuladas)
                 var topProducts = new List<CustomerHistoryProductDto>();
-                if (note_ids.Count > 0)
+                var valid_deliv_notes = raw_notes.Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                var valid_note_ids = valid_deliv_notes.Select(n => n.id_delivery_note).ToList();
+                if (valid_note_ids.Count > 0)
                 {
                     var details = await db_context.note_details.AsNoTracking()
-                        .Where(d => note_ids.Contains(d.id_delivery_note) && d.id_product != null)
+                        .Where(d => valid_note_ids.Contains(d.id_delivery_note) && d.id_product != null)
                         .ToListAsync();
 
                     var product_ids = details.Select(d => d.id_product!.Value).Distinct().ToList();
@@ -357,11 +359,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                 }
 
                 // 5. KPIs
-                var validNotes = deliveryNoteDtos.Where(n => !string.Equals(n.status, "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                var validNotes = deliveryNoteDtos.Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
                 decimal totalInvoiced = validNotes.Sum(n => n.total_amount_usd);
                 decimal totalPaid = paymentDtos.Where(p => p.amount_usd > 0).Sum(p => p.amount_usd);
                 decimal balanceDue = validNotes.Sum(n => n.balance_due_usd);
-                var validCreditNotes = creditNoteDtos.Where(c => !string.Equals(c.status, "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                var validCreditNotes = creditNoteDtos.Where(c => !string.Equals(c.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 return new CustomerHistoryDataDto
                 {
@@ -373,8 +375,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     TotalInvoicedUsd = totalInvoiced,
                     TotalPaidUsd = totalPaid,
                     BalanceDueUsd = balanceDue,
-                    TotalNotesCount = deliveryNoteDtos.Count,
-                    TotalCreditNotesCount = creditNoteDtos.Count,
+                    TotalNotesCount = validNotes.Count,
+                    TotalCreditNotesCount = validCreditNotes.Count,
                     TotalCreditNotesUsd = validCreditNotes.Sum(c => c.total_amount_usd)
                 };
             }

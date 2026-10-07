@@ -171,14 +171,16 @@ namespace NinOS.UI.Common
                     bool alternate = false;
                     foreach (var r in srows)
                     {
-                        string bg = alternate ? AccentBg : Colors.White;
+                        bool is_annulled = string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
+                        string bg = is_annulled ? "#FFEBEE" : (alternate ? AccentBg : Colors.White);
+                        string defaultColor = is_annulled ? "#C62828" : "#333333";
 
-                        void cell(string text, bool left = false, string color = "#333333", bool bold = false)
+                        void cell(string text, bool left = false, string? color = null, bool bold = false)
                         {
                             var c = table.Cell().Background(bg).BorderBottom(0.4f).BorderColor(LightBorder)
                                 .PaddingVertical(2).PaddingHorizontal(1.5f);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontSize(7.5f).FontColor(color);
+                            t.FontSize(7.5f).FontColor(color ?? defaultColor);
                             if (bold) t.Bold();
                         }
 
@@ -201,9 +203,14 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                decimal group_total = srows.Sum(x => x.amount_usd);
-                decimal group_paid = srows.Sum(x => x.paid_amount_usd);
-                decimal group_balance = srows.Sum(x => x.balance_due_usd);
+                var valid_srows = srows.Where(x => !string.Equals(x.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                decimal group_total = valid_srows.Sum(x => x.amount_usd);
+                decimal group_paid = valid_srows.Sum(x => x.paid_amount_usd);
+                decimal group_balance = valid_srows.Sum(x => x.balance_due_usd);
+
+                var annulled_rows = srows.Where(x => string.Equals(x.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                int annulled_count = annulled_rows.Count;
+                decimal annulled_amount = annulled_rows.Sum(x => x.amount_usd);
 
                 col.Item().PaddingTop(10).Row(outerRow =>
                 {
@@ -230,6 +237,17 @@ namespace NinOS.UI.Common
                                 r.RelativeItem().Text("SALDO $").FontSize(9).Bold().FontColor("#C62828");
                                 r.ConstantItem(120).AlignRight().Text(Money(group_balance)).FontSize(10).Bold().FontColor("#C62828");
                             });
+                        }
+
+                        if (annulled_count > 0)
+                        {
+                            bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                            bottom.Item().Background("#FFEBEE").Padding(4).Row(r =>
+                            {
+                                r.RelativeItem().Text($"ANULADAS ({annulled_count}):").FontSize(8).Bold().FontColor("#C62828");
+                                r.ConstantItem(120).AlignRight().Text(Money(annulled_amount)).FontSize(8.5f).Bold().FontColor("#C62828");
+                            });
+                            bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y total)").FontSize(6.5f).Italic().FontColor("#C62828");
                         }
 
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);

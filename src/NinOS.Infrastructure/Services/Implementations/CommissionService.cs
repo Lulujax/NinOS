@@ -26,10 +26,10 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             using var scope = _scope_factory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-            return await db.commissions
-                .AsNoTracking()
-                .Where(c => c.id_seller == id_seller && !c.is_paid)
-                .ToArrayAsync();
+            return await (from c in db.commissions.AsNoTracking()
+                          join n in db.delivery_notes.AsNoTracking() on c.id_delivery_note equals n.id_delivery_note
+                          where c.id_seller == id_seller && !c.is_paid && n.status != "Anulada"
+                          select c).ToArrayAsync();
         }
 
         public async Task process_liquidation_async(int[] commission_ids)
@@ -100,6 +100,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(n => note_ids.Contains(n.id_delivery_note))
                     .ToDictionaryAsync(n => n.id_delivery_note);
             }
+
+            // Excluir notas anuladas: no generan ni cobran comisiones
+            commissions = commissions.Where(c => notes.TryGetValue(c.id_delivery_note, out var n) && !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
 
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
             var customers = await db.customers
@@ -172,6 +176,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(n => note_ids.Contains(n.id_delivery_note))
                     .ToDictionaryAsync(n => n.id_delivery_note);
             }
+
+            // Excluir notas anuladas: no generan ni cobran comisiones
+            commissions = commissions.Where(c => notes.TryGetValue(c.id_delivery_note, out var n) && !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (commissions.Count == 0) return Enumerable.Empty<commission_dto>();
 
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
             var customers = await db.customers
@@ -283,6 +291,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             return commissions
                 .Where(c => notes.TryGetValue(c.id_delivery_note, out var note)
+                         && !string.Equals(note.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
                          && note.creation_date.Year == target_date.Year
                          && note.creation_date.Month == target_date.Month)
                 .Select(c =>
@@ -317,9 +326,10 @@ return new commission_dto
         {
             using var scope = _scope_factory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-            return await db.commissions
-                .AsNoTracking()
-                .Select(c => c.id_seller)
+            return await (from c in db.commissions.AsNoTracking()
+                          join n in db.delivery_notes.AsNoTracking() on c.id_delivery_note equals n.id_delivery_note
+                          where n.status != "Anulada"
+                          select c.id_seller)
                 .Distinct()
                 .Join(db.sellers.AsNoTracking(), id => id, s => s.id_seller, (id, s) => s)
                 .ToListAsync();

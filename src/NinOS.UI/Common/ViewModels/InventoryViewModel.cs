@@ -173,7 +173,7 @@ namespace NinOS.UI.Common.ViewModels
 
         // Al editar, el codigo es solo lectura: lo asigna el sistema y asi el estandar
         // por marca no se puede romper desde el formulario.
-        public bool is_code_read_only => is_editing_product;
+        public bool is_code_read_only => false;
 
         // Codigo que tenia el producto al abrirlo para editar, y el que le asignaria el
         // sistema si se confirma el cambio de marca. Solo se muestran si hay cambio.
@@ -1228,6 +1228,10 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            // Normaliza el codigo a mayusculas para evitar duplicados por minusculas/espacios.
+            string normalized_code = new_code.Trim().ToUpperInvariant();
+            new_code = normalized_code;
+
             if (string.IsNullOrWhiteSpace(new_quantity))
             {
                 ErrorMessage = "La cantidad es obligatoria.";
@@ -1266,12 +1270,12 @@ namespace NinOS.UI.Common.ViewModels
 
             bool es_edicion = _product_being_edited != null;
 
-            // Al crear, el codigo lo pone el sistema con el estandar de la marca.
-            if (!es_edicion)
+            // Validar codigo si es nuevo o si se modifico el codigo manualmente
+            if (!es_edicion || (!has_pending_brand_change && !string.Equals(normalized_code, _original_code_for_edit, StringComparison.OrdinalIgnoreCase)))
             {
-                if (string.IsNullOrWhiteSpace(new_code))
+                if (string.IsNullOrWhiteSpace(normalized_code))
                 {
-                    ErrorMessage = "No se pudo generar el código del producto. Cierra la ventana y vuelve a abrirla.";
+                    ErrorMessage = "El código del producto es obligatorio.";
                     return;
                 }
 
@@ -1281,7 +1285,7 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                if (!product_code_rules.IsValidFor(new_code, new_category))
+                if (!product_code_rules.IsValidFor(normalized_code, new_category))
                 {
                     ErrorMessage = $"El código debe tener el formato de la marca {new_category} " +
                                    $"(prefijo {prefix} y {product_code_rules.DigitsFor(prefix)} dígitos).";
@@ -1318,7 +1322,7 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                bool cambio_de_codigo = es_edicion && has_pending_brand_change;
+                bool cambio_de_codigo = es_edicion && (has_pending_brand_change || !string.Equals(normalized_code, _original_code_for_edit, StringComparison.OrdinalIgnoreCase));
 
                 if (_product_being_edited != null)
                 {
@@ -1327,6 +1331,7 @@ namespace NinOS.UI.Common.ViewModels
                     _product_being_edited.name = new_name;
                     _product_being_edited.unit_price_usd = parsed_price;
                     _product_being_edited.stock_quantity = parsed_quantity;
+                    _product_being_edited.product_code = normalized_code;
 
                     await _inventory_service.update_product_async(
                         _product_being_edited,
@@ -1335,7 +1340,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 else
                 {
-                    product new_prod = new product(new_code.Trim(), new_name, new_category, parsed_price, parsed_quantity);
+                    product new_prod = new product(normalized_code, new_name, new_category, parsed_price, parsed_quantity);
                     await _inventory_service.add_product_async(new_prod);
                 }
 

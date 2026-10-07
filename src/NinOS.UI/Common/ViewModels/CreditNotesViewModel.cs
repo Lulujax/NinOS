@@ -19,6 +19,10 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IInventoryService _inventory_service;
         private readonly ICustomerService _customer_service;
         private readonly ISellerService _seller_service;
+        private readonly IZonaService _zona_service;
+
+        private List<seller> _cached_sellers = new();
+        private List<zona> _cached_zonas = new();
 
         private string _selected_month = string.Empty;
         private string _selected_category_filter = "Todas";
@@ -119,13 +123,15 @@ namespace NinOS.UI.Common.ViewModels
             IAccountsReceivableService receivable_service,
             IInventoryService inventory_service,
             ICustomerService customer_service,
-            ISellerService seller_service)
+            ISellerService seller_service,
+            IZonaService zona_service)
         {
             _credit_note_service = credit_note_service ?? throw new ArgumentNullException(nameof(credit_note_service));
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _inventory_service = inventory_service ?? throw new ArgumentNullException(nameof(inventory_service));
             _customer_service = customer_service ?? throw new ArgumentNullException(nameof(customer_service));
             _seller_service = seller_service ?? throw new ArgumentNullException(nameof(seller_service));
+            _zona_service = zona_service ?? throw new ArgumentNullException(nameof(zona_service));
 
             credit_note_months = new ObservableCollection<string>();
             notes = new ObservableCollection<credit_note_dto>();
@@ -146,35 +152,87 @@ namespace NinOS.UI.Common.ViewModels
 
         public void refresh_data() => load_months_async();
 
-        private void sync_seller_tabs(IEnumerable<seller> sellers)
+        private void sync_tabs()
         {
-            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
-
-            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
+            bool isGiftMode = string.Equals(_selected_category_filter, "Obsequio", StringComparison.OrdinalIgnoreCase);
+            if (isGiftMode)
             {
-                seller_tabs.Insert(0, new SellerTabItem<credit_note_dto>(null, "Todos"));
+                sync_zona_tabs();
             }
             else
             {
-                seller_tabs[0].Header = "Todos";
+                sync_seller_tabs();
+            }
+        }
+
+        private void sync_zona_tabs()
+        {
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdZona != null || seller_tabs[0].Header != "Todas")
+            {
+                seller_tabs.Clear();
+                seller_tabs.Add(new SellerTabItem<credit_note_dto>(null, null, "Todas"));
             }
 
-            var currentSellerTabs = seller_tabs.Skip(1).ToList();
-            foreach (var tab in currentSellerTabs)
+            var currentZonaTabs = seller_tabs.Skip(1).ToList();
+            foreach (var tab in currentZonaTabs)
             {
-                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
+                if (!tab.IdZona.HasValue || !_cached_zonas.Any(z => z.id_zona == tab.IdZona.Value))
                 {
                     seller_tabs.Remove(tab);
                 }
             }
 
             int targetIndex = 1;
-            foreach (var s in activeSellers)
+            foreach (var z in _cached_zonas)
+            {
+                var existing = seller_tabs.FirstOrDefault(t => t.IdZona == z.id_zona);
+                if (existing == null)
+                {
+                    var newTab = new SellerTabItem<credit_note_dto>(null, z.id_zona, z.name ?? string.Empty);
+                    seller_tabs.Insert(targetIndex, newTab);
+                }
+                else
+                {
+                    existing.Header = z.name ?? string.Empty;
+                    int currentIndex = seller_tabs.IndexOf(existing);
+                    if (currentIndex != targetIndex)
+                    {
+                        seller_tabs.Move(currentIndex, targetIndex);
+                    }
+                }
+                targetIndex++;
+            }
+
+            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
+            {
+                selected_tab = seller_tabs[0];
+            }
+        }
+
+        private void sync_seller_tabs()
+        {
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null || seller_tabs[0].Header != "Todos")
+            {
+                seller_tabs.Clear();
+                seller_tabs.Add(new SellerTabItem<credit_note_dto>(null, null, "Todos"));
+            }
+
+            var currentSellerTabs = seller_tabs.Skip(1).ToList();
+            foreach (var tab in currentSellerTabs)
+            {
+                if (!tab.IdSeller.HasValue || !_cached_sellers.Any(s => s.id_seller == tab.IdSeller.Value))
+                {
+                    seller_tabs.Remove(tab);
+                }
+            }
+
+            int targetIndex = 1;
+            foreach (var s in _cached_sellers)
             {
                 var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
                 if (existing == null)
                 {
-                    var newTab = new SellerTabItem<credit_note_dto>(s.id_seller, s.full_name ?? string.Empty);
+                    var newTab = new SellerTabItem<credit_note_dto>(s.id_seller, null, s.full_name ?? string.Empty);
                     seller_tabs.Insert(targetIndex, newTab);
                 }
                 else
@@ -202,8 +260,9 @@ namespace NinOS.UI.Common.ViewModels
                 var current_selection = _selected_month;
                 _is_loading = true;
 
-                var dbSellers = await _seller_service.GetAllActiveAsync();
-                sync_seller_tabs(dbSellers);
+                _cached_sellers = (await _seller_service.GetAllActiveAsync()).OrderBy(s => s.seller_code).ToList();
+                _cached_zonas = (await _zona_service.GetActiveAsync()).OrderBy(z => z.name).ToList();
+                sync_tabs();
 
                 var months = (await _credit_note_service.get_credit_note_months_async()).ToList();
 
@@ -269,6 +328,8 @@ namespace NinOS.UI.Common.ViewModels
 
         private void apply_filters()
         {
+            sync_tabs();
+
             notes.Clear();
             sandra_notes.Clear();
             anais_notes.Clear();
@@ -296,18 +357,43 @@ namespace NinOS.UI.Common.ViewModels
             foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase))) alejandra_notes.Add(row);
             foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase))) juan_luis_notes.Add(row);
 
-            foreach (var tab in seller_tabs)
+            bool isGiftMode = string.Equals(_selected_category_filter, "Obsequio", StringComparison.OrdinalIgnoreCase);
+
+            if (isGiftMode)
             {
-                tab.Items.Clear();
-                if (tab.IdSeller == null)
+                foreach (var tab in seller_tabs)
                 {
-                    foreach (var row in rows) tab.Items.Add(row);
-                }
-                else
-                {
-                    foreach (var row in rows.Where(r => (tab.IdSeller.HasValue && r.id_seller == tab.IdSeller.Value) || string.Equals(r.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    tab.Items.Clear();
+                    if (tab.IdZona == null)
                     {
-                        tab.Items.Add(row);
+                        foreach (var row in rows) tab.Items.Add(row);
+                    }
+                    else
+                    {
+                        foreach (var row in rows.Where(r => (r.id_zona.HasValue && r.id_zona.Value == tab.IdZona.Value)
+                                                         || string.Equals(r.zone_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            tab.Items.Add(row);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var tab in seller_tabs)
+                {
+                    tab.Items.Clear();
+                    if (tab.IdSeller == null)
+                    {
+                        foreach (var row in rows) tab.Items.Add(row);
+                    }
+                    else
+                    {
+                        foreach (var row in rows.Where(r => (tab.IdSeller.HasValue && r.id_seller == tab.IdSeller.Value)
+                                                         || string.Equals(r.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            tab.Items.Add(row);
+                        }
                     }
                 }
             }
@@ -317,7 +403,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalc_totals()
         {
-            var list = (selected_tab?.Items ?? notes).ToList();
+            var list = (selected_tab?.Items ?? notes)
+                .Where(r => !string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             total_credit_usd = list.Sum(r => r.total_amount_usd);
         }
 
@@ -384,5 +472,11 @@ namespace NinOS.UI.Common.ViewModels
 
         public async Task<IEnumerable<zona>> get_assigned_zonas_for_seller_async(int id_seller)
             => await _seller_service.GetAssignedZonasAsync(id_seller);
+
+        public async Task<List<zona>> get_zonas_async()
+            => await _zona_service.GetActiveAsync();
+
+        public async Task<seller?> get_admin_seller_async()
+            => (await _seller_service.GetAllActiveAsync()).FirstOrDefault(s => s.seller_code == "001" || s.full_name.Contains("Sandra", StringComparison.OrdinalIgnoreCase));
     }
 }

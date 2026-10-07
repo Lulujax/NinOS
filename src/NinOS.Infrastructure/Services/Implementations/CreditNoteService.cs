@@ -304,6 +304,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .Where(n => delivery_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
+            var zonas = await db_context.zonas
+                .AsNoTracking()
+                .ToDictionaryAsync(z => z.id_zona, z => z.name);
 
             // La columna TIPO NOTA de la NC se hereda de la nota de entrega que se esta revirtiendo:
             // una devolucion no tiene tipo propio, hereda el de la nota que la origina (general,
@@ -340,15 +343,22 @@ namespace NinOS.Infrastructure.Services.Implementations
                         type_name = "General";
                     }
 
+                    bool isGift = string.Equals(c.category, "Obsequio", StringComparison.OrdinalIgnoreCase);
+                    customers.TryGetValue(c.id_customer, out var cu);
+                    int? zona_id = cu?.id_zona;
+                    string zona_name = zona_id.HasValue && zonas.TryGetValue(zona_id.Value, out var zn) ? zn : string.Empty;
+
                     return new credit_note_dto
                     {
                         id_credit_note = c.id_credit_note,
                         note_number = c.note_number,
                         id_delivery_note = c.id_delivery_note ?? 0,
                         source_note_number = c.id_delivery_note.HasValue && originals.TryGetValue(c.id_delivery_note.Value, out var o) ? o.note_number : string.Empty,
-                        customer_name = customers.TryGetValue(c.id_customer, out var cu) ? cu.business_name : string.Empty,
+                        customer_name = cu?.business_name ?? string.Empty,
                         id_seller = c.id_seller,
-                        seller_name = sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty,
+                        seller_name = isGift ? "-" : (sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty),
+                        id_zona = zona_id,
+                        zone_name = zona_name,
                         creation_date = c.creation_date,
                         total_amount_usd = c.total_amount_usd,
                         status = c.status,
@@ -628,6 +638,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         if (new_note.id_delivery_note.HasValue)
                             throw new InvalidOperationException("La nota de credito por obsequio no va anclada a una nota de entrega.");
+
+                        if (new_note.id_seller <= 0)
+                        {
+                            var adminSeller = await db_context.sellers
+                                .FirstOrDefaultAsync(s => s.seller_code == "001" || s.full_name.Contains("Sandra"));
+                            if (adminSeller != null)
+                            {
+                                new_note.id_seller = adminSeller.id_seller;
+                            }
+                        }
 
                         bool customer_exists = await db_context.customers
                             .AsNoTracking()
@@ -1314,19 +1334,32 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .Where(n => delivery_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
+            var zonas = await db_context.zonas
+                .AsNoTracking()
+                .ToDictionaryAsync(z => z.id_zona, z => z.name);
 
             return notes
-                .Select(c => new credit_note_report_row_dto
+                .Select(c =>
                 {
-                    id_credit_note = c.id_credit_note,
-                    note_number = c.note_number,
-                    source_note_number = c.id_delivery_note.HasValue && originals.TryGetValue(c.id_delivery_note.Value, out var o) ? o.note_number : string.Empty,
-                    category = c.category,
-                    customer_name = customers.TryGetValue(c.id_customer, out var cu) ? cu.business_name : string.Empty,
-                    seller_name = sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty,
-                    status = c.status,
-                    creation_date = c.creation_date,
-                    total_amount_usd = c.total_amount_usd
+                    customers.TryGetValue(c.id_customer, out var cu);
+                    int? zona_id = cu?.id_zona;
+                    string zona_name = zona_id.HasValue && zonas.TryGetValue(zona_id.Value, out var zn) ? zn : string.Empty;
+
+                    return new credit_note_report_row_dto
+                    {
+                        id_credit_note = c.id_credit_note,
+                        note_number = c.note_number,
+                        source_note_number = c.id_delivery_note.HasValue && originals.TryGetValue(c.id_delivery_note.Value, out var o) ? o.note_number : string.Empty,
+                        category = c.category,
+                        customer_name = cu?.business_name ?? string.Empty,
+                        id_seller = c.id_seller,
+                        seller_name = sellers.TryGetValue(c.id_seller, out var se) ? se.full_name : string.Empty,
+                        id_zona = zona_id,
+                        zone_name = zona_name,
+                        status = c.status,
+                        creation_date = c.creation_date,
+                        total_amount_usd = c.total_amount_usd
+                    };
                 })
                 .ToList();
         }

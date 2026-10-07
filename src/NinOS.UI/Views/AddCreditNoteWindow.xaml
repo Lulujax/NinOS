@@ -56,7 +56,7 @@
             </ComboBox>
         </Grid>
 
-        <!-- VENDEDOR: se elige primero en ambas categorias (filtra notas en Devolucion o clientes en Obsequio) -->
+        <!-- VENDEDOR: solo devolucion (filtra notas de entrega) -->
         <Grid Grid.Row="1" x:Name="SellerRow" Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
@@ -67,6 +67,19 @@
                       DisplayMemberPath="full_name" SelectedValuePath="id_seller"
                       HorizontalContentAlignment="Left" ToolTip="Seleccione el vendedor"
                       SelectionChanged="OnSellerChanged"/>
+        </Grid>
+
+        <!-- ZONA: solo obsequio (filtra clientes por zona) -->
+        <Grid Grid.Row="1" x:Name="ZonaRow" Visibility="Collapsed" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Zona:"/><Run Text="*" Foreground="Red"/></TextBlock>
+            <ComboBox x:Name="CmbZona" Grid.Column="1" FontSize="11" Width="240" HorizontalAlignment="Left" Height="26"
+                      DisplayMemberPath="name" SelectedValuePath="id_zona"
+                      HorizontalContentAlignment="Left" ToolTip="Seleccione la zona para filtrar clientes (opcional)"
+                      SelectionChanged="OnZonaChanged"/>
         </Grid>
 
         <!-- FECHA DE LA NOTA DE ENTREGA: desplegable de meses (solo devolucion) -->
@@ -509,7 +522,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="12">
+        <Grid x:Name="ObsRow" Grid.Row="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="110"/>
                 <ColumnDefinition Width="*"/>

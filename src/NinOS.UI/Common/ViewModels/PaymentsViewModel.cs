@@ -225,7 +225,7 @@ namespace NinOS.UI.Common.ViewModels
                 sync_seller_tabs(dbSellers);
 
                 var raw = await _receivable_service.get_all_notes_async();
-                var all_rows = raw.Where(n => n.status != "Anulada").Select(map_to_row).ToList();
+                var all_rows = raw.Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).Select(map_to_row).ToList();
 
                 var unique_months = all_rows
                     .Where(n => n.creation_date.Year >= 2000)
@@ -361,7 +361,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private void recalc_totals()
         {
-            var list = (selected_tab != null ? selected_tab.Items.ToList() : all_notes.ToList());
+            var list = (selected_tab != null ? selected_tab.Items.ToList() : all_notes.ToList())
+                .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
             total_invoiced_usd = list.Sum(n => n.total_amount_usd);
             total_paid_usd = list.Sum(n => n.paid_amount_usd);

@@ -1624,6 +1624,8 @@ namespace NinOS.UI.Common.ViewModels
                 _selected_customer = null;
                 on_property_changed(nameof(selected_customer));
                 on_property_changed(nameof(customer_code_text));
+                creation_date = DateTime.Now;
+                due_date = DateTime.Now.AddDays(15);
                 recalculate_total();
                 update_correlative_async();
                 OnNoteSaved?.Invoke();
@@ -1668,6 +1670,8 @@ namespace NinOS.UI.Common.ViewModels
             _selected_customer = null;
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));
+            creation_date = DateTime.Now;
+            due_date = DateTime.Now.AddDays(15);
             _promo_title_text = "PROMOCIÓN";
             on_property_changed(nameof(promo_title_text));
             recalculate_total();

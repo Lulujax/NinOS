@@ -80,7 +80,8 @@ namespace NinOS.UI.Views
                 _ = vm.LoadHistoryAsync(selected.CustomerRef.id_customer);
                 var window = new CustomerHistoryWindow(vm, serviceProvider)
                 {
-                    Owner = Window.GetWindow(this)
+                    Owner = Window.GetWindow(this),
+                    WindowState = WindowState.Maximized
                 };
                 window.ShowDialog();
             }
@@ -109,3 +110,4 @@ namespace NinOS.UI.Views
         }
     }
 }
+

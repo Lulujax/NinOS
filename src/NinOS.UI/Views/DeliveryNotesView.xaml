@@ -72,6 +72,7 @@
                         </Border>
                         <TextBlock Text="{Binding header_title}" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" TextDecorations="Underline"/>
                         <TextBlock Text="Caracas venezuela" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding selected_seller.full_name}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
 
                     <Border Grid.Row="1" BorderBrush="Black" BorderThickness="1" Margin="0,0,0,10">

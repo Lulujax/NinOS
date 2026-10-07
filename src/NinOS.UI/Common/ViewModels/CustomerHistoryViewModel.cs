@@ -163,6 +163,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand ViewNotePaymentsCommand { get; }
         public ICommand ViewCreditNoteDetailCommand { get; }
         public ICommand PrintCreditNotePdfCommand { get; }
+        public ICommand PrintCustomerHistoryPdfCommand { get; }
 
         public CustomerHistoryViewModel(
             ICustomerService customerService,
@@ -182,6 +183,7 @@ namespace NinOS.UI.Common.ViewModels
             ViewNotePaymentsCommand = new RelayCommand(ExecuteViewNotePayments);
             ViewCreditNoteDetailCommand = new RelayCommand(ExecuteViewCreditNoteDetail);
             PrintCreditNotePdfCommand = new RelayCommand(ExecutePrintCreditNotePdf);
+            PrintCustomerHistoryPdfCommand = new RelayCommand(_ => ExecutePrintCustomerHistoryPdf());
         }
 
         public async Task LoadHistoryAsync(int customerId)
@@ -272,14 +274,14 @@ namespace NinOS.UI.Common.ViewModels
             foreach (var prod in _historyData.TopProducts) TopProducts.Add(prod);
 
             // 5. Update KPI metrics based on filtered view
-            var validNotes = notesList.Where(n => !string.Equals(n.status, "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+            var validNotes = notesList.Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
             TotalInvoicedUsd = validNotes.Sum(n => n.total_amount_usd);
             TotalPaidUsd = paymentList.Where(p => p.amount_usd > 0).Sum(p => p.amount_usd);
             BalanceDueUsd = validNotes.Sum(n => n.balance_due_usd);
-            TotalNotesCount = notesList.Count;
+            TotalNotesCount = validNotes.Count;
 
-            var validCredit = creditList.Where(c => !string.Equals(c.status, "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
-            TotalCreditNotesCount = creditList.Count;
+            var validCredit = creditList.Where(c => !string.Equals(c.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+            TotalCreditNotesCount = validCredit.Count;
             TotalCreditNotesUsd = validCredit.Sum(c => c.total_amount_usd);
         }
 
@@ -356,5 +358,55 @@ namespace NinOS.UI.Common.ViewModels
                 }
             }
         }
+
+        private void ExecutePrintCustomerHistoryPdf()
+        {
+            if (_customer == null)
+            {
+                AppDialog.Show("No hay datos de cliente disponibles para imprimir.", "Aviso");
+                return;
+            }
+
+            try
+            {
+                string periodLabel = "Historial Completo";
+                if (FromDate.HasValue && ToDate.HasValue)
+                    periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy} Hasta {ToDate.Value:dd/MM/yyyy}";
+                else if (FromDate.HasValue)
+                    periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy}";
+                else if (ToDate.HasValue)
+                    periodLabel = $"Hasta {ToDate.Value:dd/MM/yyyy}";
+
+                var model = new CustomerHistoryPdfModel
+                {
+                    CustomerCode = CustomerCode,
+                    CustomerName = BusinessName,
+                    Rif = Rif,
+                    ContactName = ContactName,
+                    Phone = PhoneNumber,
+                    ZoneName = ZonaName,
+                    FiscalAddress = FiscalAddress,
+                    DeliveryAddress = EffectiveDeliveryAddress,
+                    PeriodLabel = periodLabel,
+                    TotalInvoicedUsd = TotalInvoicedUsd,
+                    TotalNotesCount = TotalNotesCount,
+                    TotalPaidUsd = TotalPaidUsd,
+                    BalanceDueUsd = BalanceDueUsd,
+                    TotalCreditNotesUsd = TotalCreditNotesUsd,
+                    TotalCreditNotesCount = TotalCreditNotesCount,
+                    DeliveryNotes = DeliveryNotes.ToList(),
+                    CreditNotes = CreditNotes.ToList(),
+                    Payments = Payments.ToList(),
+                    TopProducts = TopProducts.ToList()
+                };
+
+                CustomerHistoryPdfGenerator.generate(model);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar el PDF del historial: {ErrorText.Get(ex)}", "Error");
+            }
+        }
     }
 }
+

@@ -89,8 +89,10 @@ namespace NinOS.UI.Views
 
         private List<seller> _all_sellers = new();
         private seller? _selected_seller;
+        private seller? _admin_seller;
+        private List<zona> _all_zonas = new();
         private List<customer> _all_customers = new();
-        private List<customer> _seller_customers = new();
+        private List<customer> _selectable_customers = new();
         private customer? _selected_customer;
 
         private List<product> _available_products = new();
@@ -101,6 +103,8 @@ namespace NinOS.UI.Views
         private bool _is_updating_cascade;
         private bool _is_gift;
         private readonly string? _initial_seller_name;
+        private readonly string? _initial_category;
+        private readonly string? _initial_zona_name;
 
         private bool _notePopupWasOpen;
         private bool _customerPopupWasOpen;
@@ -144,17 +148,32 @@ namespace NinOS.UI.Views
             MaxWidth = max_width > 0 ? max_width : Width;
         }
 
-        public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null)
+        public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null, string? initial_category = null, string? initial_zona_name = null)
         {
             InitializeComponent();
             _vm = vm;
             _initial_seller_name = initial_seller_name;
+            _initial_category = initial_category;
+            _initial_zona_name = initial_zona_name;
 
             FitToWorkingArea();
 
             Loaded += async (_, _) =>
             {
                 _is_updating_cascade = true;
+
+                if (!string.IsNullOrWhiteSpace(_initial_category))
+                {
+                    foreach (ComboBoxItem item in CmbCategory.Items)
+                    {
+                        if (string.Equals(item.Tag as string, _initial_category.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(item.Content?.ToString(), _initial_category.Trim(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            CmbCategory.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
 
                 if (CmbCategory.SelectedItem is ComboBoxItem selected)
                     _is_gift = string.Equals(selected.Tag as string, "Obsequio", StringComparison.OrdinalIgnoreCase);
@@ -165,30 +184,23 @@ namespace NinOS.UI.Views
                 var obsequioTask = LoadObsequioDataAsync();
                 await Task.WhenAll(sellersTask, obsequioTask);
 
-                seller? preselected = null;
-                if (!string.IsNullOrWhiteSpace(_initial_seller_name))
+                if (_is_gift)
                 {
-                    preselected = _all_sellers.FirstOrDefault(s => string.Equals(s.full_name?.Trim(), _initial_seller_name.Trim(), StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (preselected != null)
-                {
-                    CmbSeller.SelectedItem = preselected;
-                    _selected_seller = preselected;
-                    if (_is_gift)
-                    {
-                        ApplySellerForObsequio(preselected);
-                    }
-                    else
-                    {
-                        await ApplySellerForDevolucionAsync(preselected);
-                    }
+                    ApplyZonaForObsequio(_initial_zona_name);
                 }
                 else
                 {
-                    if (_is_gift)
+                    seller? preselected = null;
+                    if (!string.IsNullOrWhiteSpace(_initial_seller_name))
                     {
-                        ApplySellerForObsequio(null);
+                        preselected = _all_sellers.FirstOrDefault(s => string.Equals(s.full_name?.Trim(), _initial_seller_name.Trim(), StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (preselected != null)
+                    {
+                        CmbSeller.SelectedItem = preselected;
+                        _selected_seller = preselected;
+                        await ApplySellerForDevolucionAsync(preselected);
                     }
                     else
                     {
@@ -282,14 +294,14 @@ namespace NinOS.UI.Views
                 if (_is_gift)
                 {
                     ResetDevolucionState();
-                    ResetObsequioState(preserve_seller: true);
+                    ResetObsequioState();
                     if (ItemsGrid != null) ItemsGrid.ItemsSource = _gift_items;
                     await LoadObsequioDataAsync();
-                    ApplySellerForObsequio(currentSeller);
+                    ApplyZonaForObsequio(_initial_zona_name);
                 }
                 else
                 {
-                    ResetObsequioState(preserve_seller: true);
+                    ResetObsequioState();
                     ResetDevolucionState();
                     await ApplySellerForDevolucionAsync(currentSeller);
                 }
@@ -318,24 +330,16 @@ namespace NinOS.UI.Views
             if (NotePopup != null) NotePopup.IsOpen = false;
         }
 
-        private void ResetObsequioState(bool preserve_seller = false)
+        private void ResetObsequioState()
         {
-            if (!preserve_seller)
-            {
-                _selected_seller = null;
-                if (CmbSeller != null) CmbSeller.SelectedItem = null;
-            }
             _selected_customer = null;
-            _seller_customers.Clear();
 
             if (CustomerTextBox != null)
             {
-                CustomerTextBox.IsEnabled = preserve_seller && _selected_seller != null;
+                CustomerTextBox.IsEnabled = true;
                 CustomerTextBox.IsReadOnly = false;
                 CustomerTextBox.Text = string.Empty;
-                CustomerTextBox.ToolTip = preserve_seller && _selected_seller != null
-                    ? "Escriba el nombre, codigo o RIF del cliente..."
-                    : "Seleccione primero un vendedor...";
+                CustomerTextBox.ToolTip = "Escriba el nombre, codigo o RIF del cliente...";
             }
             if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
             if (CustomerPopup != null) CustomerPopup.IsOpen = false;
@@ -350,13 +354,22 @@ namespace NinOS.UI.Views
 
             if (ItemsGrid != null) ItemsGrid.ItemsSource = _is_gift ? _gift_items : null;
             RecalcTotal();
+
+            UpdateCustomerListForZona();
         }
 
         private void ApplyCategoryMode()
         {
             if (SellerRow == null) return;
 
-            SellerRow.Visibility = Visibility.Visible;
+            SellerRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+            if (ZonaRow != null) ZonaRow.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
+            if (ObsRow != null)
+            {
+                ObsRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
+                if (_is_gift && ObsBox != null) ObsBox.Text = string.Empty;
+            }
+
             if (FechaRow != null) FechaRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
             if (BuscadorRow != null) BuscadorRow.Visibility = _is_gift ? Visibility.Collapsed : Visibility.Visible;
             if (NoteInfoBorder != null) NoteInfoBorder.Visibility = !_is_gift && _source != null ? Visibility.Visible : Visibility.Collapsed;
@@ -364,6 +377,14 @@ namespace NinOS.UI.Views
 
             if (ClienteRow != null) ClienteRow.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
             if (ProductSearchRow != null) ProductSearchRow.Visibility = _is_gift ? Visibility.Visible : Visibility.Collapsed;
+
+            if (CustomerTextBox != null)
+            {
+                CustomerTextBox.IsEnabled = _is_gift;
+                CustomerTextBox.ToolTip = _is_gift
+                    ? "Escriba el nombre, codigo o RIF del cliente..."
+                    : string.Empty;
+            }
 
             if (BandReturnText != null) BandReturnText.Text = _is_gift ? "A OBSEQUIAR" : "A DEVOLVER";
             if (BandQuantitiesText != null) BandQuantitiesText.Text = _is_gift ? "STOCK DISPONIBLE" : "CANTIDADES DE LA NOTA";
@@ -390,11 +411,26 @@ namespace NinOS.UI.Views
         {
             try
             {
-                await LoadSellersAsync();
-
                 if (_all_customers.Count == 0)
                 {
                     _all_customers = (await _vm.get_customers_async()).OrderBy(c => c.business_name).ToList();
+                }
+
+                if (_all_zonas.Count == 0)
+                {
+                    var dbZonas = (await _vm.get_zonas_async()).OrderBy(z => z.name).ToList();
+                    _all_zonas = new List<zona> { new zona { id_zona = 0, name = "Todas las zonas" } };
+                    _all_zonas.AddRange(dbZonas);
+                    if (CmbZona != null)
+                    {
+                        CmbZona.ItemsSource = _all_zonas;
+                        CmbZona.SelectedIndex = 0;
+                    }
+                }
+
+                if (_admin_seller == null)
+                {
+                    _admin_seller = await _vm.get_admin_seller_async();
                 }
 
                 if (_available_products.Count == 0)
@@ -405,16 +441,7 @@ namespace NinOS.UI.Views
                         .ToList();
                 }
 
-                if (_selected_seller != null)
-                {
-                    var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(_selected_seller.id_seller)).Select(z => z.id_zona).ToHashSet();
-                    _seller_customers = _all_customers
-                        .Where(c => c.id_zona.HasValue && assignedZones.Contains(c.id_zona.Value))
-                        .OrderBy(c => c.business_name)
-                        .ToList();
-                    FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
-                }
-
+                UpdateCustomerListForZona();
                 FilterProducts(ProductSearchTextBox?.Text?.Trim().ToLower() ?? string.Empty);
 
                 if (_is_gift && ItemsGrid != null)
@@ -429,46 +456,63 @@ namespace NinOS.UI.Views
             }
         }
 
-        private async void ApplySellerForObsequio(seller? s)
+        private void ApplyZonaForObsequio(string? initial_zona_name)
         {
-            _selected_seller = s;
-            _selected_customer = null;
-
-            if (CustomerTextBox != null)
+            if (CmbZona != null && !string.IsNullOrWhiteSpace(initial_zona_name))
             {
-                CustomerTextBox.IsReadOnly = false;
-                CustomerTextBox.Text = string.Empty;
-                CustomerTextBox.IsEnabled = s != null;
-                CustomerTextBox.ToolTip = s != null
-                    ? "Escriba el nombre, codigo o RIF del cliente..."
-                    : "Seleccione primero un vendedor...";
+                var match = _all_zonas.FirstOrDefault(z => string.Equals(z.name?.Trim(), initial_zona_name.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    CmbZona.SelectedItem = match;
+                }
+                else
+                {
+                    CmbZona.SelectedIndex = 0;
+                }
             }
-            if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
-            if (CustomerPopup != null) CustomerPopup.IsOpen = false;
-
-            if (ProductSearchTextBox != null) ProductSearchTextBox.Text = string.Empty;
-            if (ProductPopup != null) ProductPopup.IsOpen = false;
-
-            foreach (var item in _gift_items) item.PropertyChanged -= OnRowPropertyChanged;
-            _gift_items.Clear();
-
-            if (ItemsGrid != null) ItemsGrid.ItemsSource = _gift_items;
-            RecalcTotal();
-
-            if (s != null)
+            else if (CmbZona != null && CmbZona.SelectedIndex < 0)
             {
-                var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(s.id_seller)).Select(z => z.id_zona).ToHashSet();
-                _seller_customers = _all_customers
-                    .Where(c => c.id_zona.HasValue && assignedZones.Contains(c.id_zona.Value))
+                CmbZona.SelectedIndex = 0;
+            }
+
+            UpdateCustomerListForZona();
+        }
+
+        private void OnZonaChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || _is_updating_cascade) return;
+            UpdateCustomerListForZona();
+        }
+
+        private void UpdateCustomerListForZona()
+        {
+            var selectedZona = CmbZona?.SelectedItem as zona;
+            int? zonaId = (selectedZona == null || selectedZona.id_zona == 0) ? null : selectedZona.id_zona;
+
+            if (zonaId.HasValue)
+            {
+                _selectable_customers = _all_customers
+                    .Where(c => c.id_zona == zonaId.Value)
                     .OrderBy(c => c.business_name)
                     .ToList();
-                FilterCustomers(string.Empty);
             }
             else
             {
-                _seller_customers.Clear();
-                if (CustomerListBox != null) CustomerListBox.ItemsSource = null;
+                _selectable_customers = _all_customers.OrderBy(c => c.business_name).ToList();
             }
+
+            if (_selected_customer != null && zonaId.HasValue && _selected_customer.id_zona != zonaId.Value)
+            {
+                _selected_customer = null;
+                if (CustomerTextBox != null)
+                {
+                    CustomerTextBox.IsReadOnly = false;
+                    CustomerTextBox.Text = string.Empty;
+                }
+                if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
+            }
+
+            FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
         }
 
         private async Task ApplySellerForDevolucionAsync(seller? s)
@@ -527,16 +571,10 @@ namespace NinOS.UI.Views
         private async void OnSellerChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!IsLoaded || _is_updating_cascade) return;
-            _selected_seller = CmbSeller.SelectedItem as seller;
+            if (_is_gift) return;
 
-            if (_is_gift)
-            {
-                ApplySellerForObsequio(_selected_seller);
-            }
-            else
-            {
-                await ApplySellerForDevolucionAsync(_selected_seller);
-            }
+            _selected_seller = CmbSeller.SelectedItem as seller;
+            await ApplySellerForDevolucionAsync(_selected_seller);
         }
 
         private void OnCustomerSearchChanged(object sender, TextChangedEventArgs e)
@@ -567,22 +605,17 @@ namespace NinOS.UI.Views
             }
             else
             {
-                if (_selected_seller == null)
-                {
-                    AppDialog.Show("Seleccione primero un vendedor para ver sus clientes.", "Aviso");
-                    return;
-                }
-
-                if (_all_customers.Count == 0)
+                if (_all_customers.Count == 0 || _all_zonas.Count == 0)
                 {
                     await LoadObsequioDataAsync();
                 }
 
+                UpdateCustomerListForZona();
                 FilterCustomers(CustomerTextBox?.Text?.Trim().ToLower() ?? string.Empty);
                 CustomerPopup.IsOpen = CustomerListBox.Items.Count > 0;
                 if (CustomerListBox.Items.Count == 0)
                 {
-                    AppDialog.Show("No se encontraron clientes para el vendedor seleccionado.", "Aviso");
+                    AppDialog.Show("No se encontraron clientes para la zona seleccionada.", "Aviso");
                 }
             }
         }
@@ -592,11 +625,11 @@ namespace NinOS.UI.Views
             if (CustomerListBox == null) return;
             if (string.IsNullOrEmpty(query))
             {
-                CustomerListBox.ItemsSource = _seller_customers;
+                CustomerListBox.ItemsSource = _selectable_customers;
             }
             else
             {
-                CustomerListBox.ItemsSource = _seller_customers
+                CustomerListBox.ItemsSource = _selectable_customers
                     .Where(c => (c.business_name?.ToLower().Contains(query) ?? false) ||
                                 (c.customer_code?.ToLower().Contains(query) ?? false) ||
                                 (c.rif?.ToLower().Contains(query) ?? false))
@@ -630,7 +663,7 @@ namespace NinOS.UI.Views
             }
             if (BtnClearCustomer != null) BtnClearCustomer.Visibility = Visibility.Collapsed;
             FilterCustomers(string.Empty);
-            if (CustomerPopup != null) CustomerPopup.IsOpen = _seller_customers.Count > 0;
+            if (CustomerPopup != null) CustomerPopup.IsOpen = _selectable_customers.Count > 0;
         }
 
         private void OnProductSearchChanged(object sender, TextChangedEventArgs e)
@@ -1045,21 +1078,9 @@ namespace NinOS.UI.Views
 
                 if (_is_gift)
                 {
-                    if (CmbSeller.SelectedValue is not int id_seller)
-                    {
-                        AppDialog.Show("Seleccione el vendedor que emite la nota de credito.", "Aviso");
-                        return;
-                    }
                     if (_selected_customer == null)
                     {
                         AppDialog.Show("Busque y seleccione el cliente del obsequio.", "Aviso");
-                        return;
-                    }
-
-                    var assignedZones = (await _vm.get_assigned_zonas_for_seller_async(id_seller)).Select(z => z.id_zona).ToHashSet();
-                    if (!_selected_customer.id_zona.HasValue || !assignedZones.Contains(_selected_customer.id_zona.Value))
-                    {
-                        AppDialog.Show("El cliente seleccionado no pertenece a las zonas asignadas a este vendedor.", "Aviso");
                         return;
                     }
 
@@ -1080,19 +1101,20 @@ namespace NinOS.UI.Views
                     }
 
                     decimal total = rows.Sum(r => r.subtotal_usd);
-                    string correlative = await _vm.generate_credit_correlative_async(id_seller);
+                    int admin_seller_id = _admin_seller?.id_seller ?? 1;
+                    string correlative = await _vm.generate_credit_correlative_async(admin_seller_id);
 
                     new_note = new credit_note(
                         note_number: correlative,
                         creation_date: DateTime.UtcNow,
                         id_delivery_note: null,
-                        id_seller: id_seller,
+                        id_seller: admin_seller_id,
                         id_customer: _selected_customer.id_customer,
                         total_amount_usd: total,
                         status: "Registrada",
                         category: "Obsequio")
                     {
-                        observations = ObsBox.Text?.Trim()
+                        observations = null
                     };
                 }
                 else

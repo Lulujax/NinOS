@@ -651,7 +651,11 @@ namespace NinOS.UI.Common.ViewModels
         {
             var list = (selected_tab?.Items ?? all_notes).ToList();
 
-            total_sales_usd = list.Where(n => n.status == "Pendiente" || n.status == "Pagada").Sum(n => n.total_amount_usd);
+            total_sales_usd = list
+                .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
+                         && (string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
+                .Sum(n => n.total_amount_usd);
 
             var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
             if (!string.IsNullOrEmpty(_selected_zone) && _selected_zone != "Todas")
@@ -662,7 +666,10 @@ namespace NinOS.UI.Common.ViewModels
                     return string.Equals(noteZone, _selected_zone.Trim(), StringComparison.OrdinalIgnoreCase);
                 }).ToList();
             }
-            var eligible_notes = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada");
+            var eligible_notes = month_rows
+                .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
+                         && (string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)));
 
             string current_seller = get_selected_tab_name();
             if (current_seller != "General")
@@ -791,7 +798,11 @@ namespace NinOS.UI.Common.ViewModels
                 string combined = string.Join(" - ", new[] { type_suffix, seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
                 DateTime? monthStart = parse_selected_month();
-                decimal cum_venta = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").Sum(n => n.total_amount_usd);
+                decimal cum_venta = month_rows
+                    .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
+                             && (string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
+                    .Sum(n => n.total_amount_usd);
 
                 decimal? goal_usd = null;
                 double goal_pct = 0;

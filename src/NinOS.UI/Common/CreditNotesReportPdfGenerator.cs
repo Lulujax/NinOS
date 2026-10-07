@@ -44,8 +44,12 @@ namespace NinOS.UI.Common
 
             var rows = report.rows ?? new List<credit_note_report_row_dto>();
 
+            bool isObsequio = string.Equals(report.category_label?.Trim(), "Obsequio", StringComparison.OrdinalIgnoreCase);
+
             var grouped = rows
-                .GroupBy(r => string.IsNullOrWhiteSpace(r.seller_name) ? "SIN VENDEDOR" : r.seller_name.Trim())
+                .GroupBy(r => isObsequio
+                    ? (string.IsNullOrWhiteSpace(r.zone_name) ? "SIN ZONA" : r.zone_name.Trim().ToUpperInvariant())
+                    : (string.IsNullOrWhiteSpace(r.seller_name) ? "SIN VENDEDOR" : r.seller_name.Trim()))
                 .OrderBy(g => g.Key)
                 .ToList();
 
@@ -53,13 +57,13 @@ namespace NinOS.UI.Common
             {
                 if (grouped.Count == 0)
                 {
-                    container.Page(page => BuildSellerPage(page, title, period_cap, null, null));
+                    container.Page(page => BuildGroupPage(page, title, period_cap, null, null, isObsequio));
                     return;
                 }
 
                 foreach (var g in grouped)
                 {
-                    container.Page(page => BuildSellerPage(page, title, period_cap, g.Key, g.ToList()));
+                    container.Page(page => BuildGroupPage(page, title, period_cap, g.Key, g.ToList(), isObsequio));
                 }
             });
 
@@ -74,12 +78,13 @@ namespace NinOS.UI.Common
             return "NOTAS DE CREDITO";
         }
 
-        private static void BuildSellerPage(
+        private static void BuildGroupPage(
             PageDescriptor page,
             string title,
             string period_cap,
-            string? seller_name,
-            List<credit_note_report_row_dto>? seller_rows)
+            string? group_name,
+            List<credit_note_report_row_dto>? group_rows,
+            bool isObsequio)
         {
             page.Size(PageSizes.Letter);
             page.MarginLeft(1, Unit.Centimetre);
@@ -100,13 +105,13 @@ namespace NinOS.UI.Common
 
             page.Content().PaddingVertical(4).Column(col =>
             {
-                if (seller_name == null)
+                if (group_name == null)
                 {
                     col.Item().Text("No hubo notas de credito en el periodo seleccionado.").FontSize(11).FontColor("#000000");
                     return;
                 }
 
-                var srows = (seller_rows ?? new List<credit_note_report_row_dto>())
+                var srows = (group_rows ?? new List<credit_note_report_row_dto>())
                     .OrderByCorrelative(r => r.note_number)
                     .ToList();
 
@@ -114,8 +119,8 @@ namespace NinOS.UI.Common
                 {
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
-                        c.Item().PaddingTop(1).Text(seller_name).FontSize(9).Bold();
+                        c.Item().Text(isObsequio ? "ZONA" : "VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
+                        c.Item().PaddingTop(1).Text(group_name).FontSize(9).Bold();
                     });
                     row.ConstantItem(90).AlignRight().Column(c =>
                     {
@@ -178,8 +183,9 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                decimal gift_total = srows.Where(r => r.es_obsequio).Sum(r => r.total_amount_usd);
-                decimal return_total = srows.Where(r => !r.es_obsequio).Sum(r => r.total_amount_usd);
+                var valid_srows = srows.Where(r => !string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                decimal gift_total = valid_srows.Where(r => r.es_obsequio).Sum(r => r.total_amount_usd);
+                decimal return_total = valid_srows.Where(r => !r.es_obsequio).Sum(r => r.total_amount_usd);
                 decimal seller_total = gift_total + return_total;
 
                 col.Item().PaddingTop(10).Row(outerRow =>
@@ -210,7 +216,7 @@ namespace NinOS.UI.Common
 
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
+                            r.RelativeItem().Text(isObsequio ? "TOTAL ZONA $" : "TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
                             r.ConstantItem(120).AlignRight().Text(Money(seller_total)).FontSize(12).Bold().FontColor(PrimaryColor);
                         });
                     });
