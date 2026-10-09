@@ -1088,7 +1088,7 @@ namespace NinOS.Infrastructure.Data
                     if (pending_commission != null)
                     {
                         decimal new_commissionable = Math.Min(real_payments_sum, note.adjusted_total_usd);
-                        pending_commission.generated_amount_usd = Math.Round(new_commissionable * 0.10m, 2);
+                        pending_commission.amount_usd = Math.Round(new_commissionable * pending_commission.commission_percentage, 2);
                     }
                 }
             }

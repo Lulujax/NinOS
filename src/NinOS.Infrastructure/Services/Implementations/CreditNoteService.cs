@@ -621,6 +621,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     delivery_note? original_note = null;
 
+                    // Pagos reales de la nota de entrega. Las notas de credito NO son abonos
+                    // (por eso se excluyen del filtro) y ademas bajan el total de la nota, así
+                    // que esta lista se carga una sola vez y la usan tanto la validacion de saldo
+                    // como el calculo del tope disponible para devolver.
+                    List<payment> note_payments = new List<payment>();
+
                     if (is_gift)
                     {
                         if (new_note.id_delivery_note.HasValue)
@@ -655,7 +661,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         // Una nota de entrega totalmente pagada no admite nota de credito: no queda
                         // saldo por devolver. Se valida aca para que no se pueda saltar saltandose
                         // el buscador, ya que el saldo pudo cambiar despues de armar la lista.
-                        var note_payments = await db_context.payments
+                        note_payments = await db_context.payments
                             .AsNoTracking()
                             .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                             .ToListAsync();
