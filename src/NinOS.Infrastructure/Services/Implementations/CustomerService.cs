@@ -36,6 +36,19 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<IEnumerable<customer>> GetVisibleCustomersAsync()
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                return await db_context.customers.AsNoTracking()
+                    .Include(c => c.zona)
+                    .Where(c => c.is_active && !c.is_ghost)
+                    .OrderBy(c => c.customer_code)
+                    .ToListAsync();
+            }
+        }
+
         public async Task<IEnumerable<customer>> GetDeletedCustomersAsync()
         {
             using (var scope = _scopeFactory.CreateScope())
@@ -43,7 +56,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 return await db_context.customers.AsNoTracking()
                     .Include(c => c.zona)
-                    .Where(c => !c.is_active)
+                    .Where(c => !c.is_active && !c.is_ghost)
                     .OrderByDescending(c => c.deleted_at)
                     .ToListAsync();
             }

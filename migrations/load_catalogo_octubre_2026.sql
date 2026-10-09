@@ -1,0 +1,154 @@
+-- ============================================================================
+-- CARGA INICIAL DE CATALOGO - LISTA DE PRECIOS OCTUBRE 2026
+-- Fuente: PDF 'LISTA DE PRECIOS OCTUBRE 2026-DEFILE-R3EMBRANT-OLEOS.pdf'
+--        (extraccion validada: 111 filas, precios con punto decimal)
+--
+-- Decisiones aplicadas antes de cargar:
+--   1. DEF30114 venia duplicado. El CHAMPU PROFESIONAL GALON se asigno a DEF30117,
+--      que era un hueco real de la serie. DEF30114 queda como PRE-TRATAMIENTO
+--      BIOTINA DAMA (6.57).
+--   2. CUTIQUE venia con prefijo CTQUE (4 letras, incompatible con el estandar de
+--      3 letras). Se renombro a CUT. TRICOMPLEX es una marca propia, con prefijo TPLEX.
+--   3. Stock inicial 0: el PDF no trae existencias, solo precio y unidades de venta.
+--   4. KED32005 se cargo con 5.43 aun cuando su precio venia de la lista de AGOSTO:
+--      es el unico producto de KEDAM y dejarla vacia no tinha sentido.
+--
+-- Es reversible: todo se inserta en una transaccion que se revierte si algo falla.
+-- ============================================================================
+
+BEGIN;
+
+-- 1) Lineas de producto (marca). Las 10 del sistema + TRICOMPLEX.
+--    INSERT ... ON CONFLICT por nombre para que sea reejecutable.
+INSERT INTO product_line (name, code_prefix, sort_order, is_active)
+VALUES
+    ('DEFILE', 'DEF', 1, true),
+    ('OLEOS', 'OLE', 2, true),
+    ('REMBRANDT', 'REM', 3, true),
+    ('BIOLINE', 'BIO', 4, true),
+    ('AMAZONIA SECRET', 'AMA', 5, true),
+    ('KEDAM', 'KED', 6, true),
+    ('DEPIL CLEAR', 'DEP', 7, true),
+    ('ESTILISTA', 'EST', 8, true),
+    ('CUTIQUE', 'CUT', 9, true),
+    ('OTROS', 'OTR', 10, true),
+    ('TRICOMPLEX', 'TPLEX', 11, true)
+ON CONFLICT DO NOTHING;
+
+-- 2) Productos del catalogo.
+INSERT INTO product (product_code, name, category, unit_price_usd, stock_quantity, is_active)
+VALUES
+    ('DEF30001', 'AMPOLLA TRICOMPLEX MATIZADOR (tipo vial)', 'DEFILE', 3.29, 0, true),
+    ('DEF30002', 'AMPOLLA MATIZADORA (tipo Embudo)', 'DEFILE', 2.00, 0, true),
+    ('DEF30003', 'AMPOLLA TRICOMPLEX CON ACIDO HIALURONICO', 'DEFILE', 2.14, 0, true),
+    ('DEF30004', 'AMPOLLA K-BOTROX HIDRATANTE', 'DEFILE', 1.57, 0, true),
+    ('DEF30005', 'AMPOLLA K-BOTROX ACONDICIONADOR', 'DEFILE', 1.57, 0, true),
+    ('DEF30006', 'AMPOLLA K-BOTROX 3 (Ultra Hidratante D-Phantenol)', 'DEFILE', 3.29, 0, true),
+    ('DEF30007', 'AMPOLLA REGULADOR (CABELLOS GRASOS)', 'DEFILE', 1.57, 0, true),
+    ('DEF30008', 'AMPOLLA ACEITE DE ARGAN ACONDICIONADOR', 'DEFILE', 1.57, 0, true),
+    ('DEF30009', 'AMPOLLA ACEITE DE ARGAN SUAVIDAD', 'DEFILE', 1.57, 0, true),
+    ('DEF30010', 'AMPOLLA BIOTINA (FORTALECE LA FIBRAS CAPILARES)', 'DEFILE', 2.00, 0, true),
+    ('DEF30011', 'AMPOLLA TRICOMPLEX (Ultra acondicionador y brillo)', 'DEFILE', 2.00, 0, true),
+    ('DEF30012', 'AMPOLLA ANTICAIDA (FORTALECA LA RAIZ)', 'DEFILE', 1.57, 0, true),
+    ('DEF30013', 'AMPOLLA KERATINA (Ideal para el cabello fino y fragil)', 'DEFILE', 1.57, 0, true),
+    ('DEF30014', 'AMPOLLA SILICON Y SEDA', 'DEFILE', 1.57, 0, true),
+    ('DEF30015', 'AMPOLLA ANTICASPA', 'DEFILE', 1.57, 0, true),
+    ('DEF30016', 'AMPOLLA KERATINA PLANCHADO EXPRESS', 'DEFILE', 2.00, 0, true),
+    ('DEF30017', 'AMPOLLA KERATINA SHOCK', 'DEFILE', 1.57, 0, true),
+    ('DEF30018', 'AMPOLLA SEMILINO', 'DEFILE', 1.57, 0, true),
+    ('DEF30019', 'AMPOLLA PLACENTA DE OVEJO', 'DEFILE', 1.57, 0, true),
+    ('DEF30020', 'AMPOLLA CRISTAL DE SAVILA', 'DEFILE', 1.57, 0, true),
+    ('DEF30021', 'AMPOLLA SBLOCK 27', 'DEFILE', 2.00, 0, true),
+    ('DEF30022', 'AMPOLLA MEZCLA TINTE', 'DEFILE', 1.57, 0, true),
+    ('DEF30023', 'AMPOLLA LISO Y BRILLO', 'DEFILE', 1.57, 0, true),
+    ('DEF30024', 'AMPOLLA UVA THERAPY', 'DEFILE', 1.57, 0, true),
+    ('DEF30025', 'AMPOLLA CUBRE CANAS', 'DEFILE', 1.57, 0, true),
+    ('DEF30026', 'AMPOLLA ACEITE MACADAMIA NUTRI (NUTRE)', 'DEFILE', 1.57, 0, true),
+    ('DEF30027', 'AMPOLLA ACEITE MACADAMIA HIDRATACION (DEFILE)', 'DEFILE', 1.57, 0, true),
+    ('DEF30028', 'AMPOLLA ISOSFOLIEX HAIR SPA', 'DEFILE', 2.00, 0, true),
+    ('DEF30029', 'AMPOLLA LECHE DE ALMENDRA', 'DEFILE', 1.57, 0, true),
+    ('DEF30030', 'AMPOLLA TRICOMPLEX MATIZADOR (tipo embudo)', 'DEFILE', 2.86, 0, true),
+    ('DEF30100', 'PRE-TRATAMIENTO TRICOMPLEX MATIZADOR', 'DEFILE', 6.86, 0, true),
+    ('DEF30101', 'TRATAMIENTO INTENSIVO TRICOMPLEX MATIZADORA', 'DEFILE', 6.57, 0, true),
+    ('DEF30102', 'PRE-TRATAMIENTO TRICOMPLEX CON VITAMINA E', 'DEFILE', 6.86, 0, true),
+    ('DEF30103', 'TRATAMIENTO INTENSIVO TRICOMPLEX CON VITAMINA E', 'DEFILE', 6.57, 0, true),
+    ('DEF30104', 'PRE-TRATAMIENTO TRICOMPLEX CON ACIDO HIALURONICO', 'DEFILE', 6.86, 0, true),
+    ('DEF30105', 'TRATAMIENTO INTENSIVO TRICOMPLEX CON ACIDO HIALURONICO', 'DEFILE', 6.57, 0, true),
+    ('DEF30106', 'PRE-TRATAMIENTO ACIDO HIALURONICO. (BLANCO)', 'DEFILE', 6.57, 0, true),
+    ('DEF30107', 'TRATAMIENTO INTENSIVO ACIDO HIALURONICO. (BLANCO)', 'DEFILE', 6.71, 0, true),
+    ('DEF30108', 'PRE-TRATAMIENTO K-BOTROX', 'DEFILE', 6.57, 0, true),
+    ('DEF30109', 'TRATAMIENTO INTENSIVO K-BOTROX', 'DEFILE', 6.43, 0, true),
+    ('DEF30110', 'PRE-TRATAMIENTO REGULADOR', 'DEFILE', 6.57, 0, true),
+    ('DEF30111', 'TRATAMIENTO INTENSIVO REGULADOR', 'DEFILE', 6.43, 0, true),
+    ('DEF30112', 'PRE-TRATAMIENTO ARGAN', 'DEFILE', 6.86, 0, true),
+    ('DEF30113', 'TRATAMIENTO INTENSIVO ACEITE DE ARGAN', 'DEFILE', 6.57, 0, true),
+    ('DEF30114', 'PRE-TRATAMIENTO BIOTINA DAMA', 'DEFILE', 6.57, 0, true),
+    ('DEF30115', 'PRE-TRATAMIENTO BIOTINA CABALLERO', 'DEFILE', 6.57, 0, true),
+    ('DEF30116', 'CHAMPU PROFESIONAL PH NEUTRO 2 Lt', 'DEFILE', 10.43, 0, true),
+    ('DEF30119', 'SUERO CAPILAR K-BOTROX', 'DEFILE', 5.43, 0, true),
+    ('DEF30120', 'ACEITE DE ARGAN CAPILAR', 'DEFILE', 6.29, 0, true),
+    ('DEF30121', 'ACTIVADOR DE RIZOS', 'DEFILE', 7.71, 0, true),
+    ('DEF30122', 'CREMA DESENREDANTE', 'DEFILE', 7.71, 0, true),
+    ('DEF30125', 'POLVO DECOLORANTE DEFILE', 'DEFILE', 20.86, 0, true),
+    ('DEF30127', 'CIRUGIA LISS EVOLUTION 911 KIT-DE 2', 'DEFILE', 32.57, 0, true),
+    ('DEF30128', 'LISS EVOLUTION 911 SPRAY PROTEC TERMICO', 'DEFILE', 7.86, 0, true),
+    ('DEF30129', 'TONICO CAPILAR ISOSFOLIEX', 'DEFILE', 6.71, 0, true),
+    ('DEF30130', 'DESENGRASANTE MULTIUSO GALÓN', 'DEFILE', 14.43, 0, true),
+    ('DEF30135', 'BALSAMO PROFESIONAL PH NEUTRO 2 Lt', 'DEFILE', 10.43, 0, true),
+    ('DEF30117', 'CHAMPU PROFESIONAL PH NEUTRO 3775LTS', 'DEFILE', 18.14, 0, true),
+    ('DEF30118', 'BALSAMO PROFESIONAL 3,775LTS', 'DEFILE', 18.14, 0, true),
+    ('OLE30300', 'OLEO''S AMPOLLA ANTICAIDA 24 UNDS.', 'OLEOS', 1.29, 0, true),
+    ('OLE30301', 'OLEO''S AMPOLLA COMPLEX (Hidratacion intensiva)', 'OLEOS', 1.43, 0, true),
+    ('OLE30302', 'OLEO''S AMPOLLA ANTI- FRIZZ', 'OLEOS', 1.29, 0, true),
+    ('OLE30303', 'OLEO''S AMPOLLA ALISADORA', 'OLEOS', 1.29, 0, true),
+    ('OLE30304', 'OLEO''S AMPOLLA C.DE SABILA/ACEITE OLIVA', 'OLEOS', 1.29, 0, true),
+    ('OLE30319', 'OLEO''S AMPOLLA CRECEDORA 24 UNDS.', 'OLEOS', 1.29, 0, true),
+    ('OLE30320', 'OLEO''S AMPOLLA MEZCLA TINTE 24 UNDS.', 'OLEOS', 1.29, 0, true),
+    ('OLE30321', 'OLEO''S AMPOLLA CUBRE CANAS 24 UNDS.', 'OLEOS', 1.29, 0, true),
+    ('OLE30305', 'OLEO''S SHAMPOO CONTROL FRIZZ', 'OLEOS', 6.86, 0, true),
+    ('OLE30306', 'OLEO''S ACONDICIONADOR CONTROL FRIZZ', 'OLEOS', 6.86, 0, true),
+    ('OLE30307', 'OLEO''S SHAMPOO CONTROL CAIDA', 'OLEOS', 8.00, 0, true),
+    ('OLE30308', 'OLEO''S ACONDICIONADOR CONTROL CAIDA', 'OLEOS', 8.00, 0, true),
+    ('OLE30309', 'OLEO''S SHAMPOO RESTAURADOR', 'OLEOS', 7.43, 0, true),
+    ('OLE30310', 'OLEO''S ACONDICIONADOR RESTAURADOR', 'OLEOS', 7.43, 0, true),
+    ('OLE30311', 'OLEO''S SHAMPOO CONTROL CASPA', 'OLEOS', 7.71, 0, true),
+    ('OLE30312', 'OLEO''S ACONDICIONADOR CONTROL CASPA', 'OLEOS', 7.71, 0, true),
+    ('OLE30313', 'OLEO''S SHAMPOO CUIDADO DIARIO', 'OLEOS', 6.86, 0, true),
+    ('OLE30314', 'OLEO''S ACONDICIONADOR CUIDADO DIARIO', 'OLEOS', 6.86, 0, true),
+    ('OLE30315', 'OLEO''S SHAMPOO RIZOS DEFINIDOS', 'OLEOS', 6.86, 0, true),
+    ('OLE30316', 'OLEO''S ACONDICIONADOR RIZOS DEFINIDOS', 'OLEOS', 6.86, 0, true),
+    ('OLE30317', 'OLEO''S MASCARILLA RIZOS DEFINIDOS', 'OLEOS', 6.86, 0, true),
+    ('OLE30318', 'OLEO''S MASCARILLA RESTAURADORA', 'OLEOS', 6.86, 0, true),
+    ('REM30400', 'AMPOLLA ANTICASPA x 10', 'REMBRANDT', 1.43, 0, true),
+    ('REM30401', 'AMPOLLA ANTI CAIDA x 10', 'REMBRANDT', 1.43, 0, true),
+    ('REM30402', 'AMPOLLA GOTAS DE SEDA x 10', 'REMBRANDT', 1.43, 0, true),
+    ('REM30403', 'AMPOLLA SEMILINO x 10', 'REMBRANDT', 1.43, 0, true),
+    ('REM30404', 'AMPOLLA PHYTO KERATINA x 10', 'REMBRANDT', 1.43, 0, true),
+    ('REM30405', 'AMPOLLA PLACENTA DE OVEJO x 24', 'REMBRANDT', 1.43, 0, true),
+    ('REM30406', 'PRE-TRATAMIENTO PLACENTA OVEJO', 'REMBRANDT', 6.29, 0, true),
+    ('REM30407', 'TRATAMIENTO INTENSIVO PLACENTA OVEJO', 'REMBRANDT', 4.71, 0, true),
+    ('REM30411', 'Crema Reafirmante con Colageno y Vitamina E 60 Grs. REMBRANDT', 'REMBRANDT', 5.50, 0, true),
+    ('REM30412', 'Agua Micelar 120 ML. REMBRANDT', 'REMBRANDT', 5.50, 0, true),
+    ('REM30413', 'Locion Desmaquillante 120 ML. REMBRANDT', 'REMBRANDT', 4.24, 0, true),
+    ('REM30414', 'Crema Corporal Hidratante 400 ML. REMBRANDT', 'REMBRANDT', 6.16, 0, true),
+    ('REM30415', 'Body Splah Frambuesa Desire 240 ML. REMBRANDT', 'REMBRANDT', 5.26, 0, true),
+    ('REM30416', 'Body Splah Vainilla Rocio 240 ML. REMBRANDT', 'REMBRANDT', 5.26, 0, true),
+    ('REM30417', 'AGUA DE ROSA REMBRANDT 120 ML', 'REMBRANDT', 5.50, 0, true),
+    ('REM30418', 'KID''S HAIR CLEAN CHAMPU NIÑOS Fragancia Manzanilla', 'REMBRANDT', 3.57, 0, true),
+    ('REM30419', 'PRE-TRATAMIENTO PLACENTA OVEJO', 'REMBRANDT', 4.29, 0, true),
+    ('KED32005', 'CHAMPU CEBOLLA', 'KEDAM', 5.43, 0, true),
+    ('CUT34001', 'SHAMPOO CONTROL CASPA', 'CUTIQUE', 7.86, 0, true),
+    ('CUT34002', 'SHAMPOO CONTROL CAIDA', 'CUTIQUE', 7.86, 0, true),
+    ('CUT34003', 'MEN 3 EM 1', 'CUTIQUE', 7.86, 0, true),
+    ('TPLEX33001', 'TRICOMPLEX SHAMPOO MATIZADOR', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33002', 'TRICOMPLEX ACONDICIONADOR MATIZADOR', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33003', 'TRICOMPLEZ BAÑO DE CREMA MATIZADOR', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33004', 'TRICOMPLEX SHAMPOO HIALURONICO', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33005', 'TRICOMPLEZ ACONDICIONADOR HIALURONICO', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33006', 'TRICOMPLEZ BAÑO DE CREMA HIALURONICO', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33007', 'TRICOMPLEX SHAMPOO REARADOR', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33008', 'TRICOMPLEZ ACONDICIONADOR REPARADOR', 'TRICOMPLEX', 6.00, 0, true),
+    ('TPLEX33009', 'TRICOMPLEZ BAÑO DE CREMA REPARADOR', 'TRICOMPLEX', 6.00, 0, true)
+ON CONFLICT (product_code) DO NOTHING;
+
+COMMIT;

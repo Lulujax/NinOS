@@ -1198,7 +1198,7 @@ namespace NinOS.UI.Common.ViewModels
             _is_loading = true;
             try
             {
-                var db_customers = await _customer_service.GetAllCustomersAsync();
+                var db_customers = await _customer_service.GetVisibleCustomersAsync();
                 _all_customers_cache.Clear();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
 

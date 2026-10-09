@@ -503,7 +503,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 await LoadZonasAsync();
 
-                IEnumerable<customer> customers = await _customerService.GetAllCustomersAsync();
+                IEnumerable<customer> customers = await _customerService.GetVisibleCustomersAsync();
 
                 try
                 {

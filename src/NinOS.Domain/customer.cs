@@ -44,6 +44,8 @@ namespace NinOS.Domain
 
         public bool is_active { get; set; } = true;
 
+        public bool is_ghost { get; set; } = false;
+
         public DateTime? deleted_at { get; set; }
 
         [MaxLength(200)]

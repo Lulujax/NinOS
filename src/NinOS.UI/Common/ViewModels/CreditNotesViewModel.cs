@@ -476,7 +476,7 @@ namespace NinOS.UI.Common.ViewModels
         }
 
         public async Task<IEnumerable<customer>> get_customers_async()
-            => await _customer_service.GetAllCustomersAsync();
+            => await _customer_service.GetVisibleCustomersAsync();
 
         public async Task<IEnumerable<seller>> get_sellers_async()
             => await _seller_service.GetAllActiveAsync();
