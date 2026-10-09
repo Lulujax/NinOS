@@ -336,8 +336,14 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.relation_number).HasColumnName("relation_number").IsRequired();
                 entity.HasIndex(e => e.relation_number).IsUnique();
                 entity.Property(e => e.week_start).HasColumnName("week_start").HasColumnType("date").IsRequired();
-                entity.HasIndex(e => e.week_start).IsUnique();
+                // No unico a proposito: las relaciones de cartera heredada (es_hueca) pueden
+                // compartir semana. El flujo normal mantiene una relacion por semana
+                // filtrando es_hueca al buscar.
+                entity.HasIndex(e => e.week_start);
                 entity.Property(e => e.week_end).HasColumnName("week_end").HasColumnType("date").IsRequired();
+                entity.Property(e => e.es_hueca).HasColumnName("es_hueca").IsRequired();
+                entity.Property(e => e.saldo).HasColumnName("saldo").HasColumnType("numeric(18,2)");
+                entity.Property(e => e.observaciones).HasColumnName("observaciones").HasMaxLength(500);
             });
 
             model_builder.Entity<sales_goal>(entity =>

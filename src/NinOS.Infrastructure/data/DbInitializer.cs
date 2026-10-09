@@ -179,14 +179,23 @@ namespace NinOS.Infrastructure.Data
                     db_context.SaveChanges();
                 }
 
-                // Asegurar que las relaciones existentes esten numeradas de forma unica y estrictamente cronologica (1, 2, 3...)
-                var all_relaciones = db_context.relaciones.OrderBy(r => r.week_start).ToList();
+                // Asegurar que las relaciones existentes esten numeradas de forma unica y estrictamente
+                // cronologica (1, 2, 3...). Las relaciones huecas (cartera heredada del Excel)
+                // conservan el numero que se les asigno al migrarlas: varias comparten la misma
+                // semana, asi que ordenarlas por week_start las mezclaria entre si. Las normales
+                // se numeran a partir de la 22 para no chocar con el indice unico.
+                var all_relaciones = db_context.relaciones
+                    .Where(r => !r.es_hueca)
+                    .OrderBy(r => r.week_start)
+                    .ToList();
                 if (all_relaciones.Count > 0)
                 {
+                    int hueco_count = db_context.relaciones.Count(r => r.es_hueca);
+
                     bool needs_renumber = false;
                     for (int i = 0; i < all_relaciones.Count; i++)
                     {
-                        if (all_relaciones[i].relation_number != i + 1)
+                        if (all_relaciones[i].relation_number != i + 1 + hueco_count)
                         {
                             needs_renumber = true;
                             break;
@@ -204,7 +213,7 @@ namespace NinOS.Infrastructure.Data
 
                         for (int i = 0; i < all_relaciones.Count; i++)
                         {
-                            all_relaciones[i].relation_number = i + 1;
+                            all_relaciones[i].relation_number = i + 1 + hueco_count;
                         }
                         db_context.SaveChanges();
                     }

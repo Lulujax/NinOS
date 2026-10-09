@@ -205,7 +205,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             DateTime week_start = date.Date.AddDays(-offset);
 
             relacion? existing = await db_context.relaciones
-                .FirstOrDefaultAsync(r => r.week_start == week_start);
+                .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
             if (existing != null) return existing;
 
             int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
@@ -224,7 +224,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 db_context.Entry(relation).State = EntityState.Detached;
 
                 relacion? created = await db_context.relaciones
-                    .FirstOrDefaultAsync(r => r.week_start == week_start);
+                    .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
                 if (created != null) return created;
                 throw;
             }

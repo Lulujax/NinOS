@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace NinOS.Domain
 {
@@ -48,6 +49,24 @@ namespace NinOS.Domain
                 _week_end = value.Date;
             }
         }
+
+        /// <summary>
+        /// Relacion de cartera heredada: existe para representar un saldo por cobrar
+        /// migrating del Excel, sin notas de entrega propias. El saldo vive en
+        /// <see cref="saldo"/> en lugar de venir de la suma de sus notas.
+        /// Las relaciones huecas se saltan al buscar o renumerar la relacion de una
+        /// semana, para que el flujo normal de Pro Venta no se enganche a una.
+        /// </summary>
+        public bool es_hueca { get; set; } = false;
+
+        /// <summary>
+        /// Saldo por cobrar de la relacion hueca. Para las relaciones normales se
+        /// mantiene en 0 y el saldo se calcula sumando sus notas.
+        /// </summary>
+        public decimal saldo { get; set; } = 0m;
+
+        [MaxLength(500)]
+        public string? observaciones { get; set; }
 
         protected relacion()
         {

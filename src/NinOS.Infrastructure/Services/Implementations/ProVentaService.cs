@@ -184,7 +184,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             relacion? existing = await db_context.relaciones
                 .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.week_start == week_start);
+                .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
             if (existing != null) return existing;
 
             int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
@@ -206,7 +206,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 relacion? created = await db_context.relaciones
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.week_start == week_start);
+                    .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
                 if (created != null) return created;
                 throw;
             }
@@ -214,11 +214,22 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         private static async Task renumber_relations_chronologically_async(NinOSDbContext db_context)
         {
-            var all = await db_context.relaciones.OrderBy(r => r.week_start).ToListAsync();
+            // Las relaciones huecas conservan el numero que se les asigno al migrarlas:
+            // renumerarlas por week_start las mezclaria entre si, porque varias
+            // comparten la misma semana.
+            var all = await db_context.relaciones
+                .Where(r => !r.es_hueca)
+                .OrderBy(r => r.week_start)
+                .ToListAsync();
+
+            // Las relaciones normales se numeran despues de las huecas para no chocar
+            // con IX_relacion_relation_number, que es unico.
+            int hueco_count = await db_context.relaciones.CountAsync(r => r.es_hueca);
+
             bool needs_renumber = false;
             for (int i = 0; i < all.Count; i++)
             {
-                if (all[i].relation_number != i + 1)
+                if (all[i].relation_number != i + 1 + hueco_count)
                 {
                     needs_renumber = true;
                     break;
@@ -235,7 +246,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 for (int i = 0; i < all.Count; i++)
                 {
-                    all[i].relation_number = i + 1;
+                    all[i].relation_number = i + 1 + hueco_count;
                 }
                 await db_context.SaveChangesAsync();
             }
@@ -319,10 +330,20 @@ namespace NinOS.Infrastructure.Services.Implementations
                          && n.id_relacion != null)
                 .ToListAsync();
 
-            if (notes.Count == 0)
+            // Las relaciones huecas llevan su propio saldo en la tabla relacion (cartera
+            // heredada del Excel) y pueden no tener ninguna nota. Se agregan aparte para
+            // que aparezcan en Pendientes y se abonen una por una.
+            var hollow_relations = await db_context.relaciones
+                .AsNoTracking()
+                .Where(r => r.es_hueca)
+                .ToListAsync();
+
+            if (notes.Count == 0 && hollow_relations.Count == 0)
                 return new List<pro_venta_relation_row>();
 
             var relation_ids = notes.Select(n => n.id_relacion!.Value).Distinct().ToList();
+            if (hollow_relations.Count > 0)
+                relation_ids.AddRange(hollow_relations.Select(r => r.id_relacion));
 
             // Solo cuentan los abonos positivos. Los asientos de anulacion van con monto negativo
             // y existen para dejar rastro en el historial, no para saldo: si se sumaran, una nota
@@ -362,6 +383,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             foreach (var group in notes.GroupBy(n => n.id_relacion!.Value))
             {
                 if (!relations.TryGetValue(group.Key, out var relation)) continue;
+                if (relation.es_hueca) continue;   // se agrega mas abajo, con su saldo propio
 
                 // Una nota anulada deja de ser exigible, asi que sale del monto y del conteo de
                 // notas por cobrar, pero no se borra: si era la unica que habia, la relacion
@@ -391,6 +413,34 @@ namespace NinOS.Infrastructure.Services.Implementations
                     note_count = pending_notes.Count,
                     annulled_amount = Money.round(annulled_notes.Sum(n => n.adjusted_total_usd)),
                     annulled_count = annulled_notes.Count
+                });
+            }
+
+            // Relacion hueca: el saldo viene de la propia relacion, no de la suma de notas.
+            foreach (var relation in hollow_relations)
+            {
+                decimal amount = relation.saldo;
+                decimal paid = payment_totals.TryGetValue(relation.id_relacion, out var total) ? total : 0;
+                decimal balance = amount - paid;
+                bool is_fully_paid = balance <= 0.005m;
+
+                if (only_pending == is_fully_paid) continue;
+
+                int notes_in_relation = notes.Count(n => n.id_relacion == relation.id_relacion);
+
+                rows.Add(new pro_venta_relation_row
+                {
+                    id_relacion = relation.id_relacion,
+                    relation_number = relation.relation_number,
+                    week_start = relation.week_start,
+                    week_end = relation.week_end,
+                    amount = amount,
+                    paid_amount_usd = paid,
+                    balance_due_usd = balance < 0 ? 0 : balance,
+                    status = is_fully_paid ? "Pagada" : "Pendiente",
+                    note_count = notes_in_relation,
+                    annulled_amount = 0,
+                    annulled_count = 0
                 });
             }
 
