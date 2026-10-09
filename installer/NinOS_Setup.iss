@@ -1,9 +1,9 @@
 ; Script de Inno Setup para NinOS - Sistema Administrativo
-; Versión: 1.0.4
+; Versión: 1.0.5
 
 #define MyAppName "NinOS"
 #define MyAppFullName "NinOS - Sistema Administrativo"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 #define MyAppPublisher "NinOS"
 #define MyAppExeName "NinOS.UI.exe"
 
@@ -18,7 +18,7 @@ AllowNoIcons=yes
 PrivilegesRequiredOverridesAllowed=dialog
 PrivilegesRequired=lowest
 OutputDir=C:\Users\Lulujax\Desktop
-OutputBaseFilename=NinOS_Setup_v1.0.4
+OutputBaseFilename=NinOS_Setup_v1.0.5
 SetupIconFile=C:\Users\Lulujax\Desktop\Programacion Trabajo\NinOS\NinOS\src\NinOS.UI\Assets\ninOS_logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
