@@ -420,14 +420,26 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
             var customers = await db.customers
                 .AsNoTracking()
+                .Include(c => c.zona)
                 .Where(c => customer_ids.Contains(c.id_customer))
                 .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            // La zona del cliente se carga aparte para que el reporte de pagos pueda agrupar por
+            // zona igual que el de ventas.
+            var zonas_por_cliente = await db.customers
+                .AsNoTracking()
+                .Include(c => c.zona)
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(
+                    c => c.id_customer,
+                    c => c.zona == null || string.IsNullOrWhiteSpace(c.zona.name) ? "Sin zona" : c.zona.name.Trim());
 
             return payments.Select(p =>
             {
                 delivery_note? note = p.id_delivery_note != null && notes.TryGetValue(p.id_delivery_note.Value, out var n) ? n : null;
                 string seller_name = note != null && sellers.TryGetValue(note.id_seller, out var sn) ? sn : string.Empty;
                 string customer_name = note != null && customers.TryGetValue(note.id_customer, out var cn) ? cn : string.Empty;
+                string zone_name = note != null && zonas_por_cliente.TryGetValue(note.id_customer, out var zn) ? zn : "Sin zona";
                 return new payment_dto
                 {
                     id_payment = p.id_payment,
@@ -437,6 +449,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_name = customer_name,
                     seller_name = seller_name,
                     id_seller = note?.id_seller ?? 0,
+                    zone_name = zone_name,
                     payment_date = p.payment_date,
                     created_at = p.created_at,
                     updated_at = p.updated_at,

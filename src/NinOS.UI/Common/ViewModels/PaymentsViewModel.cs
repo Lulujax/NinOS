@@ -29,6 +29,11 @@ namespace NinOS.UI.Common.ViewModels
         public string status { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;
         public int id_seller { get; set; }
+
+        // Zona del cliente de la nota: se usa para agrupar el reporte de pagos por zona.
+        public int? id_zona { get; set; }
+        public string zone_name { get; set; } = string.Empty;
+
         public DateTime creation_date { get; set; }
         public string month_key { get; set; } = string.Empty;
     }
@@ -38,6 +43,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IPaymentService _payment_service;
         private readonly IAccountsReceivableService _receivable_service;
         private readonly ISellerService? _seller_service;
+        private readonly IZonaService? _zona_service;
 
         private SellerTabItem<payment_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
@@ -47,6 +53,17 @@ namespace NinOS.UI.Common.ViewModels
         private decimal _total_paid_usd;
         private decimal _total_balance_usd;
         private bool _is_loading;
+
+        // --- Configuracion del reporte de pagos ---
+        // Sin modo "alcance manual": las checklists siempre mandan. No hay checkbox de cambiar
+        // alcance porque las listas de vendedores y zonas ya son el filtro, y un interruptor
+        // encima solo confunde.
+        private string _selected_report_group = "Por Vendedor";
+        private bool _all_report_sellers_selected = true;
+        private bool _all_report_zones_selected = true;
+        private bool _suppress_seller_sync;
+        private bool _suppress_zone_sync;
+        private Dictionary<string, int> _seller_name_to_id = new(StringComparer.OrdinalIgnoreCase);
 
         private List<payment_row_dto> _all_notes_source = new();
 
@@ -72,6 +89,68 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<payment_row_dto> anais_notes { get; }
         public ObservableCollection<payment_row_dto> alejandra_notes { get; }
         public ObservableCollection<payment_row_dto> juan_luis_notes { get; }
+
+        public ObservableCollection<string> report_group_options { get; } = new();
+        public ObservableCollection<filter_selection_option> report_seller_options { get; } = new();
+        public ObservableCollection<filter_selection_option> report_zone_options { get; } = new();
+
+        public string selected_report_group
+        {
+            get => _selected_report_group;
+            set
+            {
+                if (_selected_report_group == value) return;
+                _selected_report_group = string.IsNullOrWhiteSpace(value) ? "Por Vendedor" : value;
+                on_property_changed();
+            }
+        }
+
+        public bool all_report_sellers_selected
+        {
+            get => _all_report_sellers_selected;
+            set
+            {
+                if (_all_report_sellers_selected == value) return;
+                _all_report_sellers_selected = value;
+                on_property_changed();
+                foreach (var opt in report_seller_options) opt.is_checked = value;
+            }
+        }
+
+        public bool all_report_zones_selected
+        {
+            get => _all_report_zones_selected;
+            set
+            {
+                if (_all_report_zones_selected == value) return;
+                _all_report_zones_selected = value;
+                on_property_changed();
+                foreach (var opt in report_zone_options) opt.is_checked = value;
+            }
+        }
+
+        /// <summary>
+        /// Refleja la pestaña de vendedor activa en las checklists. Se llama al abrir el popup:
+        /// la pantalla manda por defecto, y desmarcar vendedor o zona es cambiar el alcance.
+        /// </summary>
+        public void sync_report_scope_from_screen()
+        {
+            string tab_name = (selected_tab?.Header ?? string.Empty).Trim();
+            bool all_sellers = selected_tab?.IdSeller == null || tab_name.Length == 0;
+
+            _suppress_seller_sync = true;
+            foreach (var opt in report_seller_options)
+                opt.is_checked = all_sellers || string.Equals(opt.name.Trim(), tab_name, StringComparison.OrdinalIgnoreCase);
+            _suppress_seller_sync = false;
+            _all_report_sellers_selected = report_seller_options.Count > 0 && report_seller_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_sellers_selected));
+
+            _suppress_zone_sync = true;
+            foreach (var opt in report_zone_options) opt.is_checked = true;
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_zones_selected));
+        }
 
         public string selected_month
         {
@@ -128,13 +207,22 @@ namespace NinOS.UI.Common.ViewModels
 
         public ICommand add_payment_command { get; }
         public ICommand month_report_command { get; }
+        public ICommand clear_report_sellers_command { get; }
+        public ICommand clear_report_zones_command { get; }
+        public ICommand select_all_report_options_command { get; }
+        public ICommand clear_all_report_options_command { get; }
         public Action? on_request_add_payment_window { get; set; }
 
-        public PaymentsViewModel(IPaymentService payment_service, IAccountsReceivableService receivable_service, ISellerService? seller_service = null)
+        public PaymentsViewModel(
+            IPaymentService payment_service,
+            IAccountsReceivableService receivable_service,
+            ISellerService? seller_service = null,
+            IZonaService? zona_service = null)
         {
             _payment_service = payment_service ?? throw new ArgumentNullException(nameof(payment_service));
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _seller_service = seller_service;
+            _zona_service = zona_service;
 
             pending_months = new ObservableCollection<string>();
             filter_options = new ObservableCollection<string>();
@@ -149,9 +237,16 @@ namespace NinOS.UI.Common.ViewModels
             filter_options.Add("Devueltas");
             filter_options.Add("Todas");
 
+            report_group_options.Add("Por Vendedor");
+            report_group_options.Add("Por Zona");
+
             add_payment_command = new RelayCommand(execute_add_payment);
 
             month_report_command = new RelayCommand(execute_month_report);
+            clear_report_sellers_command = new RelayCommand(execute_clear_report_sellers);
+            clear_report_zones_command = new RelayCommand(execute_clear_report_zones);
+            select_all_report_options_command = new RelayCommand(execute_select_all_report_options);
+            clear_all_report_options_command = new RelayCommand(execute_clear_all_report_options);
 
             AppDataEvents.CatalogsChanged += () =>
             {
@@ -212,6 +307,142 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        /// <summary>
+        /// Arma las checklists de vendedores y zonas del popup de reporte. Primero los activos y
+        /// despues cualquiera que tenga notas en la base aunque este desactivado, para que sus
+        /// notas no queden fuera del reporte sin avisar.
+        /// </summary>
+        private void sync_report_options(
+            IEnumerable<seller> sellers,
+            List<zona> zones,
+            List<payment_row_dto> all_rows)
+        {
+            foreach (var s in sellers)
+            {
+                string name = (s.full_name ?? string.Empty).Trim();
+                if (name.Length == 0) continue;
+                _seller_name_to_id[name] = s.id_seller;
+            }
+
+            var active_seller_names = sellers
+                .Select(s => (s.full_name ?? string.Empty).Trim())
+                .Where(n => n.Length > 0)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var report_seller_rows = sellers
+                .OrderBy(s => s.seller_code)
+                .Select(s => (name: (s.full_name ?? string.Empty).Trim(), active: true, id: (int?)s.id_seller))
+                .Where(t => t.name.Length > 0)
+                .ToList();
+
+            foreach (var note_seller in all_rows
+                .Select(n => (n.seller_name ?? string.Empty).Trim())
+                .Where(n => n.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (active_seller_names.Contains(note_seller)) continue;
+                int? note_seller_id = _seller_name_to_id.TryGetValue(note_seller, out var mapped_id) ? (int?)mapped_id : null;
+                report_seller_rows.Add((note_seller, false, note_seller_id));
+            }
+
+            _suppress_seller_sync = true;
+            report_seller_options.Clear();
+            foreach (var (name, active, id) in report_seller_rows)
+            {
+                report_seller_options.Add(new filter_selection_option(
+                    name, on_report_seller_option_changed, true, id,
+                    active ? name : $"{name} (inactivo)"));
+            }
+            _suppress_seller_sync = false;
+            _all_report_sellers_selected = true;
+            on_property_changed(nameof(all_report_sellers_selected));
+
+            var active_zone_names = zones
+                .Select(z => z.name.Trim())
+                .Where(n => n.Length > 0)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var report_zone_rows = zones
+                .Select(z => (name: z.name.Trim(), active: true))
+                .Where(t => t.name.Length > 0)
+                .ToList();
+
+            foreach (var note_zone in all_rows
+                .Select(n => string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!active_zone_names.Contains(note_zone))
+                    report_zone_rows.Add((note_zone, false));
+            }
+
+            _suppress_zone_sync = true;
+            report_zone_options.Clear();
+            foreach (var (name, active) in report_zone_rows)
+            {
+                report_zone_options.Add(new filter_selection_option(
+                    name, on_report_zone_option_changed, true, null,
+                    active ? name : $"{name} (inactiva)"));
+            }
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = true;
+            on_property_changed(nameof(all_report_zones_selected));
+
+            // Las checklists arrancan reflejando la pestaña de vendedor activa.
+            sync_report_scope_from_screen();
+        }
+
+        private void on_report_seller_option_changed()
+        {
+            if (_suppress_seller_sync) return;
+            bool allChecked = report_seller_options.Count > 0 && report_seller_options.All(o => o.is_checked);
+            if (_all_report_sellers_selected != allChecked)
+            {
+                _all_report_sellers_selected = allChecked;
+                on_property_changed(nameof(all_report_sellers_selected));
+            }
+        }
+
+        private void on_report_zone_option_changed()
+        {
+            if (_suppress_zone_sync) return;
+            bool allChecked = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            if (_all_report_zones_selected != allChecked)
+            {
+                _all_report_zones_selected = allChecked;
+                on_property_changed(nameof(all_report_zones_selected));
+            }
+        }
+
+        private void execute_clear_report_sellers(object? parameter)
+        {
+            _suppress_seller_sync = true;
+            foreach (var opt in report_seller_options) opt.is_checked = false;
+            _suppress_seller_sync = false;
+            _all_report_sellers_selected = false;
+            on_property_changed(nameof(all_report_sellers_selected));
+        }
+
+        private void execute_clear_report_zones(object? parameter)
+        {
+            _suppress_zone_sync = true;
+            foreach (var opt in report_zone_options) opt.is_checked = false;
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = false;
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
+        private void execute_select_all_report_options(object? parameter)
+        {
+            all_report_sellers_selected = true;
+            all_report_zones_selected = true;
+        }
+
+        private void execute_clear_all_report_options(object? parameter)
+        {
+            execute_clear_report_sellers(null);
+            execute_clear_report_zones(null);
+        }
+
         private async void load_all_async()
         {
             try
@@ -224,8 +455,14 @@ namespace NinOS.UI.Common.ViewModels
                     : await _receivable_service.get_sellers_async();
                 sync_seller_tabs(dbSellers);
 
+                var dbZones = _zona_service != null
+                    ? await _zona_service.GetActiveAsync()
+                    : new List<zona>();
+
                 var raw = await _receivable_service.get_all_notes_async();
                 var all_rows = raw.Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).Select(map_to_row).ToList();
+
+                sync_report_options(dbSellers, dbZones, all_rows);
 
                 var unique_months = all_rows
                     .Where(n => n.creation_date.Year >= 2000)
@@ -365,8 +602,13 @@ namespace NinOS.UI.Common.ViewModels
                 .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            total_invoiced_usd = list.Sum(n => n.total_amount_usd);
-            total_paid_usd = list.Sum(n => n.paid_amount_usd);
+            // Los abonos de tipo "Anulacion" son el asiento contable de una anulacion, no plata que
+            // entro. No entran en el TOTAL COBRADO: si sumaran, anular una nota de credito
+            // inflaria el total como si el cliente hubiera pagado.
+            var pagos_reales = list.Where(n => n.is_anulacion_entry == false).ToList();
+
+            total_invoiced_usd = pagos_reales.Sum(n => n.total_amount_usd);
+            total_paid_usd = pagos_reales.Sum(n => n.paid_amount_usd);
             total_balance_usd = total_invoiced_usd - total_paid_usd;
         }
 
@@ -391,6 +633,8 @@ namespace NinOS.UI.Common.ViewModels
                 status = n.status,
                 seller_name = n.seller_name,
                 id_seller = n.id_seller,
+                id_zona = n.id_zona,
+                zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
                 creation_date = n.creation_date,
                 month_key = new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
                     .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"))
@@ -465,10 +709,67 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_month_report(object? parameter)
         {
+            // Sin mes no hay nada que reportar. Se avisa claro, en vez de dejar que el servicio
+            // reviente con un error de formato de fecha que el usuario no entiende.
+            if (string.IsNullOrWhiteSpace(_selected_month))
+            {
+                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de pagos",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
             try
             {
+                var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Con "Todos/Todas" marcado no se filtra: asi tambien entran pagos de vendedores
+                // o zonas que no esten en la lista, sin excluirlos a escondidas.
+                bool filter_sellers = !_all_report_sellers_selected;
+                bool filter_zones = !_all_report_zones_selected;
+
+                if (filter_sellers && seller_scope.Count == 0)
+                {
+                    AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de pagos",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
+                if (filter_zones && zone_scope.Count == 0)
+                {
+                    AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de pagos",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
                 var payments = (await _payment_service.get_payments_by_month_async(_selected_month)).ToList();
-                PaymentsReportPdfGenerator.generate(_selected_month, payments);
+
+                if (filter_sellers)
+                    payments = payments.Where(p => seller_scope.Contains((p.seller_name ?? string.Empty).Trim())).ToList();
+
+                // El pago trae el vendedor de la nota, pero la zona es la del cliente. Se resuelve
+                // contra la nota para no agrupar mal cuando un pago va a una relacion.
+                if (filter_zones)
+                {
+                    var note_ids = payments.Select(p => p.id_delivery_note).Where(id => id > 0).Distinct().ToList();
+                    var zone_por_nota = await _receivable_service.get_all_notes_async();
+
+                    var zonas = zone_por_nota
+                        .Where(n => note_ids.Contains(n.id_delivery_note))
+                        .GroupBy(n => n.id_delivery_note)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => string.IsNullOrWhiteSpace(g.First().zone_name) ? "Sin zona" : g.First().zone_name.Trim());
+
+                    payments = payments
+                        .Where(p => zonas.TryGetValue(p.id_delivery_note, out var zona) && zone_scope.Contains(zona))
+                        .ToList();
+                }
+
+                string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
+                PaymentsReportPdfGenerator.generate(_selected_month, payments, group_mode, zone_scope, filter_zones, filter_sellers);
             }
             catch (Exception ex)
             {

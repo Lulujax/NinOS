@@ -23,6 +23,23 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void on_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = !popup_reporte.IsOpen;
+
+            // Al abrir, las checklists quedan reflejando la pestaña de vendedor activa hasta
+            // que el usuario desmarque lo que quiera dejar fuera.
+            if (popup_reporte.IsOpen && DataContext is PaymentsViewModel vm)
+                vm.sync_report_scope_from_screen();
+        }
+
+        private void on_descargar_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is PaymentsViewModel vm)
+                vm.month_report_command.Execute(null);
+        }
+
         private void Txt_search_TextChanged(object sender, TextChangedEventArgs e)
         {
             btn_clear_search.Visibility = txt_search.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;

@@ -112,6 +112,23 @@ namespace NinOS.UI.Views
             window.ShowDialog();
         }
 
+        private void on_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = !popup_reporte.IsOpen;
+
+            // Al abrir, las checklist quedan reflejando la pestaña de vendedor activa hasta
+            // que el usuario desmarque lo que quiera dejar fuera.
+            if (popup_reporte.IsOpen && DataContext is AccountsReceivableViewModel vm)
+                vm.sync_report_scope_from_screen();
+        }
+
+        private void on_descargar_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is AccountsReceivableViewModel vm)
+                vm.month_report_command.Execute(null);
+        }
+
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             SetupEvents();

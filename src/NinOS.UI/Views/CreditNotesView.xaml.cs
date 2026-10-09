@@ -134,5 +134,45 @@ namespace NinOS.UI.Views
                 AppDialog.Show(ErrorText.Get(ex), "Error");
             }
         }
+    private async void AnularButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!((sender as Button)?.Tag is credit_note_dto selected) || vm == null) return;
+
+            if (selected.esta_anulada)
+            {
+                AppDialog.Show($"La nota de crédito {selected.note_number} ya está anulada.", "Anular nota de crédito");
+                return;
+            }
+
+            bool es_obsequio = string.Equals(selected.category?.Trim(), "Obsequio", StringComparison.OrdinalIgnoreCase);
+            string origen = es_obsequio
+                ? "Es un obsequio: se le devuelve al inventario el stock que había salido."
+                : "Es una devolución: se le saca del inventario el stock que había ingresado y se devuelve el abono que se había descontado de la nota de entrega.";
+
+            var confirmacion = AppDialog.Show(
+                $"¿Seguro de anular la nota de crédito {selected.note_number} por {selected.total_amount_usd:N2} USD?\n\n" +
+                origen + "\n\nLa nota no se borra, queda marcada como anulada y sin sumar en ningún total.\n\n" +
+                "¿Desea continuar?",
+                "Anular nota de crédito",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirmacion != MessageBoxResult.Yes) return;
+
+            try
+            {
+                await vm.annul_credit_note_async(selected.id_credit_note);
+
+                AppDialog.Show(
+                    $"La nota de crédito {selected.note_number} quedó anulada y el inventario se revirtió.",
+                    "Anulación",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
     }
 }

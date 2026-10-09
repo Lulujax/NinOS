@@ -67,6 +67,12 @@ namespace NinOS.UI.Common.ViewModels
         private readonly ICommissionService _commission_service;
         private readonly ISellerService? _seller_service;
 
+        /// <summary>
+        /// Vendedoras que ya se cargaron, para que la ventana de liquidacion de comisiones
+        /// pueda armar su combo de "Vendedora" sin volver a pegarle a la base.
+        /// </summary>
+        public List<seller> sellers { get; private set; } = new();
+
         private SellerTabItem<commission_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
@@ -248,6 +254,8 @@ namespace NinOS.UI.Common.ViewModels
                 var dbSellers = _seller_service != null
                     ? await _seller_service.GetAllActiveAsync()
                     : await _commission_service.get_sellers_with_commissions_async();
+
+                sellers = dbSellers.OrderBy(s => s.seller_code).ToList();
                 sync_seller_tabs(dbSellers);
 
                 var raw = await _commission_service.get_all_commissions_async();

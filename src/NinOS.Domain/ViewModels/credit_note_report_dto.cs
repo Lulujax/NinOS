@@ -106,6 +106,12 @@ namespace NinOS.Domain.ViewModels
         public int previous_total_notes { get; set; }
 
         public bool has_data => total_notes > 0;
+
+        /// <summary>
+        /// True cuando el usuario eligio mostrar las notas anuladas. Siempre aparecen sin sumar a
+        /// los totales: el generador las excluye de los importes y las marca en rojo.
+        /// </summary>
+        public bool include_annulled { get; set; }
         public string total_usd_display => total_usd.ToString("N2", new CultureInfo("es-VE"));
         public string gift_usd_display => gift_usd.ToString("N2", new CultureInfo("es-VE"));
         public string return_usd_display => return_usd.ToString("N2", new CultureInfo("es-VE"));

@@ -171,70 +171,66 @@
                PopupAnimation="Fade">
             <Border x:Name="panel_reporte"
                     Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="5"
-                    Padding="14,12" Width="360">
+                    Padding="14,12" Width="380">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
                 </Border.Effect>
                 <StackPanel>
-                    <Grid>
-                        <TextBlock Text="CONFIGURAR REPORTE DE VENTAS" FontSize="11.5" FontWeight="Bold"
-                                   Foreground="#00897B" VerticalAlignment="Center"/>
+                    <!-- Titulo en su propia linea: antes los botones "Seleccionar todo" iban en el
+                         mismo Grid y se montaban encima del texto al estrecharse el panel. -->
+                    <TextBlock Text="CONFIGURAR REPORTE DE VENTAS" FontSize="11.5" FontWeight="Bold"
+                               Foreground="#00897B"/>
+                    <TextBlock Text="Personalice las opciones que desea incluir en el PDF."
+                               FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,6"/>
+
+                    <!-- Los botones van arriba del ScrollViewer, asi quedan fijos y visibles sin
+                         tener que bajar hasta el final para llegar a ellos. -->
+                    <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1"
+                            CornerRadius="4" Padding="8,5" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="Seleccionar todo" Background="Transparent" Foreground="#00897B"
-                                    FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"
+                                    FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
                                     Margin="0,0,10,0"
-                                    ToolTip="Marca todos los vendedores y zonas. Pasa el reporte a alcance manual."
+                                    ToolTip="Marca todos los vendedores y zonas."
                                     Command="{Binding select_all_report_options_command}"/>
                             <Button Content="Quitar todo" Background="Transparent" Foreground="#C62828"
-                                    FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"
-                                    ToolTip="Desmarca todos los vendedores y zonas. Pasa el reporte a alcance manual."
+                                    FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                    ToolTip="Desmarca todos los vendedores y zonas."
                                     Command="{Binding clear_all_report_options_command}"/>
                         </StackPanel>
-                    </Grid>
-                    <TextBlock Text="Personalice las opciones que desea incluir en el PDF."
-                               FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                    </Border>
 
-                    <ScrollViewer MaxHeight="430" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,0,4,0">
-                            <!-- SECCION 1: ALCANCE (hereda de la pantalla por defecto) -->
+                            <!-- SECCION 1: TIPO DE NOTA (primero los desplegables) -->
                             <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <CheckBox Content="Cambiar alcance manualmente"
-                                              IsChecked="{Binding report_manual_scope, Mode=TwoWay}"
-                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Cursor="Hand"
-                                              ToolTip="Si está apagado, el reporte sale con el mes, la zona y la pestaña de vendedor que tiene en pantalla."/>
+                                    <TextBlock Text="TIPO DE NOTA" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding report_type_options}"
+                                              SelectedItem="{Binding selected_report_type, Mode=TwoWay}"
+                                              FontSize="11.5" Height="25" Cursor="Hand"/>
+                                </StackPanel>
+                            </Border>
 
-                                    <TextBlock FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="18,2,0,6">
-                                        <TextBlock.Text>
-                                            <Binding Path="report_scope_text"/>
-                                        </TextBlock.Text>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding report_manual_scope}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                            <!-- SECCION 2: AGRUPAR EN -->
+                            <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <TextBlock Text="AGRUPAR EN (páginas del PDF)" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding report_group_options}"
+                                              SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
+                                              FontSize="11.5" Height="25" Cursor="Hand"/>
+                                    <TextBlock Text="Por Vendedor: una página por vendedor, con la meta de ese vendedor. Por Zona: una página por zona."
+                                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Border>
 
-                                    <TextBlock Text="Alcance manual: elegido abajo, sin usar la pantalla."
-                                               FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="18,2,0,6">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding report_manual_scope}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                            <!-- SECCION 3: CHECKLISTS DE VENDEDORES Y ZONAS -->
+                            <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
+<StackPanel>
+                                    <TextBlock Text="Las listas de vendedores y zonas son el filtro: desmarque lo que no quiera en el reporte."
+                                               FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="0,0,0,6"/>
 
-                                    <StackPanel IsEnabled="{Binding report_manual_scope}">
+                                    <StackPanel>
                                         <Grid Margin="0,0,0,4">
                                             <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -260,7 +256,7 @@
                                         </ItemsControl>
                                     </StackPanel>
 
-                                    <StackPanel IsEnabled="{Binding report_manual_scope}" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,6,0,0">
                                         <Grid Margin="0,0,0,4">
                                             <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -288,33 +284,8 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- SECCION 2: TIPO DE NOTA -->
-                            <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
-                                <StackPanel>
-                                    <TextBlock Text="TIPO DE NOTA" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,4"/>
-                                    <ComboBox ItemsSource="{Binding report_type_options}"
-                                              SelectedItem="{Binding selected_report_type, Mode=TwoWay}"
-                                              FontSize="11.5" Height="25" Cursor="Hand"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- SECCION 3: AGRUPAR EN -->
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="AGRUPAR EN (páginas del PDF)" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
-                                    <ComboBox ItemsSource="{Binding report_group_options}"
-                                              SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
-                                              FontSize="11.5" Height="25" Cursor="Hand"/>
-                                    <TextBlock Text="Por Vendedor: una página por vendedor, con la meta de ese vendedor. Por Zona: una página por zona."
-                                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- SECCION 4: OPCIONES ADICIONALES -->
+                            <!-- SECCION 4: OPCIONES ADICIONALES (va al final, despues de los
+                                 desplegables y de las checklists) -->
                             <Border Background="#F9FBF9" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
                                 <StackPanel>
                                     <TextBlock Text="OPCIONES DEL REPORTE" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,4"/>

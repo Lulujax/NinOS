@@ -11,6 +11,10 @@ namespace NinOS.Domain.ViewModels
         public string customer_name { get; set; } = string.Empty;
         public string seller_name { get; set; } = string.Empty;
         public int id_seller { get; set; }
+
+        /// <summary>Zona del cliente de la nota pagada. Se usa para agrupar el reporte por zona.</summary>
+        public string zone_name { get; set; } = string.Empty;
+
         public DateTime payment_date { get; set; }
         public DateTime created_at { get; set; }
         public DateTime? updated_at { get; set; }

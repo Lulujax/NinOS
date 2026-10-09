@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -1074,6 +1074,184 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        /// <summary>
+        /// Anula una nota de credito, de devolucion o de obsequio. Hace lo contrario de lo que
+        /// hizo al crearse, en una sola transaccion:
+        ///   - Devolucion: la nota habia ingresado stock y habia descontado un abono de la nota
+        ///     de entrega. Se saca el stock y se devuelve el abono.
+        ///   - Obsequio: solo habia sacado stock del inventario. Se devuelve ese stock.
+        /// La nota no se borra: queda con status "Anulada", asi el historial sigue mostrandola.
+        /// </summary>
+        public async Task annul_credit_note_async(int id_credit_note)
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var nota = await db_context.credit_notes
+                .FirstOrDefaultAsync(c => c.id_credit_note == id_credit_note);
+
+            if (nota == null) throw new ArgumentException("La nota de credito ya no existe.");
+
+            if (string.Equals(nota.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("La nota de credito ya esta anulada.");
+
+            bool es_obsequio = string.Equals(nota.category?.Trim(), "Obsequio", StringComparison.OrdinalIgnoreCase);
+
+            var detalles = await db_context.credit_note_details
+                .Where(d => d.id_credit_note == id_credit_note)
+                .ToListAsync();
+
+            var product_ids = new HashSet<int>();
+            var promocion_ids = new HashSet<int>();
+
+            foreach (var d in detalles)
+            {
+                if (d.id_product != null) product_ids.Add(d.id_product.Value);
+                if (d.id_promotion != null) promocion_ids.Add(d.id_promotion.Value);
+            }
+
+            var products = await db_context.products
+                .Where(p => product_ids.Contains(p.id_product))
+                .ToDictionaryAsync(p => p.id_product);
+
+            var promotions = await db_context.promotions
+                .Include(p => p.items)
+                .Where(p => promocion_ids.Contains(p.id_promotion))
+                .ToDictionaryAsync(p => p.id_promotion);
+
+            var original_note = nota.id_delivery_note != null
+                ? await db_context.delivery_notes.FirstOrDefaultAsync(n => n.id_delivery_note == nota.id_delivery_note)
+                : null;
+
+            await using var transaction = await db_context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var detalle in detalles)
+                {
+                    // Al crear, el obsequio SACO stock (registrar_salida) y la devolucion lo
+                    // devolvio (registrar_entrada). Anular es exactamente lo contrario.
+                    if (detalle.id_product != null && products.TryGetValue(detalle.id_product.Value, out var producto))
+                    {
+                        if (es_obsequio)
+                        {
+                            stock_movement_writer.registrar_entrada(
+                                db_context, producto, detalle.quantity,
+                                stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
+                                DateTime.UtcNow, detalle.unit_price_usd,
+                                estado_documento: "Anulada",
+                                id_entrega: original_note?.id_delivery_note,
+                                id_credito: nota.id_credit_note,
+                                id_vendedor: nota.id_seller,
+                                id_cliente: nota.id_customer,
+                                vendido_como: stock_movement_writer.VendidoProducto);
+                        }
+                        else
+                        {
+                            stock_movement_writer.registrar_salida(
+                                db_context, producto, detalle.quantity,
+                                stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
+                                DateTime.UtcNow, detalle.unit_price_usd,
+                                estado_documento: "Anulada",
+                                id_entrega: original_note?.id_delivery_note,
+                                id_credito: nota.id_credit_note,
+                                id_vendedor: nota.id_seller,
+                                id_cliente: nota.id_customer,
+                                vendido_como: stock_movement_writer.VendidoProducto);
+                        }
+                    }
+                    else if (detalle.id_promotion != null && promotions.TryGetValue(detalle.id_promotion.Value, out var promocion))
+                    {
+                        if (promocion.items == null) continue;
+
+                        decimal precio_por_unidad = detalle.quantity > 0 ? detalle.unit_price_usd / detalle.quantity : 0m;
+
+                        foreach (var promo_item in promocion.items)
+                        {
+                            if (!products.TryGetValue(promo_item.id_product, out var promo_producto)) continue;
+
+                            int cantidad = detalle.quantity * promo_item.quantity_required;
+
+                            if (es_obsequio)
+                            {
+                                stock_movement_writer.registrar_entrada(
+                                    db_context, promo_producto, cantidad,
+                                    stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
+                                    DateTime.UtcNow, precio_por_unidad,
+                                    estado_documento: "Anulada",
+                                    id_entrega: original_note?.id_delivery_note,
+                                    id_credito: nota.id_credit_note,
+                                    id_vendedor: nota.id_seller,
+                                    id_cliente: nota.id_customer,
+                                    id_promocion: detalle.id_promotion,
+                                    unidades_promocion: detalle.quantity,
+                                    vendido_como: stock_movement_writer.VendidoPromocion,
+                                    descripcion_linea: promocion.name);
+                            }
+                            else
+                            {
+                                stock_movement_writer.registrar_salida(
+                                    db_context, promo_producto, cantidad,
+                                    stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
+                                    DateTime.UtcNow, precio_por_unidad,
+                                    estado_documento: "Anulada",
+                                    id_entrega: original_note?.id_delivery_note,
+                                    id_credito: nota.id_credit_note,
+                                    id_vendedor: nota.id_seller,
+                                    id_cliente: nota.id_customer,
+                                    id_promocion: detalle.id_promotion,
+                                    unidades_promocion: detalle.quantity,
+                                    vendido_como: stock_movement_writer.VendidoPromocion,
+                                    descripcion_linea: promocion.name);
+                            }
+                        }
+                    }
+                }
+
+                // La devolucion habia descontado un abono (pago negativo) de la nota de entrega.
+                // Al anular hay que devolverlo, o el saldo de la nota queda inflado a menor.
+                if (!es_obsequio && original_note != null)
+                {
+                    var abono = new payment(
+                        original_note.id_delivery_note,
+                        DateTime.UtcNow,
+                        nota.total_amount_usd,
+                        0m,
+                        null,
+                        payment_dto.AnulacionPaymentType,
+                        nota.note_number,
+                        string.Empty,
+                        $"Anulacion de la nota de credito {nota.note_number}",
+                        original_note.id_relacion);
+
+                    db_context.payments.Add(abono);
+
+                    // El estado de la nota de entrega se recalcula: sin la devolucion, la nota
+                    // vuelve a Pendiente o queda Pagada segun lo que ya se le haya abonado.
+                    decimal pagado = await db_context.payments
+                        .Where(p => p.id_delivery_note == original_note.id_delivery_note)
+                        .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+
+                    if (pagado >= original_note.adjusted_total_usd)
+                        original_note.status = "Pagada";
+                    else
+                        original_note.status = "Pendiente";
+                }
+
+                nota.status = "Anulada";
+
+                await db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                AppLog.Info($"Nota de credito {nota.note_number} anulada. Categoria: {nota.category}. "
+                            + $"Stock revertido: {detalles.Count} linea(s).");
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<credit_note_detail_dto>> get_credit_note_details_async(int id_credit_note)
         {
             using (var scope = _scope_factory.CreateScope())
@@ -1249,6 +1427,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                         id_seller)
                     .ToListAsync();
 
+                // El comparativo del periodo anterior tambien va sin las anuladas: si el periodo viejo las
+                // suma y el nuevo no, la variacion que muestra el PDF seria falsa.
+                var previous_vigentes = previous_notes.Where(c => !c.esta_anulada).ToList();
+
                 var report = new credit_note_report_dto
                 {
                     from_date = from_date.Date,
@@ -1257,8 +1439,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     seller_label = "Todos",
                     period_label = build_period_label(from_date, to_date),
                     previous_period_label = build_period_label(previous_start, previous_end_exclusive.AddDays(-1)),
-                    previous_total_usd = previous_notes.Sum(c => c.total_amount_usd),
-                    previous_total_notes = previous_notes.Count
+                    previous_total_usd = previous_vigentes.Sum(c => c.total_amount_usd),
+                    previous_total_notes = previous_vigentes.Count
                 };
 
                 if (id_seller != null)
@@ -1269,15 +1451,21 @@ namespace NinOS.Infrastructure.Services.Implementations
                     report.seller_label = seller?.full_name ?? "Todos";
                 }
 
-                report.total_notes = rows.Count;
-                report.total_usd = rows.Sum(r => r.total_amount_usd);
-                report.gift_notes = rows.Count(r => r.es_obsequio);
-                report.gift_usd = rows.Where(r => r.es_obsequio).Sum(r => r.total_amount_usd);
-                report.return_notes = rows.Count - report.gift_notes;
+                // Las anuladas van aparte: NO entran en el total ni en el promedio del reporte, asi que se
+                // calculan sobre las vigentes. Antes total_usd las sumaba y el encabezado del
+                // PDF mostraba un monto que no era el real.
+                var vigentes = rows.Where(r => !r.esta_anulada).ToList();
+                var anuladas = rows.Where(r => r.esta_anulada).ToList();
+
+                report.total_notes = vigentes.Count;
+                report.total_usd = vigentes.Sum(r => r.total_amount_usd);
+                report.gift_notes = vigentes.Count(r => r.es_obsequio);
+                report.gift_usd = vigentes.Where(r => r.es_obsequio).Sum(r => r.total_amount_usd);
+                report.return_notes = report.total_notes - report.gift_notes;
                 report.return_usd = report.total_usd - report.gift_usd;
-                report.voided_notes = rows.Count(r => r.esta_anulada);
-                report.voided_usd = rows.Where(r => r.esta_anulada).Sum(r => r.total_amount_usd);
-                report.affected_customers = rows
+                report.voided_notes = anuladas.Count;
+                report.voided_usd = anuladas.Sum(r => r.total_amount_usd);
+                report.affected_customers = vigentes
                     .Select(r => r.customer_name)
                     .Where(n => !string.IsNullOrWhiteSpace(n))
                     .Distinct()
@@ -1288,12 +1476,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .OrderByCorrelative(r => r.note_number)
                     .ToList();
 
-                report.by_seller = build_seller_bars(rows);
+                report.by_seller = build_seller_bars(vigentes);
 
                 // Las barras por dia solo tienen sentido dentro de un mes natural: en un rango
                 // de meses o anios el grafico seria ilegible, asi que se omite.
                 bool is_single_month = from_date.Year == to_date.Year && from_date.Month == to_date.Month;
-                if (is_single_month) report.by_day = build_day_bars(rows, DateTime.DaysInMonth(from_date.Year, from_date.Month));
+                if (is_single_month) report.by_day = build_day_bars(vigentes, DateTime.DaysInMonth(from_date.Year, from_date.Month));
 
                 return report;
             }

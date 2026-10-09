@@ -17,11 +17,40 @@ namespace NinOS.UI.Common
         private static readonly string AccentBg = "#F0F4EC";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        public static void generate(string month, List<payment_dto> payments)
+        /// <summary>
+        /// Reporte de pagos del mes. Cada pagina es un grupo: por vendedor (el pedido) o por zona
+        /// del cliente del pago. El encabezado de cada pagina muestra el otro dato como columna,
+        /// igual que hace el reporte de ventas.
+        /// </summary>
+        public static void generate(
+            string month,
+            List<payment_dto> payments,
+            string group_mode = "Por Vendedor",
+            IReadOnlyCollection<string>? zonas_seleccionadas = null,
+            bool filtrar_por_zona = false,
+            bool filtrar_por_vendedor = false)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            string file_name = $"REPORTE PAGOS {month}.pdf".ToUpperInvariant();
+            bool por_zona = string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase);
+
+            var seller_suffix = !filtrar_por_vendedor || zonas_seleccionadas == null
+                ? string.Empty
+                : string.Empty;
+            var zona_suffix = string.Empty;
+
+            if (por_zona)
+            {
+                zona_suffix = filtrar_por_zona && zonas_seleccionadas != null && zonas_seleccionadas.Count == 1
+                    ? $" ({zonas_seleccionadas.First().ToUpperInvariant()})"
+                    : string.Empty;
+            }
+
+            string titulo = por_zona
+                ? $"PAGOS REALIZADOS DEL MES - POR ZONA{zona_suffix}"
+                : "PAGOS REALIZADOS DEL MES";
+
+            string file_name = $"REPORTE PAGOS {month}{(por_zona ? " POR ZONA" : string.Empty)}.pdf".ToUpperInvariant();
 
             var save_dialog = new SaveFileDialog
             {
@@ -34,33 +63,40 @@ namespace NinOS.UI.Common
 
             var month_cap = Capitalize(month);
 
-            var grouped = payments
-                .GroupBy(p => string.IsNullOrWhiteSpace(p.seller_name) ? "SIN VENDEDOR" : p.seller_name.Trim())
-                .OrderBy(g => g.Key)
-                .ToList();
+            var grouped = por_zona
+                ? payments
+                    .GroupBy(p => string.IsNullOrWhiteSpace(p.zone_name) ? "SIN ZONA" : p.zone_name.Trim())
+                    .OrderBy(g => g.Key)
+                    .ToList()
+                : payments
+                    .GroupBy(p => string.IsNullOrWhiteSpace(p.seller_name) ? "SIN VENDEDOR" : p.seller_name.Trim())
+                    .OrderBy(g => g.Key)
+                    .ToList();
 
             var document = Document.Create(container =>
             {
                 if (grouped.Count == 0)
                 {
-                    container.Page(page => BuildSellerPage(page, month_cap, null, null));
+                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, null, null));
                     return;
                 }
 
                 foreach (var g in grouped)
                 {
-                    container.Page(page => BuildSellerPage(page, month_cap, g.Key, g.ToList()));
+                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, g.Key, g.ToList()));
                 }
             });
 
             document.GeneratePdf(save_dialog.FileName);
         }
 
-        private static void BuildSellerPage(
+        private static void BuildGroupPage(
             PageDescriptor page,
             string month_cap,
-            string? seller_name,
-            List<payment_dto>? seller_rows)
+            string titulo,
+            bool por_zona,
+            string? group_name,
+            List<payment_dto>? group_rows)
         {
             page.Size(PageSizes.Letter);
             page.MarginLeft(1, Unit.Centimetre);
@@ -73,7 +109,7 @@ namespace NinOS.UI.Common
             {
                 col.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("PAGOS REALIZADOS DEL MES").FontSize(13).Bold().FontColor(PrimaryColor);
+                    row.RelativeItem().Text(titulo).FontSize(13).Bold().FontColor(PrimaryColor);
                     row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#000000");
                 });
                 col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
@@ -81,20 +117,20 @@ namespace NinOS.UI.Common
 
             page.Content().PaddingVertical(4).Column(col =>
             {
-                if (seller_name == null)
+                if (group_name == null)
                 {
                     col.Item().Text("No hubo pagos en el mes seleccionado.").FontSize(11).FontColor("#000000");
                     return;
                 }
 
-                var srows = seller_rows ?? new List<payment_dto>();
+                var srows = group_rows ?? new List<payment_dto>();
 
                 col.Item().Row(row =>
                 {
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
-                        c.Item().PaddingTop(1).Text(seller_name).FontSize(9).Bold();
+                        c.Item().Text(por_zona ? "ZONA" : "VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
+                        c.Item().PaddingTop(1).Text(group_name).FontSize(9).Bold();
                     });
                 });
 
@@ -157,8 +193,15 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                decimal sub_total_usd = srows.Sum(p => p.amount_usd);
-                decimal sub_total_bs = srows.Sum(p => p.amount_bs);
+                // Los abonos de tipo "Anulacion" son el asiento contable que deja una anulacion: no es plata
+                // que entro. Se muestran en la tabla para dejar rastro, pero fuera de los
+                // subtotales y del TOTAL PAGADO, que es lo que el usuario lee como plata real.
+                var contables = srows.Where(p => p.es_anulacion).ToList();
+                var reales = srows.Where(p => !p.es_anulacion).ToList();
+
+                decimal sub_total_usd = reales.Sum(p => p.amount_usd);
+                decimal sub_total_bs = reales.Sum(p => p.amount_bs);
+                decimal anulaciones_usd = contables.Sum(p => p.amount_usd);
 
                 col.Item().PaddingTop(10).Row(outerRow =>
                 {
@@ -176,7 +219,19 @@ namespace NinOS.UI.Common
                             r.RelativeItem().Text("SUB TOTAL BS").FontSize(9).Bold().FontColor("#000000");
                             r.ConstantItem(120).AlignRight().Text(MoneyBs(sub_total_bs)).FontSize(10).Bold();
                         });
-                        bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+
+                        if (contables.Count > 0)
+                        {
+                            bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                            bottom.Item().Background("#FFEBEE").Padding(4).Row(r =>
+                            {
+                                r.RelativeItem().Text($"ANULACIONES ({contables.Count}):").FontSize(8).Bold().FontColor("#C62828");
+                                r.ConstantItem(120).AlignRight().Text(Money(anulaciones_usd)).FontSize(8.5f).Bold().FontColor("#C62828");
+                            });
+                            bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Asientos de anulacion: no son pagos y no suman)").FontSize(6.5f).Italic().FontColor("#C62828");
+                        }
+
+                        bottom.Item().LineHorizontal(0.5f).BorderColor(LightBorder);
                         bottom.Item().Padding(4).Row(r =>
                         {
                             r.RelativeItem().Text("TOTAL PAGADO $").FontSize(9).Bold().FontColor(PrimaryColor);

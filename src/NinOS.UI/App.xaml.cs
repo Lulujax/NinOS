@@ -157,10 +157,49 @@ namespace NinOS.UI
             catch (Exception ex)
             {
                 log_startup_message("OnStartup exception", ex);
-                AppDialog.Show(
-                    "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) +
-                    "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
-                    "No se pudo iniciar NinOS");
+
+                // Lo mas comun al iniciar es que la base no este todavia. Cerrar y obligar a
+                // abrir la app de nuevo es una molestia, asi que se ofrece reintentar y solo
+                // se sale si el usuario elige salir o se acabaron los intentos.
+                const int max_intentos = 5;
+                bool salir = false;
+
+                for (int intento = 1; intento <= max_intentos && !salir; intento++)
+                {
+                    string detalle_intento = max_intentos > 1
+                        ? $"\n\n(Intento {intento} de {max_intentos}.)"
+                        : string.Empty;
+
+                    var reintentar = AppDialog.Show(
+                        "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) + detalle_intento +
+                        "\n\nSi la base de datos o la red todavia no estan listas, puede reintentar." +
+                        "\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
+                        "No se pudo iniciar NinOS",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Error,
+                        MessageBoxResult.No,
+                        "Reintentar", "Salir");
+
+                    if (reintentar != MessageBoxResult.Yes)
+                    {
+                        salir = true;
+                        break;
+                    }
+
+                    log_startup_message($"Reintento {intento} de arranque");
+
+                    try
+                    {
+                    OnStartup(e);
+                    return;
+                    }
+                    catch (Exception retry_ex)
+                    {
+                        ex = retry_ex;
+                        log_startup_message("OnStartup exception (reintento)", retry_ex);
+                    }
+                }
+
                 Current.Shutdown();
             }
         }

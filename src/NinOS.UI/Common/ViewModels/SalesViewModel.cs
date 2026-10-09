@@ -28,8 +28,6 @@ namespace NinOS.UI.Common.ViewModels
         private bool _report_include_goal = true;
         private bool _report_include_collections = true;
         private bool _report_include_voided_and_returned = false;
-        // false = el reporte hereda mes/zona/vendedor de la pantalla; true = el usuario lo arma a mano.
-        private bool _report_manual_scope;
         private bool _all_report_sellers_selected = true;
         private bool _all_report_zones_selected = true;
         private bool _suppress_seller_sync;
@@ -173,17 +171,14 @@ namespace NinOS.UI.Common.ViewModels
         /// que ya están en pantalla, y las checklist quedan bloqueadas. true: el usuario arma el
         /// alcance a mano en el popup.
         /// </summary>
-        public bool report_manual_scope
-        {
-            get => _report_manual_scope;
-            set
-            {
-                if (_report_manual_scope == value) return;
-                _report_manual_scope = value;
-                on_property_changed();
-                if (!value) sync_report_scope_from_screen();
-            }
-        }
+public bool report_manual_scope
+{
+    // Ya no tiene efecto: las checklists de vendedores y zonas son directamente el filtro del
+    // reporte. Se deja la propiedad porque el binding del popup sigue existiendo, pero siempre
+    // devuelve false para que ningun trigger lareative active.
+    get => false;
+    set { }
+}
 
         /// <summary>Resumen del alcance heredado: lo que va a salir en el PDF.</summary>
         public string report_scope_text
@@ -679,8 +674,8 @@ namespace NinOS.UI.Common.ViewModels
                 _all_report_zones_selected = true;
                 on_property_changed(nameof(all_report_zones_selected));
 
-                // Las checklist quedan reflejando la pantalla hasta que el usuario pida cambiarlas.
-                if (!_report_manual_scope) sync_report_scope_from_screen();
+                // Las checklist arrancan reflejando la pantalla (pestana de vendedor y zona del combo).
+                sync_report_scope_from_screen();
 
                 _all_notes_source = all_rows;
 
@@ -935,37 +930,15 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 // --- Alcance del reporte -------------------------------------------------
-                // Por defecto se hereda lo de la pantalla (mes + zona del combo + pestaña de
-                // vendedor) para que el PDF coincida con lo que el usuario ve. Si activó
-                // "Cambiar alcance manualmente" manda las checklist del popup.
-                var seller_scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                var zone_scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                bool filter_sellers;
-                bool filter_zones;
+                // Las checklists son el filtro. Con "Todos/Todas" marcado no se filtra, para
+                // que también entren notas de vendedores o zonas que no aparezcan en la lista.
+                var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                if (_report_manual_scope)
-                {
-                    seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                    // Con "Todos/Todas" marcado no se filtra: así también entran notas de
-                    // vendedores o zonas que no aparezcan en la lista, sin excluirlos a escondidas.
-                    filter_sellers = !_all_report_sellers_selected;
-                    filter_zones = !_all_report_zones_selected;
-                }
-                else
-                {
-                    string tab_name = (selected_tab?.Header ?? string.Empty).Trim();
-                    bool por_vendedor = selected_tab?.IdSeller != null && tab_name.Length > 0;
-                    if (por_vendedor) seller_scope.Add(tab_name);
-                    filter_sellers = por_vendedor;
-
-                    bool por_zona = !string.IsNullOrWhiteSpace(_selected_zone) && _selected_zone.Trim() != "Todas";
-                    if (por_zona) zone_scope.Add(_selected_zone.Trim());
-                    filter_zones = por_zona;
-                }
+                bool filter_sellers = !_all_report_sellers_selected;
+                bool filter_zones = !_all_report_zones_selected;
 
                 if (filter_sellers && seller_scope.Count == 0)
                 {

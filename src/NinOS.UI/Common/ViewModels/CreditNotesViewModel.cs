@@ -464,6 +464,17 @@ namespace NinOS.UI.Common.ViewModels
         public async Task<IEnumerable<product>> get_obsequio_products_async()
             => await _inventory_service.get_all_products_async();
 
+        /// <summary>
+        /// Anula una nota de credito (devolucion o obsequio). El servicio revierte el stock y,
+        /// si era devolucion, el abono de la nota de entrega.
+        /// </summary>
+        public async Task annul_credit_note_async(int id_credit_note)
+        {
+            await _credit_note_service.annul_credit_note_async(id_credit_note);
+            await load_notes_async();
+            OnCreditNoteSaved?.Invoke();
+        }
+
         public async Task<IEnumerable<customer>> get_customers_async()
             => await _customer_service.GetAllCustomersAsync();
 

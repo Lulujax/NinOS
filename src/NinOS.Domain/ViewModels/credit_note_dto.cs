@@ -22,6 +22,18 @@ namespace NinOS.Domain.ViewModels
         public string category { get; set; } = string.Empty;
         public string note_type_name { get; set; } = string.Empty;
 
+        /// <summary>
+        /// La categoria que se ve en la grilla. Una nota anulada muestra "Anulada" en vez de
+        /// "Devolucion" u "Obsequio": asi queda claro de un vistazo que esa nota ya no esta
+        /// vigente, sin tener que ir a buscar la columna de estado.
+        /// </summary>
+        public string category_display => esta_anulada
+            ? "Anulada"
+            : (string.IsNullOrWhiteSpace(category) ? "-" : category.Trim());
+
+        /// <summary>Salen en rojo: las notas de credito anuladas.</summary>
+        public bool esta_anulada => string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
+
         // Fecha en que se emitio la nota de credito. No es la fecha de la nota de entrega: una
         // devolucion se registra el dia que se recibe la mercancia, y el filtro por mes del
         // modulo tambien tiene que seguir a la NC, no a la nota que se esta revirtiendo.

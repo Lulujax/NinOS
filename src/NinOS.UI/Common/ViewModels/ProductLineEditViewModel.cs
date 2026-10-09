@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Controls;
 using NinOS.Domain;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -76,6 +77,21 @@ namespace NinOS.UI.Common.ViewModels
         }
         
         private bool _canEditPrefix = true;
+
+        /// <summary>
+        /// True mientras se esta reescribiendo una linea. El guardado de una linea con productos
+        /// reescribe el inventario y todo el historial, y eso tarda: sin este bloqueo el usuario
+        /// le da otra vez al boton y se lanzan dos migraciones.
+        /// </summary>
+        private bool _is_loading;
+        public bool IsLoading
+        {
+            get => _is_loading;
+            private set { _is_loading = value; OnPropertyChanged(); }
+        }
+
+        public bool IsBusy => _is_loading;
+
         public bool CanEditPrefix
         {
             get => _canEditPrefix;
@@ -190,7 +206,12 @@ namespace NinOS.UI.Common.ViewModels
                 NewPrefix = line.CodePrefix;
                 NewSortOrder = line.SortOrder;
                 NewIsActive = line.IsActive;
-                CanEditPrefix = !line.HasProducts;
+                // El prefijo queda editable aunque la linea ya tenga productos. El correlativo se
+                // arma sobre todos los codigos en uso y saltea los que ya existen, asi que cambiar
+                // el prefijo no genera duplicados: los productos viejos conservan su codigo y los
+                // nuevos salen con el prefijo nuevo. Lo unico que se prohibe es repetir un
+                // prefijo que ya use otra linea, y eso lo valida ExistsActiveAsync.
+                CanEditPrefix = true;
                 ErrorMessage = string.Empty;
                 ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
             }
@@ -198,18 +219,40 @@ namespace NinOS.UI.Common.ViewModels
 
         private bool CanExecuteSaveLine(object? parameter)
         {
-            return !string.IsNullOrWhiteSpace(NewName) && 
-                   !string.IsNullOrWhiteSpace(NewPrefix) && 
+            // While migrating, Guardar stays disabled: it prevents double-submitting the same
+            // migration if the user gets impatient and clicks again.
+            return !_is_loading &&
+                   !string.IsNullOrWhiteSpace(NewName) &&
+                   !string.IsNullOrWhiteSpace(NewPrefix) &&
                    NewPrefix.Trim().Length >= 2 && NewPrefix.Trim().Length <= 4 &&
                    NewPrefix.Trim().All(char.IsLetter);
         }
 
         private async Task ExecuteSaveLineAsync()
-        {
+{
             if (!CanExecuteSaveLine(null)) return;
-            
+
             ErrorMessage = string.Empty;
-            
+
+            // Solo el guardado de una línea que ya tiene productos es lento: ahí se reescribe el
+            // inventario y todo el historial. Se bloquea la ventana para que se vea que está
+            // trabajando y no se pueda volver a disparar.
+            bool posible_migracion = EditingLine != null && _canEditPrefix;
+            if (posible_migracion) IsLoading = true;
+
+            try
+            {
+                await save_line_internal_async();
+            }
+            finally
+            {
+                IsLoading = false;
+                ((RelayCommand)SaveLineCommand).RaiseCanExecuteChanged();
+            }
+        }
+
+        private async Task save_line_internal_async()
+        {
             bool exists = await _productLineService.ExistsActiveAsync(
                 NewName.Trim(), 
                 NewPrefix.Trim(), 
@@ -219,6 +262,68 @@ namespace NinOS.UI.Common.ViewModels
             {
                 ErrorMessage = "Ya existe una línea con ese nombre o prefijo de código.";
                 return;
+            }
+
+            // Si cambia el prefijo hay que reescribir los codigos de todos los productos de la linea
+            // y dejar el historial alineado. Se muestra primero cuanto se va a tocar.
+            string prefijo_viejo = EditingLine?.CodePrefix?.Trim().ToUpperInvariant() ?? string.Empty;
+            string prefijo_nuevo = NewPrefix?.Trim().ToUpperInvariant() ?? string.Empty;
+
+            bool cambia_prefijo = EditingLine != null
+                                  && !string.Equals(prefijo_viejo, prefijo_nuevo, StringComparison.Ordinal);
+
+            product_code_migration_preview? preview = null;
+
+            if (cambia_prefijo)
+            {
+                preview = await _productLineService.preview_prefix_change_async(
+                    EditingLine!.IdProductLine, prefijo_viejo, prefijo_nuevo);
+
+                if (preview.total_productos == 0)
+                {
+                    var solo_prefijo = AppDialog.Show(
+                        $"No hay productos con el prefijo {prefijo_viejo}.\n\n" +
+                        $"Se va a cambiar el prefijo de la línea a {prefijo_nuevo}. Los productos que se creen " +
+                        "de aquí en adelante saldrán con el prefijo nuevo.\n\n¿Desea continuar?",
+                        "Cambiar prefijo de código",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (solo_prefijo != MessageBoxResult.Yes) return;
+                }
+                else
+                {
+                    string detalle = "";
+                    if (preview.a_reescribir > 0)
+                        detalle += $"  - {preview.a_reescribir} producto(s): {prefijo_viejo}... → {prefijo_nuevo}...\n";
+
+                    if (preview.detalles_de_notas_afectados > 0)
+                        detalle += $"  - {preview.detalles_de_notas_afectados} línea(s) de notas de entrega\n";
+
+                    if (preview.detalles_de_notas_de_credito_afectados > 0)
+                        detalle += $"  - {preview.detalles_de_notas_de_credito_afectados} línea(s) de notas de crédito\n";
+
+                    if (preview.ajustes_de_kardex_afectados > 0)
+                        detalle += $"  - {preview.ajustes_de_kardex_afectados} ajuste(s) del inventario\n";
+
+                    if (preview.hay_conflicto)
+                    {
+                        detalle += $"\nEstos {preview.quedan_iguales} producto(s) NO se van a cambiar:\n";
+                        foreach (var item in preview.items.Where(i => i.queda_igual))
+                            detalle += $"  {item.old_code} — {item.motivo}\n";
+                    }
+
+                    var confirmacion = AppDialog.Show(
+                        $"Se va a cambiar el prefijo de \"{EditingLine.Name}\" de {prefijo_viejo} a {prefijo_nuevo}.\n\n" +
+                        "Se reescriben los códigos, conservando el número de cada producto " +
+                        $"(por ejemplo {prefijo_viejo}30508 → {prefijo_nuevo}30508), y también el historial:\n\n" +
+                        detalle + "\nEsta acción no se puede deshacer.\n\n¿Desea continuar?",
+                        "Cambiar prefijo de código",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (confirmacion != MessageBoxResult.Yes) return;
+                }
             }
 
             try
@@ -234,18 +339,49 @@ namespace NinOS.UI.Common.ViewModels
                     };
                     await _productLineService.CreateAsync(line);
                 }
+                else if (cambia_prefijo)
+                {
+                    // El nombre, el orden y la visibilidad van por su cuenta; el prefijo y todos
+                    // los códigos que dependen de él los reescribe la migración.
+                    var linea = await _productLineService.GetByIdAsync(EditingLine.IdProductLine);
+                    if (linea != null)
+                    {
+                        linea.name = NewName.Trim().ToUpperInvariant();
+                        linea.sort_order = NewSortOrder;
+                        linea.is_active = NewIsActive;
+                        await _productLineService.UpdateAsync(linea);
+                    }
+
+                    var resultado = await _productLineService.migrate_prefix_async(
+                        EditingLine.IdProductLine, prefijo_viejo, prefijo_nuevo);
+
+                    if (!resultado.sucesso)
+                    {
+                        ErrorMessage = resultado.mensaje;
+                        return;
+                    }
+
+                    await LoadDataAsync();
+                    AppDataEvents.raise_catalogs_changed();
+
+                    AppDialog.Show(
+                        resultado.mensaje + "\n\nHistorial alineado: " +
+                        $"{resultado.snapshots_de_notas_actualizados} línea(s) de notas, " +
+                        $"{resultado.snapshots_de_notas_de_credito_actualizados} de notas de crédito y " +
+                        $"{resultado.ajustes_de_kardex_actualizados} ajuste(s) de inventario.",
+                        "Prefijo actualizado",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
                 else
                 {
                     var line = await _productLineService.GetByIdAsync(EditingLine.IdProductLine);
                     if (line != null)
                     {
                         line.name = NewName.Trim().ToUpperInvariant();
+                        line.code_prefix = NewPrefix.Trim().ToUpperInvariant();
                         line.sort_order = NewSortOrder;
                         line.is_active = NewIsActive;
-                        if (CanEditPrefix)
-                        {
-                            line.code_prefix = NewPrefix.Trim().ToUpperInvariant();
-                        }
                         await _productLineService.UpdateAsync(line);
                     }
                 }

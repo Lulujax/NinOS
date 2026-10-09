@@ -21,5 +21,12 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<credit_note_detail_dto>> get_credit_note_details_async(int id_credit_note);
         Task<note_print_dto> get_printable_credit_note_async(int id_credit_note);
         Task<credit_note_report_dto> get_credit_note_report_async(DateTime from_date, DateTime to_date, string? category, int? id_seller);
+
+        /// <summary>
+        /// Anula una nota de credito, sea de devolucion o de obsequio. Revierte lo que hizo al
+        /// crearse: devuelve el stock que habia ingresado y, si era devolucion, el abono que se
+        /// habia descontado de la nota de entrega. Nunca borra la nota, queda con status "Anulada".
+        /// </summary>
+        Task annul_credit_note_async(int id_credit_note);
     }
 }

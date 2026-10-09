@@ -298,10 +298,12 @@ namespace NinOS.UI.Views
                 return;
             }
 
-            decimal max_allowed = balance + 2.00m;
-            if (usd > max_allowed)
+            // El pago no puede pasar del saldo pendiente. Antes se permitia un margen de 2.00
+            // "por redondeo", pero terminaba permitiendo pagar de mas. Un abono menor al saldo
+            // si se acepta: queda saldo pendiente y la nota sigue en Pendiente.
+            if (usd > balance)
             {
-                EquivText.Text = "Excede el monto máximo";
+                EquivText.Text = $"Excede el saldo pendiente ({balance:N2})";
                 EquivText.Foreground = RedBrush;
                 return;
             }
@@ -382,11 +384,12 @@ namespace NinOS.UI.Views
                     _selected_note = refreshed;
                 }
 
+                // El monto tiene que ser exacto al saldo pendiente. Pagar de mas dejaria la nota con
+                // saldo negativo. Pagar menos esta permitido: es un abono parcial.
                 decimal current_balance = _is_edit_mode ? _edit_effective_balance : _selected_note.balance_due_usd;
-                decimal max_allowed = current_balance + 2.00m;
-                if (amount_usd > max_allowed)
+                if (amount_usd > current_balance)
                 {
-                    ShowError("Se excedió del monto máximo.");
+                    ShowError($"El monto supera el saldo pendiente de la nota ({current_balance:N2} USD). Ingrese el saldo exacto o un abono menor.");
                     return;
                 }
 

@@ -29,10 +29,26 @@ namespace NinOS.UI.Common.ViewModels
         private bool _is_mensual;
         private string _selected_month = string.Empty;
         private string _selected_category = CategoryBoth;
+        private bool _include_annulled;
         private bool _is_loading;
 
         public ObservableCollection<string> month_options { get; }
         public ObservableCollection<string> category_options { get; }
+
+        /// <summary>
+        /// Las notas de credito anuladas salen apagadas en el reporte. Si se enciende aparecen
+        /// marcadas en rojo y aparte, pero nunca suman al total ni al cumplimiento.
+        /// </summary>
+        public bool include_annulled
+        {
+            get => _include_annulled;
+            set
+            {
+                if (_include_annulled == value) return;
+                _include_annulled = value;
+                on_property_changed();
+            }
+        }
 
         // Los dos checkboxes son excluyentes: al marcar uno se desmarca el otro.
         public bool is_general
@@ -167,6 +183,14 @@ namespace NinOS.UI.Common.ViewModels
 
                 report.period_label = period_label;
                 report.category_label = _selected_category;
+
+                // Con la opcion apagada se sacan las anuladas del reporte; encendida quedan a la
+                // vista, marcadas en rojo y sin sumar. El generador ya las saca de los totales.
+                report.include_annulled = _include_annulled;
+                if (!_include_annulled)
+                {
+                    report.rows = report.rows.Where(r => !r.esta_anulada).ToList();
+                }
 
                 if (period_label == PeriodGeneral)
                 {

@@ -390,24 +390,141 @@
                     </Button.Template>
                 </Button>
 
-                <Button Content="Reporte Mes" Background="#1B3A2D" Foreground="White"
-                        VerticalAlignment="Center"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding month_report_command}" FontSize="12.5">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+<Button x:Name="btn_reporte" Content="Reporte" Background="#1B3A2D" Foreground="White"
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                    FontSize="12.5" ToolTip="Reporte de cuentas por cobrar"
+                    Click="on_reporte_click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
         </WrapPanel>
+
+        <!-- POPUP: CONFIGURADOR DE REPORTE DE CUENTAS POR COBRAR -->
+        <Popup x:Name="popup_reporte"
+               PlacementTarget="{Binding ElementName=btn_reporte}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border x:Name="panel_reporte"
+                    Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="5"
+                    Padding="14,12" Width="330">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="REPORTE DE CUENTAS POR COBRAR" FontSize="11.5" FontWeight="Bold"
+                               Foreground="#1B3A2D"/>
+                    <TextBlock Text="Solo entran notas pendientes de cobro. Las pagadas, anuladas y devueltas no suman ni aparecen."
+                               FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
+
+                    <!-- PERIODO -->
+                    <TextBlock Text="MES" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                    <ComboBox ItemsSource="{Binding pending_months}"
+                              SelectedItem="{Binding selected_month}"
+                              FontSize="11.5" Height="25" Cursor="Hand"/>
+
+                    <!-- AGRUPAR EN -->
+                    <TextBlock Text="AGRUPAR EN (páginas del PDF)" FontSize="9.5" FontWeight="Bold"
+                               Foreground="#55665C" Margin="0,10,0,3"/>
+                    <ComboBox ItemsSource="{Binding report_group_options}"
+                              SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
+                              FontSize="11.5" Height="25" Cursor="Hand"/>
+                    <TextBlock Text="Por Vendedor: una página por vendedor. Por Zona: una página por zona."
+                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
+
+                    <!-- ALCANCE -->
+                    <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4"
+                            Padding="8,6" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Las listas de vendedores y zonas son el filtro: desmarque lo que no quiera en el reporte."
+                                       FontSize="9.5" Foreground="#55665C" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+                            <StackPanel>
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <CheckBox Content="Todos" IsChecked="{Binding all_report_sellers_selected, Mode=TwoWay}"
+                                                  FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                        <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                                FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                                Command="{Binding clear_report_sellers_command}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding report_seller_options}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                      FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,6,0,0">
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <CheckBox Content="Todas" IsChecked="{Binding all_report_zones_selected, Mode=TwoWay}"
+                                                  FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                        <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                                FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                                Command="{Binding clear_report_zones_command}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding report_zone_options}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                      FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="Descargar PDF"
+                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                            FontSize="12.5" Height="32" BorderThickness="0" Cursor="Hand"
+                            Margin="0,10,0,0" Click="on_descargar_reporte_click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <!-- FILA 1: TABS DE VENDEDORAS -->
         <TabControl Grid.Row="1" ItemsSource="{Binding seller_tabs}" SelectedItem="{Binding selected_tab, Mode=TwoWay}" Margin="0,0,0,4">
