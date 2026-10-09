@@ -1,18 +1,26 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
+using NinOS.Infrastructure.Logging;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
 {
     public partial class PromotionSalesHistoryWindow : Window
     {
+        private readonly promotion _promotion;
+        private readonly List<promotion_sales_history_dto> _history;
+
         public PromotionSalesHistoryWindow(promotion promotion, IEnumerable<promotion_sales_history_dto> history)
         {
             InitializeComponent();
+
+            _promotion = promotion;
 
             PromoNameText.Text = promotion.name ?? string.Empty;
             PromoCodeText.Text = promotion.promotion_code ?? string.Empty;
@@ -46,8 +54,57 @@ namespace NinOS.UI.Views
                 CompositionItems.ItemsSource = lineas;
             }
 
-            var list = history?.ToList() ?? new List<promotion_sales_history_dto>();
-            HistoryGrid.ItemsSource = list;
+            _history = history?.ToList() ?? new List<promotion_sales_history_dto>();
+            HistoryGrid.ItemsSource = _history;
+        }
+
+        /// <summary>
+        /// Respaldo imprimible del historial del combo. Usa el mismo generador que el
+        /// historial de un producto, para que los dos PDF se lean igual.
+        /// </summary>
+        private void PrintPdfButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = new InventoryHistoryPdfModel
+                {
+                    ItemLabel = "PROMOCION",
+                    ItemName = _promotion.name ?? string.Empty,
+                    ItemCode = _promotion.promotion_code ?? string.Empty,
+                    Category = _promotion.category ?? string.Empty,
+                    UnitPriceUsd = _promotion.unit_price_usd,
+                    MostrarSaldos = false,
+                    Rows = _history.Select(ToPdfRow).ToList()
+                };
+
+                InventoryHistoryPdfGenerator.generate(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de promocion: no se pudo generar el PDF de '{_promotion.promotion_code}'.", ex);
+                AppDialog.Show(
+                    "No se pudo generar el PDF del historial.\n\n" + ErrorText.Get(ex, "historial de inventario") +
+                    "\n\nCierra la ventana e inténtalo otra vez.",
+                    "No se pudo generar el PDF");
+            }
+        }
+
+        private static InventoryHistoryPdfRow ToPdfRow(promotion_sales_history_dto dto)
+        {
+            return new InventoryHistoryPdfRow
+            {
+                NoteNumber = dto.note_number ?? string.Empty,
+                FechaLocal = AppTimeZone.to_local(dto.creation_date),
+                Documento = dto.documento_display,
+                Motivo = dto.motivo_display,
+                Cliente = dto.customer_name ?? string.Empty,
+                Vendedor = dto.seller_name ?? string.Empty,
+                Movimiento = dto.movement_type,
+                Unidades = dto.units_sold,
+                PrecioUsd = dto.unit_price_usd,
+                SubtotalUsd = dto.line_subtotal_usd,
+                Estado = dto.status ?? string.Empty
+            };
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

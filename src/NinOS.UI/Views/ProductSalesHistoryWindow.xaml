@@ -151,7 +151,10 @@
 
         <!-- PANEL DE ACCIONES -->
         <DockPanel Grid.Row="2" Margin="0,8,0,0" LastChildFill="False">
-            <Button DockPanel.Dock="Left" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
+            <Button DockPanel.Dock="Left" Content="Imprimir PDF" Background="#2E7D32" Foreground="White"
+                    FontWeight="SemiBold" FontSize="13" Padding="10,3" BorderThickness="0" Cursor="Hand"
+                    Click="PrintPdfButton_Click"/>
+            <Button DockPanel.Dock="Left" Margin="8,0,0,0" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
                     FontSize="13" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
         </DockPanel>
     </Grid>

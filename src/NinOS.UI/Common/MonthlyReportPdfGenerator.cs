@@ -109,8 +109,9 @@ namespace NinOS.UI.Common
             {
                 col.Item().Row(row =>
                 {
-                    row.RelativeItem().Text(report.title).FontSize(13).Bold().FontColor(PrimaryColor);
-                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#000000");
+                    float title_size = Math.Max(8.5f, Math.Min(12f, 380f / (report.title.Length * 0.7f)));
+                    row.RelativeItem(3f).Text(report.title).FontSize(title_size).Bold().FontColor(PrimaryColor);
+                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(9.5f).Bold().FontColor("#000000");
                 });
                 col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
             });

@@ -150,14 +150,14 @@ namespace NinOS.UI.Common
 
                     row.RelativeItem(2).Column(right =>
                     {
-                        right.Item().AlignRight().Text(ascii(note.document_label)).FontSize(15).Bold().FontColor(primary);
+                        right.Item().AlignRight().Text(ascii(note.document_label)).FontSize(14).Bold().FontColor(primary);
                     });
                 });
 
                 col.Item().PaddingTop(2).Row(subRow =>
                 {
-                    subRow.RelativeItem().Text(string.IsNullOrWhiteSpace(note.seller_name) ? "" : $"Vendedor: {ascii(note.seller_name)}").FontSize(10.5f).Bold();
-                    subRow.RelativeItem().AlignRight().Text($"Nro: {ascii(note.note_number)}").FontSize(10.5f).Bold();
+                    subRow.RelativeItem().Text(string.IsNullOrWhiteSpace(note.seller_name) ? "" : $"Vendedor: {ascii(note.seller_name)}").FontSize(10).Bold();
+                    subRow.RelativeItem().AlignRight().Text($"Nro: {ascii(note.note_number)}").FontSize(10).Bold();
                 });
 
                 col.Item().PaddingTop(2).LineHorizontal(1.5f).LineColor(primary);
@@ -171,18 +171,18 @@ namespace NinOS.UI.Common
                     {
                         r.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("Razon Social").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_business_name)).FontSize(7.5f);
+                            c.Item().Text("Razon Social").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_business_name)).FontSize(9);
                         });
                         r.ConstantItem(80).Column(c =>
                         {
-                            c.Item().Text("Codigo").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_code)).FontSize(7.5f);
+                            c.Item().Text("Codigo").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_code)).FontSize(9);
                         });
                         r.ConstantItem(120).Column(c =>
                         {
-                            c.Item().Text("RIF").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_rif)).FontSize(7.5f);
+                            c.Item().Text("RIF").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_rif)).FontSize(9);
                         });
                     });
 
@@ -192,13 +192,13 @@ namespace NinOS.UI.Common
                     {
                         r.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("Domicilio Fiscal").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.fiscal_address)).FontSize(7.5f);
+                            c.Item().Text("Domicilio Fiscal").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.fiscal_address)).FontSize(9);
                         });
                         r.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("Direccion de Entrega").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_delivery_address)).FontSize(7.5f);
+                            c.Item().Text("Direccion de Entrega").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_delivery_address)).FontSize(9);
                         });
                     });
 
@@ -208,8 +208,8 @@ namespace NinOS.UI.Common
                     {
                         r.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("Fecha Emision").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.creation_date.ToString("dd/MM/yyyy")).FontSize(7.5f);
+                            c.Item().Text("Fecha Emision").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(note.creation_date.ToString("dd/MM/yyyy")).FontSize(9);
                         });
                         if (is_credit || note.is_promo || string.IsNullOrWhiteSpace(note.credit_days_text))
                         {
@@ -219,8 +219,8 @@ namespace NinOS.UI.Common
                         {
                             r.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("CREDITO").FontSize(5.5f).Bold().FontColor("#000000");
-                                c.Item().PaddingTop(0.5f).Text(ascii(note.credit_days_text)).FontSize(7.5f);
+                                c.Item().Text("CREDITO").FontSize(7).Bold().FontColor("#000000");
+                                c.Item().PaddingTop(0.5f).Text(ascii(note.credit_days_text)).FontSize(9);
                             });
                         }
                         if (is_credit)
@@ -231,14 +231,14 @@ namespace NinOS.UI.Common
                         {
                             r.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Fecha Vencimiento").FontSize(5.5f).Bold().FontColor("#000000");
-                                c.Item().PaddingTop(0.5f).Text(note.due_date.ToString("dd/MM/yyyy")).FontSize(7.5f);
+                                c.Item().Text("Fecha Vencimiento").FontSize(7).Bold().FontColor("#000000");
+                                c.Item().PaddingTop(0.5f).Text(note.due_date.ToString("dd/MM/yyyy")).FontSize(9);
                             });
                         }
                         r.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("Telefono").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_phone)).FontSize(7.5f);
+                            c.Item().Text("Telefono").FontSize(7).Bold().FontColor("#000000");
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_phone)).FontSize(9);
                         });
                     });
 
@@ -252,8 +252,8 @@ namespace NinOS.UI.Common
                         {
                             r.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Contacto").FontSize(5.5f).Bold().FontColor("#000000");
-                                c.Item().PaddingTop(0.5f).Text(ascii(note.customer_contact)).FontSize(7.5f);
+                                c.Item().Text("Contacto").FontSize(7).Bold().FontColor("#000000");
+                                c.Item().PaddingTop(0.5f).Text(ascii(note.customer_contact)).FontSize(9);
                             });
                         });
                     }
@@ -277,28 +277,28 @@ namespace NinOS.UI.Common
 
                     table.Header(header =>
                     {
-                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("CANT.").FontColor(Colors.White).Bold().FontSize(9);
-                        header.Cell().Background(primary).Padding(0.5f).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(9);
-                        header.Cell().Background(primary).Padding(0.5f).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(9);
-                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(9);
+                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("CANT.").FontColor(Colors.White).Bold().FontSize(9.5f);
+                        header.Cell().Background(primary).Padding(0.5f).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(9.5f);
+                        header.Cell().Background(primary).Padding(0.5f).Text("DESCRIPCION").FontColor(Colors.White).Bold().FontSize(9.5f);
+                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("PRECIO U.").FontColor(Colors.White).Bold().FontSize(9.5f);
                         if (is_promo_table)
-                            header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text($"DESCUENTO {note.promo_discount_percentage ?? 0:0.##}%").FontColor(Colors.White).Bold().FontSize(9);
-                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(9);
-                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(9);
+                            header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text($"DESCUENTO {note.promo_discount_percentage ?? 0:0.##}%").FontColor(Colors.White).Bold().FontSize(9.5f);
+                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("PRECIO P.").FontColor(Colors.White).Bold().FontSize(9.5f);
+                        header.Cell().Background(primary).Padding(0.5f).AlignCenter().Text("SUBTOTAL").FontColor(Colors.White).Bold().FontSize(9.5f);
                     });
 
                     bool alternate = false;
                     foreach (var d in note.details)
                     {
                         string bg = alternate ? accent : Colors.White;
-                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.quantity.ToString()).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.code)).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.name)).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.unit_price_usd.ToString("N2")).FontSize(9);
+                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.quantity.ToString()).FontSize(9.5f);
+                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.code)).FontSize(9.5f);
+                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.name)).FontSize(9.5f);
+                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.unit_price_usd.ToString("N2")).FontSize(9.5f);
                         if (is_promo_table)
-                            table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.discount_usd.ToString("N2")).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.promo_price_usd.ToString("N2")).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.subtotal_usd.ToString("N2")).FontSize(9);
+                            table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.discount_usd.ToString("N2")).FontSize(9.5f);
+                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.promo_price_usd.ToString("N2")).FontSize(9.5f);
+                        table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.subtotal_usd.ToString("N2")).FontSize(9.5f);
                         alternate = !alternate;
                     }
                 });
@@ -309,7 +309,7 @@ namespace NinOS.UI.Common
                     {
                         row.AutoItem().Border(0.5f).BorderColor(LightBorder).Padding(2).Column(cond =>
                         {
-                            cond.Item().Text(ascii(note.conditions_text)).FontSize(7.5f).Bold().Italic();
+                            cond.Item().Text(ascii(note.conditions_text)).FontSize(9).Bold().Italic();
                         });
                     }
 
@@ -320,7 +320,7 @@ namespace NinOS.UI.Common
                         string total_label = is_credit
                             ? (note.conditions_text?.IndexOf("OBSEQUIO", System.StringComparison.OrdinalIgnoreCase) >= 0 ? "TOTAL OBSEQUIADO" : "TOTAL DEVUELTO")
                             : "Total General";
-                        tg.Item().AlignCenter().Text(total_label).FontSize(8).Bold();
+                        tg.Item().AlignCenter().Text(total_label).FontSize(9.5f).Bold();
                         decimal tgValue = is_credit ? note.total_amount_usd : (note.is_promo ? note.discounted_total_usd : note.gross_total_usd);
                         tg.Item().AlignCenter().Text($"{tgValue:N2}").FontSize(12).Bold().FontColor(primary);
                     });
@@ -333,26 +333,26 @@ namespace NinOS.UI.Common
                     {
                         pay.Item().Column(bank_header =>
                         {
-                            bank_header.Item().Background(primary).Padding(1).AlignCenter().Text("FORMAS DE PAGO").FontSize(8).Bold().FontColor(Colors.White);
+                            bank_header.Item().Background(primary).Padding(1).AlignCenter().Text("FORMAS DE PAGO").FontSize(9.5f).Bold().FontColor(Colors.White);
 
                             bank_header.Item().PaddingTop(1).Row(r =>
                             {
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("TRANSFERENCIA").FontSize(6.5f).Bold().FontColor(primary);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(6.5f);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(6.5f);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(6.5f);
+                                    c.Item().Text("TRANSFERENCIA").FontSize(8).Bold().FontColor(primary);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(8);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(8);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(8);
                                 });
 
                                 r.ConstantItem(12);
 
                                 r.RelativeItem().Column(c =>
                                 {
-                                    c.Item().Text("PAGO MOVIL").FontSize(6.5f).Bold().FontColor(primary);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL").FontSize(6.5f);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02").FontSize(6.5f);
-                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(6.5f);
+                                    c.Item().Text("PAGO MOVIL").FontSize(8).Bold().FontColor(primary);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL").FontSize(8);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02").FontSize(8);
+                                    c.Item().PaddingTop(1).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(8);
                                 });
                             });
 
@@ -376,23 +376,23 @@ namespace NinOS.UI.Common
 
                                 left.Item().PaddingTop(2).Row(r =>
                                 {
-                                    r.RelativeItem().Text("sub total").FontSize(8).Bold();
-                                    r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(8).Bold().FontColor(primary);
+                                    r.RelativeItem().Text("sub total").FontSize(9.5f).Bold();
+                                    r.RelativeItem().AlignRight().Text($"{note.gross_total_usd:N2}").FontSize(9.5f).Bold().FontColor(primary);
                                 });
 
                                 if (note.promo_discount_amount > 0)
                                 {
                                     left.Item().PaddingTop(1).Row(r =>
                                     {
-                                        r.RelativeItem().Text($"{note.promo_discount_percentage:0.##}% PROMO").FontSize(8);
-                                        r.RelativeItem().AlignRight().Text($"-{note.promo_discount_amount:N2}").FontSize(8).FontColor("#CC0000");
+                                        r.RelativeItem().Text($"{note.promo_discount_percentage:0.##}% PROMO").FontSize(9.5f);
+                                        r.RelativeItem().AlignRight().Text($"-{note.promo_discount_amount:N2}").FontSize(9.5f).FontColor("#CC0000");
                                     });
                                 }
 
                                 left.Item().PaddingTop(1).Row(r =>
                                 {
-                                    r.RelativeItem().Text($"{note.discount_percentage:0.##}%").FontSize(8);
-                                    r.RelativeItem().AlignRight().Text(note.discount_amount > 0 ? $"-{note.discount_amount:N2}" : $"{note.discount_amount:N2}").FontSize(8).FontColor(note.discount_amount > 0 ? "#CC0000" : "#000000");
+                                    r.RelativeItem().Text($"{note.discount_percentage:0.##}%").FontSize(9.5f);
+                                    r.RelativeItem().AlignRight().Text(note.discount_amount > 0 ? $"-{note.discount_amount:N2}" : $"{note.discount_amount:N2}").FontSize(9.5f).FontColor(note.discount_amount > 0 ? "#CC0000" : "#000000");
                                 });
 
                                 left.Item().PaddingTop(2).Row(r =>
@@ -405,41 +405,46 @@ namespace NinOS.UI.Common
                             row.ConstantItem(6);
                         }
 
-                        row.ConstantItem(200).Border(0.5f).BorderColor(LightBorder).Padding(2).Column(manual =>
+                        // NOTA DE CREDITO (devolucion): no se imprime DATOS PARA PAGO. La devolucion no
+                        // trae movimiento de dinero, asi que solo queda la firma del cliente.
+                        if (!is_credit)
                         {
-                            manual.Item().Text("DATOS PARA PAGO").FontSize(7).Bold().FontColor(primary).AlignCenter();
-                            manual.Item().PaddingTop(2).Row(r =>
+                            row.ConstantItem(200).Border(0.5f).BorderColor(LightBorder).Padding(2).Column(manual =>
                             {
-                                r.RelativeItem().Text("Fecha de pago:").FontSize(7);
-                                r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                manual.Item().Text("DATOS PARA PAGO").FontSize(7).Bold().FontColor(primary).AlignCenter();
+                                manual.Item().PaddingTop(2).Row(r =>
+                                {
+                                    r.RelativeItem().Text("Fecha de pago:").FontSize(7);
+                                    r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                });
+                                manual.Item().PaddingTop(1.5f).Row(r =>
+                                {
+                                    r.RelativeItem().Text("Monto Bs:").FontSize(7);
+                                    r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                });
+                                manual.Item().PaddingTop(1.5f).Row(r =>
+                                {
+                                    r.RelativeItem().Text("Nro Referencia:").FontSize(7);
+                                    r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                });
+                                manual.Item().PaddingTop(1.5f).Row(r =>
+                                {
+                                    r.RelativeItem().Text("Banco:").FontSize(7);
+                                    r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                });
+                                manual.Item().PaddingTop(1.5f).Row(r =>
+                                {
+                                    r.RelativeItem().Text("Equivalente a:").FontSize(7);
+                                    r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
+                                });
                             });
-                            manual.Item().PaddingTop(1.5f).Row(r =>
-                            {
-                                r.RelativeItem().Text("Monto Bs:").FontSize(7);
-                                r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
-                            });
-                            manual.Item().PaddingTop(1.5f).Row(r =>
-                            {
-                                r.RelativeItem().Text("Nro Referencia:").FontSize(7);
-                                r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
-                            });
-                            manual.Item().PaddingTop(1.5f).Row(r =>
-                            {
-                                r.RelativeItem().Text("Banco:").FontSize(7);
-                                r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
-                            });
-                            manual.Item().PaddingTop(1.5f).Row(r =>
-                            {
-                                r.RelativeItem().Text("Equivalente a:").FontSize(7);
-                                r.RelativeItem().AlignRight().Text("____________________").FontSize(7);
-                            });
-                        });
 
-                        row.ConstantItem(6);
+                            row.ConstantItem(6);
+                        }
 
                         row.RelativeItem().Column(mid =>
                         {
-                            mid.Item().PaddingTop(14).AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(8).FontColor("#000000");
+                            mid.Item().PaddingTop(14).AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(9.5f).FontColor("#000000");
                             mid.Item().PaddingTop(36).LineHorizontal(1).LineColor(LightBorder);
                         });
                     });

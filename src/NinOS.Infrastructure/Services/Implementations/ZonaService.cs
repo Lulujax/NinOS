@@ -48,7 +48,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
             return await db.zonas
                 .AsNoTracking()
-                .Where(z => !z.is_active)
+                .Where(z => !z.is_active && z.name != "-")
                 .OrderByDescending(z => z.deleted_at)
                 .ToListAsync();
         }

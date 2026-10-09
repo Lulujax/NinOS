@@ -221,16 +221,30 @@ namespace NinOS.UI.Views
             totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
 
-            var condBox = MakeBox(new Thickness(6));
-            var condCol = new StackPanel();
-            condCol.Children.Add(MakeText(note.conditions_text, 9, false, Brushes.Black));
-            condBox.Child = condCol;
-            totalRow1.Children.Add(condBox);
+            // Igual que el PDF: la caja de condiciones solo se dibuja si hay texto.
+            if (!string.IsNullOrWhiteSpace(note.conditions_text))
+            {
+                var condBox = MakeBox(new Thickness(6));
+                var condCol = new StackPanel();
+                condCol.Children.Add(MakeText(note.conditions_text, 9, false, Brushes.Black));
+                condBox.Child = condCol;
+                totalRow1.Children.Add(condBox);
+            }
 
+            // Igual que el PDF: la nota de credito rotula TOTAL DEVUELTO (u OBSEQUIADO) y
+            // muestra el monto de la NC; el resto mantiene Total General.
             var tgBox = MakeBox(new Thickness(6));
             var tgCol = new StackPanel();
-            tgCol.Children.Add(MakeText("Total General", 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
-            decimal tgValue = note.is_promo ? note.discounted_total_usd : note.gross_total_usd;
+            string tg_label = "Total General";
+            if (preview_is_credit)
+            {
+                bool es_obsequio = (note.conditions_text?.IndexOf("OBSEQUIO", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
+                tg_label = es_obsequio ? "TOTAL OBSEQUIADO" : "TOTAL DEVUELTO";
+            }
+            tgCol.Children.Add(MakeText(tg_label, 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
+            decimal tgValue = preview_is_credit
+                ? note.total_amount_usd
+                : (note.is_promo ? note.discounted_total_usd : note.gross_total_usd);
             tgCol.Children.Add(MakeText($"{tgValue:N2}", 14, true, PrimaryBrush, null, HorizontalAlignment.Center));
             tgBox.Child = tgCol;
             Grid.SetColumn(tgBox, 2);
@@ -245,7 +259,8 @@ namespace NinOS.UI.Views
             var bankHeaderCol = new StackPanel();
             bankHeaderCol.Children.Add(MakeText("FORMAS DE PAGO", 10, true, Brushes.White, null, HorizontalAlignment.Center));
             bankHeaderBox.Child = bankHeaderCol;
-            payStack.Children.Add(bankHeaderBox);
+            // Igual que el PDF: las notas de credito no muestran FORMAS DE PAGO.
+            if (!preview_is_credit) payStack.Children.Add(bankHeaderBox);
 
             var bankDataGrid = new Grid { Margin = new Thickness(0, 5, 0, 0) };
             bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -267,14 +282,26 @@ namespace NinOS.UI.Views
             Grid.SetColumn(pagoMovilCol, 2);
             bankDataGrid.Children.Add(pagoMovilCol);
 
-            payStack.Children.Add(bankDataGrid);
-            payStack.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+            if (!preview_is_credit)
+            {
+                payStack.Children.Add(bankDataGrid);
+                payStack.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+            }
 
             var payRow = new Grid();
-            if (note.is_promo)
+            // Igual que el PDF: promocion y credito comparten el mismo armado (sin caja
+            // de desglose a la izquierda).
+            bool preview_use_promo_layout = note.is_promo || preview_is_credit;
+            // Igual que el PDF: la nota de credito (devolucion) no lleva DATOS PARA PAGO,
+            // asi que su fila queda de una sola columna con la firma del cliente.
+            bool preview_show_pago = !preview_is_credit;
+            if (preview_use_promo_layout)
             {
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                if (preview_show_pago)
+                {
+                    payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+                    payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                }
                 payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             }
             else
@@ -286,8 +313,9 @@ namespace NinOS.UI.Views
                 payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             }
 
-            // columna izquierda: desglose (solo notas generales)
-            if (!note.is_promo)
+            // columna izquierda: desglose (igual que el PDF: solo en notas que no sean
+            // promocion ni de credito)
+            if (!preview_use_promo_layout)
             {
                 var leftBox = MakeBox(new Thickness(6));
                 var leftCol = new StackPanel();
@@ -302,18 +330,21 @@ namespace NinOS.UI.Views
                 payRow.Children.Add(leftBox);
             }
 
-            // columna media: datos para pago (relleno manual) + firma al lado
-            var manualBox = MakeBox(new Thickness(6));
-            var manualCol = new StackPanel();
-            manualCol.Children.Add(MakeText("DATOS PARA PAGO", 8, true, PrimaryBrush));
-            manualCol.Children.Add(MakeManualRow("Fecha de pago:"));
-            manualCol.Children.Add(MakeManualRow("Monto Bs:"));
-            manualCol.Children.Add(MakeManualRow("Nro Referencia:"));
-            manualCol.Children.Add(MakeManualRow("Banco:"));
-            manualCol.Children.Add(MakeManualRow("Equivalente a:"));
-            manualBox.Child = manualCol;
-            Grid.SetColumn(manualBox, note.is_promo ? 0 : 2);
-            payRow.Children.Add(manualBox);
+            // columna media: datos para pago (relleno manual). Las notas de credito no lo llevan.
+            if (preview_show_pago)
+            {
+                var manualBox = MakeBox(new Thickness(6));
+                var manualCol = new StackPanel();
+                manualCol.Children.Add(MakeText("DATOS PARA PAGO", 8, true, PrimaryBrush));
+                manualCol.Children.Add(MakeManualRow("Fecha de pago:"));
+                manualCol.Children.Add(MakeManualRow("Monto Bs:"));
+                manualCol.Children.Add(MakeManualRow("Nro Referencia:"));
+                manualCol.Children.Add(MakeManualRow("Banco:"));
+                manualCol.Children.Add(MakeManualRow("Equivalente a:"));
+                manualBox.Child = manualCol;
+                Grid.SetColumn(manualBox, preview_use_promo_layout ? 0 : 2);
+                payRow.Children.Add(manualBox);
+            }
 
             var midBox = new Border { Padding = new Thickness(6) };
             var midCol = new StackPanel();
@@ -321,68 +352,35 @@ namespace NinOS.UI.Views
             midCol.Children.Add(MakeText("________________________________", 8, false, FooterGrayBrush, new Thickness(0, 12, 0, 0), HorizontalAlignment.Center));
             midCol.VerticalAlignment = VerticalAlignment.Bottom;
             midBox.Child = midCol;
-            Grid.SetColumn(midBox, note.is_promo ? 2 : 4);
+            Grid.SetColumn(midBox, preview_use_promo_layout ? (preview_show_pago ? 2 : 0) : 4);
             payRow.Children.Add(midBox);
 
             payStack.Children.Add(payRow);
             payBox.Child = payStack;
             p.Children.Add(payBox);
 
-            // ---- Fila 3: totales de la nota (General = 2 totales; Volumen = descuento + 3 totales) ----
-            if (!note.is_promo)
+            // ---- Fila 3: igual que el PDF ----
+            //   GENERAL / PROMOCION / CREDITO: no se dibuja nada al final.
+            //   VOLUMEN: caja con "Descuento por volumen X%" -monto, linea y TOTAL A PAGAR.
+            if (!preview_is_credit && !note.is_promo && note.es_volumen)
             {
-                var totalsRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
-                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
-                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
-                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var volBox = MakeBox(new Thickness(6));
+                volBox.Width = 300;
+                volBox.HorizontalAlignment = HorizontalAlignment.Left;
+                volBox.Margin = new Thickness(0, 8, 0, 0);
 
-                var totalsBox = MakeBox(new Thickness(6));
-                var totalsCol = new StackPanel();
+                var volCol = new StackPanel();
+                decimal vol_pdf = note.volume_discount_amount;
+                volCol.Children.Add(MakeTotalsRow(
+                    $"Descuento por volumen {note.volume_discount_percentage:0.##}%",
+                    (vol_pdf > 0 ? "-" : "") + $"{vol_pdf:N2}",
+                    true,
+                    vol_pdf > 0 ? RedBrush : FooterGrayBrush));
+                volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+                volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
 
-                if (!note.es_volumen)
-                {
-                    totalsCol.Children.Add(MakeTotalsRow("TOTAL A CREDITO", $"{note.gross_total_usd:N2}", true, PrimaryBrush));
-                    totalsCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
-                    totalsCol.Children.Add(MakeTotalsRow("TOTAL CON DESCUENTO", $"{note.total_con_descuento_volumen:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-                }
-                else
-                {
-                    decimal vol_pdf = note.volume_discount_amount;
-                    totalsCol.Children.Add(MakeTotalsRow(
-                        $"Descuento por volumen {note.volume_discount_percentage:0.##}%",
-                        (vol_pdf > 0 ? "-" : "") + $"{vol_pdf:N2}",
-                        true,
-                        vol_pdf > 0 ? RedBrush : FooterGrayBrush));
-
-                    var volTotalsRow = new Grid { Margin = new Thickness(0, 4, 0, 0) };
-                    for (int i = 0; i < 3; i++)
-                    {
-                        volTotalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                        if (i < 2) volTotalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
-                    }
-
-                    AddVolumeTotal(volTotalsRow, 0, "TOTAL A CREDITO", $"{note.gross_total_usd:N2}", PrimaryBrush);
-                    AddVolumeTotal(volTotalsRow, 2, "TOTAL CON DESCUENTO Y VOLUMEN", $"{note.total_con_descuento_volumen:N2}", PrimaryBrush);
-                    AddVolumeTotal(volTotalsRow, 4, "TOTAL CREDITO C/ VOLUMEN", $"{note.total_credito_volumen:N2}", PrimaryBrush);
-
-                    totalsCol.Children.Add(volTotalsRow);
-                }
-
-                totalsBox.Child = totalsCol;
-                Grid.SetColumn(totalsBox, 0);
-                totalsRow.Children.Add(totalsBox);
-
-                if (note.es_volumen)
-                {
-                    var rightBox = MakeBox(new Thickness(6));
-                    var rightCol = new StackPanel();
-                    rightCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush));
-                    rightBox.Child = rightCol;
-                    Grid.SetColumn(rightBox, 2);
-                    totalsRow.Children.Add(rightBox);
-                }
-
-                p.Children.Add(totalsRow);
+                volBox.Child = volCol;
+                p.Children.Add(volBox);
             }
 
             // PIE
@@ -392,7 +390,7 @@ namespace NinOS.UI.Views
             footerRow.ColumnDefinitions.Add(new ColumnDefinition());
             footerRow.ColumnDefinitions.Add(new ColumnDefinition());
             footerRow.Children.Add(MakeText($"Nota: {note.note_number}", 7, false, FooterGrayBrush));
-            footerRow.Children.Add(MakeText($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}", 7, false, FooterGrayBrush, null, HorizontalAlignment.Center));
+            footerRow.Children.Add(MakeText($"Impreso: {NinOS.Domain.AppTimeZone.to_local(DateTime.UtcNow):dd/MM/yyyy HH:mm}", 7, false, FooterGrayBrush, null, HorizontalAlignment.Center));
             Grid.SetColumn(footerRow.Children[footerRow.Children.Count - 1], 1);
             footerRow.Children.Add(MakeText("Pagina 1", 7, false, FooterGrayBrush, null, HorizontalAlignment.Right));
             Grid.SetColumn(footerRow.Children[footerRow.Children.Count - 1], 2);
@@ -440,21 +438,6 @@ namespace NinOS.UI.Views
                 BorderThickness = new Thickness(1),
                 Padding = padding
             };
-        }
-
-        /// <summary>
-        /// Una de las tres cajas de totales de la nota Volumen: rotulo arriba y monto abajo.
-        /// </summary>
-        private void AddVolumeTotal(Grid row, int column, string label, string value, Brush foreground)
-        {
-            var col = new StackPanel();
-            col.Children.Add(MakeText(label, 7, true, foreground, null, HorizontalAlignment.Left));
-            col.Children.Add(MakeText(value, 11, true, foreground, null, HorizontalAlignment.Right));
-
-            var box = MakeBox(new Thickness(6));
-            box.Child = col;
-            Grid.SetColumn(box, column);
-            row.Children.Add(box);
         }
 
         private Grid MakeInfoRow(StackPanel? cell1, StackPanel? cell2)
