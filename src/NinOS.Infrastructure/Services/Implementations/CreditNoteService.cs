@@ -1429,7 +1429,9 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 // El comparativo del periodo anterior tambien va sin las anuladas: si el periodo viejo las
                 // suma y el nuevo no, la variacion que muestra el PDF seria falsa.
-                var previous_vigentes = previous_notes.Where(c => !c.esta_anulada).ToList();
+                var previous_vigentes = previous_notes
+                    .Where(c => !string.Equals(c.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
 
                 var report = new credit_note_report_dto
                 {

@@ -602,13 +602,12 @@ namespace NinOS.UI.Common.ViewModels
                 .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            // Los abonos de tipo "Anulacion" son el asiento contable de una anulacion, no plata que
-            // entro. No entran en el TOTAL COBRADO: si sumaran, anular una nota de credito
-            // inflaria el total como si el cliente hubiera pagado.
-            var pagos_reales = list.Where(n => n.is_anulacion_entry == false).ToList();
-
-            total_invoiced_usd = pagos_reales.Sum(n => n.total_amount_usd);
-            total_paid_usd = pagos_reales.Sum(n => n.paid_amount_usd);
+            // Ojo: aqui el abono de anulacion SI suma, a diferencia del reporte de pagos. Esta fila
+            // es una nota, no un pago: su paid_amount_usd ya viene neto de todos los asientos.
+            // Si la nota de credito se anulo, el abono de +X cancela el -X de la NC y dejarlo
+            // fuera devolveria a mostrar el descuento de la NC como si nunca se hubiera devuelto.
+            total_invoiced_usd = list.Sum(n => n.total_amount_usd);
+            total_paid_usd = list.Sum(n => n.paid_amount_usd);
             total_balance_usd = total_invoiced_usd - total_paid_usd;
         }
 

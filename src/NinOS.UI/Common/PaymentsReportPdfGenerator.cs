@@ -231,7 +231,7 @@ namespace NinOS.UI.Common
                             bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Asientos de anulacion: no son pagos y no suman)").FontSize(6.5f).Italic().FontColor("#C62828");
                         }
 
-                        bottom.Item().LineHorizontal(0.5f).BorderColor(LightBorder);
+                        bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                         bottom.Item().Padding(4).Row(r =>
                         {
                             r.RelativeItem().Text("TOTAL PAGADO $").FontSize(9).Bold().FontColor(PrimaryColor);
