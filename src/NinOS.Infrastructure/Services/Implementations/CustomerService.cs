@@ -207,7 +207,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (note_ids.Count > 0)
                 {
                     payments = await db_context.payments.AsNoTracking()
-                        .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                        .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                         .OrderByDescending(p => p.payment_date)
                         .ToListAsync();
                 }

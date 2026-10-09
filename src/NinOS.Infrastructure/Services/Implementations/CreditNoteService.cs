@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -121,32 +121,12 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var note_types = await db_context.note_types.AsNoTracking().ToDictionaryAsync(t => t.id_note_type, t => t.name);
 
-                // Una NC se registra como pago NEGATIVO contra la nota de entrega (payment_type
-                // "NOTA DE CREDITO" y reference_number = numero de NC). Si esa NC despues se
-                // anula, su descuento sigue descontando y la nota original pareceria pagada
-                // cuando en realidad todavia tiene saldo, haciendo que desaparezca del
-                // buscador cuando si se le podria hacer una NC.
-                var annulled_credit_numbers = await db_context.credit_notes
+                // Las notas de credito no son abonos, por lo que solo se suman pagos reales.
+                var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(c => c.id_delivery_note != null
-                             && note_ids.Contains(c.id_delivery_note.Value)
-                             && c.status == "Anulada")
-                    .Select(c => c.note_number)
-                    .ToListAsync();
-
-                var payment_query = db_context.payments
-                    .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value));
-
-                if (annulled_credit_numbers.Count > 0)
-                {
-                    var anuladas = annulled_credit_numbers;
-                    payment_query = payment_query.Where(p => p.payment_type != "NOTA DE CREDITO"
-                                                       || p.reference_number == null
-                                                       || !anuladas.Contains(p.reference_number));
-                }
-
-                var payment_totals = await payment_query
+                    .Where(p => p.id_delivery_note != null
+                             && note_ids.Contains(p.id_delivery_note.Value)
+                             && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
@@ -441,7 +421,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var existing_credit_ids = await db_context.credit_notes
                     .AsNoTracking()
-                    .Where(c => c.id_delivery_note == note.id_delivery_note)
+                    .Where(c => c.id_delivery_note == note.id_delivery_note && c.status != "Anulada")
                     .Select(c => c.id_credit_note)
                     .ToListAsync();
 
@@ -451,6 +431,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .AsNoTracking()
                         .Where(c => existing_credit_ids.Contains(c.id_credit_note))
                         .SumAsync(c => (decimal?)c.total_amount_usd) ?? 0;
+
+                source_dto.paid_amount_usd = await db_context.payments
+                    .AsNoTracking()
+                    .Where(p => p.id_delivery_note == note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
+                    .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
                 if (existing_credit_ids.Count > 0)
                 {
@@ -670,29 +655,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                         // Una nota de entrega totalmente pagada no admite nota de credito: no queda
                         // saldo por devolver. Se valida aca para que no se pueda saltar saltandose
                         // el buscador, ya que el saldo pudo cambiar despues de armar la lista.
-                        // El saldo sale de la suma de pagos y notas de credito aplicadas. Las NC
-                        // anuladas se excluyen porque ya no devuelven nada.
-                        var annulled_numbers_of_note = await db_context.credit_notes
-                            .AsNoTracking()
-                            .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.status == "Anulada")
-                            .Select(c => c.note_number)
-                            .ToListAsync();
-
                         var note_payments = await db_context.payments
                             .AsNoTracking()
-                            .Where(p => p.id_delivery_note == original_note.id_delivery_note)
+                            .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                             .ToListAsync();
 
-                        decimal balance_of_note = original_note.adjusted_total_usd;
-
-                        foreach (var p in note_payments)
-                        {
-                            bool is_annulled_credit = p.payment_type == "NOTA DE CREDITO"
-                                                      && p.reference_number != null
-                                                      && annulled_numbers_of_note.Contains(p.reference_number);
-
-                            if (!is_annulled_credit) balance_of_note -= p.amount_usd;
-                        }
+                        decimal balance_of_note = original_note.adjusted_total_usd - note_payments.Sum(p => p.amount_usd);
 
                         if (balance_of_note <= 0)
                             throw new InvalidOperationException("La nota de entrega no tiene saldo pendiente por devolver.");
@@ -837,14 +805,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         decimal computed_total = Money.round(detail_list.Sum(d => d.subtotal_usd));
 
-                        decimal already_returned_usd = existing_credit_ids.Count == 0
-                            ? 0m
-                            : await db_context.credit_notes
-                                .AsNoTracking()
-                                .Where(c => existing_credit_ids.Contains(c.id_credit_note))
-                                .SumAsync(c => (decimal?)c.total_amount_usd) ?? 0m;
-
-                        decimal available_usd = Math.Max(original_note.adjusted_total_usd - already_returned_usd, 0m);
+                        decimal already_paid = note_payments.Sum(p => p.amount_usd);
+                        decimal available_usd = Math.Max(original_note.adjusted_total_usd - already_paid, 0m);
 
                         if (computed_total > available_usd + 0.005m)
                         {
@@ -978,27 +940,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                     }
 
-                    // La devolucion se registra como abono para que compense la deuda en el historial y en el saldo;
-                    // el obsequio no es deuda y solo afecta el inventario.
+                    // Las notas de credito tipo devolucion NO se registran como abono de pago;
+                    // simplemente reducen el total del monto de la nota de entrega (adjusted_total_usd y total_amount_usd).
                     if (!is_gift && original_note != null)
                     {
-                        string pay_observations = $"Nota de credito {new_note.note_number} - {new_note.total_amount_usd:N2}";
-                        if (!string.IsNullOrWhiteSpace(new_note.observations))
-                            pay_observations += $". {new_note.observations}";
-
-                        payment nc_payment = new payment(
-                            original_note.id_delivery_note,
-                            new_note.creation_date,
-                            new_note.total_amount_usd,
-                            0m,
-                            null,
-                            "NOTA DE CREDITO",
-                            new_note.note_number,
-                            string.Empty,
-                            pay_observations,
-                            original_note.id_relacion);
-
-                        await db_context.payments.AddAsync(nc_payment);
+                        original_note.adjusted_total_usd = Money.round(Math.Max(original_note.adjusted_total_usd - new_note.total_amount_usd, 0m));
+                        original_note.total_amount_usd = Money.round(Math.Max(original_note.total_amount_usd - new_note.total_amount_usd, 0m));
 
                         // Comprobar si se devolvieron todos los renglones de la nota de entrega
                         var all_original_details = await db_context.note_details
@@ -1008,7 +955,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         var all_credit_ids = await db_context.credit_notes
                             .AsNoTracking()
-                            .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.id_credit_note != new_note.id_credit_note)
+                            .Where(c => c.id_delivery_note == original_note.id_delivery_note && c.status != "Anulada" && c.id_credit_note != new_note.id_credit_note)
                             .Select(c => c.id_credit_note)
                             .ToListAsync();
 
@@ -1044,20 +991,27 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                         else
                         {
-                            // Devolución parcial: comprobar si el saldo restante ya quedo cubierto
+                            // Devolución parcial: comprobar si el saldo restante ya quedo cubierto por pagos reales
                             decimal existing_paid = await db_context.payments
                                 .AsNoTracking()
-                                .Where(p => p.id_delivery_note == original_note.id_delivery_note)
-                                .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
+                                .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
+                                .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
-                            decimal total_paid_after = existing_paid + nc_payment.amount_usd;
-                            if (total_paid_after >= original_note.adjusted_total_usd)
+                            if (existing_paid >= original_note.adjusted_total_usd)
                             {
                                 original_note.status = "Pagada";
                             }
                             else
                             {
                                 original_note.status = "Pendiente";
+                            }
+
+                            // Actualizar comision pendiente si existe para que refleje el nuevo monto ajustado
+                            var existing_comm = await db_context.commissions
+                                .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
+                            if (existing_comm != null && !existing_comm.is_paid)
+                            {
+                                existing_comm.amount_usd = Math.Round(original_note.adjusted_total_usd * existing_comm.commission_percentage, 2);
                             }
                         }
                     }
@@ -1209,34 +1163,31 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
                 }
 
-                // La devolucion habia descontado un abono (pago negativo) de la nota de entrega.
-                // Al anular hay que devolverlo, o el saldo de la nota queda inflado a menor.
+                // La devolucion habia disminuido el monto de la nota de entrega.
+                // Al anular, se restaura el monto de la nota de entrega (sin crear pagos/abonos).
                 if (!es_obsequio && original_note != null)
                 {
-                    var abono = new payment(
-                        original_note.id_delivery_note,
-                        DateTime.UtcNow,
-                        nota.total_amount_usd,
-                        0m,
-                        null,
-                        payment_dto.AnulacionPaymentType,
-                        nota.note_number,
-                        string.Empty,
-                        $"Anulacion de la nota de credito {nota.note_number}",
-                        original_note.id_relacion);
-
-                    db_context.payments.Add(abono);
+                    original_note.adjusted_total_usd = Money.round(original_note.adjusted_total_usd + nota.total_amount_usd);
+                    original_note.total_amount_usd = Money.round(original_note.total_amount_usd + nota.total_amount_usd);
 
                     // El estado de la nota de entrega se recalcula: sin la devolucion, la nota
-                    // vuelve a Pendiente o queda Pagada segun lo que ya se le haya abonado.
+                    // vuelve a Pendiente o queda Pagada segun lo que ya se le haya abonado en pagos reales.
                     decimal pagado = await db_context.payments
-                        .Where(p => p.id_delivery_note == original_note.id_delivery_note)
+                        .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                         .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
                     if (pagado >= original_note.adjusted_total_usd)
                         original_note.status = "Pagada";
                     else
                         original_note.status = "Pendiente";
+
+                    // Restaurar comision si existia
+                    var existing_comm = await db_context.commissions
+                        .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
+                    if (existing_comm != null && !existing_comm.is_paid)
+                    {
+                        existing_comm.amount_usd = Math.Round(original_note.adjusted_total_usd * existing_comm.commission_percentage, 2);
+                    }
                 }
 
                 nota.status = "Anulada";
@@ -1332,7 +1283,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(s => s.id_seller == credit.id_seller);
 
-                string header_title = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+                string header_title = BrandHeader.Title;
                 if (original != null && original.note_type_id != null)
                 {
                     var note_type = await db_context.note_types
@@ -1363,7 +1314,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     id_delivery_note = credit.id_delivery_note ?? 0,
                     note_number = credit.note_number,
-                    company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
+                    company_name = BrandHeader.Title,
                     promo_banner_text = string.Empty,
                     header_title = header_title,
                     document_label = "NOTA DE CREDITO",

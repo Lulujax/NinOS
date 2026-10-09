@@ -15,28 +15,59 @@ namespace NinOS.Infrastructure.Data
 
             db_context.Database.Migrate();
 
+            cleanup_credit_note_payments_and_adjust_totals(db_context);
             migrate_legacy_series(db_context);
             initialize_zonas_and_sellers(db_context);
             initialize_product_lines(db_context);
             migrate_customer_correlatives_to_global5(db_context);
 
-            const string brand_header = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+            const string brand_header = "DEFILE_REMBRANT_OLEOS_TRICOMPLEX";
+
+            // Todos los tipos usan el header vigente. Se corrige en cada arranque para que
+            // el cambio de marca no dependa de una migracion.
+            var tipos_con_header = db_context.note_types
+                .Where(t => t.header_title != brand_header)
+                .ToList();
+            if (tipos_con_header.Count > 0)
+            {
+                foreach (var t in tipos_con_header)
+                {
+                    t.header_title = brand_header;
+                }
+                db_context.SaveChanges();
+            }
 
             var existing_maracay = db_context.note_types.FirstOrDefault(t => t.code == "MAR");
-            if (existing_maracay != null)
+            if (existing_maracay == null)
+            {
+                db_context.note_types.Add(new note_type(
+                    "Pro Venta", "MAR", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 2
+                });
+                db_context.SaveChanges();
+            }
+            else
             {
                 bool changed = false;
                 if (existing_maracay.name != "Pro Venta") { existing_maracay.name = "Pro Venta"; changed = true; }
-                if (existing_maracay.header_title != brand_header) { existing_maracay.header_title = brand_header; changed = true; }
                 if (existing_maracay.id_seller != null) { existing_maracay.id_seller = null; changed = true; }
                 if (existing_maracay.mandatory_discount_percentage != null) { existing_maracay.mandatory_discount_percentage = null; changed = true; }
                 if (changed) db_context.SaveChanges();
             }
 
             var existing_general = db_context.note_types.FirstOrDefault(t => t.code == "GEN");
-            if (existing_general != null && existing_general.header_title != brand_header)
+            if (existing_general == null)
             {
-                existing_general.header_title = brand_header;
+                db_context.note_types.Add(new note_type(
+                    "General", "GEN", brand_header, "standard", true, 10m,
+                    "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                    "Descuento 10% SOLO\nCONTADO")
+                {
+                    sort_order = 1
+                });
                 db_context.SaveChanges();
             }
 
@@ -74,6 +105,59 @@ namespace NinOS.Infrastructure.Data
             {
                 existing_promo_pro_venta.promo_discount_percentage = 10m;
                 db_context.SaveChanges();
+            }
+
+            // Tipos "Volumen": son una nota General (o Pro Venta) MAS el descuento por
+            // volumen. Arrancan con el mismo descuento de condicion y las mismas
+            // condiciones que su tipo base; lo unico que se suma es el renglon de volumen,
+            // cuyo porcentaje elige el vendedor en cada nota.
+            var volumen_seed = new (string code, string name, int sort_order)[]
+            {
+                (NoteTypeCodes.Volumen, "Volumen", 7),
+                (NoteTypeCodes.VolumenProVenta, "Volumen Pro Venta", 8),
+            };
+
+            foreach (var (code, name, sort_order) in volumen_seed)
+            {
+                var tipo_volumen = db_context.note_types.FirstOrDefault(t => t.code == code);
+                if (tipo_volumen == null)
+                {
+                    db_context.note_types.Add(new note_type(
+                        name, code, brand_header, "standard", true, 10m,
+                        "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
+                        "Descuento 10% SOLO\nCONTADO")
+                    {
+                        sort_order = sort_order,
+                        es_volumen = true
+                    });
+                    db_context.SaveChanges();
+                    continue;
+                }
+
+                // Ya existe: se le completa lo que le falta para comportarse como
+                // General + volumen.
+                bool changed = false;
+                if (string.IsNullOrWhiteSpace(tipo_volumen.conditions_template))
+                {
+                    tipo_volumen.conditions_template = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
+                    changed = true;
+                }
+                if (string.IsNullOrWhiteSpace(tipo_volumen.discount_conditions_template))
+                {
+                    tipo_volumen.discount_conditions_template = "Descuento 10% SOLO\nCONTADO";
+                    changed = true;
+                }
+                if (tipo_volumen.default_discount_percentage <= 0m)
+                {
+                    tipo_volumen.default_discount_percentage = 10m;
+                    changed = true;
+                }
+                if (!tipo_volumen.es_volumen)
+                {
+                    tipo_volumen.es_volumen = true;
+                    changed = true;
+                }
+                if (changed) db_context.SaveChanges();
             }
 
             // Tipos obsoletos (Promo Oleos, Canecalon, Hair Liss): se eliminan.
@@ -134,8 +218,11 @@ namespace NinOS.Infrastructure.Data
             }
 
             // Backfill: asigna una relacion semanal (correlativo global) a las notas Pro Venta existentes.
+            // VOLMAR entra en la familia Pro Venta: tambien lleva relacion semanal.
+            // is_pro_venta es un helper de C# y EF Core no lo traduce a SQL: la consulta
+            // reventaba en el arranque. Se filtra contra el arreglo de codigos.
             var mar_type_ids = db_context.note_types
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => t.code != null && NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToList();
 
@@ -166,8 +253,15 @@ namespace NinOS.Infrastructure.Data
 
                 if (mar_notes.Any(n => n.id_relacion == null))
                 {
+                    // Varias relaciones huecas comparten semana, asi que no se puede agrupar por
+                    // week_start con ToDictionary: se toma la normal de cada semana y, si
+                    // solo hay huecas, la primera.
                     var relation_by_week = db_context.relaciones
-                        .ToDictionary(r => r.week_start, r => r.id_relacion);
+                        .GroupBy(r => r.week_start)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Where(r => !r.es_hueca).Select(r => (int?)r.id_relacion).FirstOrDefault()
+                                ?? g.Min(r => r.id_relacion));
 
                     foreach (var n in mar_notes)
                     {
@@ -190,12 +284,14 @@ namespace NinOS.Infrastructure.Data
                     .ToList();
                 if (all_relaciones.Count > 0)
                 {
-                    int hueco_count = db_context.relaciones.Count(r => r.es_hueca);
+                    // Las relaciones normales se numeran a partir de la mas alta que ya existe,
+                    // para no invadir el rango de las huecas (cartera heredada en 149..179).
+                    int max_number = db_context.relaciones.Max(r => (int?)r.relation_number) ?? 0;
 
                     bool needs_renumber = false;
                     for (int i = 0; i < all_relaciones.Count; i++)
                     {
-                        if (all_relaciones[i].relation_number != i + 1 + hueco_count)
+                        if (all_relaciones[i].relation_number != max_number - all_relaciones.Count + 1 + i)
                         {
                             needs_renumber = true;
                             break;
@@ -204,7 +300,7 @@ namespace NinOS.Infrastructure.Data
                     if (needs_renumber)
                     {
                         // Usar base positiva alta para no chocar con el indice unico ni violar value > 0
-                        int temp_base = 100000;
+                        int temp_base = 1000000;
                         for (int i = 0; i < all_relaciones.Count; i++)
                         {
                             all_relaciones[i].relation_number = temp_base + i + 1;
@@ -213,7 +309,7 @@ namespace NinOS.Infrastructure.Data
 
                         for (int i = 0; i < all_relaciones.Count; i++)
                         {
-                            all_relaciones[i].relation_number = i + 1 + hueco_count;
+                            all_relaciones[i].relation_number = max_number - all_relaciones.Count + 1 + i;
                         }
                         db_context.SaveChanges();
                     }
@@ -922,6 +1018,82 @@ namespace NinOS.Infrastructure.Data
                 c.customer_code = counter.ToString("D5");
                 counter++;
             }
+            db_context.SaveChanges();
+        }
+
+        private static void cleanup_credit_note_payments_and_adjust_totals(NinOSDbContext db_context)
+        {
+            // Las notas de crédito tipo Devolución no son abonos de pago: descuentan directamente
+            // el monto de la nota de entrega original (total_amount_usd y adjusted_total_usd).
+            // Si existen registros históricos en la tabla payments con payment_type == "NOTA DE CREDITO",
+            // se descuenta el monto de las notas de entrega correspondientes y se eliminan dichos pagos.
+            var nc_payments = db_context.payments
+                .Where(p => p.payment_type == "NOTA DE CREDITO")
+                .ToList();
+
+            if (nc_payments.Count == 0) return;
+
+            var note_ids = nc_payments
+                .Where(p => p.id_delivery_note != null)
+                .Select(p => p.id_delivery_note!.Value)
+                .Distinct()
+                .ToList();
+
+            var notes = db_context.delivery_notes
+                .Where(n => note_ids.Contains(n.id_delivery_note))
+                .ToList();
+
+            foreach (var note in notes)
+            {
+                var payments_for_note = nc_payments.Where(p => p.id_delivery_note == note.id_delivery_note).ToList();
+                decimal total_nc_amount = payments_for_note.Sum(p => p.amount_usd);
+
+                note.total_amount_usd = Math.Max(0, note.total_amount_usd - total_nc_amount);
+                note.adjusted_total_usd = Math.Max(0, note.adjusted_total_usd - total_nc_amount);
+
+                // Recalcular status de la nota considerando solo pagos reales
+                var real_payments_sum = db_context.payments
+                    .Where(p => p.id_delivery_note == note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
+                    .Sum(p => (decimal?)p.amount_usd) ?? 0m;
+
+                if (note.status != "Anulada")
+                {
+                    if (note.adjusted_total_usd == 0)
+                    {
+                        note.status = "Devuelta";
+                    }
+                    else if (real_payments_sum >= note.adjusted_total_usd)
+                    {
+                        note.status = "Pagada";
+                    }
+                    else
+                    {
+                        note.status = "Pendiente";
+                    }
+                }
+
+                if (note.status == "Pendiente")
+                {
+                    var pending_commission = db_context.commissions
+                        .FirstOrDefault(c => c.id_delivery_note == note.id_delivery_note && !c.is_paid);
+                    if (pending_commission != null)
+                    {
+                        db_context.commissions.Remove(pending_commission);
+                    }
+                }
+                else if (note.status == "Pagada")
+                {
+                    var pending_commission = db_context.commissions
+                        .FirstOrDefault(c => c.id_delivery_note == note.id_delivery_note && !c.is_paid);
+                    if (pending_commission != null)
+                    {
+                        decimal new_commissionable = Math.Min(real_payments_sum, note.adjusted_total_usd);
+                        pending_commission.generated_amount_usd = Math.Round(new_commissionable * 0.10m, 2);
+                    }
+                }
+            }
+
+            db_context.payments.RemoveRange(nc_payments);
             db_context.SaveChanges();
         }
     }

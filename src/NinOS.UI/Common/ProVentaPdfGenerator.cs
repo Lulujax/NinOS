@@ -28,7 +28,7 @@ namespace NinOS.UI.Common
         /// </summary>
         private static string AnulledLegendText(int count, decimal amount)
         {
-            return "Las notas marcadas en rojo están ANULADAS y no se incluyen en los totales ni en la liquidación. "
+            return "Las notas marcadas en rojo estan ANULADAS y no se incluyen en los totales ni en la liquidacion. "
                  + $"Anuladas: {count} nota(s) por {amount:N2} USD.";
         }
 
@@ -70,13 +70,13 @@ namespace NinOS.UI.Common
 
             var document = Document.Create(container =>
             {
-                // PÁGINA 1: REPORTE SEMANAL DE LA RELACIÓN (Hoja de cobranza / liquidación con columnas para llenado manual)
+                // PAGINA 1: REPORTE SEMANAL DE LA RELACION (Hoja de cobranza / liquidacion con columnas para llenado manual)
                 container.Page(page =>
                 {
                     BuildWeeklyReportPage(page, dto, total_cobrado, nota_por_pagar, diferencial);
                 });
 
-                // PÁGINA 2: DETALLE Y REGISTRO DE PAGOS (Solo se anexa cuando la relación ya está pagada)
+                // PAGINA 2: DETALLE Y REGISTRO DE PAGOS (Solo se anexa cuando la relacion ya esta pagada)
                 if (is_paid)
                 {
                     container.Page(page =>
@@ -152,7 +152,7 @@ namespace NinOS.UI.Common
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.commission_luis.ToString("N2")).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_25.ToString("N2")).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_15.ToString("N2")).FontColor(fg);
-                        // Espacio en blanco con altura suficiente para llenado a mano por el vendedor (lápiz / bolígrafo)
+                        // Espacio en blanco con altura suficiente para llenado a mano por el vendedor (lapiz / boligrafo)
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text("");
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text("");
                     }
@@ -233,10 +233,10 @@ namespace NinOS.UI.Common
 
             page.Content().Column(col =>
             {
-                // Título idéntico a la ventana
+                // Titulo identico a la ventana
                 col.Item().Text("DETALLE DE LA RELACION").FontSize(16).Bold().FontColor(Accent).AlignCenter();
 
-                // Banner idéntico a la ventana (RelationInfoText en ProVentaHistoryWindow)
+                // Banner identico a la ventana (RelationInfoText en ProVentaHistoryWindow)
                 col.Item().PaddingTop(6).PaddingBottom(8).Background(SoftAccent).Border(1).BorderColor("#BBDEFB").Padding(6).Column(b =>
                 {
                     b.Item().Text(relation_label).FontSize(9.5f).Bold().FontColor(Accent);
@@ -336,7 +336,7 @@ namespace NinOS.UI.Common
                     }
                     else
                     {
-                        hist.Cell().ColumnSpan(3).Padding(8).AlignCenter().Text("No se registran pagos para esta relación.").FontColor("#777777");
+                        hist.Cell().ColumnSpan(3).Padding(8).AlignCenter().Text("No se registran pagos para esta relacion.").FontColor("#777777");
                     }
                 });
             });

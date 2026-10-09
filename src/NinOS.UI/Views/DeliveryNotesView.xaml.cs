@@ -43,5 +43,14 @@ namespace NinOS.UI.Views
         {
             InputRestrictions.numbers_only(sender, e);
         }
+
+        /// <summary>
+        /// El campo de credito solo admite digitos: ni letras ni signos. El plazo se
+        /// escribe en dias (21) y la fecha de vencimiento se calcula sola.
+        /// </summary>
+        private void OnCreditDaysPreview(object sender, TextCompositionEventArgs e)
+        {
+            InputRestrictions.numbers_only(sender, e);
+        }
     }
 }

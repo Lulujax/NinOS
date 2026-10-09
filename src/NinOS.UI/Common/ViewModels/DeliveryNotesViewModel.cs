@@ -440,14 +440,14 @@ namespace NinOS.UI.Common.ViewModels
         private customer? _selected_customer;
         private string _note_number = string.Empty;
         private DateTime _creation_date = DateTime.UtcNow;
-        private DateTime _due_date = DateTime.UtcNow.AddDays(15);
+        private DateTime _due_date = DateTime.UtcNow.AddDays(21);
         
         private decimal _gross_total_usd;
         private string _discount_percentage_text = "0";
         private decimal _discount_amount;
         private decimal _discounted_total_usd;
         private decimal _total_amount_usd;
-        private string _header_title = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+        private string _header_title = BrandHeader.Title;
         private string _promo_discount_percentage_text = string.Empty;
         private decimal _promo_discount_amount;
         private string _volume_discount_percentage_text = string.Empty;
@@ -456,7 +456,47 @@ namespace NinOS.UI.Common.ViewModels
         private string _conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
 
-        private string _credit_days_text = "21 dias de credito";
+        private string _credit_days_text = "21";
+        private int _credit_days = 21;
+        private bool _is_syncing_dates;
+        private decimal _total_con_descuento_volumen;
+        private decimal _total_credito_volumen;
+
+        /// <summary>
+        /// Tipo de nota Volumen (VOL / VOLMAR). Solo estos manejan descuento por volumen
+        /// y muestran los tres totales en el PDF.
+        /// </summary>
+        public bool es_nota_volumen
+        {
+            get
+            {
+                string? code = _selected_note_type?.code;
+                return _selected_note_type?.es_volumen == true || NoteTypeCodes.es_volumen(code);
+            }
+        }
+
+        /// <summary>
+        /// Visible solo en VOL / VOLMAR. En General y Pro Venta el renglon de descuento por
+        /// volumen se oculta completo para que no se deje un porcentaje a medias.
+        /// </summary>
+        public Visibility volume_visibility
+        {
+            get { return es_nota_volumen ? Visibility.Visible : Visibility.Collapsed; }
+        }
+
+        /// <summary>
+        /// Porcentaje de descuento por volumen vigente. En General y Pro Venta siempre
+        /// es 0 aunque quede texto escrito en el campo: la UI lo oculta.
+        /// </summary>
+        private decimal parsed_volume_percentage()
+        {
+            if (!es_nota_volumen) return 0m;
+            string normalized = string.IsNullOrWhiteSpace(_volume_discount_percentage_text)
+                ? "0" : _volume_discount_percentage_text.Replace(",", ".");
+            return decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed)
+                ? parsed
+                : 0m;
+        }
         private string _promo_title_text = "PROMOCIÓN";
         private string _customer_code_text = string.Empty;
         private string _contact_name_text = string.Empty;
@@ -602,10 +642,12 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(payment_account_label));
             on_property_changed(nameof(payment_movil_bank_label));
             on_property_changed(nameof(payment_movil_phone_label));
+            on_property_changed(nameof(es_nota_volumen));
+            on_property_changed(nameof(volume_visibility));
 
             if (nt == null)
             {
-                header_title = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE";
+                header_title = BrandHeader.Title;
                 conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
                 discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
                 volume_discount_percentage_text = string.Empty;
@@ -613,7 +655,7 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
-            header_title = string.IsNullOrWhiteSpace(nt.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : nt.header_title;
+            header_title = string.IsNullOrWhiteSpace(nt.header_title) ? BrandHeader.Title : nt.header_title;
             if (!string.IsNullOrWhiteSpace(nt.conditions_template))
             {
                 conditions_text = nt.conditions_template;
@@ -632,8 +674,12 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(discount_conditions_text));
                 promo_title_text = "PROMOCION";
                 foreach (note_detail_row row in note_details) row.recalculate_row();
-                recalculate_total();
             }
+
+            // Siempre se recalcula: al cambiar de tipo cambia el descuento de condicion y
+            // el de volumen se fuerza a 0 si el tipo nuevo no es Volumen. Sin esto la
+            // pantalla queda mostrando los totales del tipo anterior.
+            recalculate_total();
         }
 
         private static string CleanPercent(decimal value)
@@ -673,7 +719,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string payment_header_label
         {
-            get { return is_pro_venta ? "DATOS PARA PAGOS NOTAS DE DESPACHO DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : "DATOS PARA PAGOS NOTAS DE ENTREGA DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE"; }
+            get { return is_pro_venta ? $"DATOS PARA PAGOS NOTAS DE DESPACHO {BrandHeader.Title}" : $"DATOS PARA PAGOS NOTAS DE ENTREGA {BrandHeader.Title}"; }
         }
 
         public string payment_transfer_label
@@ -877,11 +923,10 @@ namespace NinOS.UI.Common.ViewModels
                 if (_creation_date == value) return;
                 _creation_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
                 on_property_changed();
-                
-                if (_due_date.Date < _creation_date.Date)
-                {
-                    due_date = _creation_date;
-                }
+
+                if (_is_syncing_dates) return;
+
+                set_credit_days(_credit_days);
             }
         }
 
@@ -890,10 +935,32 @@ namespace NinOS.UI.Common.ViewModels
             get { return _due_date; }
             set
             {
-                if (_due_date == value) return;
-                if (value.Date < _creation_date.Date) throw new ArgumentException();
-                _due_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
+                DateTime utcVal = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
+                if (_due_date.Date == utcVal.Date) return;
+
+                _due_date = utcVal;
                 on_property_changed();
+
+                if (_is_syncing_dates) return;
+
+                try
+                {
+                    _is_syncing_dates = true;
+                    DateTime emision = AppTimeZone.to_local(_creation_date).Date;
+                    DateTime vencimiento = AppTimeZone.to_local(utcVal).Date;
+
+                    int days = (vencimiento - emision).Days;
+                    if (days < 0) days = 0;
+
+                    _credit_days = days;
+                    _credit_days_text = days.ToString();
+                    on_property_changed(nameof(credit_days_text));
+                    on_property_changed(nameof(credit_days_value));
+                }
+                finally
+                {
+                    _is_syncing_dates = false;
+                }
             }
         }
 
@@ -954,9 +1021,19 @@ namespace NinOS.UI.Common.ViewModels
 
         public string volume_discount_percentage_text
         {
-            get { return _volume_discount_percentage_text; }
+            get { return es_nota_volumen ? _volume_discount_percentage_text : string.Empty; }
             set
             {
+                // Solo VOL / VOLMAR guardan descuento por volumen. En los demas tipos el
+                // renglon esta oculto, asi que cualquier porcentaje escrito se descarta.
+                if (!es_nota_volumen)
+                {
+                    if (string.IsNullOrWhiteSpace(_volume_discount_percentage_text) && string.IsNullOrWhiteSpace(value)) return;
+                    _volume_discount_percentage_text = string.Empty;
+                    on_property_changed();
+                    return;
+                }
+
                 if (_volume_discount_percentage_text == value) return;
 
                 if (!string.IsNullOrWhiteSpace(value))
@@ -981,6 +1058,37 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_volume_discount_amount == value) return;
                 _volume_discount_amount = value;
+                on_property_changed();
+            }
+        }
+
+        /// <summary>
+        /// Total con descuento de condicion y, en notas Volumen, tambien con el de volumen.
+        /// Es el mismo valor que se imprime como TOTAL CON DESCUENTO (o TOTAL CON DESCUENTO
+        /// Y VOLUMEN) en el PDF, asi que la pantalla y el papel nunca se contradicen.
+        /// </summary>
+        public decimal total_con_descuento_volumen
+        {
+            get { return _total_con_descuento_volumen; }
+            private set
+            {
+                if (_total_con_descuento_volumen == value) return;
+                _total_con_descuento_volumen = value;
+                on_property_changed();
+            }
+        }
+
+        /// <summary>
+        /// Total a credito con solo el descuento de volumen, sin el de condicion. Solo se
+        /// muestra en notas Volumen.
+        /// </summary>
+        public decimal total_credito_volumen
+        {
+            get { return _total_credito_volumen; }
+            private set
+            {
+                if (_total_credito_volumen == value) return;
+                _total_credito_volumen = value;
                 on_property_changed();
             }
         }
@@ -1095,14 +1203,54 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        /// <summary>
+        /// Campo de credito: solo la cantidad de dias (21). La fecha de vencimiento se
+        /// calcula sola como emision + dias, asi que no hay nada mas que escribir.
+        /// </summary>
         public string credit_days_text
         {
             get { return _credit_days_text; }
             set
             {
-                if (_credit_days_text == value) return;
-                _credit_days_text = value;
+                // La UI ya filtra los no-digitos; esto cubre pegado desde el portapapeles.
+                string input = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+                if (_credit_days_text == input) return;
+
+                _credit_days_text = input;
                 on_property_changed();
+
+                if (_is_syncing_dates) return;
+
+                set_credit_days(int.TryParse(input, out int days) ? days : 0);
+            }
+        }
+
+        /// <summary>
+        /// Valor del campo de credito tal como va al PDF: "21 DIAS", con el rotulo
+        /// CREDITO que arma la plantilla.
+        /// </summary>
+        public string credit_days_value
+        {
+            get { return $"{_credit_days} DIAS"; }
+        }
+
+        private void set_credit_days(int days)
+        {
+            if (days < 0) days = 0;
+
+            _credit_days = days;
+            on_property_changed(nameof(credit_days_value));
+
+            try
+            {
+                _is_syncing_dates = true;
+                DateTime emision = AppTimeZone.to_local(_creation_date).Date;
+                _due_date = emision.AddDays(days).ToUniversalTime();
+                on_property_changed(nameof(due_date));
+            }
+            finally
+            {
+                _is_syncing_dates = false;
             }
         }
 
@@ -1358,6 +1506,10 @@ namespace NinOS.UI.Common.ViewModels
                 volume_discount_amount = 0;
                 discounted_total_usd = full - promo_amt;
                 total_amount_usd = discounted_total_usd;
+                // Las notas de promocion no muestran el bloque de volumen ni los totales de
+                // credito, pero se limpian para que al cambiar de tipo no queden restos.
+                total_con_descuento_volumen = discounted_total_usd;
+                total_credito_volumen = gross_total_usd;
                 on_property_changed(nameof(display_total_general));
                 return;
             }
@@ -1395,18 +1547,21 @@ namespace NinOS.UI.Common.ViewModels
             running -= discount_amount;
             discounted_total_usd = running;
 
-            string normalized_volume = string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", ".");
-            if (decimal.TryParse(normalized_volume, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_volume))
-            {
-                volume_discount_amount = running * (parsed_volume / 100m);
-            }
-            else
-            {
-                volume_discount_amount = 0;
-            }
+            // El descuento por volumen solo existe en VOL / VOLMAR. En el resto de tipos queda en 0.
+            decimal vol_pct = parsed_volume_percentage();
+            volume_discount_amount = running * (vol_pct / 100m);
             running -= volume_discount_amount;
 
             total_amount_usd = running;
+
+            // Los 3 totales que salen en el PDF:
+            //   TOTAL A CREDITO                     = bruto                     -> 1.000,00
+            //   TOTAL CON DESCUENTO [Y VOLUMEN]      = (bruto - condicion) - volumen -> 855,00
+            //   TOTAL CREDITO C/ VOLUMEN             = bruto - volumen           ->   950,00
+            //Se asignan por las propiedades para que la pantalla se actualice sola.
+            total_con_descuento_volumen = running;
+            total_credito_volumen = gross_total_usd - (gross_total_usd * (vol_pct / 100m));
+
             on_property_changed(nameof(display_total_general));
         }
 
@@ -1427,18 +1582,21 @@ namespace NinOS.UI.Common.ViewModels
                 customer_rif = _selected_customer?.rif ?? string.Empty,
                 customer_phone = _selected_customer?.phone_number ?? string.Empty,
                 customer_contact = _contact_name_text,
-                credit_days_text = _credit_days_text,
+                credit_days_text = credit_days_value,
                 customer_delivery_address = _selected_customer?.effective_delivery_address ?? string.Empty,
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,
                 discount_conditions_text = _discount_conditions_text,
                 promo_banner_text = has_promo_discount ? "PROMOCION" : string.Empty,
-                company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
-                header_title = string.IsNullOrWhiteSpace(_header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : _header_title,
+                company_name = BrandHeader.Title,
+                header_title = string.IsNullOrWhiteSpace(_header_title) ? BrandHeader.Title : _header_title,
                 promo_discount_percentage = has_promo_discount && decimal.TryParse(string.IsNullOrWhiteSpace(_promo_discount_percentage_text) ? "0" : _promo_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_promo) ? parsed_promo : null,
                 promo_discount_amount = promo_discount_amount,
-                volume_discount_percentage = string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? 0 : (decimal.TryParse(_volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0),
+                volume_discount_percentage = parsed_volume_percentage(),
                 volume_discount_amount = volume_discount_amount,
+                es_volumen = es_nota_volumen,
+                total_con_descuento_volumen = _total_con_descuento_volumen,
+                total_credito_volumen = _total_credito_volumen,
                 discounted_total_usd = discounted_total_usd,
                 document_label = document_label,
                 is_pro_venta = NoteTypeCodes.is_pro_venta(_selected_note_type?.code),
@@ -1495,6 +1653,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (note_details.Count > MAX_NOTE_ITEMS) throw new InvalidOperationException($"La nota de entrega no puede tener mas de {MAX_NOTE_ITEMS} items.");
+                if (!is_promo && string.IsNullOrWhiteSpace(_credit_days_text)) throw new InvalidOperationException("Tienes que llenar los dias de credito.");
                 if (_due_date.Date < _creation_date.Date) throw new InvalidOperationException("La fecha de vencimiento es invalida.");
                 if (string.IsNullOrWhiteSpace(_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
                 if (!has_promo_discount && string.IsNullOrWhiteSpace(_discount_conditions_text)) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
@@ -1546,7 +1705,7 @@ namespace NinOS.UI.Common.ViewModels
                 );
                 decimal cond_pct = string.IsNullOrWhiteSpace(_discount_percentage_text) ? 0
                     : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : 0);
-                decimal vol_pct = decimal.TryParse(string.IsNullOrWhiteSpace(_volume_discount_percentage_text) ? "0" : _volume_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal vp) ? vp : 0;
+                decimal vol_pct = parsed_volume_percentage();
 
                 new_note.note_type_id = _selected_note_type?.id_note_type;
                 new_note.promo_banner = has_promo_discount ? "PROMOCION" : null;
@@ -1625,7 +1784,7 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(selected_customer));
                 on_property_changed(nameof(customer_code_text));
                 creation_date = DateTime.Now;
-                due_date = DateTime.Now.AddDays(15);
+                credit_days_text = "21";
                 recalculate_total();
                 update_correlative_async();
                 OnNoteSaved?.Invoke();
@@ -1671,7 +1830,7 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));
             creation_date = DateTime.Now;
-            due_date = DateTime.Now.AddDays(15);
+            credit_days_text = "21";
             _promo_title_text = "PROMOCIÓN";
             on_property_changed(nameof(promo_title_text));
             recalculate_total();

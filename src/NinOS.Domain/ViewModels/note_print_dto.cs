@@ -40,6 +40,23 @@ namespace NinOS.Domain.ViewModels
         public string fiscal_address { get; set; } = string.Empty;
         public string conditions_text { get; set; } = string.Empty;
         public string discount_conditions_text { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tipo de nota Volumen: la nota muestra dos totales al lado en vez de uno.
+        /// El descuento por volumen se mantiene aunque el cliente pague a credito.
+        /// </summary>
+        public bool es_volumen { get; set; }
+
+        /// <summary>
+        /// Total con descuento y volumen = (bruto - condicion) - volumen.
+        /// </summary>
+        public decimal total_con_descuento_volumen { get; set; }
+
+        /// <summary>
+        /// Total a pagar con credito y volumen = bruto - volumen (sin descuento de condicion).
+        /// </summary>
+        public decimal total_credito_volumen { get; set; }
+
         public List<note_detail_print_dto> details { get; set; } = new();
     }
 

@@ -24,7 +24,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
 
         /// <summary>
         /// Anula una nota de credito, sea de devolucion o de obsequio. Revierte lo que hizo al
-        /// crearse: devuelve el stock que habia ingresado y, si era devolucion, el abono que se
+        /// crearse: devuelve el stock que habia ingresado y, si era devolucion, restaura el monto que se
         /// habia descontado de la nota de entrega. Nunca borra la nota, queda con status "Anulada".
         /// </summary>
         Task annul_credit_note_async(int id_credit_note);

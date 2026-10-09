@@ -123,14 +123,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
 
                 var note_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .OrderBy(p => p.payment_date)
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
@@ -144,6 +144,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     string customer_name = cust?.business_name ?? string.Empty;
                     int? id_zona = cust?.id_zona;
                     string zone_name = cust?.zona?.name ?? "Sin zona";
+                    bool is_ghost = cust?.is_ghost ?? false;
 
                     string cxc_obs = dn.cxc_observations ?? string.Empty;
                     if (string.IsNullOrWhiteSpace(cxc_obs) && note_payments.TryGetValue(dn.id_delivery_note, out var pList) && pList.Count > 0)
@@ -160,6 +161,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         customer_name = customer_name,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
+                        is_customer_ghost = is_ghost,
                         id_zona = id_zona,
                         zone_name = zone_name,
                         creation_date = dn.creation_date,
@@ -214,14 +216,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .AsNoTracking()
                     .Where(s => seller_ids.Contains(s.id_seller))
                     .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
+                // Proyecta tambien is_ghost: el reporte anual de CxC ordena las cuentas zombie
+                // antes que la cartera organica del vendedor.
                 var customers = await db_context.customers
                     .AsNoTracking()
                     .Where(c => customer_ids.Contains(c.id_customer))
-                    .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+                    .ToDictionaryAsync(c => c.id_customer, c => new { c.business_name, c.is_ghost });
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
@@ -229,14 +233,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var note_ids_with_payments = payment_totals.Keys.ToList();
                 var last_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                     .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
                 var note_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .OrderBy(p => p.payment_date)
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
@@ -269,7 +273,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     }
 
                     sellers.TryGetValue(dn.id_seller, out string? seller_name);
-                    customers.TryGetValue(dn.id_customer, out string? customer_name);
+                    customers.TryGetValue(dn.id_customer, out var cust_info);
+                    string customer_name = cust_info?.business_name ?? string.Empty;
+                    bool is_ghost = cust_info?.is_ghost ?? false;
 
                     string cxc_obs = dn.cxc_observations ?? string.Empty;
                     if (string.IsNullOrWhiteSpace(cxc_obs) && note_payments.TryGetValue(dn.id_delivery_note, out var pListObs) && pListObs.Count > 0)
@@ -286,6 +292,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         customer_name = customer_name ?? string.Empty,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
+                        is_customer_ghost = is_ghost,
                         creation_date = dn.creation_date,
                         dispatch_date = dn.dispatch_date,
                         total_amount_usd = dn.adjusted_total_usd,
@@ -370,7 +377,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var payment_totals = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, Total = g.Sum(p => p.amount_usd) })
                     .ToDictionaryAsync(x => x.Id, x => x.Total);
@@ -378,14 +385,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var note_ids_with_payments = payment_totals.Keys.ToList();
                 var last_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids_with_payments.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .Select(g => new { Id = g.Key, MaxDate = g.Max(p => p.payment_date) })
                     .ToDictionaryAsync(x => x.Id, x => x.MaxDate);
 
                 var note_payments = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value))
+                    .Where(p => p.id_delivery_note != null && note_ids.Contains(p.id_delivery_note.Value) && p.payment_type != "NOTA DE CREDITO")
                     .OrderBy(p => p.payment_date)
                     .GroupBy(p => p.id_delivery_note!.Value)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
@@ -425,6 +432,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     string customer_name = cust?.business_name ?? string.Empty;
                     int? id_zona = cust?.id_zona;
                     string zone_name = cust?.zona?.name ?? "Sin zona";
+                    bool is_ghost = cust?.is_ghost ?? false;
 
                     string note_type_name = string.Empty;
                     string note_type_code = string.Empty;
@@ -451,6 +459,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         customer_name = customer_name,
                         id_seller = dn.id_seller,
                         seller_name = seller_name ?? string.Empty,
+                        is_customer_ghost = is_ghost,
                         id_zona = id_zona,
                         zone_name = zone_name,
                         creation_date = dn.creation_date,
@@ -495,7 +504,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 decimal paid = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note == dn.id_delivery_note)
+                    .Where(p => p.id_delivery_note == dn.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                     .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
                 var detail_sum = await db_context.note_details
@@ -510,7 +519,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 {
                     var pObs = await db_context.payments
                         .AsNoTracking()
-                        .Where(p => p.id_delivery_note == dn.id_delivery_note && !string.IsNullOrWhiteSpace(p.observations))
+                        .Where(p => p.id_delivery_note == dn.id_delivery_note && !string.IsNullOrWhiteSpace(p.observations) && p.payment_type != "NOTA DE CREDITO")
                         .Select(p => p.observations)
                         .ToListAsync();
                     cxc_obs = string.Join(" | ", pObs.Select(o => o.Trim()).Distinct());
@@ -625,7 +634,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     decimal total_paid = await db_context.payments
                         .AsNoTracking()
-                        .Where(p => p.id_delivery_note == id_delivery_note)
+                        .Where(p => p.id_delivery_note == id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                         .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
                     var existing_commission = await db_context.commissions
@@ -697,7 +706,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (delivery_note.status == "Devuelta") throw new InvalidOperationException("Esta nota fue devuelta en su totalidad; no se puede anular.");
 
                     var has_payments = await db_context.payments
-                        .AnyAsync(p => p.id_delivery_note == id_delivery_note && p.amount_usd > 0);
+                        .AnyAsync(p => p.id_delivery_note == id_delivery_note && p.amount_usd > 0 && p.payment_type != "NOTA DE CREDITO");
 
                     if (has_payments)
                         throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos. Elimine primero los pagos registrados.");
@@ -887,7 +896,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 decimal paid = await db_context.payments
                     .AsNoTracking()
-                    .Where(p => p.id_delivery_note == note.id_delivery_note)
+                    .Where(p => p.id_delivery_note == note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                     .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
                 var details = new List<note_detail_print_dto>();
@@ -936,16 +945,20 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal after_discount = after_promo - discount_amt;
 
                 decimal? volume_pct = note.original_volume_discount_percentage ?? note.volume_discount_percentage;
-                decimal volume_amt = volume_pct != null ? (after_discount * volume_pct.Value / 100m) : 0;
+                bool es_volumen = note_type?.es_volumen == true || NoteTypeCodes.es_volumen(note_type?.code);
+                // El descuento por volumen solo aplica a los tipos Volumen. En los demas se
+                // fuerza a 0 para que la nota reimpresa muestre los mismos totales que al crearse.
+                decimal vol_pct = es_volumen ? volume_pct ?? 0 : 0m;
+                decimal volume_amt = vol_pct > 0 ? (after_discount * vol_pct / 100m) : 0;
                 decimal total_calc = after_discount - volume_amt;
 
                 return new note_print_dto
                 {
                     id_delivery_note = note.id_delivery_note,
                     note_number = note.note_number,
-                    company_name = "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE",
+                    company_name = BrandHeader.Title,
                     promo_banner_text = is_promo ? "PROMOCION" : string.Empty,
-                    header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? "DEFILE_REMBRANT_OLEOS_FLYING_BIOLINE" : note_type.header_title,
+                    header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? BrandHeader.Title : note_type.header_title,
                     document_label = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
                     is_pro_venta = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code),
                     is_promo = is_promo,
@@ -953,8 +966,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     accent_soft_color = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "#E3F2FD" : "#F0F4EC",
                     promo_discount_percentage = is_promo ? promo_pct : null,
                     promo_discount_amount = promo_amt,
-                    volume_discount_percentage = volume_pct ?? 0,
+                    volume_discount_percentage = vol_pct,
                     volume_discount_amount = volume_amt,
+                    es_volumen = es_volumen,
+                    total_con_descuento_volumen = total_calc,
+                    total_credito_volumen = gross - (gross * vol_pct / 100m),
                     discounted_total_usd = after_discount,
                     creation_date = note.creation_date,
                     due_date = note.creation_date.AddDays(15),
@@ -971,6 +987,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_rif = customer?.rif ?? string.Empty,
                     customer_phone = customer?.phone_number ?? string.Empty,
                     customer_contact = customer?.contact_name ?? string.Empty,
+                    credit_days_text = is_promo ? string.Empty : "21 DIAS",
                     customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
                     conditions_text = is_promo ? "DIAS CREDITO 21 DIAS SIN DESCUENTO" : "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
@@ -984,7 +1001,7 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             return db_context.note_types
                 .AsNoTracking()
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
         }

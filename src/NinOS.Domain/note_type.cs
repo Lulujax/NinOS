@@ -102,6 +102,16 @@ namespace NinOS.Domain
 
         public int sort_order { get; set; }
 
+        /// <summary>
+        /// Tipos de nota Volumen (VOL / VOLMAR). Son la misma nota que General y
+        /// Pro Venta, pero anaden el descuento por volumen, que se aplica en cascada:
+        /// primero el descuento de condicion y despues el de volumen sobre ese
+        /// resultado. El PDF muestra tres totales: el total a credito (bruto), el total
+        /// con descuento y volumen en cascada, y el total a credito con solo el
+        /// descuento de volumen.
+        /// </summary>
+        public bool es_volumen { get; set; } = false;
+
         protected note_type()
         {
             _name = "-";

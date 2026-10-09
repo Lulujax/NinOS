@@ -119,7 +119,31 @@ namespace NinOS.UI.Views
             // Al abrir, las checklist quedan reflejando la pestaña de vendedor activa hasta
             // que el usuario desmarque lo que quiera dejar fuera.
             if (popup_reporte.IsOpen && DataContext is AccountsReceivableViewModel vm)
+            {
                 vm.sync_report_scope_from_screen();
+                ApplyReportPeriodVisibility();
+            }
+        }
+
+        private void on_periodo_mes_checked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is AccountsReceivableViewModel vm) vm.is_report_year_mode = false;
+            ApplyReportPeriodVisibility();
+        }
+
+        private void on_periodo_anio_checked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is AccountsReceivableViewModel vm) vm.is_report_year_mode = true;
+            ApplyReportPeriodVisibility();
+        }
+
+        // El combo de mes o de anio se muestra segun el radiobutton marcado en el popup.
+        private void ApplyReportPeriodVisibility()
+        {
+            if (DataContext is not AccountsReceivableViewModel vm) return;
+
+            panel_periodo_mes.Visibility = vm.is_report_year_mode ? Visibility.Collapsed : Visibility.Visible;
+            panel_periodo_anio.Visibility = vm.is_report_year_mode ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void on_descargar_reporte_click(object sender, RoutedEventArgs e)

@@ -591,7 +591,7 @@ return new commission_dto
         {
             return db_context.note_types
                 .AsNoTracking()
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
         }

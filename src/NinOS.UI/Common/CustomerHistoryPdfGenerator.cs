@@ -77,7 +77,7 @@ namespace NinOS.UI.Common
                     page.MarginBottom(1, Unit.Centimetre);
                     page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(7.5f).FontColor(DarkText));
 
-                    // Encabezado de página
+                    // Encabezado de pagina
                     page.Header().Column(col =>
                     {
                         col.Item().Row(row =>
@@ -90,21 +90,21 @@ namespace NinOS.UI.Common
 
                             row.RelativeItem().AlignRight().Column(c =>
                             {
-                                c.Item().Text($"EMISIÓN: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).Bold().FontColor(MutedText);
-                                c.Item().PaddingTop(1).Text($"PERÍODO: {model.PeriodLabel.ToUpperInvariant()}").FontSize(8).Bold().FontColor(PrimaryColor);
+                                c.Item().Text($"EMISION: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).Bold().FontColor(MutedText);
+                                c.Item().PaddingTop(1).Text($"PERIODO: {model.PeriodLabel.ToUpperInvariant()}").FontSize(8).Bold().FontColor(PrimaryColor);
                             });
                         });
 
                         col.Item().PaddingTop(4).LineHorizontal(1.5f).LineColor(PrimaryColor);
                     });
 
-                    // Pie de página
+                    // Pie de pagina
                     page.Footer().Row(row =>
                     {
-                        row.RelativeItem().Text("NinOS — Sistema de Gestión").FontSize(7).FontColor(MutedText);
+                        row.RelativeItem().Text("NinOS - Sistema de Gestion").FontSize(7).FontColor(MutedText);
                         row.RelativeItem().AlignRight().Text(t =>
                         {
-                            t.Span("Página ").FontSize(7).FontColor(MutedText);
+                            t.Span("Pagina ").FontSize(7).FontColor(MutedText);
                             t.CurrentPageNumber().FontSize(7).FontColor(MutedText);
                             t.Span(" de ").FontSize(7).FontColor(MutedText);
                             t.TotalPages().FontSize(7).FontColor(MutedText);
@@ -123,7 +123,7 @@ namespace NinOS.UI.Common
                         // 3. Notas de Entrega
                         BuildDeliveryNotesSection(col, model.DeliveryNotes);
 
-                        // 4. Notas de Crédito
+                        // 4. Notas de Credito
                         if (model.CreditNotes != null && model.CreditNotes.Count > 0)
                         {
                             BuildCreditNotesSection(col, model.CreditNotes);
@@ -135,7 +135,7 @@ namespace NinOS.UI.Common
                             BuildPaymentsSection(col, model.Payments);
                         }
 
-                        // 6. Artículos Más Comprados
+                        // 6. Articulos Mas Comprados
                         if (model.TopProducts != null && model.TopProducts.Count > 0)
                         {
                             BuildTopProductsSection(col, model.TopProducts);
@@ -159,7 +159,7 @@ namespace NinOS.UI.Common
                         {
                             t.Span("RIF: ").Bold();
                             t.Span(string.IsNullOrWhiteSpace(model.Rif) ? "-" : model.Rif);
-                            t.Span("   |   CÓDIGO: ").Bold();
+                            t.Span("   |   CODIGO: ").Bold();
                             t.Span(string.IsNullOrWhiteSpace(model.CustomerCode) ? "-" : model.CustomerCode);
                         });
                         c.Item().PaddingTop(2).Text(t =>
@@ -234,10 +234,10 @@ namespace NinOS.UI.Common
 
                 row.Spacing(4);
 
-                // Notas de Crédito
+                // Notas de Credito
                 row.RelativeItem().Border(1).BorderColor(LightBorder).Background("#FFFFFF").Padding(4).Column(c =>
                 {
-                    c.Item().AlignCenter().Text("NOTAS DE CRÉDITO").FontSize(7).Bold().FontColor(MutedText);
+                    c.Item().AlignCenter().Text("NOTAS DE CREDITO").FontSize(7).Bold().FontColor(MutedText);
                     c.Item().AlignCenter().Text($"${model.TotalCreditNotesUsd:N2}").FontSize(11).Bold().FontColor(PurpleColor);
                     c.Item().AlignCenter().Text($"{model.TotalCreditNotesCount} NCs").FontSize(6.5f).FontColor(MutedText);
                 });
@@ -282,9 +282,9 @@ namespace NinOS.UI.Common
                         t.FontColor(Colors.White).Bold().FontSize(6.5f);
                     }
 
-                    h("EMISIÓN");
+                    h("EMISION");
                     h("DESPACHO");
-                    h("N° NOTA");
+                    h("N NOTA");
                     h("VENDEDOR");
                     h("TIPO");
                     h("TOTAL ($)", right: true);
@@ -333,7 +333,7 @@ namespace NinOS.UI.Common
         {
             col.Item().PaddingTop(4).PaddingBottom(2).Row(row =>
             {
-                row.RelativeItem().Text("NOTAS DE CRÉDITO / DEVOLUCIONES").FontSize(9.5f).Bold().FontColor(PurpleColor);
+                row.RelativeItem().Text("NOTAS DE CREDITO / DEVOLUCIONES").FontSize(9.5f).Bold().FontColor(PurpleColor);
                 row.RelativeItem().AlignRight().Text($"{cns.Count} registro(s)").FontSize(7.5f).FontColor(MutedText);
             });
 
@@ -344,7 +344,7 @@ namespace NinOS.UI.Common
                     columns.RelativeColumn(0.9f); // Fecha
                     columns.RelativeColumn(1.0f); // Nro NC
                     columns.RelativeColumn(1.1f); // Nota Origen
-                    columns.RelativeColumn(1.1f); // Categoría
+                    columns.RelativeColumn(1.1f); // Categoria
                     columns.RelativeColumn(1.4f); // Vendedor
                     columns.RelativeColumn(1.2f); // Total $
                     columns.RelativeColumn(1.0f); // Estado
@@ -360,9 +360,9 @@ namespace NinOS.UI.Common
                     }
 
                     h("FECHA");
-                    h("N° NC");
+                    h("N NC");
                     h("NOTA ORIGEN");
-                    h("CATEGORÍA");
+                    h("CATEGORIA");
                     h("VENDEDOR");
                     h("TOTAL ($)", right: true);
                     h("ESTADO");
@@ -384,7 +384,7 @@ namespace NinOS.UI.Common
                     cellText(c.creation_date.ToString("dd/MM/yyyy"));
                     cellText(c.note_number);
                     cellText(string.IsNullOrWhiteSpace(c.source_note_number) ? "-" : c.source_note_number);
-                    cellText(string.IsNullOrWhiteSpace(c.category) ? "Crédito" : c.category);
+                    cellText(string.IsNullOrWhiteSpace(c.category) ? "Credito" : c.category);
                     cellText(string.IsNullOrWhiteSpace(c.seller_name) ? "-" : c.seller_name);
                     cellText(c.total_amount_usd.ToString("N2", Ve), right: true, customColor: PurpleColor);
                     cellText(string.IsNullOrWhiteSpace(c.status) ? "Emitida" : c.status);
@@ -392,7 +392,7 @@ namespace NinOS.UI.Common
 
                 // Totales
                 var validCns = cns.Where(x => !string.Equals(x.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
-                table.Cell().ColumnSpan(5).Background(CardBg).PaddingVertical(2).PaddingHorizontal(3).AlignRight().Text("TOTAL NOTAS DE CRÉDITO:").Bold().FontSize(7);
+                table.Cell().ColumnSpan(5).Background(CardBg).PaddingVertical(2).PaddingHorizontal(3).AlignRight().Text("TOTAL NOTAS DE CREDITO:").Bold().FontSize(7);
                 table.Cell().Background(CardBg).PaddingVertical(2).PaddingHorizontal(2).AlignRight().Text(validCns.Sum(x => x.total_amount_usd).ToString("N2", Ve)).Bold().FontSize(7).FontColor(PurpleColor);
                 table.Cell().Background(CardBg).PaddingVertical(2).PaddingHorizontal(2).Text("");
             });
@@ -430,8 +430,8 @@ namespace NinOS.UI.Common
                     }
 
                     h("FECHA");
-                    h("N° NOTA");
-                    h("MÉTODO");
+                    h("N NOTA");
+                    h("METODO");
                     h("REFERENCIA");
                     h("MONTO ($)", right: true);
                     h("MONTO BS", right: true);
@@ -475,7 +475,7 @@ namespace NinOS.UI.Common
         {
             col.Item().PaddingTop(4).PaddingBottom(2).Row(row =>
             {
-                row.RelativeItem().Text("ARTÍCULOS MÁS COMPRADOS").FontSize(9.5f).Bold().FontColor("#E65100");
+                row.RelativeItem().Text("ARTICULOS MAS COMPRADOS").FontSize(9.5f).Bold().FontColor("#E65100");
                 row.RelativeItem().AlignRight().Text($"{prods.Count} producto(s)").FontSize(7.5f).FontColor(MutedText);
             });
 
@@ -483,12 +483,12 @@ namespace NinOS.UI.Common
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(1.0f); // Código
+                    columns.RelativeColumn(1.0f); // Codigo
                     columns.RelativeColumn(3.2f); // Producto
                     columns.RelativeColumn(0.9f); // Cantidad
-                    columns.RelativeColumn(1.2f); // Último Precio $
+                    columns.RelativeColumn(1.2f); // Ultimo Precio $
                     columns.RelativeColumn(1.3f); // Total Facturado $
-                    columns.RelativeColumn(1.0f); // Última Compra
+                    columns.RelativeColumn(1.0f); // Ultima Compra
                 });
 
                 table.Header(header =>
@@ -500,12 +500,12 @@ namespace NinOS.UI.Common
                         t.FontColor(Colors.White).Bold().FontSize(6.5f);
                     }
 
-                    h("CÓDIGO");
+                    h("CODIGO");
                     h("PRODUCTO");
                     h("CANT.", right: true);
-                    h("ÚLT. PRECIO ($)", right: true);
+                    h("ULT. PRECIO ($)", right: true);
                     h("TOTAL ($)", right: true);
-                    h("ÚLT. COMPRA");
+                    h("ULT. COMPRA");
                 });
 
                 int idx = 0;

@@ -177,21 +177,22 @@ namespace NinOS.UI.Views
             Grid.SetRow(divider2, 3);
             infoGrid.Children.Add(divider2);
 
-            // Una nota de credito no tiene vencimiento: es un abono, no una cuenta por cobrar.
-            // Se deja la celda en blanco para que Telefono siga en la misma columna que en el PDF.
+            // Una nota de credito no tiene vencimiento ni credito: es un abono, no una cuenta por cobrar.
+            // Las notas de promocion tampoco llevan credito.
             bool preview_is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", StringComparison.OrdinalIgnoreCase);
+            bool show_credit_days = !preview_is_credit && !note.is_promo && !string.IsNullOrWhiteSpace(note.credit_days_text);
 
-            var infoRow3 = MakeTripleRow(
+            var infoRow3 = MakeQuadRow(
                 MakeInfoCell("Fecha Emision", note.creation_date.ToString("dd/MM/yyyy")),
+                show_credit_days ? MakeInfoCell("CREDITO", note.credit_days_text) : null,
                 preview_is_credit ? null : MakeInfoCell("Fecha Vencimiento", note.due_date.ToString("dd/MM/yyyy")),
                 MakeInfoCell("Telefono", note.customer_phone));
             Grid.SetRow(infoRow3, 4);
             infoGrid.Children.Add(infoRow3);
 
             bool preview_has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
-            bool preview_has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text) && !note.is_promo;
 
-            if (preview_has_contacto || preview_has_credit_days)
+            if (preview_has_contacto)
             {
                 infoGrid.RowDefinitions.Add(new RowDefinition());
                 infoGrid.RowDefinitions.Add(new RowDefinition());
@@ -201,8 +202,8 @@ namespace NinOS.UI.Views
                 infoGrid.Children.Add(divider3);
 
                 var infoRow4 = MakeInfoRow(
-                    preview_has_contacto ? MakeInfoCell("Contacto", note.customer_contact) : null,
-                    preview_has_credit_days ? MakeInfoCell("Dias de Credito", note.credit_days_text) : null);
+                    MakeInfoCell("Contacto", note.customer_contact),
+                    null);
                 Grid.SetRow(infoRow4, 6);
                 infoGrid.Children.Add(infoRow4);
             }
@@ -327,20 +328,61 @@ namespace NinOS.UI.Views
             payBox.Child = payStack;
             p.Children.Add(payBox);
 
-            // ---- Fila 3: Descuento por volumen con su TOTAL A PAGAR debajo (solo notas generales) ----
+            // ---- Fila 3: totales de la nota (General = 2 totales; Volumen = descuento + 3 totales) ----
             if (!note.is_promo)
             {
-                var volBox = MakeBox(new Thickness(6));
-                volBox.Width = 300;
-                volBox.HorizontalAlignment = HorizontalAlignment.Left;
-                volBox.Margin = new Thickness(0, 8, 0, 0);
-                var volCol = new StackPanel();
-                decimal vol_pdf = note.volume_discount_amount > 0 ? note.volume_discount_amount : 0;
-                volCol.Children.Add(MakeTotalsRow($"Descuento por volumen {note.volume_discount_percentage:0.##}%", (note.volume_discount_amount > 0 ? "-" : "") + $"{vol_pdf:N2}", true, note.volume_discount_amount > 0 ? RedBrush : FooterGrayBrush));
-                volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
-                volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-                volBox.Child = volCol;
-                p.Children.Add(volBox);
+                var totalsRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
+                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
+                totalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var totalsBox = MakeBox(new Thickness(6));
+                var totalsCol = new StackPanel();
+
+                if (!note.es_volumen)
+                {
+                    totalsCol.Children.Add(MakeTotalsRow("TOTAL A CREDITO", $"{note.gross_total_usd:N2}", true, PrimaryBrush));
+                    totalsCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
+                    totalsCol.Children.Add(MakeTotalsRow("TOTAL CON DESCUENTO", $"{note.total_con_descuento_volumen:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
+                }
+                else
+                {
+                    decimal vol_pdf = note.volume_discount_amount;
+                    totalsCol.Children.Add(MakeTotalsRow(
+                        $"Descuento por volumen {note.volume_discount_percentage:0.##}%",
+                        (vol_pdf > 0 ? "-" : "") + $"{vol_pdf:N2}",
+                        true,
+                        vol_pdf > 0 ? RedBrush : FooterGrayBrush));
+
+                    var volTotalsRow = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+                    for (int i = 0; i < 3; i++)
+                    {
+                        volTotalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                        if (i < 2) volTotalsRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
+                    }
+
+                    AddVolumeTotal(volTotalsRow, 0, "TOTAL A CREDITO", $"{note.gross_total_usd:N2}", PrimaryBrush);
+                    AddVolumeTotal(volTotalsRow, 2, "TOTAL CON DESCUENTO Y VOLUMEN", $"{note.total_con_descuento_volumen:N2}", PrimaryBrush);
+                    AddVolumeTotal(volTotalsRow, 4, "TOTAL CREDITO C/ VOLUMEN", $"{note.total_credito_volumen:N2}", PrimaryBrush);
+
+                    totalsCol.Children.Add(volTotalsRow);
+                }
+
+                totalsBox.Child = totalsCol;
+                Grid.SetColumn(totalsBox, 0);
+                totalsRow.Children.Add(totalsBox);
+
+                if (note.es_volumen)
+                {
+                    var rightBox = MakeBox(new Thickness(6));
+                    var rightCol = new StackPanel();
+                    rightCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush));
+                    rightBox.Child = rightCol;
+                    Grid.SetColumn(rightBox, 2);
+                    totalsRow.Children.Add(rightBox);
+                }
+
+                p.Children.Add(totalsRow);
             }
 
             // PIE
@@ -400,6 +442,21 @@ namespace NinOS.UI.Views
             };
         }
 
+        /// <summary>
+        /// Una de las tres cajas de totales de la nota Volumen: rotulo arriba y monto abajo.
+        /// </summary>
+        private void AddVolumeTotal(Grid row, int column, string label, string value, Brush foreground)
+        {
+            var col = new StackPanel();
+            col.Children.Add(MakeText(label, 7, true, foreground, null, HorizontalAlignment.Left));
+            col.Children.Add(MakeText(value, 11, true, foreground, null, HorizontalAlignment.Right));
+
+            var box = MakeBox(new Thickness(6));
+            box.Child = col;
+            Grid.SetColumn(box, column);
+            row.Children.Add(box);
+        }
+
         private Grid MakeInfoRow(StackPanel? cell1, StackPanel? cell2)
         {
             var r = new Grid();
@@ -435,6 +492,31 @@ namespace NinOS.UI.Views
             r.Children.Add(cell2);
             Grid.SetColumn(cell3, 2);
             r.Children.Add(cell3);
+            return r;
+        }
+
+        private Grid MakeQuadRow(StackPanel? cell1, StackPanel? cell2, StackPanel? cell3, StackPanel? cell4)
+        {
+            var r = new Grid();
+            for (int i = 0; i < 4; i++)
+                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            if (cell1 != null) r.Children.Add(cell1);
+            if (cell2 != null)
+            {
+                Grid.SetColumn(cell2, 1);
+                r.Children.Add(cell2);
+            }
+            if (cell3 != null)
+            {
+                Grid.SetColumn(cell3, 2);
+                r.Children.Add(cell3);
+            }
+            if (cell4 != null)
+            {
+                Grid.SetColumn(cell4, 3);
+                r.Children.Add(cell4);
+            }
             return r;
         }
 

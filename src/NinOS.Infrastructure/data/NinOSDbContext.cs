@@ -91,6 +91,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.discount_conditions_template).HasColumnName("discount_conditions_template");
                 entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired();
                 entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
+                entity.Property(e => e.es_volumen).HasColumnName("es_volumen").IsRequired();
 
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
             });

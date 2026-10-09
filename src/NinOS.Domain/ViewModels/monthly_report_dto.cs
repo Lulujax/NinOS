@@ -15,11 +15,23 @@ namespace NinOS.Domain.ViewModels
         public decimal balance_due_usd { get; set; }
         public string detail_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
+        public DateTime? dispatch_date { get; set; }
+
+        /// <summary>
+        /// Cliente zombie. En el reporte anual se imprimen primero, antes que la cartera
+        /// organica del mismo vendedor, y todo seguido sin separacion.
+        /// </summary>
+        public bool is_customer_ghost { get; set; }
 
         // La fecha se guarda en UTC; sin convertir a hora local, un documento emitido de noche
         // se reporta con la fecha del dia anterior.
         public string fecha_display => AppTimeZone.to_local(date).ToString("dd/MM/yyyy");
         public string monto_display => amount_usd.ToString("N2");
+
+        /// <summary>Fecha de despacho; vacio cuando la nota aun no se despacha.</summary>
+        public string despacho_display => dispatch_date.HasValue
+            ? AppTimeZone.to_local(dispatch_date.Value).ToString("dd/MM/yyyy")
+            : string.Empty;
     }
 
     public class monthly_report_dto
@@ -31,6 +43,16 @@ namespace NinOS.Domain.ViewModels
         public string detail_column_header { get; set; } = string.Empty;
         public string status_column_header { get; set; } = "ESTADO";
         public bool show_paid_balance_summary { get; set; }
+
+        /// <summary>
+        /// Imprime primero las notas de clientes zombie y despues la cartera organica del
+        /// grupo, corrido y por correlativo dentro de cada bloque. Es lo que pide el cliente
+        /// para el reporte anual de CxC.
+        /// </summary>
+        public bool ordenar_zombies_primero { get; set; }
+
+        /// <summary>Muestra una columna con la fecha de despacho junto a la de emision.</summary>
+        public bool show_dispatch_date_column { get; set; }
         public string empty_text { get; set; } = "Sin registros para el mes seleccionado.";
         public List<monthly_report_row_dto> rows { get; set; } = new();
 

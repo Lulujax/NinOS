@@ -430,10 +430,26 @@
                                FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
                     <!-- PERIODO -->
-                    <TextBlock Text="MES" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
-                    <ComboBox ItemsSource="{Binding pending_months}"
-                              SelectedItem="{Binding selected_month}"
-                              FontSize="11.5" Height="25" Cursor="Hand"/>
+                    <TextBlock Text="PERIODO" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <RadioButton Content="Mes" GroupName="cxc_periodo" x:Name="rbtn_periodo_mes"
+                                     Checked="on_periodo_mes_checked"
+                                     FontSize="11.5" Foreground="#333333" Margin="0,0,14,0" Cursor="Hand"/>
+                        <RadioButton Content="Año" GroupName="cxc_periodo" x:Name="rbtn_periodo_anio"
+                                     Checked="on_periodo_anio_checked"
+                                     FontSize="11.5" Foreground="#333333" Cursor="Hand"/>
+                    </StackPanel>
+
+                    <StackPanel x:Name="panel_periodo_mes">
+                        <ComboBox ItemsSource="{Binding pending_months}"
+                                  SelectedItem="{Binding selected_month}"
+                                  FontSize="11.5" Height="25" Cursor="Hand"/>
+                    </StackPanel>
+                    <StackPanel x:Name="panel_periodo_anio" Visibility="Collapsed">
+                        <ComboBox ItemsSource="{Binding pending_years}"
+                                  SelectedItem="{Binding selected_report_year}"
+                                  FontSize="11.5" Height="25" Cursor="Hand"/>
+                    </StackPanel>
 
                     <!-- AGRUPAR EN -->
                     <TextBlock Text="AGRUPAR EN (páginas del PDF)" FontSize="9.5" FontWeight="Bold"

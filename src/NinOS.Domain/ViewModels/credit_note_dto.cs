@@ -57,6 +57,7 @@ namespace NinOS.Domain.ViewModels
         public string seller_name { get; set; } = string.Empty;
         public decimal adjusted_total_usd { get; set; }
         public decimal already_returned_usd { get; set; }
+        public decimal paid_amount_usd { get; set; }
         public string status { get; set; } = string.Empty;
         public string note_type { get; set; } = string.Empty;
 
@@ -68,11 +69,10 @@ namespace NinOS.Domain.ViewModels
         public decimal discount_percentage { get; set; }
 
         /// <summary>
-        /// Cuanto mas se puede acreditar todavia en esta nota. Es el total neto menos lo ya
-        /// devuelto. Es el tope de la nota de credito: no se puede devolver mas dinero del que
-        /// se facturo, porque eso dejaria al cliente con saldo a favor.
+        /// Cuanto mas se puede acreditar todavia en esta nota. Es el total actual de la nota
+        /// menos los abonos reales ya registrados (para no generar saldo a favor).
         /// </summary>
-        public decimal available_usd => Math.Max(adjusted_total_usd - already_returned_usd, 0);
+        public decimal available_usd => Math.Max(adjusted_total_usd - paid_amount_usd, 0);
 
         public bool has_discount => discount_percentage > 0;
 

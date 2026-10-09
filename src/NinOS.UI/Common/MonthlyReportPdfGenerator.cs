@@ -123,8 +123,14 @@ namespace NinOS.UI.Common
                     return;
                 }
 
+                // Orden de impresion: primero las cuentas zombie del grupo y luego la cartera organica,
+                // todo seguido. Dentro de cada bloque va por correlativo, como siempre.
+                // Solo aplica cuando el reporte pide ese orden (anual de CxC); el mensual
+                // y el de ventas no cambian de comportamiento.
                 var srows = (group_rows ?? new List<monthly_report_row_dto>())
-                    .OrderByCorrelative(r => r.document_number)
+                    .OrderBy(r => report.ordenar_zombies_primero && r.is_customer_ghost ? 0 : 1)
+                    .ThenBy(r => SeriesCalculator.ParseCorrelative(r.document_number))
+                    .ThenBy(r => r.document_number ?? string.Empty)
                     .ToList();
                 var detail_header = string.IsNullOrWhiteSpace(report.detail_column_header) ? "DETALLE" : report.detail_column_header;
                 var status_header = string.IsNullOrWhiteSpace(report.status_column_header) ? "ESTADO" : report.status_column_header;
@@ -143,8 +149,12 @@ namespace NinOS.UI.Common
                 {
                     table.ColumnsDefinition(columns =>
                     {
+                        columns.RelativeColumn(1.15f); // CORRELATIVO
                         columns.RelativeColumn(1.05f); // FECHA
-                        columns.RelativeColumn(1.05f); // DOCUMENTO
+                        if (report.show_dispatch_date_column)
+                        {
+                            columns.RelativeColumn(1.05f); // DESPACHO
+                        }
                         columns.RelativeColumn(2.6f);  // CLIENTE
                         columns.RelativeColumn(1.4f);  // ZONA o VENDEDOR
                         columns.RelativeColumn(1.15f); // MONTO $
@@ -164,12 +174,13 @@ namespace NinOS.UI.Common
                             t.FontColor(Colors.White).Bold().FontSize(6.5f);
                         }
 
+                        h("CORRELATIVO");
                         h("FECHA");
-                        h("DOCUMENTO");
+                        if (report.show_dispatch_date_column) h("DESPACHO");
                         h("CLIENTE", left: true);
                         string colTitle = group_type == "ZONA" ? "VENDEDOR" : (group_type == "VENDEDOR" ? "ZONA" : "VEND / ZONA");
                         h(colTitle, left: true);
-                        h("MONTO $");
+                        h("MONTO");
                         if (report.show_paid_balance_summary)
                         {
                             h(detail_header);
@@ -197,8 +208,9 @@ namespace NinOS.UI.Common
                             ? r.seller_name
                             : (group_type == "VENDEDOR" ? r.zone_name : $"{r.seller_name} ({r.zone_name})");
 
-                        cell(r.fecha_display);
                         cell(r.document_number);
+                        cell(r.fecha_display);
+                        if (report.show_dispatch_date_column) cell(r.despacho_display);
                         cell(r.customer_name, left: true);
                         cell(secondary, left: true);
                         cell(Money(r.amount_usd));
@@ -233,11 +245,11 @@ namespace NinOS.UI.Common
                 {
                     outerRow.RelativeItem();
 
-                    outerRow.ConstantItem(320).Border(0.5f).BorderColor(LightBorder).Column(bottom =>
+                    outerRow.ConstantItem(380).Border(0.5f).BorderColor(LightBorder).Column(bottom =>
                     {
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
+                            r.RelativeItem().Text("SUBTOTAL POR COBRAR").FontSize(9).Bold().FontColor("#000000");
                             r.ConstantItem(120).AlignRight().Text(Money(group_total)).FontSize(10).Bold();
                         });
 
@@ -246,12 +258,12 @@ namespace NinOS.UI.Common
                             bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
                             bottom.Item().Padding(4).Row(r =>
                             {
-                                r.RelativeItem().Text("ABONADO $").FontSize(9).Bold().FontColor("#2E7D32");
+                                r.RelativeItem().Text("SALDO YA COBRADO").FontSize(9).Bold().FontColor("#2E7D32");
                                 r.ConstantItem(120).AlignRight().Text(Money(group_paid)).FontSize(10).Bold().FontColor("#2E7D32");
                             });
                             bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
                             {
-                                r.RelativeItem().Text("SALDO $").FontSize(9).Bold().FontColor("#C62828");
+                                r.RelativeItem().Text("SALDO POR COBRAR").FontSize(9).Bold().FontColor("#C62828");
                                 r.ConstantItem(120).AlignRight().Text(Money(group_balance)).FontSize(10).Bold().FontColor("#C62828");
                             });
                         }
@@ -264,7 +276,7 @@ namespace NinOS.UI.Common
                                 r.RelativeItem().Text($"ANULADAS ({annulled_count}):").FontSize(8).Bold().FontColor("#C62828");
                                 r.ConstantItem(120).AlignRight().Text(Money(annulled_amount)).FontSize(8.5f).Bold().FontColor("#C62828");
                             });
-                            bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y total)").FontSize(6.5f).Italic().FontColor("#C62828");
+                            bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y del saldo por cobrar)").FontSize(6.5f).Italic().FontColor("#C62828");
                         }
 
                         if (returned_count > 0)
@@ -275,15 +287,8 @@ namespace NinOS.UI.Common
                                 r.RelativeItem().Text($"DEVUELTAS ({returned_count}):").FontSize(8).Bold().FontColor("#7B1FA2");
                                 r.ConstantItem(120).AlignRight().Text(Money(returned_amount)).FontSize(8.5f).Bold().FontColor("#7B1FA2");
                             });
-                            bottom.Item().Background("#F3E5F5").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y total)").FontSize(6.5f).Italic().FontColor("#7B1FA2");
+                            bottom.Item().Background("#F3E5F5").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y del saldo por cobrar)").FontSize(6.5f).Italic().FontColor("#7B1FA2");
                         }
-
-                        bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
-                        bottom.Item().Padding(4).Row(r =>
-                        {
-                            r.RelativeItem().Text("TOTAL $").FontSize(9).Bold().FontColor(PrimaryColor);
-                            r.ConstantItem(120).AlignRight().Text(Money(group_total)).FontSize(12).Bold().FontColor(PrimaryColor);
-                        });
                     });
                 });
 
@@ -320,7 +325,7 @@ namespace NinOS.UI.Common
                     decimal goal_missing = has_goal ? Math.Max(0m, goal_amount - goal_sale) : 0m;
                     string goal_status = !has_goal
                         ? string.Empty
-                        : (goal_missing > 0 ? $"Falta {goal_missing:N2} $ para la meta" : "¡Meta alcanzada!");
+                        : (goal_missing > 0 ? $"Falta {goal_missing:N2} para la meta" : "Meta alcanzada!");
 
                     col.Item().PaddingTop(8).Border(0.5f).BorderColor(LightBorder).Column(b =>
                     {
@@ -374,7 +379,7 @@ namespace NinOS.UI.Common
             });
         }
 
-        private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);
+        private static string Money(decimal value) => value.ToString("#,##0.00", Ve);
 
         private static string Capitalize(string text)
         {

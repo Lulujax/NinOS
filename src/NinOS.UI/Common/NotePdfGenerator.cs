@@ -11,6 +11,49 @@ namespace NinOS.UI.Common
     {
         private static readonly string LightBorder = "#000000";
 
+        /// <summary>
+        /// Deja el texto en ASCII sin acentos ni simbolos raros. La fuente incrustada en el
+        /// PDF no resuelve bien los caracteres acentuados y los muestra corruptos
+        /// (por ejemplo "CRÃ‰DITO"), asi que los datos que vienen de la base (razon social,
+        /// direccion, nombre del producto...) pasan por aqui antes de imprimirse.
+        /// </summary>
+        private static string ascii(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+
+            char[] source = value.ToCharArray();
+            char[] result = new char[source.Length];
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                char c = source[i];
+                switch (c)
+                {
+                    case '\u00E1': result[i] = 'a'; break;
+                    case '\u00C1': result[i] = 'A'; break;
+                    case '\u00E9': result[i] = 'e'; break;
+                    case '\u00C9': result[i] = 'E'; break;
+                    case '\u00ED': result[i] = 'i'; break;
+                    case '\u00CD': result[i] = 'I'; break;
+                    case '\u00F3': result[i] = 'o'; break;
+                    case '\u00D3': result[i] = 'O'; break;
+                    case '\u00FA': result[i] = 'u'; break;
+                    case '\u00DA': result[i] = 'U'; break;
+                    case '\u00FC': result[i] = 'u'; break;
+                    case '\u00DC': result[i] = 'U'; break;
+                    case '\u00F1': result[i] = 'n'; break;
+                    case '\u00D1': result[i] = 'N'; break;
+                    case '\u00B0': result[i] = 'o'; break;
+                    case '\u2013': case '\u2014': case '\u2018': case '\u2019': result[i] = '-'; break;
+                    case '\u201C': case '\u201D': result[i] = '"'; break;
+                    case '\n': case '\r': case '\t': result[i] = ' '; break;
+                    default: result[i] = c <= 127 ? c : ' '; break;
+                }
+            }
+
+            return new string(result);
+        }
+
         public static void generate(note_print_dto note)
         {
             QuestPDF.Settings.License = LicenseType.Community;
@@ -101,20 +144,20 @@ namespace NinOS.UI.Common
                 {
                     row.RelativeItem(3).Column(left =>
                     {
-                        left.Item().Text(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title).FontSize(12).Bold().FontColor(primary);
+                        left.Item().Text(ascii(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title)).FontSize(12).Bold().FontColor(primary);
                         left.Item().Text("Caracas - Venezuela").FontSize(9).FontColor("#000000");
                     });
 
                     row.RelativeItem(2).Column(right =>
                     {
-                        right.Item().AlignRight().Text(note.document_label).FontSize(15).Bold().FontColor(primary);
+                        right.Item().AlignRight().Text(ascii(note.document_label)).FontSize(15).Bold().FontColor(primary);
                     });
                 });
 
                 col.Item().PaddingTop(2).Row(subRow =>
                 {
-                    subRow.RelativeItem().Text(string.IsNullOrWhiteSpace(note.seller_name) ? "" : $"Vendedor: {note.seller_name}").FontSize(10.5f).Bold();
-                    subRow.RelativeItem().AlignRight().Text($"Nro: {note.note_number}").FontSize(10.5f).Bold();
+                    subRow.RelativeItem().Text(string.IsNullOrWhiteSpace(note.seller_name) ? "" : $"Vendedor: {ascii(note.seller_name)}").FontSize(10.5f).Bold();
+                    subRow.RelativeItem().AlignRight().Text($"Nro: {ascii(note.note_number)}").FontSize(10.5f).Bold();
                 });
 
                 col.Item().PaddingTop(2).LineHorizontal(1.5f).LineColor(primary);
@@ -129,17 +172,17 @@ namespace NinOS.UI.Common
                         r.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Razon Social").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.customer_business_name).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_business_name)).FontSize(7.5f);
                         });
                         r.ConstantItem(80).Column(c =>
                         {
                             c.Item().Text("Codigo").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.customer_code).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_code)).FontSize(7.5f);
                         });
                         r.ConstantItem(120).Column(c =>
                         {
                             c.Item().Text("RIF").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.customer_rif).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_rif)).FontSize(7.5f);
                         });
                     });
 
@@ -150,12 +193,12 @@ namespace NinOS.UI.Common
                         r.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Domicilio Fiscal").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.fiscal_address).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.fiscal_address)).FontSize(7.5f);
                         });
                         r.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Direccion de Entrega").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.customer_delivery_address).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_delivery_address)).FontSize(7.5f);
                         });
                     });
 
@@ -168,6 +211,18 @@ namespace NinOS.UI.Common
                             c.Item().Text("Fecha Emision").FontSize(5.5f).Bold().FontColor("#000000");
                             c.Item().PaddingTop(0.5f).Text(note.creation_date.ToString("dd/MM/yyyy")).FontSize(7.5f);
                         });
+                        if (is_credit || note.is_promo || string.IsNullOrWhiteSpace(note.credit_days_text))
+                        {
+                            r.RelativeItem();
+                        }
+                        else
+                        {
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("CREDITO").FontSize(5.5f).Bold().FontColor("#000000");
+                                c.Item().PaddingTop(0.5f).Text(ascii(note.credit_days_text)).FontSize(7.5f);
+                            });
+                        }
                         if (is_credit)
                         {
                             r.RelativeItem();
@@ -183,36 +238,23 @@ namespace NinOS.UI.Common
                         r.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Telefono").FontSize(5.5f).Bold().FontColor("#000000");
-                            c.Item().PaddingTop(0.5f).Text(note.customer_phone).FontSize(7.5f);
+                            c.Item().PaddingTop(0.5f).Text(ascii(note.customer_phone)).FontSize(7.5f);
                         });
                     });
 
                     bool has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
-                    bool has_credit_days = !string.IsNullOrWhiteSpace(note.credit_days_text) && !note.is_promo;
 
-                    if (has_contacto || has_credit_days)
+                    if (has_contacto)
                     {
                         grid.Item().PaddingTop(0.5f).LineHorizontal(0.25f).LineColor("#000000");
 
                         grid.Item().PaddingTop(1).Row(r =>
                         {
-                            if (has_contacto)
+                            r.RelativeItem().Column(c =>
                             {
-                                r.RelativeItem().Column(c =>
-                                {
-                                    c.Item().Text("Contacto").FontSize(5.5f).Bold().FontColor("#000000");
-                                    c.Item().PaddingTop(0.5f).Text(note.customer_contact).FontSize(7.5f);
-                                });
-                            }
-                            if (has_credit_days)
-                            {
-                                if (has_contacto) r.ConstantItem(10);
-                                r.RelativeItem().Column(c =>
-                                {
-                                    c.Item().Text("Dias de Credito").FontSize(5.5f).Bold().FontColor("#000000");
-                                    c.Item().PaddingTop(0.5f).Text(note.credit_days_text).FontSize(7.5f);
-                                });
-                            }
+                                c.Item().Text("Contacto").FontSize(5.5f).Bold().FontColor("#000000");
+                                c.Item().PaddingTop(0.5f).Text(ascii(note.customer_contact)).FontSize(7.5f);
+                            });
                         });
                     }
                 });
@@ -250,8 +292,8 @@ namespace NinOS.UI.Common
                     {
                         string bg = alternate ? accent : Colors.White;
                         table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.quantity.ToString()).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).Text(d.code).FontSize(9);
-                        table.Cell().Background(bg).Padding(0.5f).Text(d.name).FontSize(9);
+                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.code)).FontSize(9);
+                        table.Cell().Background(bg).Padding(0.5f).Text(ascii(d.name)).FontSize(9);
                         table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.unit_price_usd.ToString("N2")).FontSize(9);
                         if (is_promo_table)
                             table.Cell().Background(bg).Padding(0.5f).AlignCenter().Text(d.discount_usd.ToString("N2")).FontSize(9);
@@ -267,7 +309,7 @@ namespace NinOS.UI.Common
                     {
                         row.AutoItem().Border(0.5f).BorderColor(LightBorder).Padding(2).Column(cond =>
                         {
-                            cond.Item().Text(note.conditions_text).FontSize(7.5f).Bold().Italic();
+                            cond.Item().Text(ascii(note.conditions_text)).FontSize(7.5f).Bold().Italic();
                         });
                     }
 
@@ -328,7 +370,7 @@ namespace NinOS.UI.Common
                                 {
                                     left.Item().Row(r =>
                                     {
-                                        r.RelativeItem().Text(note.discount_conditions_text).FontSize(7).Bold().AlignCenter();
+                                        r.RelativeItem().Text(ascii(note.discount_conditions_text)).FontSize(7).Bold().AlignCenter();
                                     });
                                 }
 
@@ -403,7 +445,12 @@ namespace NinOS.UI.Common
                     });
                 });
 
-                if (!is_credit && !note.is_promo)
+                // NOTA GENERAL: no lleva cuadro de volumen, el bloque no se dibuja.
+                // NOTA VOLUMEN: cuadro identico al modelo original:
+                //   Descuento por volumen X%   -monto
+                //   ----------------------------------
+                //   TOTAL A PAGAR              total final de la nota
+                if (!is_credit && !note.is_promo && note.es_volumen)
                 {
                     col.Item().PaddingTop(2).Row(tmp =>
                     {
@@ -445,7 +492,7 @@ namespace NinOS.UI.Common
                 col.Item().PaddingTop(1).Row(row =>
                 {
                     row.RelativeItem().Text($"Nota: {note.note_number}").FontSize(7).FontColor("#000000");
-                    row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#000000");
+                    row.RelativeItem().AlignCenter().Text($"Impreso: {NinOS.Domain.AppTimeZone.to_local(DateTime.UtcNow):dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#000000");
                     row.RelativeItem().AlignRight().Text(t =>
                     {
                         t.Span("Pagina ").FontSize(7).FontColor("#000000");

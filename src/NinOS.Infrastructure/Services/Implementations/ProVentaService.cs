@@ -27,7 +27,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 
@@ -92,7 +92,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 
@@ -226,14 +226,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .OrderBy(r => r.week_start)
                 .ToListAsync();
 
-            // Las relaciones normales se numeran despues de las huecas para no chocar
-            // con IX_relacion_relation_number, que es unico.
-            int hueco_count = await db_context.relaciones.CountAsync(r => r.es_hueca);
+            // Las relaciones normales se numeran a partir de la mas alta que ya existe, para no
+            // chocar con IX_relacion_relation_number (unico) ni invadir el rango de las
+            // huecas. Con la cartera heredada en 149..179, la siguiente normal es 180.
+            int max_number = await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0;
 
             bool needs_renumber = false;
             for (int i = 0; i < all.Count; i++)
             {
-                if (all[i].relation_number != i + 1 + hueco_count)
+                if (all[i].relation_number != max_number - all.Count + 1 + i)
                 {
                     needs_renumber = true;
                     break;
@@ -241,7 +242,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
             if (needs_renumber)
             {
-                int temp_base = 100000;
+                int temp_base = 1000000;
                 for (int i = 0; i < all.Count; i++)
                 {
                     all[i].relation_number = temp_base + i + 1;
@@ -250,7 +251,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 for (int i = 0; i < all.Count; i++)
                 {
-                    all[i].relation_number = i + 1 + hueco_count;
+                    all[i].relation_number = max_number - all.Count + 1 + i;
                 }
                 await db_context.SaveChangesAsync();
             }
@@ -321,7 +322,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             var mar_ids = await db_context.note_types
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
 

@@ -40,6 +40,7 @@ namespace NinOS.UI.Common.ViewModels
         public string bank_name_text { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public string month_key { get; set; } = string.Empty;
+        public bool is_customer_ghost { get; set; }
 
         private string _observations = string.Empty;
 
@@ -194,6 +195,8 @@ namespace NinOS.UI.Common.ViewModels
         // Arranca en "Por Vendedor". No hay modo de "cambiar alcance": las checklists de
         // vendedores y zonas son directamente el filtro.
         private string _selected_report_group = "Por Vendedor";
+        private bool _is_report_year_mode;
+        private int _selected_report_year;
         private bool _all_report_sellers_selected = true;
         private bool _all_report_zones_selected = true;
         private bool _suppress_seller_sync;
@@ -205,6 +208,7 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<SellerTabItem<accounts_receivable_row_dto>> seller_tabs { get; } = new();
 
         public ObservableCollection<string> pending_months { get; }
+        public ObservableCollection<int> pending_years { get; }
         public ObservableCollection<string> filter_options { get; }
         public ObservableCollection<accounts_receivable_row_dto> all_notes { get; }
         public ObservableCollection<accounts_receivable_row_dto> sandra_notes { get; }
@@ -255,6 +259,29 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _selected_month;
             set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
+        }
+
+        /// <summary>
+        /// Cuando es true el reporte de CxC se arma por año completo en vez de por mes.
+        /// Solo afecta al PDF del popup de reporte; el combo de la barra de tools
+        /// sigue siendo mensual para el grid.
+        /// </summary>
+        public bool is_report_year_mode
+        {
+            get => _is_report_year_mode;
+            set { if (_is_report_year_mode == value) return; _is_report_year_mode = value; on_property_changed(); on_property_changed(nameof(is_report_month_mode)); }
+        }
+
+        public bool is_report_month_mode
+        {
+            get => !_is_report_year_mode;
+            set { is_report_year_mode = !value; }
+        }
+
+        public int selected_report_year
+        {
+            get => _selected_report_year;
+            set { if (_selected_report_year == value) return; _selected_report_year = value; on_property_changed(); }
         }
 
         public SellerTabItem<accounts_receivable_row_dto>? selected_tab
@@ -362,6 +389,7 @@ namespace NinOS.UI.Common.ViewModels
             _zona_service = zona_service;
 
             pending_months = new ObservableCollection<string>();
+            pending_years = new ObservableCollection<int>();
             filter_options = new ObservableCollection<string>();
             all_notes = new ObservableCollection<accounts_receivable_row_dto>();
             sandra_notes = new ObservableCollection<accounts_receivable_row_dto>();
@@ -676,6 +704,8 @@ namespace NinOS.UI.Common.ViewModels
 
                 _all_notes_source = all_rows;
 
+                sync_report_years(all_rows);
+
                 if (_selected_month != desired)
                 {
                     _selected_month = desired;
@@ -689,6 +719,32 @@ namespace NinOS.UI.Common.ViewModels
             {
                 _is_loading = false;
                 AppDialog.Show($"Error: {ErrorText.Get(ex)}", "Error");
+            }
+        }
+
+        /// <summary>
+        /// Anios con notas cargadas, mas el anio en curso para que el reporte anual
+        /// siempre tenga algo seleccionado aunque aun no haya notas de este anio.
+        /// </summary>
+        private void sync_report_years(List<accounts_receivable_row_dto> all_rows)
+        {
+            var years = all_rows
+                .Where(n => n.creation_date.Year >= 2000)
+                .Select(n => AppTimeZone.to_local(n.creation_date).Year)
+                .Distinct()
+                .OrderByDescending(y => y)
+                .ToList();
+
+            int current_year = DateTime.Now.Year;
+            if (!years.Contains(current_year)) years.Insert(0, current_year);
+
+            pending_years.Clear();
+            foreach (var y in years) pending_years.Add(y);
+
+            if (pending_years.Count > 0 && !pending_years.Contains(_selected_report_year))
+            {
+                _selected_report_year = pending_years[0];
+                on_property_changed(nameof(selected_report_year));
             }
         }
 
@@ -730,6 +786,19 @@ namespace NinOS.UI.Common.ViewModels
             }
 
             recalc_totals();
+        }
+
+        /// <summary>
+        /// Filtra por anio calendario usando la fecha en hora local: la columna se guarda en UTC
+        /// y una nota creada de noche caeria en el anio equivocado si se lee la columna cruda.
+        /// </summary>
+        private List<accounts_receivable_row_dto> filter_by_year(List<accounts_receivable_row_dto> source, int year)
+        {
+            if (year <= 0) return new List<accounts_receivable_row_dto>();
+
+            return source
+                .Where(n => AppTimeZone.to_local(n.creation_date).Year == year)
+                .ToList();
         }
 
         private List<accounts_receivable_row_dto> filter_by_month_and_search(List<accounts_receivable_row_dto> source, string selected_month, string query)
@@ -809,6 +878,7 @@ namespace NinOS.UI.Common.ViewModels
                 payment_method_text = n.payment_method_text,
                 bank_name_text = n.bank_name_text,
                 status = n.status,
+                is_customer_ghost = n.is_customer_ghost,
                 observations = n.cxc_observations,
                 month_key = new DateTime(
                         AppTimeZone.to_local(n.creation_date).Year,
@@ -983,7 +1053,16 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(_selected_month))
+                if (_is_report_year_mode)
+                {
+                    if (_selected_report_year <= 0)
+                    {
+                        AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
+                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        return;
+                    }
+                }
+                else if (string.IsNullOrWhiteSpace(_selected_month))
                 {
                     AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
@@ -1018,7 +1097,9 @@ namespace NinOS.UI.Common.ViewModels
                 // Este reporte es de cuentas por cobrar: solo entran notas Pendientes.
                 // Pagadas, Anuladas y Devueltas quedan fuera del PDF y de todas las sumas.
                 // Para ver las pagadas esta el reporte de Ventas.
-                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty)
+                var month_rows = (_is_report_year_mode
+                        ? filter_by_year(_all_notes_source, _selected_report_year)
+                        : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
                     .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
@@ -1045,22 +1126,38 @@ namespace NinOS.UI.Common.ViewModels
 
                 string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
 
+                string period_label = _is_report_year_mode
+                    ? $"AÑO {_selected_report_year}"
+                    : _selected_month;
+                string period_title = _is_report_year_mode
+                    ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
+                    : "CUENTAS POR COBRAR - DETALLE DEL MES";
+
                 var report = new monthly_report_dto
                 {
                     title = string.IsNullOrEmpty(combined)
-                        ? "CUENTAS POR COBRAR - DETALLE DEL MES"
-                        : $"CUENTAS POR COBRAR - DETALLE DEL MES ({combined})",
-                    month = _selected_month,
+                        ? period_title
+                        : $"{period_title} ({combined})",
+                    month = period_label,
                     report_name = "cuentas por cobrar",
                     detail_column_header = "SALDO",
                     show_paid_balance_summary = true,
-                    empty_text = "Sin cuentas por cobrar para el mes seleccionado.",
+                    empty_text = _is_report_year_mode
+                        ? "Sin cuentas por cobrar para el año seleccionado."
+                        : "Sin cuentas por cobrar para el mes seleccionado.",
                     group_mode = group_mode,
+                    ordenar_zombies_primero = _is_report_year_mode,
+                    show_dispatch_date_column = _is_report_year_mode,
                     rows = month_rows
-                        .OrderByCorrelative(n => n.note_number)
+                        // El orden definitivo lo hace el generador del PDF por hoja. Aqui solo
+                        // se conserva el correlativo para el caso de una sola hoja sin agrupar.
+                        .OrderBy(n => _is_report_year_mode && n.is_customer_ghost ? 0 : 1)
+                        .ThenBy(n => SeriesCalculator.ParseCorrelative(n.note_number))
+                        .ThenBy(n => n.note_number ?? string.Empty)
                         .Select(n => new monthly_report_row_dto
                         {
                             date = n.creation_date,
+                            dispatch_date = n.dispatch_date,
                             document_number = n.note_number,
                             customer_name = n.customer_name,
                             seller_name = n.seller_name,
@@ -1069,7 +1166,8 @@ namespace NinOS.UI.Common.ViewModels
                             paid_amount_usd = n.paid_amount_usd,
                             balance_due_usd = n.balance_due_usd,
                             detail_text = $"{n.balance_due_usd:N2}",
-                            status = n.status
+                            status = n.status,
+                            is_customer_ghost = n.is_customer_ghost
                         })
                         .ToList()
                 };

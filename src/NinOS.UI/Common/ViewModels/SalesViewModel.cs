@@ -346,6 +346,8 @@ public bool report_manual_scope
             report_type_options.Add(TipoNotaPromocion);
             report_type_options.Add(TipoNotaProVenta);
             report_type_options.Add(TipoNotaPromoProVenta);
+            report_type_options.Add(TipoNotaVolumen);
+            report_type_options.Add(TipoNotaVolumenProVenta);
 
             report_group_options.Add("Por Vendedor");
             report_group_options.Add("Por Zona");
@@ -784,11 +786,14 @@ public bool report_manual_scope
         private const string TipoNotaPromocion = "Promocion";
         private const string TipoNotaProVenta = "Pro Venta";
         private const string TipoNotaPromoProVenta = "Promocion Pro Venta";
+        private const string TipoNotaVolumen = "Volumen";
+        private const string TipoNotaVolumenProVenta = "Volumen Pro Venta";
 
-        // Familias de nota del negocio. "Pro Venta" abarca MAR y PVP porque las zonas Pro Venta
-        // trabajan con las dos; "Promocion Pro Venta" deja ver solo las PVP. En pantalla van con
-        // el nombre del tipo, sin códigos: el cliente no tiene por qué ver MAR/PVP. Las notas sin
-        // tipo se tratan como General: son legacy y siempre lo fueron.
+        // Familias de nota del negocio. "Pro Venta" abarca MAR, PVP y VOLMAR porque las zonas Pro Venta
+        // trabajan con las tres; "Promocion Pro Venta" deja ver solo las PVP. "Volumen" y
+        // "Volumen Pro Venta" dejan ver VOL y VOLMAR. En pantalla van con el nombre del tipo,
+        // sin codigos: el cliente no tiene por que ver MAR/PVP. Las notas sin tipo se tratan
+        // como General: son legacy y siempre lo fueron.
         private static bool matches_note_type(accounts_receivable_dto note, string filter)
         {
             string code = note.note_type_code.Trim().ToUpperInvariant();
@@ -798,9 +803,13 @@ public bool report_manual_scope
             if (string.Equals(filter, TipoNotaPromocion, StringComparison.OrdinalIgnoreCase))
                 return code == "PRM";
             if (string.Equals(filter, TipoNotaProVenta, StringComparison.OrdinalIgnoreCase))
-                return code == "MAR" || code == "PVP";
+                return code == "MAR" || code == "PVP" || code == "VOLMAR";
             if (string.Equals(filter, TipoNotaPromoProVenta, StringComparison.OrdinalIgnoreCase))
                 return code == "PVP";
+            if (string.Equals(filter, TipoNotaVolumen, StringComparison.OrdinalIgnoreCase))
+                return code == "VOL";
+            if (string.Equals(filter, TipoNotaVolumenProVenta, StringComparison.OrdinalIgnoreCase))
+                return code == "VOLMAR";
             return true; // "Todas" (y "Ambas", por compatibilidad con el nombre viejo)
         }
 
@@ -811,6 +820,8 @@ public bool report_manual_scope
             if (string.Equals(filter, TipoNotaPromocion, StringComparison.OrdinalIgnoreCase)) return "PROMOCION";
             if (string.Equals(filter, TipoNotaProVenta, StringComparison.OrdinalIgnoreCase)) return "PRO VENTA";
             if (string.Equals(filter, TipoNotaPromoProVenta, StringComparison.OrdinalIgnoreCase)) return "PROMOCION PRO VENTA";
+            if (string.Equals(filter, TipoNotaVolumen, StringComparison.OrdinalIgnoreCase)) return "VOLUMEN";
+            if (string.Equals(filter, TipoNotaVolumenProVenta, StringComparison.OrdinalIgnoreCase)) return "VOLUMEN PRO VENTA";
             return string.Empty;
         }
 

@@ -147,7 +147,7 @@ namespace NinOS.UI.Views
             bool es_obsequio = string.Equals(selected.category?.Trim(), "Obsequio", StringComparison.OrdinalIgnoreCase);
             string origen = es_obsequio
                 ? "Es un obsequio: se le devuelve al inventario el stock que había salido."
-                : "Es una devolución: se le saca del inventario el stock que había ingresado y se devuelve el abono que se había descontado de la nota de entrega.";
+                : "Es una devolución: se le saca del inventario el stock que había ingresado y se restaura el monto de la nota de entrega.";
 
             var confirmacion = AppDialog.Show(
                 $"¿Seguro de anular la nota de crédito {selected.note_number} por {selected.total_amount_usd:N2} USD?\n\n" +
@@ -164,7 +164,7 @@ namespace NinOS.UI.Views
                 await vm.annul_credit_note_async(selected.id_credit_note);
 
                 AppDialog.Show(
-                    $"La nota de crédito {selected.note_number} quedó anulada y el inventario se revirtió.",
+                    $"La nota de crédito {selected.note_number} quedó anulada y el inventario y monto de la nota se revirtieron.",
                     "Anulación",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);

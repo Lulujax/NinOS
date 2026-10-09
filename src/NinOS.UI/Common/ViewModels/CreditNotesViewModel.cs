@@ -466,7 +466,7 @@ namespace NinOS.UI.Common.ViewModels
 
         /// <summary>
         /// Anula una nota de credito (devolucion o obsequio). El servicio revierte el stock y,
-        /// si era devolucion, el abono de la nota de entrega.
+        /// si era devolucion, restaura el monto de la nota de entrega.
         /// </summary>
         public async Task annul_credit_note_async(int id_credit_note)
         {

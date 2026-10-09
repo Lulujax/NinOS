@@ -103,7 +103,7 @@
 
                             <Border Grid.Row="1" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="NOMBRE COMERCIAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
                             <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.business_name}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
-                            <Border Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
+                            <Border Grid.Row="1" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -114,13 +114,52 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBox Text="{Binding credit_days_text, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center" FontSize="13" Padding="4"/>
+                                <TextBlock Text="CREDITO" FontStyle="Italic" TextAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding credit_days_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" BorderThickness="0" Background="Transparent" TextAlignment="Center" VerticalContentAlignment="Center" FontSize="13" Padding="4" PreviewTextInput="OnCreditDaysPreview" MaxLength="4"/>
+                                    <TextBlock Grid.Column="1" Text="DIAS" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="Bold"/>
+                                </Grid>
                             </Border>
 
                             <Border Grid.Row="2" Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="DOMICILIO FISCAL" FontStyle="Italic" TextAlignment="Center" TextWrapping="Wrap"/></Border>
                             <Border Grid.Row="2" Grid.Column="1" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="{Binding selected_customer.fiscal_address}" TextWrapping="Wrap" TextAlignment="Center"/></Border>
-                            <Border Grid.Row="2" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2"><TextBlock Text="Fecha Vencimiento" FontStyle="Italic" TextAlignment="Center"/></Border>
+                            <Border Grid.Row="2" Grid.Column="2" BorderBrush="Black" BorderThickness="0,0,1,1" Padding="2">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="Fecha Vencimiento" FontStyle="Italic" TextAlignment="Center"/>
+                            </Border>
                             <Border Grid.Row="2" Grid.Column="3" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="2">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <DatePicker SelectedDate="{Binding due_date, ValidatesOnExceptions=True}" BorderThickness="0" HorizontalAlignment="Center"/>
                             </Border>
 
@@ -428,6 +467,10 @@
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Visible"/>
                                             <Style.Triggers>
+                                                <!-- La tabla de descuento (mensaje "Descuento 10% SOLO CONTADO",
+                                                     sub total, % y TOTAL CON DESCUENTO) va en todas las notas
+                                                     estandar: General, Pro Venta y tambien en Volumen. Solo se
+                                                     oculta en notas de promocion. -->
                                                 <DataTrigger Binding="{Binding is_promo}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
@@ -442,17 +485,17 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        <Grid Grid.Row="0">
-                                            <Grid.Style>
-                                                <Style TargetType="Grid">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding is_promo}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Grid.Style>
+<Grid Grid.Row="0">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
                                             <TextBox Text="{Binding discount_conditions_text, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="Black" TextWrapping="Wrap" AcceptsReturn="True" Padding="2" TextAlignment="Center" FontWeight="Bold"/>
                                             <TextBlock Text="*" Foreground="Red" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,2,0" FontWeight="Bold"/>
                                         </Grid>
@@ -493,9 +536,19 @@
                                         </Grid>
 
                                         <Grid Grid.Row="4">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0"><TextBlock Text="Total General" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Padding="2"/></Border>
-                                            <Border Grid.Column="1"><TextBlock Text="{Binding discounted_total_usd, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" Padding="2" VerticalAlignment="Center"/></Border>
+                                            <Border Grid.Column="0" BorderBrush="Black" BorderThickness="0,0,1,0"><TextBlock Text="TOTAL CON DESCUENTO" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Padding="2"/></Border>
+                                            <Border Grid.Column="1"><TextBlock Text="{Binding total_con_descuento_volumen, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" Padding="2" VerticalAlignment="Center"/></Border>
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -523,6 +576,9 @@
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding is_promo}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding es_nota_volumen}" Value="False">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                 </Style.Triggers>

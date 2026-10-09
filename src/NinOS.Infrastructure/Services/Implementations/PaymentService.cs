@@ -44,7 +44,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             int? id_payment_excluido = null)
         {
             var query = db_context.payments
-                .Where(p => p.id_delivery_note == target_note.id_delivery_note);
+                .Where(p => p.id_delivery_note == target_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO");
 
             if (id_payment_excluido.HasValue)
             {
@@ -111,7 +111,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 await _db_context.SaveChangesAsync();
 
                 payment[] all_payments = await _db_context.payments
-                    .Where(p => p.id_delivery_note == target_note.id_delivery_note)
+                    .Where(p => p.id_delivery_note == target_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                     .ToArrayAsync();
 
                 decimal total_paid_usd = 0;
@@ -247,7 +247,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 await _db_context.SaveChangesAsync();
 
                 payment[] all_payments = await _db_context.payments
-                    .Where(p => p.id_delivery_note == existing.id_delivery_note)
+                    .Where(p => p.id_delivery_note == existing.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                     .ToArrayAsync();
 
                 decimal total_paid_usd = all_payments.Sum(p => p.amount_usd);
@@ -312,7 +312,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var payments = await db.payments
                 .AsNoTracking()
-                .Where(p => p.id_delivery_note == id_delivery_note)
+                .Where(p => p.id_delivery_note == id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                 .OrderByDescending(p => p.payment_date)
                 .ToListAsync();
 
@@ -384,7 +384,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             var payments = await db.payments
                 .AsNoTracking()
                 .Where(p => p.payment_date.AddHours(tz_offset).Year == target_date.Year
-                         && p.payment_date.AddHours(tz_offset).Month == target_date.Month)
+                         && p.payment_date.AddHours(tz_offset).Month == target_date.Month
+                         && p.payment_type != "NOTA DE CREDITO")
                 .OrderByDescending(p => p.payment_date)
                 .ToListAsync();
 
@@ -478,7 +479,7 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             return db_context.note_types
                 .AsNoTracking()
-                .Where(t => t.code == "MAR" || t.code == "PVP")
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
                 .Select(t => t.id_note_type)
                 .ToListAsync();
         }
