@@ -49,9 +49,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                // Se descuenta el offset local antes de tomar el anio y el mes, igual que en el
+                // Se convierte a hora de Venezuela antes de tomar el anio y el mes, igual que en el
                 // filtro por mes de esta misma vista, para que el combo y el filtro coincidan.
-                double local_offset_hours = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalHours;
+                // No se usa TimeZoneInfo.Local: el sistema opera en Caracas (UTC-4), no en la
+                // zona de la maquina, y una nota creada a medianoche se reportaba en el mes anterior.
+                double local_offset_hours = AppTimeZone.offset_hours;
 
                 var dates = await db_context.delivery_notes
                     .AsNoTracking()
@@ -209,10 +211,10 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                // Se descuenta el offset local antes de tomar el anio y el mes. Sin esto el combo
-                // ofrecen un mes distinto del que realmente usa el filtro por mes, y una nota
+// Se convierte a hora de Venezuela antes de tomar el anio y el mes. Sin esto el combo
+                // ofrece un mes distinto del que realmente usa el filtro por mes, y una nota
                 // creada de noche queda en un mes que el combo no lista.
-                double local_offset_hours = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalHours;
+                double local_offset_hours = AppTimeZone.offset_hours;
 
                 var months = await db_context.credit_notes
                     .AsNoTracking()

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
+using NinOS.Domain;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
@@ -132,7 +133,9 @@ namespace NinOS.UI.Views
                         phone = c.phone_number ?? string.Empty,
                         seller_name = c.seller_name ?? string.Empty,
                         reason = c.deleted_reason ?? string.Empty,
-                        deleted_on = c.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? string.Empty
+                        deleted_on = c.deleted_at.HasValue
+                            ? AppTimeZone.to_local(c.deleted_at.Value).ToString("dd/MM/yyyy HH:mm")
+                            : string.Empty
                     });
                 }
                 CustomersCountText.Text = $"{DeletedCustomers.Count} cliente(s) en la papelera";
@@ -161,7 +164,9 @@ namespace NinOS.UI.Views
                         price = p.unit_price_usd.ToString("N2"),
                         stock = p.stock_quantity.ToString(),
                         reason = p.deleted_reason ?? string.Empty,
-                        deleted_on = p.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? string.Empty
+                        deleted_on = p.deleted_at.HasValue
+                            ? AppTimeZone.to_local(p.deleted_at.Value).ToString("dd/MM/yyyy HH:mm")
+                            : string.Empty
                     });
                 }
                 ProductsCountText.Text = $"{DeletedProducts.Count} producto(s) en la papelera";
@@ -202,7 +207,9 @@ namespace NinOS.UI.Views
                             ? "sin productos"
                             : string.Join(" + ", p.items.Select(i => $"{i.quantity_required} x {(i.product?.product_code ?? "?")}")),
                         reason = p.deleted_reason ?? string.Empty,
-                        deleted_on = p.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? string.Empty
+                        deleted_on = p.deleted_at.HasValue
+                            ? AppTimeZone.to_local(p.deleted_at.Value).ToString("dd/MM/yyyy HH:mm")
+                            : string.Empty
                     });
                 }
                 PromotionsCountText.Text = $"{DeletedPromotions.Count} promoción(es) en la papelera";
@@ -285,7 +292,9 @@ namespace NinOS.UI.Views
                         full_name = s.full_name ?? string.Empty,
                         zonas = zonasText,
                         reason = s.deleted_reason ?? "Sin motivo",
-                        deleted_on = s.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-"
+                        deleted_on = s.deleted_at.HasValue
+                            ? AppTimeZone.to_local(s.deleted_at.Value).ToString("dd/MM/yyyy HH:mm")
+                            : "-"
                     });
                 }
                 if (SellersCountText != null)
@@ -379,7 +388,9 @@ namespace NinOS.UI.Views
                         code = z.code,
                         name = z.name,
                         reason = z.deleted_reason ?? "Sin motivo",
-                        deleted_on = z.deleted_at?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-"
+                        deleted_on = z.deleted_at.HasValue
+                            ? AppTimeZone.to_local(z.deleted_at.Value).ToString("dd/MM/yyyy HH:mm")
+                            : "-"
                     });
                 }
                 if (ZonasCountText != null)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace NinOS.Domain.ViewModels
@@ -18,7 +18,7 @@ namespace NinOS.Domain.ViewModels
 
         // La fecha se guarda en UTC; sin convertir a hora local, un documento emitido de noche
         // se reporta con la fecha del dia anterior.
-        public string fecha_display => date.ToLocalTime().ToString("dd/MM/yyyy");
+        public string fecha_display => AppTimeZone.to_local(date).ToString("dd/MM/yyyy");
         public string monto_display => amount_usd.ToString("N2");
     }
 

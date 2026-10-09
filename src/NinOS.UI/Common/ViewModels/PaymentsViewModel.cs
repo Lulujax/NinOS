@@ -466,7 +466,9 @@ namespace NinOS.UI.Common.ViewModels
 
                 var unique_months = all_rows
                     .Where(n => n.creation_date.Year >= 2000)
-                    .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
+                    .Select(n => new DateTime(
+                        AppTimeZone.to_local(n.creation_date).Year,
+                        AppTimeZone.to_local(n.creation_date).Month, 1))
                     .Distinct()
                     .OrderBy(d => d)
                     .Select(d => d.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")))
@@ -635,7 +637,9 @@ namespace NinOS.UI.Common.ViewModels
                 id_zona = n.id_zona,
                 zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
                 creation_date = n.creation_date,
-                month_key = new DateTime(n.creation_date.Year, n.creation_date.Month, 1)
+                month_key = new DateTime(
+                    AppTimeZone.to_local(n.creation_date).Year,
+                    AppTimeZone.to_local(n.creation_date).Month, 1)
                     .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"))
             };
         }

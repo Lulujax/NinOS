@@ -289,11 +289,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(s => s.id_seller == id_seller)
                 .ToDictionaryAsync(s => s.id_seller, s => s.full_name);
 
+            double tz_offset = AppTimeZone.offset_hours;
+
             return commissions
                 .Where(c => notes.TryGetValue(c.id_delivery_note, out var note)
                          && !string.Equals(note.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
-                         && note.creation_date.Year == target_date.Year
-                         && note.creation_date.Month == target_date.Month)
+                         && AppTimeZone.to_local(note.creation_date).Year == target_date.Year
+                         && AppTimeZone.to_local(note.creation_date).Month == target_date.Month)
                 .Select(c =>
                 {
                     notes.TryGetValue(c.id_delivery_note, out var note);

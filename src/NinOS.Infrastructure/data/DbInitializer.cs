@@ -731,8 +731,13 @@ namespace NinOS.Infrastructure.Data
 
         private static DateTime monday_of(DateTime date)
         {
-            int offset = ((int)date.DayOfWeek + 6) % 7;
-            return date.Date.AddDays(-offset);
+            // La fecha se convierte a hora de Venezuela antes de buscar el lunes. Sin esto, una
+            // nota creada a medianoche se guardaba con el instante UTC equivalente al dia
+            // anterior en Caracas y caia en la semana equivocada, lo que hacia que este
+            // inicializador creara una relacion extra para una semana que no correspondia.
+            DateTime local = DateTime.SpecifyKind(date, DateTimeKind.Utc) + AppTimeZone.Offset;
+            int offset = ((int)local.DayOfWeek + 6) % 7;
+            return local.Date.AddDays(-offset);
         }
 
         // True si el sufijo tras "_" no son exactamente 3 digitos (ej: "3200_5", "3200_05").

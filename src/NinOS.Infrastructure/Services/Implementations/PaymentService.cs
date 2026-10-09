@@ -379,9 +379,12 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
 
+            double tz_offset = AppTimeZone.offset_hours;
+
             var payments = await db.payments
                 .AsNoTracking()
-                .Where(p => p.payment_date.Year == target_date.Year && p.payment_date.Month == target_date.Month)
+                .Where(p => p.payment_date.AddHours(tz_offset).Year == target_date.Year
+                         && p.payment_date.AddHours(tz_offset).Month == target_date.Month)
                 .OrderByDescending(p => p.payment_date)
                 .ToListAsync();
 

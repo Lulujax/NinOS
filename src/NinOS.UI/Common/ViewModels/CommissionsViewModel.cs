@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -261,12 +262,14 @@ namespace NinOS.UI.Common.ViewModels
                 var raw = await _commission_service.get_all_commissions_async();
                 var all_rows = raw.Select(map_to_row).ToList();
 
-                var unique_months = all_rows
+var unique_months = all_rows
                     .Where(n => n.creation_date.Year >= 2000)
-                    .Select(n => new DateTime(n.creation_date.Year, n.creation_date.Month, 1))
+                    .Select(n => new DateTime(
+                        AppTimeZone.to_local(n.creation_date).Year,
+                        AppTimeZone.to_local(n.creation_date).Month, 1))
                     .Distinct()
                     .OrderBy(d => d)
-                    .Select(d => d.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")))
+                    .Select(d => d.ToString("MMMM yyyy", new CultureInfo("es-VE")))
                     .ToList();
 
                 var new_months = new List<string> { "" };
@@ -411,7 +414,9 @@ namespace NinOS.UI.Common.ViewModels
                 note_number = c.note_number,
                 customer_name = c.customer_name,
                 creation_date = c.creation_date,
-                month_key = new DateTime(c.creation_date.Year, c.creation_date.Month, 1)
+                month_key = new DateTime(
+                        AppTimeZone.to_local(c.creation_date).Year,
+                        AppTimeZone.to_local(c.creation_date).Month, 1)
                     .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")),
                 commission_percentage = c.commission_percentage,
                 sale_amount_usd = c.commission_percentage > 0 ? Math.Round(c.amount_usd / c.commission_percentage, 2) : c.amount_usd,

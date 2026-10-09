@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -33,7 +33,7 @@ namespace NinOS.Domain.ViewModels
 
         // creation_date viene en UTC; sin convertir a hora local, una nota de credito emitida de
         // noche se reporta con la fecha del dia anterior.
-        public string fecha_display => creation_date.ToLocalTime().ToString("dd/MM/yyyy", new CultureInfo("es-VE"));
+        public string fecha_display => AppTimeZone.to_local(creation_date).ToString("dd/MM/yyyy", new CultureInfo("es-VE"));
         public string categoria_display => string.IsNullOrWhiteSpace(category) ? "-" : category.Trim();
         public string entrega_display => string.IsNullOrWhiteSpace(source_note_number) ? "OBSEQUIO" : source_note_number;
         public string monto_display => total_amount_usd.ToString("N2", new CultureInfo("es-VE"));

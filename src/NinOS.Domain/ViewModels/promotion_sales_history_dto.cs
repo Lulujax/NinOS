@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace NinOS.Domain.ViewModels
 {
@@ -22,7 +22,7 @@ namespace NinOS.Domain.ViewModels
 
         // La fecha del movimiento se guarda en UTC; sin convertir a hora local, un movimiento
         // hecho de noche se muestra con la fecha del dia anterior.
-        public string fecha_display => creation_date.ToLocalTime().ToString("dd/MM/yyyy");
+        public string fecha_display => AppTimeZone.to_local(creation_date).ToString("dd/MM/yyyy");
         public int signed_units => movement_type == "ENTRADA" ? units_sold : -units_sold;
         public string unidades_display => units_sold.ToString();
         public string precio_display => unit_price_usd.ToString("N2");

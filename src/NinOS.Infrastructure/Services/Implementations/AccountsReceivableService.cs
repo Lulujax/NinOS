@@ -35,11 +35,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 
+                double tz_offset = AppTimeZone.offset_hours;
+
                 var pending_notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(n => n.status == "Pendiente"
                              && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)))
-                    .Select(n => new { n.creation_date.Year, n.creation_date.Month })
+                    .Select(n => new {
+                        Year = n.creation_date.AddHours(tz_offset).Year,
+                        Month = n.creation_date.AddHours(tz_offset).Month })
                     .Distinct()
                     .OrderBy(n => n.Year)
                     .ThenBy(n => n.Month)
@@ -59,10 +63,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 
+                double tz_offset2 = AppTimeZone.offset_hours;
+
                 var all_notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
-                    .Select(n => new { n.creation_date.Year, n.creation_date.Month })
+                    .Select(n => new {
+                        Year = n.creation_date.AddHours(tz_offset2).Year,
+                        Month = n.creation_date.AddHours(tz_offset2).Month })
                     .Distinct()
                     .OrderBy(n => n.Year)
                     .ThenBy(n => n.Month)
@@ -84,12 +92,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 
+                double tz_offset = AppTimeZone.offset_hours;
+
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(dn => dn.status == "Pendiente"
                               && (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
-                              && dn.creation_date.Year == target_date.Year
-                              && dn.creation_date.Month == target_date.Month)
+                              && dn.creation_date.AddHours(tz_offset).Year == target_date.Year
+                              && dn.creation_date.AddHours(tz_offset).Month == target_date.Month)
                     .OrderBy(dn => dn.note_number)
                     .ToListAsync();
 
@@ -183,11 +193,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 
+                double tz_offset = AppTimeZone.offset_hours;
+
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(dn => (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
-                              && dn.creation_date.Year == target_date.Year
-                              && dn.creation_date.Month == target_date.Month)
+                              && dn.creation_date.AddHours(tz_offset).Year == target_date.Year
+                              && dn.creation_date.AddHours(tz_offset).Month == target_date.Month)
                     .OrderBy(dn => dn.note_number)
                     .ToListAsync();
 

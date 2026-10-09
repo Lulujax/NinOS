@@ -33,10 +33,14 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var now = DateTime.Now;
 
+            double tz_offset = AppTimeZone.offset_hours;
+
             var months = await db_context.delivery_notes
                 .AsNoTracking()
                 .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
-                .Select(n => new { n.creation_date.Year, n.creation_date.Month })
+                .Select(n => new {
+                    Year = n.creation_date.AddHours(tz_offset).Year,
+                    Month = n.creation_date.AddHours(tz_offset).Month })
                 .Distinct()
                 .ToListAsync();
 
