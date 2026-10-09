@@ -316,7 +316,7 @@
                                     <CheckBox Content="Incluir anuladas / devueltas"
                                               IsChecked="{Binding report_include_voided_and_returned, Mode=TwoWay}"
                                               FontSize="11" Foreground="#333333" Margin="0,0,0,2" Cursor="Hand"
-                                              ToolTip="Se marcan en rojo y aparte del total: nunca suman a los subtotales ni al cumplimiento."/>
+                                              ToolTip="Se muestran marcadas en color y aparte del total: las anuladas y las devueltas nunca suman al subtotal ni al total."/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

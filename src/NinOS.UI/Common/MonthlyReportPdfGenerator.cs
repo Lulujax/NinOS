@@ -48,6 +48,19 @@ namespace NinOS.UI.Common
                     return;
                 }
 
+                // Si TODAS las notas del reporte son anuladas o devueltas, no hay nada que
+                // consolidar: se avisa en vez de imprimir paginas con total 0 que parecen
+                // una venta de cero.
+                bool hay_vigentes = rows.Any(r =>
+                    !string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(r.status?.Trim(), "Devuelta", StringComparison.OrdinalIgnoreCase));
+
+                if (!hay_vigentes)
+                {
+                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", null, null));
+                    return;
+                }
+
                 if (mode == "Por Zona")
                 {
                     var grouped = rows
@@ -199,14 +212,22 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                var valid_srows = srows.Where(x => !string.Equals(x.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                // Ni las anuladas ni las devueltas suman. Antes solo se excluian las anuladas y las notas
+                // Devuelta se colaban en el subtotal y en el total, con lo que el reporte de
+                // ventas daba un monto que no era el vendido. Se muestran aparte para que se
+                // vean sin que falseen la cifra.
+                var valid_srows = srows.Where(x => !es_anulada(x) && !es_devuelta(x)).ToList();
                 decimal group_total = valid_srows.Sum(x => x.amount_usd);
                 decimal group_paid = valid_srows.Sum(x => x.paid_amount_usd);
                 decimal group_balance = valid_srows.Sum(x => x.balance_due_usd);
 
-                var annulled_rows = srows.Where(x => string.Equals(x.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)).ToList();
+                var annulled_rows = srows.Where(x => es_anulada(x)).ToList();
                 int annulled_count = annulled_rows.Count;
                 decimal annulled_amount = annulled_rows.Sum(x => x.amount_usd);
+
+                var returned_rows = srows.Where(x => es_devuelta(x)).ToList();
+                int returned_count = returned_rows.Count;
+                decimal returned_amount = returned_rows.Sum(x => x.amount_usd);
 
                 col.Item().PaddingTop(10).Row(outerRow =>
                 {
@@ -244,6 +265,17 @@ namespace NinOS.UI.Common
                                 r.ConstantItem(120).AlignRight().Text(Money(annulled_amount)).FontSize(8.5f).Bold().FontColor("#C62828");
                             });
                             bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y total)").FontSize(6.5f).Italic().FontColor("#C62828");
+                        }
+
+                        if (returned_count > 0)
+                        {
+                            bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                            bottom.Item().Background("#F3E5F5").Padding(4).Row(r =>
+                            {
+                                r.RelativeItem().Text($"DEVUELTAS ({returned_count}):").FontSize(8).Bold().FontColor("#7B1FA2");
+                                r.ConstantItem(120).AlignRight().Text(Money(returned_amount)).FontSize(8.5f).Bold().FontColor("#7B1FA2");
+                            });
+                            bottom.Item().Background("#F3E5F5").PaddingHorizontal(4).PaddingBottom(2).Text("(Excluidas del subtotal y total)").FontSize(6.5f).Italic().FontColor("#7B1FA2");
                         }
 
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
@@ -349,6 +381,16 @@ namespace NinOS.UI.Common
             if (string.IsNullOrWhiteSpace(text)) return text;
             return char.ToUpper(text[0]) + text.Substring(1);
         }
+
+        /// <summary>
+        /// Una nota Anulada o Devuelta no suma en ningun total del reporte. Se muestran en su
+        /// propio bloque al pie para que se vean sin falsear la cifra.
+        /// </summary>
+        private static bool es_anulada(monthly_report_row_dto r)
+            => string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
+
+        private static bool es_devuelta(monthly_report_row_dto r)
+            => string.Equals(r.status?.Trim(), "Devuelta", StringComparison.OrdinalIgnoreCase);
 
         private static string StatusColor(string status)
         {
