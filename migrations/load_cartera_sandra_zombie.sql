@@ -17,28 +17,29 @@
 --   cartera heredada que ya estan en la base (3300-249..., 3500-011...,
 --   PV-001...): el numero se lee casi identico y no desplaza la serie de la app.
 --
--- Fechas (cada nota en el mes en que se vendio):
---   El Excel esta dividido en bloques por mes de venta. Cada nota lleva el mes
---   de su bloque, dia 01 a las 12:00 de Venezuela (16:00 UTC), que es lo unico
---   que el Excel permite saber: no trae dia exacto.
+-- Fechas (cada nota con su fecha de venta):
+--   Todas a las 12:00 de Venezuela (16:00 UTC). Dia 01 cuando el Excel solo da
+--   el mes; dia exacto cuando el usuario lo indico.
 --
---     Bloque del Excel                          Mes cargado     Notas
---     ----------------------------------------  --------------  -------------
---     PENDIENTE POR COBRAR _ CLIENTES 2025      mar/2025        3200-462 (1)
---     PENDIENTE POR COBRAR _ CLIENTES 2025      nov/2025        3200-639 (1)
---     VENTAS  FEBRERO  2026-  SANDRA            feb/2026        3200-684 (1)
---     VENTAS  MAYO  2026-  SANDRA               may/2026        3200-691 (1)
---     VENTAS  JUNIO  2026-  SANDRA              jun/2026        3200-703..715 (7)
+--     Bloque del Excel                          Fecha          Notas
+--     ----------------------------------------  -------------  --------------
+--     PENDIENTE POR COBRAR _ CLIENTES 2025      08/03/2025     3200-462 (1)
+--     PENDIENTE POR COBRAR _ CLIENTES 2025      14/11/2025     3200-639 (1)
+--     VENTAS  FEBRERO  2026-  SANDRA            01/02/2026     3200-684
+--     VENTAS  MAYO  2026-  SANDRA               05/05/2026     3200-691 (1)
+--     VENTAS  JUNIO  2026-  SANDRA              22/05/2026     3200-703, 3200-704 (1)
+--     VENTAS  JUNIO  2026-  SANDRA              15/06/2026     3200-706 (1)
+--     VENTAS  JUNIO  2026-  SANDRA              01/09/2026     3200-712, 3200-713,
+--                                                               3200-714, 3200-715 (2)
 --
---   (1) El bloque 'CLIENTES 2025' no tiene seccion por mes (cierra con
---       'TOTAL POR COBRAR AL 16 FEBRERO 2026'): las fechas 08/03/2025 para
---       COSMETICOS y 14/11/2025 para FARIÑA las dio el usuario.
+--   (1) Fecha exacta dada por el usuario (el Excel no la trae por nota).
 --
---   Nota sobre el bloque de junio: su encabezado dice JUNIO 2026 pero su
---   cierre dice 'TOTAL POR COBRAR SEPTIEMBRE 2026'. Son ventas de JUNIO
---   cobradas despues: dentro del bloque hay abonos del 3/7/26, 6/8/26,
---   20-21/8/26, 3/9/2026, 15/9/2026, 23/9/2026 y 3/10/2026, todos POSTERIORES
---   a junio (y por lo tanto no puede tratarse de ventas de septiembre).
+--   (2) El bloque rotulado JUNIO 2026 cierra con
+--       'TOTAL POR COBRAR SEPTIEMBRE 2026' y adentro tiene abonos del 3/7/26,
+--       6/8/26, 20-21/8/26, 3/9/2026, 15/9/2026, 23/9/2026 y 3/10/2026: se le
+--       siguieron agregando ventas sin renombrar el encabezado (19 notas contra
+--       3-4 en marzo, abril y mayo). Como el Excel no trae fecha por nota, estas
+--       4 quedaron con dia 01 de septiembre por confirmacion del usuario.
 --
 --   dispatch_date: el Excel no trae fecha de despacho, queda NULL.
 --
@@ -95,7 +96,7 @@ WHERE NOT EXISTS (SELECT 1 FROM customer c WHERE c.customer_code = v.customer_co
 -- ---------------------------------------------------------------------
 -- 2. NOTAS (11) - id_seller = 1 (Sandra, 001)
 --    total = adjusted = saldo pendiente del Excel
---    creation_date = mes del bloque del Excel (dia 01, 12:00 Venezuela)
+--    creation_date = mes de venta de la nota (dia 01, 12:00 Venezuela)
 --    El abono ya recibido va descrito en cxc_observations, no como pago.
 -- ---------------------------------------------------------------------
 INSERT INTO delivery_note
@@ -118,22 +119,22 @@ FROM (VALUES
     ('3200-684', '2026-02-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00166'::text, 112.26::numeric,
      'Saldo anterior en el Excel'),
     -- Bloque 'VENTAS MAYO 2026'
-    ('3200-691', '2026-05-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00165'::text, 350.72::numeric,
+    ('3200-691', '2026-05-05T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00165'::text, 350.72::numeric,
      'Saldo anterior en el Excel'),
-    -- Bloque 'VENTAS JUNIO 2026'
-    ('3200-703', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00164'::text, 189.78::numeric,
+    -- Bloque 'VENTAS JUNIO 2026' (fechas exactas dadas por el usuario)
+    ('3200-703', '2026-05-22T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00164'::text, 189.78::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-704', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00164'::text, 172.80::numeric,
+    ('3200-704', '2026-05-22T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00164'::text, 172.80::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-706', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00167'::text,  33.28::numeric,
+    ('3200-706', '2026-06-15T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00167'::text,  33.28::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-712', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00168'::text, 643.68::numeric,
+    ('3200-712', '2026-09-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00168'::text, 643.68::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-713', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00169'::text, 320.76::numeric,
+    ('3200-713', '2026-09-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00169'::text, 320.76::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-714', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00170'::text, 529.58::numeric,
+    ('3200-714', '2026-09-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00170'::text, 529.58::numeric,
      'Saldo anterior en el Excel'),
-    ('3200-715', '2026-06-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00171'::text, 309.00::numeric,
+    ('3200-715', '2026-09-01T12:00:00-04:00'::timestamptz, NULL::timestamptz, '00171'::text, 309.00::numeric,
      'Saldo anterior en el Excel')
 ) AS v(note_number, creation_date, dispatch_date, customer_code, amount, obs)
 JOIN customer cu ON cu.customer_code = v.customer_code
@@ -143,7 +144,7 @@ COMMIT;
 
 -- =====================================================================
 -- VERIFICACION (debe dar 8 clientes / 11 notas / 2991.86, repartidas en
--- mar-2025, nov-2025, feb-2026, may-2026 y jun-2026)
+-- mar-2025, nov-2025, feb-2026, may-2026, jul-2026, ago-2026 y sep-2026)
 -- =====================================================================
 -- SELECT to_char(creation_date + interval '-4 hours', 'YYYY-MM') AS mes,
 --        count(*) AS notas, round(sum(adjusted_total_usd),2) AS saldo,
