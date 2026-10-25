@@ -26,13 +26,121 @@
                         <DataTrigger Binding="{Binding is_editing_product}" Value="True">
                             <Setter Property="Text" Value="Editar Producto"/>
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Text" Value="Agregar Stock"/>
+                        </DataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding is_stock_addition_mode}" Value="True"/>
+                                <Condition Binding="{Binding is_stock_removal_mode}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Text" Value="Quitar Stock"/>
+                        </MultiDataTrigger>
                     </Style.Triggers>
                 </Style>
             </TextBlock.Style>
         </TextBlock>
 
+        <!-- SECCION AGREGAR STOCK -->
+        <StackPanel Grid.Row="1" Grid.RowSpan="7" Margin="0,0,0,6">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Producto:"/>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding new_name}"/>
+            </Grid>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Código:"/>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding new_code}"/>
+            </Grid>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Cantidad actual:"/>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding stock_addition_current_quantity}"/>
+            </Grid>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="Cantidad a agregar:"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding is_stock_removal_mode}" Value="True">
+                                    <Setter Property="Text" Value="Cantidad a quitar:"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text=" *" Foreground="Red"/>
+                </TextBlock>
+                <TextBox Grid.Column="1" Height="26" FontSize="11" VerticalContentAlignment="Center" Padding="4,0" MaxLength="6"
+                         PreviewTextInput="OnQuantityPreview" Text="{Binding stock_addition_quantity, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="Total después de agregar:"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding is_stock_removal_mode}" Value="True">
+                                    <Setter Property="Text" Value="Total después de quitar:"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Foreground="#2E7D32" Text="{Binding stock_addition_total_after}"/>
+            </Grid>
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Top" Margin="0,4,0,0"><Run Text="Motivo / Razón:"/><Run Text=" *" Foreground="Red"/></TextBlock>
+                <TextBox Grid.Column="1" Height="60" FontSize="11" Padding="4,2" TextWrapping="Wrap" AcceptsReturn="True"
+                         Text="{Binding stock_addition_reason, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+            <TextBlock FontSize="9.5" Foreground="#757575" Margin="2,4,0,0" TextWrapping="Wrap"
+                       Text="Especifique el motivo por el cual se está agregando stock (compra, reposición, corrección, etc.)."/>
+        </StackPanel>
+
         <!-- CODIGO -->
         <Grid Grid.Row="1" Margin="0,0,0,6">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -78,6 +186,15 @@
 
         <!-- NOMBRE -->
         <Grid Grid.Row="2" Margin="0,0,0,6">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -90,6 +207,15 @@
 
         <!-- CATEGORIA -->
         <Grid Grid.Row="3" Margin="0,0,0,6">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -108,6 +234,15 @@
 
         <!-- CANTIDAD Y PRECIO -->
         <Grid Grid.Row="4" Margin="0,0,0,6">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>
@@ -129,6 +264,15 @@
         <!-- MOTIVO DEL AJUSTE: solo aparece al editar y solo si la cantidad cambio -->
         <Grid Grid.Row="5" Margin="0,0,0,6"
               Visibility="{Binding requires_adjustment_reason, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="170"/>
                 <ColumnDefinition Width="*"/>

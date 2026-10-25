@@ -41,6 +41,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.customer_code_prefix).HasColumnName("customer_code_prefix").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.last_customer_number).HasColumnName("last_customer_number").IsRequired();
                 entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.can_receive_commissions).HasColumnName("can_receive_commissions").IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
 

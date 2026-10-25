@@ -505,17 +505,23 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<seller> sellers { get; }
         public ObservableCollection<note_type> note_type_options { get; }
         public ObservableCollection<customer> filtered_customers { get; }
+        public ObservableCollection<customer> filtered_customers_display { get; }
         public ObservableCollection<billable_item> all_items { get; }
         public ObservableCollection<note_detail_row> note_details { get; }
 
         public ICommand add_item_command { get; }
         public ICommand remove_item_command { get; }
         public ICommand save_note_command { get; }
+        public ICommand select_customer_command { get; }
+        public ICommand toggle_customer_popup_command { get; }
 
         public Action? OnNoteSaved;
         public Action? RequestRevertSellerSelection;
         public Action? RequestRevertNoteTypeSelection;
         private bool _is_reverting_selection;
+        private string _customer_search_text = string.Empty;
+        private bool _show_customer_popup;
+        private System.Windows.Threading.DispatcherTimer _customer_filter_debounce;
 
         public seller? selected_seller
         {
@@ -612,6 +618,16 @@ namespace NinOS.UI.Common.ViewModels
                 else
                 {
                     filtered_customers.Clear();
+                    filtered_customers_display.Clear();
+                    _selected_customer = null;
+                    customer_code_text = string.Empty;
+                    contact_name_text = string.Empty;
+                    _customer_search_text = string.Empty;
+                    show_customer_popup = false;
+                    on_property_changed(nameof(selected_customer));
+                    on_property_changed(nameof(customer_code_text));
+                    on_property_changed(nameof(contact_name_text));
+                    on_property_changed(nameof(customer_search_text));
                     note_number = string.Empty;
                 }
                 on_property_changed(nameof(has_selection));
@@ -817,15 +833,19 @@ namespace NinOS.UI.Common.ViewModels
             }
 
             filtered_customers.Clear();
+            filtered_customers_display.Clear();
             _selected_customer = null;
             customer_code_text = string.Empty;
             contact_name_text = string.Empty;
+            _customer_search_text = string.Empty;
+            show_customer_popup = false;
             note_number = string.Empty;
 
             on_property_changed(nameof(selected_note_type));
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));
             on_property_changed(nameof(contact_name_text));
+            on_property_changed(nameof(customer_search_text));
             on_property_changed(nameof(note_number));
             on_property_changed(nameof(has_selection));
 
@@ -837,10 +857,22 @@ namespace NinOS.UI.Common.ViewModels
 
                 _seller_assigned_zones = assignedZones.ToList();
                 RefreshNoteTypeOptions(keepSelection: false);
+                filter_customers();
             }
             else
             {
                 _seller_assigned_zones.Clear();
+                filtered_customers.Clear();
+                filtered_customers_display.Clear();
+                _selected_customer = null;
+                customer_code_text = string.Empty;
+                contact_name_text = string.Empty;
+                _customer_search_text = string.Empty;
+                show_customer_popup = false;
+                on_property_changed(nameof(selected_customer));
+                on_property_changed(nameof(customer_code_text));
+                on_property_changed(nameof(contact_name_text));
+                on_property_changed(nameof(customer_search_text));
             }
         }
 
@@ -868,16 +900,21 @@ namespace NinOS.UI.Common.ViewModels
                     filtered_customers.Add(c);
                 }
             }
+            update_customer_display();
 
             if (_selected_customer != null && !filtered_customers.Any(c => c.id_customer == _selected_customer.id_customer))
             {
                 _selected_customer = null;
                 customer_code_text = string.Empty;
                 contact_name_text = string.Empty;
+                _customer_search_text = string.Empty;
                 on_property_changed(nameof(selected_customer));
                 on_property_changed(nameof(customer_code_text));
                 on_property_changed(nameof(contact_name_text));
+                on_property_changed(nameof(customer_search_text));
+                show_customer_popup = false;
             }
+            update_customer_display();
         }
 
         public customer? selected_customer
@@ -891,16 +928,45 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     customer_code_text = _selected_customer.customer_code;
                     contact_name_text = _selected_customer.contact_name;
+                    _customer_search_text = _selected_customer.business_name ?? string.Empty;
                 }
                 else
                 {
                     customer_code_text = string.Empty;
                     contact_name_text = string.Empty;
+                    _customer_search_text = string.Empty;
                 }
                 on_property_changed();
                 on_property_changed(nameof(customer_code_text));
                 on_property_changed(nameof(contact_name_text));
+                on_property_changed(nameof(customer_search_text));
                 on_property_changed(nameof(has_pending_data));
+                update_customer_display();
+                show_customer_popup = false;
+            }
+        }
+
+        public string customer_search_text
+        {
+            get { return _customer_search_text; }
+            set
+            {
+                if (_customer_search_text == value) return;
+                _customer_search_text = value;
+                on_property_changed();
+                _customer_filter_debounce.Stop();
+                _customer_filter_debounce.Start();
+            }
+        }
+
+        public bool show_customer_popup
+        {
+            get { return _show_customer_popup; }
+            set
+            {
+                if (_show_customer_popup == value) return;
+                _show_customer_popup = value;
+                on_property_changed();
             }
         }
 
@@ -1325,12 +1391,23 @@ namespace NinOS.UI.Common.ViewModels
             sellers = new ObservableCollection<seller>();
             note_type_options = new ObservableCollection<note_type>();
             filtered_customers = new ObservableCollection<customer>();
+            filtered_customers_display = new ObservableCollection<customer>();
             all_items = new ObservableCollection<billable_item>();
             note_details = new ObservableCollection<note_detail_row>();
 
             add_item_command = new RelayCommand(execute_add_item);
             remove_item_command = new RelayCommand(execute_remove_item);
             save_note_command = new RelayCommand(execute_save_note);
+            select_customer_command = new RelayCommand(execute_select_customer);
+            toggle_customer_popup_command = new RelayCommand(execute_toggle_customer_popup);
+
+            _customer_filter_debounce = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _customer_filter_debounce.Tick += (s, e) =>
+            {
+                _customer_filter_debounce.Stop();
+                update_customer_display();
+                update_customer_popup();
+            };
 
             AppDataEvents.CatalogsChanged += () =>
             {
@@ -1420,6 +1497,52 @@ namespace NinOS.UI.Common.ViewModels
             {
                 _is_loading = false;
             }
+        }
+
+        private void execute_select_customer(object? parameter)
+        {
+            if (parameter is customer c)
+            {
+                selected_customer = c;
+                _customer_search_text = c.business_name ?? string.Empty;
+                on_property_changed(nameof(customer_search_text));
+                show_customer_popup = false;
+            }
+        }
+
+        private void execute_toggle_customer_popup(object? parameter)
+        {
+            _customer_filter_debounce.Stop();
+            _customer_search_text = string.Empty;
+            on_property_changed(nameof(customer_search_text));
+            update_customer_display();
+            show_customer_popup = filtered_customers_display.Count > 0 && !show_customer_popup ? true : !show_customer_popup;
+            if (filtered_customers_display.Count == 0) show_customer_popup = false;
+        }
+
+        private void update_customer_display()
+        {
+            filtered_customers_display.Clear();
+            string search = _customer_search_text ?? string.Empty;
+            foreach (var c in filtered_customers)
+            {
+                if (string.IsNullOrWhiteSpace(search))
+                {
+                    filtered_customers_display.Add(c);
+                    continue;
+                }
+                if (c.business_name != null && c.business_name.Contains(search, StringComparison.OrdinalIgnoreCase))
+                {
+                    filtered_customers_display.Add(c);
+                }
+            }
+        }
+
+        private void update_customer_popup()
+        {
+            bool has = filtered_customers_display.Count > 0;
+            bool filled = !string.IsNullOrWhiteSpace(_customer_search_text);
+            show_customer_popup = filled && has;
         }
 
         private void load_initial_data_async()

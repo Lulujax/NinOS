@@ -108,6 +108,14 @@ namespace NinOS.Infrastructure.Services.Implementations
             var zona = await db.zonas.FindAsync(id);
             if (zona == null || zona.is_active) return;
 
+            // Si el código ya está en uso por una zona activa, se reasigna el siguiente disponible
+            bool codeInUse = await db.zonas.AnyAsync(z => z.is_active && z.code == zona.code);
+            if (codeInUse)
+            {
+                zona.code = await GetNextCodeAsync();
+                zona.sort_order = int.TryParse(zona.code, out int n) ? n : zona.sort_order;
+            }
+
             zona.is_active = true;
             zona.deleted_at = null;
             zona.deleted_reason = null;
@@ -134,15 +142,19 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            // Solo consideramos zonas comerciales activas en el rango estándar (1 a 89),
+            // ignorando zonas reservadas/fantasmas (como '-') y zonas eliminadas en papelera.
             var codes = await db.zonas
                 .AsNoTracking()
+                .Where(z => z.is_active && z.name != "-")
                 .Select(z => z.code)
                 .ToListAsync();
 
             int maxNum = 0;
             foreach (var c in codes)
             {
-                if (int.TryParse(c.Trim(), out int n))
+                if (int.TryParse(c.Trim(), out int n) && n < 90)
                 {
                     if (n > maxNum) maxNum = n;
                 }

@@ -181,6 +181,12 @@ namespace NinOS.UI.Common.ViewModels
         private string _original_brand_for_edit = string.Empty;
         private string _preview_code_for_new_brand = string.Empty;
 
+        private bool _is_stock_addition_mode = false;
+        private bool _is_stock_removal_mode = false;
+        private string _stock_addition_quantity = string.Empty;
+        private string _stock_addition_reason = string.Empty;
+        private int _stock_addition_current_quantity = 0;
+
         public ObservableCollection<InventoryTabItemBase> inventory_tabs { get; } = new ObservableCollection<InventoryTabItemBase>();
         public ObservableCollection<string> category_options { get; }
         public ObservableCollection<brand_selection_option> price_list_brand_options { get; }
@@ -218,6 +224,8 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
         public ICommand clear_price_list_command { get; }
+        public ICommand add_stock_command { get; }
+        public ICommand remove_stock_command { get; }
         
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
@@ -230,6 +238,51 @@ namespace NinOS.UI.Common.ViewModels
         public bool can_edit_category => true;
 
         public bool is_editing_product => _product_being_edited != null;
+
+        public bool is_stock_addition_mode
+        {
+            get { return _is_stock_addition_mode; }
+            set { _is_stock_addition_mode = value; on_property_changed(); }
+        }
+
+        public bool is_stock_removal_mode
+        {
+            get { return _is_stock_removal_mode; }
+            set { _is_stock_removal_mode = value; on_property_changed(); }
+        }
+
+        public string stock_addition_quantity
+        {
+            get { return _stock_addition_quantity; }
+            set { _stock_addition_quantity = value; on_property_changed(); on_property_changed(nameof(stock_addition_total_after)); }
+        }
+
+        public string stock_addition_reason
+        {
+            get { return _stock_addition_reason; }
+            set { _stock_addition_reason = value; on_property_changed(); }
+        }
+
+        public int stock_addition_current_quantity
+        {
+            get { return _stock_addition_current_quantity; }
+            set { _stock_addition_current_quantity = value; on_property_changed(); on_property_changed(nameof(stock_addition_total_after)); }
+        }
+
+        public int stock_addition_total_after
+        {
+            get
+            {
+                int qty = 0;
+                int.TryParse(stock_addition_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out qty);
+                if (is_stock_removal_mode)
+                {
+                    int result = stock_addition_current_quantity - (qty < 0 ? 0 : qty);
+                    return result < 0 ? 0 : result;
+                }
+                return stock_addition_current_quantity + (qty < 0 ? 0 : qty);
+            }
+        }
 
         // Al editar, el codigo es solo lectura: lo asigna el sistema y asi el estandar
         // por marca no se puede romper desde el formulario.
@@ -533,6 +586,8 @@ namespace NinOS.UI.Common.ViewModels
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
+            add_stock_command = new RelayCommand(execute_add_stock);
+            remove_stock_command = new RelayCommand(execute_remove_stock);
             
             new_category = "DEFILE";
 
@@ -1142,8 +1197,99 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private void execute_add_stock(object? parameter)
+        {
+            product? prod = null;
+            inventory_item_dto? dto = parameter as inventory_item_dto;
+            if (dto?.product_ref != null) prod = dto.product_ref;
+            if (prod == null) prod = parameter as product;
+
+            if (prod == null)
+            {
+                var search = new NinOS.UI.Views.StockSearchWindow(_all_products_source);
+                search.Owner = System.Windows.Application.Current?.MainWindow;
+                search.ShowDialog();
+                if (!search.IsConfirmed || search.SelectedProduct == null) return;
+                prod = search.SelectedProduct;
+            }
+
+            _product_being_edited = prod;
+            _original_quantity_for_edit = prod.stock_quantity;
+            _original_code_for_edit = prod.product_code ?? string.Empty;
+            _original_brand_for_edit = prod.category ?? string.Empty;
+            _preview_code_for_new_brand = string.Empty;
+            new_name = prod.name ?? string.Empty;
+            new_quantity = prod.stock_quantity.ToString();
+            new_price = prod.unit_price_usd.ToString("0.00", CultureInfo.InvariantCulture);
+            new_code = prod.product_code ?? string.Empty;
+            new_category = prod.category ?? "DEFILE";
+            reset_adjustment_reason();
+
+            is_stock_addition_mode = true;
+            is_stock_removal_mode = false;
+            stock_addition_current_quantity = prod.stock_quantity;
+            stock_addition_quantity = string.Empty;
+            stock_addition_reason = string.Empty;
+
+            ErrorMessage = string.Empty;
+
+            on_property_changed(nameof(is_editing_product));
+            on_property_changed(nameof(is_code_read_only));
+            on_property_changed(nameof(can_edit_category));
+            on_property_changed(nameof(has_pending_brand_change));
+            on_request_add_window?.Invoke();
+        }
+
+        private void execute_remove_stock(object? parameter)
+        {
+            product? prod = null;
+            inventory_item_dto? dto = parameter as inventory_item_dto;
+            if (dto?.product_ref != null) prod = dto.product_ref;
+            if (prod == null) prod = parameter as product;
+
+            if (prod == null)
+            {
+                var search = new NinOS.UI.Views.StockSearchWindow(_all_products_source);
+                search.Owner = System.Windows.Application.Current?.MainWindow;
+                search.ShowDialog();
+                if (!search.IsConfirmed || search.SelectedProduct == null) return;
+                prod = search.SelectedProduct;
+            }
+
+            _product_being_edited = prod;
+            _original_quantity_for_edit = prod.stock_quantity;
+            _original_code_for_edit = prod.product_code ?? string.Empty;
+            _original_brand_for_edit = prod.category ?? string.Empty;
+            _preview_code_for_new_brand = string.Empty;
+            new_name = prod.name ?? string.Empty;
+            new_quantity = prod.stock_quantity.ToString();
+            new_price = prod.unit_price_usd.ToString("0.00", CultureInfo.InvariantCulture);
+            new_code = prod.product_code ?? string.Empty;
+            new_category = prod.category ?? "DEFILE";
+            reset_adjustment_reason();
+
+            is_stock_addition_mode = true;
+            is_stock_removal_mode = true;
+            stock_addition_current_quantity = prod.stock_quantity;
+            stock_addition_quantity = string.Empty;
+            stock_addition_reason = string.Empty;
+
+            ErrorMessage = string.Empty;
+
+            on_property_changed(nameof(is_editing_product));
+            on_property_changed(nameof(is_code_read_only));
+            on_property_changed(nameof(can_edit_category));
+            on_property_changed(nameof(has_pending_brand_change));
+            on_request_add_window?.Invoke();
+        }
+
         private void execute_open_add_window(object? parameter)
         {
+            is_stock_addition_mode = false;
+            is_stock_removal_mode = false;
+            stock_addition_quantity = string.Empty;
+            stock_addition_reason = string.Empty;
+            stock_addition_current_quantity = 0;
             if (_selected_tab is PromocionesTabItem || _selected_tab_index == inventory_tabs.Count - 1)
             {
                 _promotion_being_edited = null;
@@ -1577,6 +1723,43 @@ namespace NinOS.UI.Common.ViewModels
 
             bool es_edicion = _product_being_edited != null;
 
+            if (is_stock_addition_mode && _product_being_edited != null)
+            {
+                if (string.IsNullOrWhiteSpace(stock_addition_quantity))
+                {
+                    ErrorMessage = is_stock_removal_mode ? "Indica la cantidad a quitar." : "Indica la cantidad a agregar.";
+                    return;
+                }
+                if (InputRestrictions.has_letters(stock_addition_quantity))
+                {
+                    ErrorMessage = "No se permiten letras en la cantidad. Ingrese solo números enteros.";
+                    return;
+                }
+                if (!int.TryParse(stock_addition_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int qty_move) || qty_move <= 0)
+                {
+                    ErrorMessage = is_stock_removal_mode ? "La cantidad a quitar debe ser un número entero mayor a 0." : "La cantidad a agregar debe ser un número entero mayor a 0.";
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(stock_addition_reason))
+                {
+                    ErrorMessage = is_stock_removal_mode ? "Indica el motivo o razón por la que se quita stock." : "Indica el motivo o razón por la que se agrega stock.";
+                    return;
+                }
+                if (is_stock_removal_mode)
+                {
+                    if (qty_move > stock_addition_current_quantity)
+                    {
+                        ErrorMessage = "No hay suficiente stock para quitar esa cantidad.";
+                        return;
+                    }
+                    parsed_quantity = stock_addition_current_quantity - qty_move;
+                }
+                else
+                {
+                    parsed_quantity = stock_addition_current_quantity + qty_move;
+                }
+            }
+
             // Validar codigo si es nuevo o si se modifico el codigo manualmente
             if (!es_edicion || (!has_pending_brand_change && !string.Equals(normalized_code, _original_code_for_edit, StringComparison.OrdinalIgnoreCase)))
             {
@@ -1640,9 +1823,18 @@ namespace NinOS.UI.Common.ViewModels
                     _product_being_edited.stock_quantity = parsed_quantity;
                     _product_being_edited.product_code = normalized_code;
 
+                    string? motivoParaPasar = null;
+                    if (is_stock_addition_mode)
+                    {
+                        motivoParaPasar = stock_addition_reason.Trim().ToUpperInvariant();
+                    }
+                    else if (requires_adjustment_reason)
+                    {
+                        motivoParaPasar = adjustment_reason_selected;
+                    }
                     await _inventory_service.update_product_async(
                         _product_being_edited,
-                        requires_adjustment_reason ? adjustment_reason_selected : null,
+                        motivoParaPasar,
                         has_pending_brand_change ? new_category : null);
                 }
                 else
@@ -1656,6 +1848,11 @@ namespace NinOS.UI.Common.ViewModels
                 _original_code_for_edit = string.Empty;
                 _original_brand_for_edit = string.Empty;
                 _preview_code_for_new_brand = string.Empty;
+                is_stock_addition_mode = false;
+                is_stock_removal_mode = false;
+                stock_addition_quantity = string.Empty;
+                stock_addition_reason = string.Empty;
+                stock_addition_current_quantity = 0;
                 on_property_changed(nameof(is_editing_product));
                 on_property_changed(nameof(is_code_read_only));
                 on_property_changed(nameof(has_pending_brand_change));

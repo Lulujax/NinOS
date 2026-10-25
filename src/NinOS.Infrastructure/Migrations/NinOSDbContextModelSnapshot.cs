@@ -546,7 +546,8 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("discount_configurable");
 
                     b.Property<bool>("es_volumen")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("es_volumen");
 
                     b.Property<string>("header_title")
                         .IsRequired()
@@ -954,6 +955,12 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("id_seller");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_seller"));
+
+                    b.Property<bool>("can_receive_commissions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("can_receive_commissions");
 
                     b.Property<string>("customer_code_prefix")
                         .IsRequired()

@@ -54,6 +54,7 @@ namespace NinOS.Domain
         public long last_customer_number { get; set; }
 
         public bool is_active { get; set; } = true;
+        public bool can_receive_commissions { get; set; } = true;
         public DateTime? deleted_at { get; set; }
         public string? deleted_reason { get; set; }
 
@@ -65,6 +66,7 @@ namespace NinOS.Domain
             _seller_code = "-";
             _customer_code_prefix = "-";
             is_active = true;
+            can_receive_commissions = true;
         }
 
         public seller(string full_name, string seller_code, string customer_code_prefix)

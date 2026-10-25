@@ -150,6 +150,12 @@
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
                             Command="{Binding edit_lines_command}" Content="Editar Líneas" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource HeaderActionButton}" Background="#FF8F00"
+                            Command="{Binding add_stock_command}" Content="Agregar Stock" Margin="0,0,8,0"
+                            ToolTip="Agregar stock a un producto existente sin tener que calcular el total"/>
+                    <Button Style="{StaticResource HeaderActionButton}" Background="#D32F2F"
+                            Command="{Binding remove_stock_command}" Content="Quitar Stock" Margin="0,0,8,0"
+                            ToolTip="Quitar/reducir stock a un producto existente sin tener que calcular el total"/>
                     <Button Style="{StaticResource HeaderAddButton}"
                             Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
                 </StackPanel>

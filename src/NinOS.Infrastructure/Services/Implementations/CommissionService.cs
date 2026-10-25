@@ -533,6 +533,11 @@ return new commission_dto
                 if (commissions.Select(c => c.id_seller).Distinct().Count() > 1)
                     throw new InvalidOperationException("Las comisiones seleccionadas deben ser de la misma vendedora.");
 
+                var seller_id = commissions.First().id_seller;
+                var seller = await db.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == seller_id);
+                if (seller != null && !seller.can_receive_commissions)
+                    throw new InvalidOperationException("Este vendedor no está habilitado para recibir pagos de comisiones.");
+
                 var paid_map = await db.commission_payments
                     .AsNoTracking()
                     .Where(p => commission_ids.Contains(p.id_commission))

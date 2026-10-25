@@ -22,6 +22,7 @@ namespace NinOS.UI.Common.ViewModels
         public string AssignedZonasText { get; set; } = string.Empty;
         public List<int> AssignedZonaIds { get; set; } = new List<int>();
         public bool IsActive { get; set; } = true;
+        public bool CanReceiveCommissions { get; set; } = true;
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }
         public seller? SellerRef { get; set; }
@@ -69,6 +70,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _searchQuery = string.Empty;
         private string _newSellerCode = string.Empty;
         private string _newFullName = string.Empty;
+        private bool _canReceiveCommissions = true;
         private string _addOrEditTitle = "Agregar Vendedor";
         private string _saveButtonText = "Agregar Vendedor";
         private bool _canEditCode = false;
@@ -105,6 +107,12 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _canEditCode;
             set { _canEditCode = value; on_property_changed(); }
+        }
+
+        public bool CanReceiveCommissions
+        {
+            get => _canReceiveCommissions;
+            set { _canReceiveCommissions = value; on_property_changed(); }
         }
 
         public string NewFullName
@@ -217,6 +225,7 @@ namespace NinOS.UI.Common.ViewModels
                 AssignedZonasText = zonasText,
                 AssignedZonaIds = assignedZones.Select(z => z.id_zona).ToList(),
                 IsActive = s.is_active,
+                CanReceiveCommissions = s.can_receive_commissions,
                 DeletedAt = s.deleted_at,
                 DeletedReason = s.deleted_reason,
                 SellerRef = s
@@ -255,6 +264,7 @@ namespace NinOS.UI.Common.ViewModels
             AddOrEditTitle = "Agregar Vendedor";
             SaveButtonText = "Agregar Vendedor";
             CanEditCode = false;
+            CanReceiveCommissions = true;
 
             try
             {
@@ -281,6 +291,7 @@ namespace NinOS.UI.Common.ViewModels
                 CanEditCode = false;
                 NewSellerCode = selected.SellerCode;
                 NewFullName = selected.FullName;
+                CanReceiveCommissions = selected.CanReceiveCommissions;
                 ErrorMessage = string.Empty;
 
                 await PopulateAvailableZonasAsync(selected.AssignedZonaIds);
@@ -345,11 +356,13 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     var existing = _editingSeller.SellerRef;
                     existing.full_name = _newFullName.Trim();
+                    existing.can_receive_commissions = _canReceiveCommissions;
                     await _sellerService.UpdateAsync(existing, selectedZonaIds);
                 }
                 else
                 {
                     var newSeller = new seller(_newFullName.Trim(), _newSellerCode.Trim(), _newSellerCode.Trim());
+                    newSeller.can_receive_commissions = _canReceiveCommissions;
                     await _sellerService.CreateAsync(newSeller, selectedZonaIds);
                 }
 
@@ -436,6 +449,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             NewSellerCode = string.Empty;
             NewFullName = string.Empty;
+            CanReceiveCommissions = true;
             ErrorMessage = string.Empty;
             _editingSeller = null;
             AvailableZonas.Clear();

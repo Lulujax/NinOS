@@ -438,8 +438,10 @@ var unique_months = all_rows
 
         private List<commission_row_dto> get_available_pending_rows()
         {
-            var list = (selected_tab != null ? selected_tab.Items : all_rows);
-            return list.Where(r => r.remaining_amount_usd > 0.005m).ToList();
+            // Mostrar todas las comisiones pendientes independientemente del mes para permitir pagar comisiones de otros meses
+            return _all_rows_source
+                .Where(r => r.remaining_amount_usd > 0.005m)
+                .ToList();
         }
 
         private void execute_add_commission_payment(object? parameter)
