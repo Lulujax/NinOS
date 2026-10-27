@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -24,6 +24,7 @@ namespace NinOS.UI.Common.ViewModels
         public string name { get; set; } = string.Empty;
         public decimal unit_price_usd { get; set; }
         public int available_stock { get; set; }
+        public bool is_out_of_stock => available_stock <= 0;
     }
 
     public class note_detail_row : ViewModelBase
@@ -118,20 +119,11 @@ namespace NinOS.UI.Common.ViewModels
                 show_search_popup_code = false;
                 if (_selected_item != null)
                 {
-                    if (RemainingStock(_selected_item) <= 0)
-                    {
-                        _selected_item = null;
-                        on_property_changed(nameof(item_search_code));
-                        on_property_changed(nameof(item_search_text));
-                        return;
-                    }
-
                     unit_price_usd = _selected_item.unit_price_usd;
                     _item_search_code = _selected_item.code;
                     _item_search_text = _selected_item.name;
 
-                    int remaining = RemainingStock(_selected_item);
-                    if (_quantity > remaining) _quantity = remaining;
+                    if (_quantity <= 0) _quantity = 1;
                 }
                 on_property_changed(nameof(item_search_code));
                 on_property_changed(nameof(item_search_text));
@@ -242,12 +234,6 @@ namespace NinOS.UI.Common.ViewModels
                     return;
                 }
 
-                int remaining = RemainingStock(item);
-                if (remaining <= 0)
-                {
-                    AppDialog.Show($"El articulo {item.name} esta agotado (stock 0).", "Sin stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    return;
-                }
                 selected_item = item;
             }
         }
@@ -1465,8 +1451,6 @@ namespace NinOS.UI.Common.ViewModels
                         int max_combos = item.product!.stock_quantity / item.quantity_required;
                         if (max_combos < promo_stock) promo_stock = max_combos;
                     }
-                    if (promo_stock <= 0) continue;
-
                     all_items.Add(new billable_item {
                         id_promotion = pr.id_promotion,
                         code = pr.promotion_code,
@@ -1801,12 +1785,7 @@ namespace NinOS.UI.Common.ViewModels
                         }
                     }
 
-                    int available = row.RemainingStock(row.selected_item);
-                    if (row.quantity > available)
-                    {
-                        throw new InvalidOperationException(
-                            $"Inventario insuficiente para '{row.selected_item.name}'. Tienes {available} unidades disponibles y colocaste {row.quantity}.");
-                    }
+
                 }
 
                 note_print_dto preview = build_preview_dto();

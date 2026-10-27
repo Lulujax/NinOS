@@ -34,21 +34,36 @@ namespace NinOS.Domain.ViewModels
         public string unidades_con_signo_display => signed_units > 0 ? "+" + signed_units : signed_units.ToString();
 
         // Textos listos para pintar en la grilla del historial.
-        public string motivo_display => movement_reason switch
+        public string motivo_display
         {
-            "VENTA" => "Venta",
-            "DEVOLUCION" => "Devolucion",
-            "OBSEQUIO" => "Obsequio",
-            "ANULACION" => "Anulacion de nota",
-            "CARGA INICIAL" => "Carga inicial",
-            "AJUSTE" => "Ajuste manual",
-            "REPOSICION" => "Reposicion",
-            "MERMA" => "Merma o rotura",
-            "CORRECCION CONTEO" => "Correccion de conteo",
-            "DEVOLUCION PROVEEDOR" => "Devolucion a proveedor",
-            "AJUSTE SISTEMA" => "Ajuste del sistema",
-            _ => movement_reason
-        };
+            get
+            {
+                string base_texto = movement_reason switch
+                {
+                    "VENTA" => "Venta",
+                    "DEVOLUCION" => "Devolucion",
+                    "OBSEQUIO" => "Obsequio",
+                    "ANULACION" => "Anulacion de nota",
+                    "CARGA INICIAL" => "Carga inicial",
+                    "AJUSTE" => "Ajuste manual",
+                    "REPOSICION" => "Reposicion",
+                    "MERMA" => "Merma o rotura",
+                    "CORRECCION CONTEO" => "Correccion de conteo",
+                    "DEVOLUCION PROVEEDOR" => "Devolucion a proveedor",
+                    "AJUSTE SISTEMA" => "Ajuste del sistema",
+                    _ => movement_reason
+                };
+
+                // En los ajustes manuales la nota libre explica el movimiento; se anexa al
+                // motivo para que se lea en la grilla y en el PDF sin abrir nada mas.
+                if (document_type == "INVENTARIO" && !string.IsNullOrWhiteSpace(line_description))
+                {
+                    return $"{base_texto} — {line_description.Trim()}";
+                }
+
+                return base_texto;
+            }
+        }
 
         public string documento_display => document_type switch
         {

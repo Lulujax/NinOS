@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -92,8 +92,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                         {
                             if (!products.TryGetValue(detail.id_product.Value, out var p))
                                 throw new InvalidOperationException("Uno de los productos seleccionados ya no existe. Actualice el detalle de la nota.");
-                            if (p.stock_quantity < detail.quantity)
-                                throw new InvalidOperationException($"Stock insuficiente para {p.name}");
 
                             // Se congela el codigo del momento. Si el producto despues cambia de
                             // marca y el sistema le reasigna otro, esta nota sigue imprimiendo
@@ -127,8 +125,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                                         $"Elimine esta promocion y cree una nueva con productos validos.");
                                 }
                                 int required_qty = detail.quantity * p_item.quantity_required;
-                                if (p.stock_quantity < required_qty)
-                                    throw new InvalidOperationException($"Stock insuficiente del producto {p.name} para armar la promocion.");
 
                                 stock_movimientos.Add(stock_movement_writer.registrar_salida(
                                     _db_context, p, required_qty,

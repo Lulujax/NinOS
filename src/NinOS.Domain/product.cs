@@ -73,7 +73,6 @@ namespace NinOS.Domain
             get { return _stock_quantity; }
             set
             {
-                if (value < 0) throw new ArgumentException();
                 _stock_quantity = value;
             }
         }

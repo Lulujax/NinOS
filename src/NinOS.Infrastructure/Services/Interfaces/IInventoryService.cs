@@ -11,7 +11,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<product>> get_deleted_products_async();
         Task<string> get_next_product_code_async(string category);
         Task add_product_async(product new_product);
-        Task update_product_async(product product_to_update, string? motivo_ajuste = null, string? nueva_categoria = null);
+        Task update_product_async(product product_to_update, string? motivo_ajuste = null, string? nueva_categoria = null, string? nota_ajuste = null);
         Task soft_delete_product_async(int id_product, string? reason);
         Task<int> restore_product_async(int id_product);
         Task<IEnumerable<promotion>> get_all_promotions_async();

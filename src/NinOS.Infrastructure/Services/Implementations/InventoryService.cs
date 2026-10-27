@@ -130,9 +130,9 @@ namespace NinOS.Infrastructure.Services.Implementations
         /// dependa de lo que haya mandado la pantalla.
         ///
         /// Si la cantidad cambia, queda asentada en el kardex con el motivo que eligio el
-        /// usuario.
+        /// usuario y, si la escribio, la nota libre del ajuste.
         /// </summary>
-        public async Task update_product_async(product product_to_update, string? motivo_ajuste = null, string? nueva_categoria = null)
+        public async Task update_product_async(product product_to_update, string? motivo_ajuste = null, string? nueva_categoria = null, string? nota_ajuste = null)
         {
             if (product_to_update == null) throw new ArgumentNullException(nameof(product_to_update));
             using (IServiceScope scope = _scope_factory.CreateScope())
@@ -227,7 +227,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                             $"AJUSTE-{actual.product_code}",
                             DateTime.UtcNow,
                             actual.unit_price_usd,
-                            motivo_ajuste);
+                            motivo_ajuste,
+                            nota_ajuste);
 
                         await db_context.SaveChangesAsync();
                     }

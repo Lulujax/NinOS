@@ -32,6 +32,7 @@ namespace NinOS.UI.Common.ViewModels
         public product? product_ref { get; set; }
         public promotion? promo_ref { get; set; }
         public string promo_type_display { get; set; } = string.Empty;
+        public bool is_negative_stock { get; set; }
     }
 
     public class promo_builder_item : ViewModelBase
@@ -224,8 +225,8 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
         public ICommand clear_price_list_command { get; }
-        public ICommand add_stock_command { get; }
-        public ICommand remove_stock_command { get; }
+        public ICommand open_stock_section_command { get; }
+        public ICommand close_stock_section_command { get; }
         
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
@@ -242,19 +243,38 @@ namespace NinOS.UI.Common.ViewModels
         public bool is_stock_addition_mode
         {
             get { return _is_stock_addition_mode; }
-            set { _is_stock_addition_mode = value; on_property_changed(); }
+            set
+            {
+                if (_is_stock_addition_mode == value) return;
+                _is_stock_addition_mode = value;
+                on_property_changed();
+                on_property_changed(nameof(code_is_locked));
+                on_property_changed(nameof(name_is_locked));
+            }
         }
 
         public bool is_stock_removal_mode
         {
             get { return _is_stock_removal_mode; }
-            set { _is_stock_removal_mode = value; on_property_changed(); }
+            set
+            {
+                if (_is_stock_removal_mode == value) return;
+                _is_stock_removal_mode = value;
+                on_property_changed();
+                notify_stock_total_changed();
+            }
         }
 
         public string stock_addition_quantity
         {
             get { return _stock_addition_quantity; }
-            set { _stock_addition_quantity = value; on_property_changed(); on_property_changed(nameof(stock_addition_total_after)); }
+            set
+            {
+                if (_stock_addition_quantity == value) return;
+                _stock_addition_quantity = value;
+                on_property_changed();
+                notify_stock_total_changed();
+            }
         }
 
         public string stock_addition_reason
@@ -266,27 +286,66 @@ namespace NinOS.UI.Common.ViewModels
         public int stock_addition_current_quantity
         {
             get { return _stock_addition_current_quantity; }
-            set { _stock_addition_current_quantity = value; on_property_changed(); on_property_changed(nameof(stock_addition_total_after)); }
+            set
+            {
+                if (_stock_addition_current_quantity == value) return;
+                _stock_addition_current_quantity = value;
+                on_property_changed();
+                notify_stock_total_changed();
+            }
         }
+
+        private int stock_addition_quantity_value
+        {
+            get
+            {
+                return int.TryParse(stock_addition_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int qty)
+                    ? (qty < 0 ? 0 : qty)
+                    : 0;
+            }
+        }
+
+        // Quitar mas de lo que hay no da un total de 0: es un error. Si se mostrara 0 en
+        // verde la clienta creeria que el ajuste es valido y el guardado la frenaria
+        // despues, sin relacion aparente con lo que acaba de leer en pantalla.
+        public bool stock_addition_exceeds_stock =>
+            is_stock_removal_mode && stock_addition_quantity_value > stock_addition_current_quantity;
 
         public int stock_addition_total_after
         {
             get
             {
-                int qty = 0;
-                int.TryParse(stock_addition_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out qty);
+                int qty = stock_addition_quantity_value;
                 if (is_stock_removal_mode)
                 {
-                    int result = stock_addition_current_quantity - (qty < 0 ? 0 : qty);
+                    int result = stock_addition_current_quantity - qty;
                     return result < 0 ? 0 : result;
                 }
-                return stock_addition_current_quantity + (qty < 0 ? 0 : qty);
+                return stock_addition_current_quantity + qty;
             }
         }
 
-        // Al editar, el codigo es solo lectura: lo asigna el sistema y asi el estandar
-        // por marca no se puede romper desde el formulario.
-        public bool is_code_read_only => false;
+        // Lo que se pinta: el total real, o un guion cuando el ajuste no es posible.
+        public string stock_addition_total_display =>
+            stock_addition_exceeds_stock ? "—" : stock_addition_total_after.ToString();
+
+        private void notify_stock_total_changed()
+        {
+            on_property_changed(nameof(stock_addition_total_after));
+            on_property_changed(nameof(stock_addition_total_display));
+            on_property_changed(nameof(stock_addition_exceeds_stock));
+        }
+
+        // Mientras el apartado de agregar/quitar stock esta desplegado, el codigo y el
+        // nombre quedan bloqueados: el ajuste es de existencias, no de identidad del
+        // producto, y cambiar el codigo a medias dejaria el kardex apuntando a otro.
+        public bool code_is_locked => is_stock_addition_mode;
+
+        public bool name_is_locked => is_stock_addition_mode;
+
+        // La cantidad inicial solo se escribe al crear: al editar, el stock se mueve
+        // unicamente por el apartado de agregar/quitar.
+        public bool show_initial_quantity_box => !is_editing_product;
 
         // Codigo que tenia el producto al abrirlo para editar, y el que le asignaria el
         // sistema si se confirma el cambio de marca. Solo se muestran si hay cambio.
@@ -412,9 +471,6 @@ namespace NinOS.UI.Common.ViewModels
                 if (_new_quantity == value) return;
                 _new_quantity = value;
                 on_property_changed();
-                on_property_changed(nameof(quantity_delta));
-                on_property_changed(nameof(quantity_delta_display));
-                on_property_changed(nameof(requires_adjustment_reason));
             }
         }
 
@@ -453,27 +509,6 @@ namespace NinOS.UI.Common.ViewModels
             _adjustment_reason_index >= 0 && _adjustment_reason_index < adjustment_reason_options.Count
                 ? adjustment_reason_options[_adjustment_reason_index]
                 : null;
-
-        // Cuanto sumo (positivo) o resto (negativo) el usuario respecto al stock original.
-        // Solo tiene sentido al editar.
-        public int quantity_delta => is_editing_product
-            ? parse_quantity_or_zero(new_quantity) - _original_quantity_for_edit
-            : 0;
-
-        // El selector de motivo solo aparece al editar y solo si la cantidad cambio de verdad.
-        public bool requires_adjustment_reason => is_editing_product && quantity_delta != 0;
-
-        public string quantity_delta_display => quantity_delta > 0
-            ? $"+{quantity_delta}"
-            : quantity_delta.ToString();
-
-        private static int parse_quantity_or_zero(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return 0;
-            return int.TryParse(value!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
-                ? parsed
-                : 0;
-        }
 
         public string new_price
         {
@@ -586,8 +621,8 @@ namespace NinOS.UI.Common.ViewModels
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
-            add_stock_command = new RelayCommand(execute_add_stock);
-            remove_stock_command = new RelayCommand(execute_remove_stock);
+            open_stock_section_command = new RelayCommand(execute_open_stock_section);
+            close_stock_section_command = new RelayCommand(execute_close_stock_section);
             
             new_category = "DEFILE";
 
@@ -1026,7 +1061,8 @@ namespace NinOS.UI.Common.ViewModels
                 item_price = p.unit_price_usd,
                 is_promotion = false,
                 is_default_combo = false,
-                product_ref = p
+                product_ref = p,
+                is_negative_stock = p.stock_quantity < 0
             };
         }
 
@@ -1042,7 +1078,8 @@ namespace NinOS.UI.Common.ViewModels
                 item_price = p.unit_price_usd,
                 is_promotion = true,
                 is_default_combo = false,
-                promo_ref = p
+                promo_ref = p,
+                is_negative_stock = calculated_available < 0
             };
         }
 
@@ -1197,90 +1234,47 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void execute_add_stock(object? parameter)
+        /// <summary>
+        /// Despliega el apartado de ajuste de stock dentro de Editar Producto. El parametro
+        /// dice la direccion: "add" para sumar, "remove" para restar. Si el apartado ya
+        /// estaba abierto en la otra direccion, solo se cambia la direccion y se conserva
+        /// lo que la clienta ya habia tecleado.
+        /// </summary>
+        private void execute_open_stock_section(object? parameter)
         {
-            product? prod = null;
-            inventory_item_dto? dto = parameter as inventory_item_dto;
-            if (dto?.product_ref != null) prod = dto.product_ref;
-            if (prod == null) prod = parameter as product;
+            if (!is_editing_product || _product_being_edited == null) return;
 
-            if (prod == null)
+            bool quitar = string.Equals(parameter as string, "remove", StringComparison.OrdinalIgnoreCase);
+            bool ya_abierto = is_stock_addition_mode;
+
+            if (!ya_abierto)
             {
-                var search = new NinOS.UI.Views.StockSearchWindow(_all_products_source);
-                search.Owner = System.Windows.Application.Current?.MainWindow;
-                search.ShowDialog();
-                if (!search.IsConfirmed || search.SelectedProduct == null) return;
-                prod = search.SelectedProduct;
+                stock_addition_quantity = string.Empty;
+                stock_addition_reason = string.Empty;
+                reset_adjustment_reason();
             }
 
-            _product_being_edited = prod;
-            _original_quantity_for_edit = prod.stock_quantity;
-            _original_code_for_edit = prod.product_code ?? string.Empty;
-            _original_brand_for_edit = prod.category ?? string.Empty;
-            _preview_code_for_new_brand = string.Empty;
-            new_name = prod.name ?? string.Empty;
-            new_quantity = prod.stock_quantity.ToString();
-            new_price = prod.unit_price_usd.ToString("0.00", CultureInfo.InvariantCulture);
-            new_code = prod.product_code ?? string.Empty;
-            new_category = prod.category ?? "DEFILE";
-            reset_adjustment_reason();
-
+            // El total se calcula siempre sobre el stock que tenia el producto al abrir la
+            // ventana, no sobre lo que se haya tecleado antes.
+            stock_addition_current_quantity = _original_quantity_for_edit;
+            is_stock_removal_mode = quitar;
             is_stock_addition_mode = true;
-            is_stock_removal_mode = false;
-            stock_addition_current_quantity = prod.stock_quantity;
-            stock_addition_quantity = string.Empty;
-            stock_addition_reason = string.Empty;
-
             ErrorMessage = string.Empty;
-
-            on_property_changed(nameof(is_editing_product));
-            on_property_changed(nameof(is_code_read_only));
-            on_property_changed(nameof(can_edit_category));
-            on_property_changed(nameof(has_pending_brand_change));
-            on_request_add_window?.Invoke();
         }
 
-        private void execute_remove_stock(object? parameter)
+        /// <summary>
+        /// Colapsa el apartado de ajuste y deja sus campos limpios. No cierra la ventana:
+        /// la clienta puede seguir editando nombre, categoria o precio.
+        /// </summary>
+        private void execute_close_stock_section(object? parameter)
         {
-            product? prod = null;
-            inventory_item_dto? dto = parameter as inventory_item_dto;
-            if (dto?.product_ref != null) prod = dto.product_ref;
-            if (prod == null) prod = parameter as product;
-
-            if (prod == null)
-            {
-                var search = new NinOS.UI.Views.StockSearchWindow(_all_products_source);
-                search.Owner = System.Windows.Application.Current?.MainWindow;
-                search.ShowDialog();
-                if (!search.IsConfirmed || search.SelectedProduct == null) return;
-                prod = search.SelectedProduct;
-            }
-
-            _product_being_edited = prod;
-            _original_quantity_for_edit = prod.stock_quantity;
-            _original_code_for_edit = prod.product_code ?? string.Empty;
-            _original_brand_for_edit = prod.category ?? string.Empty;
-            _preview_code_for_new_brand = string.Empty;
-            new_name = prod.name ?? string.Empty;
-            new_quantity = prod.stock_quantity.ToString();
-            new_price = prod.unit_price_usd.ToString("0.00", CultureInfo.InvariantCulture);
-            new_code = prod.product_code ?? string.Empty;
-            new_category = prod.category ?? "DEFILE";
-            reset_adjustment_reason();
-
-            is_stock_addition_mode = true;
-            is_stock_removal_mode = true;
-            stock_addition_current_quantity = prod.stock_quantity;
+            is_stock_addition_mode = false;
+            is_stock_removal_mode = false;
             stock_addition_quantity = string.Empty;
             stock_addition_reason = string.Empty;
-
+            stock_addition_current_quantity = _original_quantity_for_edit;
+            reset_adjustment_reason();
             ErrorMessage = string.Empty;
-
-            on_property_changed(nameof(is_editing_product));
-            on_property_changed(nameof(is_code_read_only));
-            on_property_changed(nameof(can_edit_category));
-            on_property_changed(nameof(has_pending_brand_change));
-            on_request_add_window?.Invoke();
         }
 
         private void execute_open_add_window(object? parameter)
@@ -1324,7 +1318,9 @@ namespace NinOS.UI.Common.ViewModels
 
             on_property_changed(nameof(can_edit_category));
             on_property_changed(nameof(is_editing_product));
-            on_property_changed(nameof(is_code_read_only));
+            on_property_changed(nameof(code_is_locked));
+            on_property_changed(nameof(name_is_locked));
+            on_property_changed(nameof(show_initial_quantity_box));
             on_property_changed(nameof(has_pending_brand_change));
             on_request_add_window?.Invoke();
         }
@@ -1404,6 +1400,13 @@ namespace NinOS.UI.Common.ViewModels
                 _preview_code_for_new_brand = string.Empty;
                 reset_adjustment_reason();
 
+                // El apartado de ajuste arranca cerrado cada vez que se abre la ventana.
+                is_stock_addition_mode = false;
+                is_stock_removal_mode = false;
+                stock_addition_quantity = string.Empty;
+                stock_addition_reason = string.Empty;
+                stock_addition_current_quantity = dto.product_ref.stock_quantity;
+
                 new_code = dto.product_ref.product_code;
                 new_name = dto.product_ref.name;
                 new_category = dto.product_ref.category;
@@ -1412,9 +1415,9 @@ namespace NinOS.UI.Common.ViewModels
 
                 on_property_changed(nameof(can_edit_category));
                 on_property_changed(nameof(is_editing_product));
-                on_property_changed(nameof(is_code_read_only));
-                on_property_changed(nameof(quantity_delta));
-                on_property_changed(nameof(requires_adjustment_reason));
+                on_property_changed(nameof(code_is_locked));
+                on_property_changed(nameof(name_is_locked));
+                on_property_changed(nameof(show_initial_quantity_box));
                 on_property_changed(nameof(original_code_for_edit));
                 on_property_changed(nameof(has_pending_brand_change));
                 on_request_add_window?.Invoke();
@@ -1697,9 +1700,17 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
-            if (!int.TryParse(new_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed_quantity) || parsed_quantity < 0)
+            bool es_edicion = _product_being_edited != null;
+
+            if (!int.TryParse(new_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed_quantity))
             {
-                ErrorMessage = "La cantidad debe ser un número entero mayor o igual a 0.";
+                ErrorMessage = "La cantidad debe ser un número entero válido.";
+                return;
+            }
+
+            if (!es_edicion && parsed_quantity < 0)
+            {
+                ErrorMessage = "La cantidad inicial del producto no puede ser negativa.";
                 return;
             }
 
@@ -1721,9 +1732,16 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
-            bool es_edicion = _product_being_edited != null;
+            // El apartado puede quedar abierto sin que la clienta haya escrito nada: en ese
+            // caso no hay ajuste que hacer y se guarda el resto de los cambios sin exigir
+            // cantidad ni motivo. Frenarla con "indica la cantidad" seria un error falso.
+            bool apartado_vacio = is_stock_addition_mode
+                && string.IsNullOrWhiteSpace(stock_addition_quantity)
+                && string.IsNullOrEmpty(adjustment_reason_selected);
 
-            if (is_stock_addition_mode && _product_being_edited != null)
+            bool hay_ajuste_de_stock = is_stock_addition_mode && !apartado_vacio && _product_being_edited != null;
+
+            if (hay_ajuste_de_stock)
             {
                 if (string.IsNullOrWhiteSpace(stock_addition_quantity))
                 {
@@ -1740,11 +1758,14 @@ namespace NinOS.UI.Common.ViewModels
                     ErrorMessage = is_stock_removal_mode ? "La cantidad a quitar debe ser un número entero mayor a 0." : "La cantidad a agregar debe ser un número entero mayor a 0.";
                     return;
                 }
-                if (string.IsNullOrWhiteSpace(stock_addition_reason))
+
+                // El motivo sale del combo: es lo que clasifica el movimiento en el kardex.
+                if (string.IsNullOrEmpty(adjustment_reason_selected))
                 {
-                    ErrorMessage = is_stock_removal_mode ? "Indica el motivo o razón por la que se quita stock." : "Indica el motivo o razón por la que se agrega stock.";
+                    ErrorMessage = "Selecciona el motivo del ajuste.";
                     return;
                 }
+
                 if (is_stock_removal_mode)
                 {
                     if (qty_move > stock_addition_current_quantity)
@@ -1783,14 +1804,6 @@ namespace NinOS.UI.Common.ViewModels
                 }
             }
 
-            // Si se toco la cantidad hay que saber por que: sin motivo el kardex queda
-            // con un "AJUSTE" que no dice nada.
-            if (requires_adjustment_reason && string.IsNullOrEmpty(adjustment_reason_selected))
-            {
-                ErrorMessage = "Indica el motivo por el que cambiaste la cantidad.";
-                return;
-            }
-
             // Cambiar de marca cambia el codigo, y con el los numeros de serie de esa marca.
             // Se pide confirmacion para que no sea un cambio sin querer.
             if (has_pending_brand_change)
@@ -1824,11 +1837,7 @@ namespace NinOS.UI.Common.ViewModels
                     _product_being_edited.product_code = normalized_code;
 
                     string? motivoParaPasar = null;
-                    if (is_stock_addition_mode)
-                    {
-                        motivoParaPasar = stock_addition_reason.Trim().ToUpperInvariant();
-                    }
-                    else if (requires_adjustment_reason)
+                    if (hay_ajuste_de_stock)
                     {
                         motivoParaPasar = adjustment_reason_selected;
                     }
@@ -1854,7 +1863,9 @@ namespace NinOS.UI.Common.ViewModels
                 stock_addition_reason = string.Empty;
                 stock_addition_current_quantity = 0;
                 on_property_changed(nameof(is_editing_product));
-                on_property_changed(nameof(is_code_read_only));
+                on_property_changed(nameof(code_is_locked));
+                on_property_changed(nameof(name_is_locked));
+                on_property_changed(nameof(show_initial_quantity_box));
                 on_property_changed(nameof(has_pending_brand_change));
                 load_initial_data_async();
 

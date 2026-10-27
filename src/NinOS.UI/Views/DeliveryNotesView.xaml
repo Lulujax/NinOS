@@ -1,4 +1,4 @@
-<UserControl x:Class="NinOS.UI.Views.DeliveryNotesView"
+﻿<UserControl x:Class="NinOS.UI.Views.DeliveryNotesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
@@ -236,7 +236,19 @@
                                                                         <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
                                                                         <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
                                                                         <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold">
+                                                                            <TextBlock.Style>
+                                                                                <Style TargetType="TextBlock">
+                                                                                    <Setter Property="Foreground" Value="Black"/>
+                                                                                    <Style.Triggers>
+                                                                                        <DataTrigger Binding="{Binding is_out_of_stock}" Value="True">
+                                                                                            <Setter Property="Foreground" Value="#D32F2F"/>
+                                                                                            <Setter Property="ToolTip" Value="Sin existencias disponibles (se facturará con deuda de inventario)"/>
+                                                                                        </DataTrigger>
+                                                                                    </Style.Triggers>
+                                                                                </Style>
+                                                                            </TextBlock.Style>
+                                                                        </TextBlock>
                                                                     </StackPanel>
                                                                 </Border>
                                                             </DataTemplate>
@@ -297,7 +309,19 @@
                                                                         <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
                                                                         <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
                                                                         <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold" Foreground="Black"/>
+                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold">
+                                                                            <TextBlock.Style>
+                                                                                <Style TargetType="TextBlock">
+                                                                                    <Setter Property="Foreground" Value="Black"/>
+                                                                                    <Style.Triggers>
+                                                                                        <DataTrigger Binding="{Binding is_out_of_stock}" Value="True">
+                                                                                            <Setter Property="Foreground" Value="#D32F2F"/>
+                                                                                            <Setter Property="ToolTip" Value="Sin existencias disponibles (se facturará con deuda de inventario)"/>
+                                                                                        </DataTrigger>
+                                                                                    </Style.Triggers>
+                                                                                </Style>
+                                                                            </TextBlock.Style>
+                                                                        </TextBlock>
                                                                     </StackPanel>
                                                                 </Border>
                                                             </DataTemplate>

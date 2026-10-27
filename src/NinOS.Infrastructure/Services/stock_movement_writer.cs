@@ -72,6 +72,8 @@ namespace NinOS.Infrastructure.Services
         // producto (por eso no se toca aqui), solo queda dejar constancia de la diferencia.
         // motivo_ajuste es lo que eligio el usuario en el formulario (reposicion, merma,
         // correccion de conteo...); si no se reconoce, queda el generico "AJUSTE".
+        // nota es texto libre opcional: se guarda en line_description y es lo que se ve
+        // en el historial y en el PDF del kardex.
         public static void registrar_ajuste(
             NinOSDbContext db_context,
             int id_product,
@@ -79,13 +81,21 @@ namespace NinOS.Infrastructure.Services
             string numero_documento,
             DateTime fecha,
             decimal precio_unitario,
-            string? motivo_ajuste = null)
+            string? motivo_ajuste = null,
+            string? nota = null)
         {
             if (diferencia == 0) return;
 
             string razon = stock_movement.IsKnownAdjustmentReason(motivo_ajuste)
                 ? motivo_ajuste!.Trim().ToUpperInvariant()
                 : stock_movement.RazonAjuste;
+
+            // La columna es varchar(200): se recorta aqui para no reventar el insert.
+            string? nota_limpia = string.IsNullOrWhiteSpace(nota) ? null : nota!.Trim();
+            if (nota_limpia != null && nota_limpia.Length > 200)
+            {
+                nota_limpia = nota_limpia.Substring(0, 200);
+            }
 
             var movimiento = new stock_movement(
                 fecha,
@@ -98,7 +108,8 @@ namespace NinOS.Infrastructure.Services
                 VendidoProducto,
                 precio_unitario)
             {
-                document_status = EstadoAjuste
+                document_status = EstadoAjuste,
+                line_description = nota_limpia
             };
 
             db_context.stock_movements.Add(movimiento);
@@ -158,7 +169,7 @@ namespace NinOS.Infrastructure.Services
                 ? producto.stock_quantity - cantidad
                 : producto.stock_quantity + cantidad;
 
-            if (resultante < 0)
+            if (resultante < 0 && tipo_documento != stock_movement.DocumentoEntrega)
                 throw new InvalidOperationException($"Stock insuficiente para {producto.name} (disponible: {producto.stock_quantity}).");
 
             producto.stock_quantity = resultante;
