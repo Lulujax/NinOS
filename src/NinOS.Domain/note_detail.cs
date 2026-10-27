@@ -59,6 +59,11 @@ namespace NinOS.Domain
         // el sistema le reasigne otro. Los renglones con promocion quedan en null.
         public string? product_code_snapshot { get; set; }
 
+        // Lista de precios de la que salio el precio de este renglon. Null = lista
+        // original (el ciclo de siempre). Es solo trazabilidad interna: el precio que
+        // vale la linea es el snapshot de unit_price_usd.
+        public int? id_price_list { get; set; }
+
         protected note_detail() { }
 
         public note_detail(int id_delivery_note, int? id_product, int? id_promotion, int quantity, decimal unit_price_usd, decimal subtotal_usd)

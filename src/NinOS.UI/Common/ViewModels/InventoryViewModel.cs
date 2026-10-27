@@ -148,6 +148,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private readonly IInventoryService _inventory_service;
         private readonly IProductLineService? _product_line_service;
+        private readonly IPriceListService? _price_list_service;
         private List<product> _all_products_source;
         private List<promotion> _all_promotions_source;
         private HashSet<string> _trashed_promotion_codes = new(StringComparer.Ordinal);
@@ -515,7 +516,98 @@ namespace NinOS.UI.Common.ViewModels
         public string new_price
         {
             get { return _new_price; }
-            set { _new_price = value; on_property_changed(); }
+            set
+            {
+                _new_price = value;
+                on_property_changed();
+                sync_price_list_rows_original();
+            }
+        }
+
+        // ---- Precios por lista (ventana de producto) ----
+
+        public ObservableCollection<product_price_list_row> product_list_prices { get; } = new();
+
+        public bool has_price_lists => product_list_prices.Count > 0;
+
+        /// <summary>
+        /// Mantiene el "precio original" que cada fila muestra cuando hereda. Se llama
+        /// al cambiar el precio general y al cargar las filas.
+        /// </summary>
+        private void sync_price_list_rows_original()
+        {
+            foreach (product_price_list_row fila in product_list_prices)
+            {
+                fila.original_price_display = _new_price ?? string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Carga las listas activas para la ventana de producto. En edicion trae los
+        /// precios propios del producto; vacio sigue significando herencia, asi que la
+        /// fila solo se llena si en base existe precio propio.
+        /// </summary>
+        private async void refresh_product_list_prices_async()
+        {
+            if (_price_list_service == null) return;
+
+            try
+            {
+                var listas = await _price_list_service.GetActiveAsync();
+                Dictionary<int, decimal>? propios = null;
+
+                if (_product_being_edited != null)
+                {
+                    Dictionary<int, Dictionary<int, decimal>> todos = await _price_list_service.GetAllOwnPricesAsync();
+                    todos.TryGetValue(_product_being_edited.id_product, out propios);
+                }
+
+                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(() => fill_price_list_rows(listas, propios));
+                }
+                else
+                {
+                    fill_price_list_rows(listas, propios);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn($"No se pudieron cargar las listas de precios: {ex.Message}");
+            }
+        }
+
+        private void fill_price_list_rows(List<Domain.price_list> listas, Dictionary<int, decimal>? propios)
+        {
+            product_list_prices.Clear();
+            foreach (Domain.price_list lista in listas)
+            {
+                decimal? propio = propios != null && propios.TryGetValue(lista.id_price_list, out decimal p) ? p : null;
+                product_list_prices.Add(new product_price_list_row
+                {
+                    id_price_list = lista.id_price_list,
+                    name = lista.name,
+                    price_text = propio.HasValue ? propio.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
+                    own_price = propio,
+                    original_price_display = _new_price ?? string.Empty
+                });
+            }
+            on_property_changed(nameof(has_price_lists));
+        }
+
+        /// <summary>
+        /// Guarda los precios por lista despues de crear/actualizar el producto. Si no
+        /// hay listas o el servicio no esta disponible no hace nada: el flujo del
+        /// producto ya termino y no debe fallar por esto.
+        /// </summary>
+        private async Task save_product_list_prices_async(int id_product, List<(int id_lista, decimal? precio)> precios)
+        {
+            if (_price_list_service == null || precios.Count == 0) return;
+
+            foreach ((int id_lista, decimal? precio) in precios)
+            {
+                await _price_list_service.SaveProductPriceAsync(id_product, id_lista, precio);
+            }
         }
 
         public int promo_type_index
@@ -574,6 +666,7 @@ namespace NinOS.UI.Common.ViewModels
             _inventory_service = inventory_service;
             _product_line_service = product_line_service
                 ?? ((Application.Current as App)?.GetServiceProvider()?.GetService(typeof(IProductLineService)) as IProductLineService);
+            _price_list_service = (Application.Current as App)?.GetServiceProvider()?.GetService(typeof(IPriceListService)) as IPriceListService;
 
             _all_products_source = new List<product>();
             _all_promotions_source = new List<promotion>();
@@ -1312,6 +1405,7 @@ namespace NinOS.UI.Common.ViewModels
             new_name = string.Empty;
             new_quantity = string.Empty;
             new_price = string.Empty;
+            refresh_product_list_prices_async();
             reset_adjustment_reason();
 
             update_category_from_tab();
@@ -1416,6 +1510,7 @@ namespace NinOS.UI.Common.ViewModels
                 new_category = dto.product_ref.category;
                 new_quantity = dto.product_ref.stock_quantity.ToString();
                 new_price = dto.product_ref.unit_price_usd.ToString();
+                refresh_product_list_prices_async();
 
                 on_property_changed(nameof(can_edit_category));
                 on_property_changed(nameof(is_editing_product));
@@ -1846,6 +1941,32 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            // Los precios por lista son opcionales: vacio = hereda el original. Si hay
+            // algo escrito, debe ser un numero valido; el guardado va despues del producto.
+            var precios_por_lista = new List<(int id_lista, decimal? precio)>();
+            foreach (product_price_list_row fila in product_list_prices)
+            {
+                if (string.IsNullOrWhiteSpace(fila.price_text))
+                {
+                    precios_por_lista.Add((fila.id_price_list, null));
+                    continue;
+                }
+
+                if (InputRestrictions.has_letters(fila.price_text))
+                {
+                    ErrorMessage = $"No se permiten letras en el precio de la lista \"{fila.name}\".";
+                    return;
+                }
+
+                if (!decimal.TryParse(fila.price_text.Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal precio_lista) || precio_lista < 0)
+                {
+                    ErrorMessage = $"El precio de la lista \"{fila.name}\" debe ser un número mayor o igual a 0.";
+                    return;
+                }
+
+                precios_por_lista.Add((fila.id_price_list, precio_lista));
+            }
+
             // El apartado puede quedar abierto sin que la clienta haya escrito nada: en ese
             // caso no hay ajuste que hacer y se guarda el resto de los cambios sin exigir
             // cantidad ni motivo. Frenarla con "indica la cantidad" seria un error falso.
@@ -1959,11 +2080,14 @@ namespace NinOS.UI.Common.ViewModels
                         _product_being_edited,
                         motivoParaPasar,
                         has_pending_brand_change ? new_category : null);
+
+                    await save_product_list_prices_async(_product_being_edited.id_product, precios_por_lista);
                 }
                 else
                 {
                     product new_prod = new product(normalized_code, new_name, new_category, parsed_price, parsed_quantity);
                     await _inventory_service.add_product_async(new_prod);
+                    await save_product_list_prices_async(new_prod.id_product, precios_por_lista);
                 }
 
                 _product_being_edited = null;

@@ -467,6 +467,10 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id_delivery_note");
 
+                    b.Property<int?>("id_price_list")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_price_list");
+
                     b.Property<int?>("id_product")
                         .HasColumnType("integer")
                         .HasColumnName("id_product");
@@ -497,6 +501,8 @@ namespace NinOS.Infrastructure.Migrations
                     b.HasKey("id_note_detail");
 
                     b.HasIndex("id_delivery_note");
+
+                    b.HasIndex("id_price_list");
 
                     b.HasIndex("id_product");
 
@@ -666,6 +672,43 @@ namespace NinOS.Infrastructure.Migrations
                     b.ToTable("payment", (string)null);
                 });
 
+            modelBuilder.Entity("NinOS.Domain.price_list", b =>
+                {
+                    b.Property<int>("id_price_list")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_price_list");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_price_list"));
+
+                    b.Property<DateTime>("created_at")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("is_active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("sort_order")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("id_price_list");
+
+                    b.HasIndex("name")
+                        .IsUnique();
+
+                    b.ToTable("price_list", (string)null);
+                });
+
             modelBuilder.Entity("NinOS.Domain.product", b =>
                 {
                     b.Property<int>("id_product")
@@ -776,6 +819,38 @@ namespace NinOS.Infrastructure.Migrations
                         .HasFilter("\"deleted_at\" IS NULL");
 
                     b.ToTable("product_line", (string)null);
+                });
+
+            modelBuilder.Entity("NinOS.Domain.product_price", b =>
+                {
+                    b.Property<int>("id_product_price")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_product_price");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id_product_price"));
+
+                    b.Property<int>("id_price_list")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_price_list");
+
+                    b.Property<int>("id_product")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_product");
+
+                    b.Property<decimal>("unit_price_usd")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unit_price_usd");
+
+                    b.HasKey("id_product_price");
+
+                    b.HasIndex("id_price_list");
+
+                    b.HasIndex("id_product", "id_price_list")
+                        .IsUnique();
+
+                    b.ToTable("product_price", (string)null);
                 });
 
             modelBuilder.Entity("NinOS.Domain.promotion", b =>
@@ -1311,6 +1386,11 @@ namespace NinOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("NinOS.Domain.price_list", null)
+                        .WithMany()
+                        .HasForeignKey("id_price_list")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("NinOS.Domain.product", null)
                         .WithMany()
                         .HasForeignKey("id_product")
@@ -1341,6 +1421,25 @@ namespace NinOS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("id_relacion")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NinOS.Domain.product_price", b =>
+                {
+                    b.HasOne("NinOS.Domain.price_list", "price_list")
+                        .WithMany()
+                        .HasForeignKey("id_price_list")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NinOS.Domain.product", "product")
+                        .WithMany()
+                        .HasForeignKey("id_product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("price_list");
+
+                    b.Navigation("product");
                 });
 
             modelBuilder.Entity("NinOS.Domain.promotion", b =>

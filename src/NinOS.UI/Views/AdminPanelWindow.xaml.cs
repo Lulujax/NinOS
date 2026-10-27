@@ -356,6 +356,23 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void OnEditPriceListsClick(object sender, RoutedEventArgs e)
+        {
+            var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+            var priceListService = serviceProvider?.GetService(typeof(IPriceListService)) as IPriceListService;
+            if (priceListService != null)
+            {
+                var vm = new PriceListEditViewModel(priceListService);
+                var wnd = new EditPriceListsWindow
+                {
+                    DataContext = vm,
+                    Owner = this
+                };
+                wnd.ShowDialog();
+                AppDataEvents.raise_catalogs_changed();
+            }
+        }
+
         private void OnEditProductLinesClick(object sender, RoutedEventArgs e)
         {
             var serviceProvider = (Application.Current as App)?.GetServiceProvider();

@@ -24,6 +24,8 @@ namespace NinOS.Infrastructure.Data
         public DbSet<zona> zonas { get; set; }
         public DbSet<seller_zone> seller_zones { get; set; }
         public DbSet<product_line> product_lines { get; set; }
+        public DbSet<price_list> price_lists { get; set; }
+        public DbSet<product_price> product_prices { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -183,6 +185,45 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
             });
 
+            model_builder.Entity<price_list>(entity =>
+            {
+                entity.ToTable("price_list");
+                entity.HasKey(e => e.id_price_list);
+                entity.Property(e => e.id_price_list).HasColumnName("id_price_list").UseIdentityByDefaultColumn();
+                entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
+                // El nombre es el identificador visible de la lista en notas, producto y
+                // PDF, asi que no puede repetirse ni en la papelera conceptual: al
+                // desactivar no se borra, el nombre queda reservado.
+                entity.HasIndex(e => e.name).IsUnique();
+                entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
+                entity.Property(e => e.created_at).HasColumnName("created_at").IsRequired();
+            });
+
+            model_builder.Entity<product_price>(entity =>
+            {
+                entity.ToTable("product_price");
+                entity.HasKey(e => e.id_product_price);
+                entity.Property(e => e.id_product_price).HasColumnName("id_product_price").UseIdentityByDefaultColumn();
+                entity.Property(e => e.id_product).HasColumnName("id_product").IsRequired();
+                entity.Property(e => e.id_price_list).HasColumnName("id_price_list").IsRequired();
+                entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
+                // La ausencia de fila para un par producto/lista ES la herencia: el
+                // producto sin precio propio cuelga del precio original. Por eso el par
+                // es unico y no hay fila con precio nulo.
+                entity.HasIndex(e => new { e.id_product, e.id_price_list }).IsUnique();
+
+                entity.HasOne(e => e.product)
+                    .WithMany()
+                    .HasForeignKey(e => e.id_product)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.price_list)
+                    .WithMany()
+                    .HasForeignKey(e => e.id_price_list)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             model_builder.Entity<delivery_note>(entity =>
             {
                 entity.ToTable("delivery_note");
@@ -224,10 +265,12 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.product_code_snapshot).HasColumnName("product_code_snapshot").IsRequired(false).HasMaxLength(50);
+                entity.Property(e => e.id_price_list).HasColumnName("id_price_list").IsRequired(false);
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<price_list>().WithMany().HasForeignKey(e => e.id_price_list).OnDelete(DeleteBehavior.Restrict);
             });
 
             model_builder.Entity<payment>(entity =>
