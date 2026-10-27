@@ -92,11 +92,12 @@
                     <Setter Property="Background" Value="#0D62B5"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="FontSize" Value="13.5"/>
-                    <Setter Property="Height" Value="34"/>
-                    <Setter Property="Padding" Value="6,0"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="Height" Value="36"/>
+                    <Setter Property="Padding" Value="4,1"/>
                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                     <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="TextBlock.TextAlignment" Value="Center"/>
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
@@ -146,7 +147,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="SUB TOTAL" Binding="{Binding subtotal_display}" Width="110">
+                <DataGridTextColumn Header="SUBTOTAL" Binding="{Binding subtotal_display}" Width="100">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>

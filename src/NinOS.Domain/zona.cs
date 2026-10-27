@@ -31,5 +31,8 @@ namespace NinOS.Domain
 
         [Required]
         public bool is_pro_venta { get; set; } = false;
+
+        [MaxLength(1000)]
+        public string? description { get; set; }
     }
 }

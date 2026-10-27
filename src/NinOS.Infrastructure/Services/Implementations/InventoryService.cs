@@ -687,6 +687,106 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<IEnumerable<product_sales_history_dto>> get_all_stock_movements_async()
+        {
+            return await with_connection_retry(
+                () => get_all_stock_movements_intento_async(),
+                "get_all_stock_movements_async");
+        }
+
+        private async Task<IEnumerable<product_sales_history_dto>> get_all_stock_movements_intento_async()
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                // Consultamos todos los movimientos de inventario registrados.
+                var movements = await db.stock_movements
+                    .AsNoTracking()
+                    .OrderByDescending(m => m.movement_date)
+                    .ThenByDescending(m => m.id_stock_movement)
+                    .ToListAsync();
+
+                if (movements.Count == 0) return Enumerable.Empty<product_sales_history_dto>();
+
+                // Cargamos todos los productos activos para mapear codigos, nombres, categorias y existencias.
+                // Excluimos productos inactivos y productos fantasma/zombie internos (Z-9999-INT).
+                var products = await db.products
+                    .AsNoTracking()
+                    .Where(p => p.is_active && p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-"))
+                    .ToDictionaryAsync(p => p.id_product);
+
+                var customer_ids = movements
+                    .Where(m => m.id_customer != null)
+                    .Select(m => m.id_customer!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var customers = customer_ids.Count == 0
+                    ? new Dictionary<int, customer>()
+                    : await db.customers
+                        .AsNoTracking()
+                        .Where(c => customer_ids.Contains(c.id_customer))
+                        .ToDictionaryAsync(c => c.id_customer);
+
+                var seller_ids = movements
+                    .Where(m => m.id_seller != null)
+                    .Select(m => m.id_seller!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var sellers = seller_ids.Count == 0
+                    ? new Dictionary<int, seller>()
+                    : await db.sellers
+                        .AsNoTracking()
+                        .Where(s => seller_ids.Contains(s.id_seller))
+                        .ToDictionaryAsync(s => s.id_seller);
+
+                var result = new List<product_sales_history_dto>(movements.Count);
+
+                foreach (stock_movement m in movements)
+                {
+                    // Si el producto no es activo o es un producto fantasma/zombie interno, lo excluimos de los reportes
+                    if (!products.TryGetValue(m.id_product, out var prod))
+                    {
+                        continue;
+                    }
+
+                    int unidades = m.promotion_units ?? m.quantity;
+
+                    result.Add(new product_sales_history_dto
+                    {
+                        id_product = m.id_product,
+                        product_code = prod?.product_code ?? "-",
+                        product_name = prod?.name ?? "Producto Desconocido",
+                        product_category = prod?.category ?? "OTROS",
+                        product_current_stock = prod?.stock_quantity ?? 0,
+                        id_delivery_note = m.id_delivery_note,
+                        note_number = m.document_number,
+                        creation_date = m.movement_date,
+                        customer_name = m.id_customer != null && customers.TryGetValue(m.id_customer.Value, out var c)
+                            ? c.business_name
+                            : string.Empty,
+                        seller_name = m.id_seller != null && sellers.TryGetValue(m.id_seller.Value, out var s)
+                            ? s.full_name
+                            : string.Empty,
+                        line_description = m.line_description ?? string.Empty,
+                        sold_as = m.sold_as ?? string.Empty,
+                        units_sold = unidades,
+                        unit_price_usd = m.unit_price_usd,
+                        line_subtotal_usd = m.unit_price_usd * unidades,
+                        status = m.document_status ?? string.Empty,
+                        movement_type = m.movement_type,
+                        movement_reason = m.reason,
+                        document_type = m.document_type,
+                        is_credit_note = m.id_credit_note != null
+                    });
+                }
+
+                return result;
+            }
+        }
+
         /// <summary>
         /// La base de datos esta en un VPS remoto. Cuando la conexion lleva un rato
         /// sin usarse, el servidor o el firewall pueden cortarla y la primera consulta

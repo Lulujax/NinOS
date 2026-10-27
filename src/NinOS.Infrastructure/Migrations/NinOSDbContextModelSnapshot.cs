@@ -1165,6 +1165,11 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("deleted_reason");
 
+                    b.Property<string>("description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
                     b.Property<bool>("is_active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

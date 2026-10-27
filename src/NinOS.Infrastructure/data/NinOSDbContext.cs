@@ -132,6 +132,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
                 entity.Property(e => e.is_pro_venta).HasColumnName("is_pro_venta").IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.description).HasColumnName("description").HasMaxLength(1000);
 
                 entity.HasIndex(e => e.code)
                     .IsUnique()

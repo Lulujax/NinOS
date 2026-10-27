@@ -23,5 +23,6 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task restore_promotion_async(int id_promotion);
         Task<IEnumerable<product_sales_history_dto>> get_product_sales_history_async(int id_product);
         Task<IEnumerable<promotion_sales_history_dto>> get_promotion_sales_history_async(int id_promotion);
+        Task<IEnumerable<product_sales_history_dto>> get_all_stock_movements_async();
     }
 }

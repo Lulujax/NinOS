@@ -152,6 +152,9 @@
                     <Button x:Name="btn_price_list" Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
                         Click="on_generate_price_list_click" Content="Descargar lista de precios"
                         Margin="10,0,0,0"/>
+                    <Button x:Name="btn_print_inventory" Style="{StaticResource HeaderActionButton}" Background="#0D62B5"
+                        Click="on_print_inventory_click" Content="Imprimir inventario"
+                        Margin="8,0,0,0"/>
                 </StackPanel>
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -219,6 +222,78 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- POPUP: opciones para imprimir inventario -->
+        <Popup x:Name="popup_print_inventory"
+               PlacementTarget="{Binding ElementName=btn_print_inventory}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border Background="White" BorderBrush="#0D62B5" BorderThickness="1.5" CornerRadius="6"
+                    Padding="14,12" Width="330">
+                <StackPanel>
+                    <TextBlock Text="IMPRIMIR INVENTARIO" FontSize="12" FontWeight="Bold"
+                               Foreground="#0D62B5"/>
+                    <TextBlock Text="Seleccione el tipo de reporte que desea emitir en PDF:"
+                               FontSize="10" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,12"/>
+
+                    <!-- Opcion 1: Solo Inventario Actual -->
+                    <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
+                            Padding="10,8" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="1. Solo inventario actual" FontWeight="Bold" FontSize="11.5" Foreground="#1A1A1A"/>
+                            <TextBlock Text="Existencias físicas disponibles en almacén con precios y valorización total en USD."
+                                       FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                            <Button Content="Descargar Inventario Actual"
+                                    Background="#0D62B5" Foreground="White" FontWeight="Bold"
+                                    FontSize="11.5" Height="28" BorderThickness="0" Cursor="Hand"
+                                    Click="on_download_current_inventory_click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#094A8A"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Opcion 2: Todos los Movimientos -->
+                    <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
+                            Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="2. Todos los movimientos (Kardex)" FontWeight="Bold" FontSize="11.5" Foreground="#1A1A1A"/>
+                            <TextBlock Text="Historial completo de entradas, salidas y ajustes de todos los productos (así sea extenso)."
+                                       FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                            <Button Content="Descargar Todos los Movimientos"
+                                    Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                    FontSize="11.5" Height="28" BorderThickness="0" Cursor="Hand"
+                                    Click="on_download_all_movements_click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#132A20"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
         </Popup>

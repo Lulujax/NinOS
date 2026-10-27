@@ -78,7 +78,7 @@ namespace NinOS.UI.Views
             {
                 Title = "Editar pago",
                 Width = 380,
-                Height = 300,
+                Height = 320,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this,
                 ResizeMode = ResizeMode.NoResize,
@@ -125,13 +125,36 @@ namespace NinOS.UI.Views
             var obsBox = new TextBox
             {
                 Text = dto.notes,
-                Height = 60,
+                Height = 70,
                 TextWrapping = TextWrapping.Wrap,
                 AcceptsReturn = true,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 VerticalContentAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 0, 0, 8)
             };
+
+            void ScrollObsToCaret()
+            {
+                obsBox.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        int lineIndex = obsBox.GetLineIndexFromCharacterIndex(obsBox.CaretIndex);
+                        if (lineIndex >= 0)
+                        {
+                            obsBox.ScrollToLine(lineIndex);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignorar errores transitorios
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Input);
+            }
+
+            obsBox.TextChanged += (_, _) => ScrollObsToCaret();
+            obsBox.SelectionChanged += (_, _) => ScrollObsToCaret();
+
             Grid.SetRow(obsBox, 2); Grid.SetColumn(obsBox, 1);
             grid.Children.Add(obsBox);
 

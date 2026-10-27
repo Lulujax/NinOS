@@ -10,6 +10,7 @@ namespace NinOS.UI.Common.ViewModels
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public bool IsProVenta { get; set; }
+        public string? Description { get; set; }
         public string TipoOperacionDisplay => IsProVenta ? "Pro Venta" : "General";
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }

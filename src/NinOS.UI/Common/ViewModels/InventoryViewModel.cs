@@ -224,6 +224,8 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand remove_from_builder_command { get; }
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
+        public ICommand print_current_inventory_command { get; }
+        public ICommand print_all_movements_command { get; }
         public ICommand clear_price_list_command { get; }
         public ICommand open_stock_section_command { get; }
         public ICommand close_stock_section_command { get; }
@@ -620,6 +622,8 @@ namespace NinOS.UI.Common.ViewModels
             remove_from_builder_command = new RelayCommand(execute_remove_from_builder);
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
+            print_current_inventory_command = new RelayCommand(execute_print_current_inventory);
+            print_all_movements_command = new RelayCommand(execute_print_all_movements);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
             open_stock_section_command = new RelayCommand(execute_open_stock_section);
             close_stock_section_command = new RelayCommand(execute_close_stock_section);
@@ -821,7 +825,7 @@ namespace NinOS.UI.Common.ViewModels
                 await load_product_lines_async();
 
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
-                _all_products_source = products.ToList();
+                _all_products_source = products.Where(p => p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-")).ToList();
                 
                 IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
                 _all_promotions_source = promotions.ToList();
@@ -847,7 +851,7 @@ namespace NinOS.UI.Common.ViewModels
                 await load_product_lines_async();
 
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
-                _all_products_source = products.ToList();
+                _all_products_source = products.Where(p => p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-")).ToList();
                 
                 IEnumerable<promotion> promotions = await _inventory_service.get_all_promotions_async();
                 _all_promotions_source = promotions.ToList();
@@ -1597,6 +1601,116 @@ namespace NinOS.UI.Common.ViewModels
             string safe = string.IsNullOrWhiteSpace(category) ? "Otros" : category;
             return price_list_brand_options.Any(o =>
                 o.is_checked && o.name.Equals(safe, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void execute_print_current_inventory(object? parameter)
+        {
+            try
+            {
+                var items = _all_products_source
+                    .Where(p => !string.IsNullOrWhiteSpace(p.product_code) && p.is_active && p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-"))
+                    .Select(p => new CurrentInventoryPdfItem
+                    {
+                        ProductCode = p.product_code,
+                        Name = p.name,
+                        Category = p.category,
+                        StockQuantity = p.stock_quantity,
+                        UnitPriceUsd = p.unit_price_usd
+                    })
+                    .ToList();
+
+                var model = new CurrentInventoryPdfModel
+                {
+                    EmissionDate = DateTime.Now,
+                    Items = items
+                };
+
+                CurrentInventoryPdfGenerator.generate(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al generar el reporte de inventario actual.", ex);
+                AppDialog.Show(
+                    "No se pudo generar el reporte de inventario actual.\n\n" + ErrorText.Get(ex),
+                    "Error de impresión",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_print_all_movements(object? parameter)
+        {
+            try
+            {
+                IsLoading = true;
+
+                var movements = await _inventory_service.get_all_stock_movements_async();
+                var list = movements
+                    .Where(m => m.product_code != "Z-9999-INT" && !m.product_code.StartsWith("Z-") && !string.IsNullOrWhiteSpace(m.product_code) && m.product_code != "-")
+                    .ToList();
+
+                var productGroups = list
+                    .GroupBy(m => m.id_product)
+                    .Select(g =>
+                    {
+                        var first = g.First();
+                        return new ProductMovementGroup
+                        {
+                            IdProduct = first.id_product,
+                            ProductCode = first.product_code,
+                            ProductName = first.product_name,
+                            Category = first.product_category,
+                            CurrentStock = first.product_current_stock,
+                            UnitPriceUsd = first.unit_price_usd,
+                            Rows = g.OrderByDescending(r => r.creation_date)
+                                    .ThenByDescending(r => r.id_delivery_note)
+                                    .Select(ToPdfRow)
+                                    .ToList()
+                        };
+                    })
+                    .OrderBy(g => g.Category)
+                    .ThenBy(g => g.ProductCode)
+                    .ToList();
+
+                var model = new AllMovementsPdfModel
+                {
+                    EmissionDate = DateTime.Now,
+                    ProductGroups = productGroups
+                };
+
+                AllMovementsPdfGenerator.generate(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al generar el reporte de todos los movimientos de inventario.", ex);
+                AppDialog.Show(
+                    "No se pudo generar el reporte de movimientos de inventario.\n\n" + ErrorText.Get(ex),
+                    "Error de impresión",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private static InventoryHistoryPdfRow ToPdfRow(product_sales_history_dto dto)
+        {
+            return new InventoryHistoryPdfRow
+            {
+                NoteNumber = dto.note_number ?? string.Empty,
+                FechaLocal = AppTimeZone.to_local(dto.creation_date),
+                Documento = dto.documento_display,
+                Motivo = dto.motivo_display,
+                Cliente = dto.customer_name ?? string.Empty,
+                Vendedor = dto.seller_name ?? string.Empty,
+                Movimiento = dto.movement_type,
+                Unidades = dto.units_sold,
+                PrecioUsd = dto.unit_price_usd,
+                SubtotalUsd = dto.line_subtotal_usd,
+                Estado = dto.status ?? string.Empty
+            };
         }
 
         private async void execute_delete_product(object? parameter)

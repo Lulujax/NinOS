@@ -38,9 +38,11 @@
                  HorizontalAlignment="Left" FontSize="11" VerticalContentAlignment="Center" Margin="0,0,0,8"/>
 
         <TextBlock Grid.Row="4" Grid.Column="0" Text="Observacion:" VerticalAlignment="Top" Margin="0,2,0,8"/>
-        <TextBox Grid.Row="4" Grid.Column="1" x:Name="ObservationsBox" Height="52" FontSize="11"
+        <TextBox Grid.Row="4" Grid.Column="1" x:Name="ObservationsBox" Height="65" FontSize="11"
                  TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                 VerticalContentAlignment="Top" Margin="0,0,0,8"/>
+                 VerticalContentAlignment="Top" Margin="0,0,0,8"
+                 TextChanged="ObservationsBox_TextChanged"
+                 SelectionChanged="ObservationsBox_SelectionChanged"/>
 
         <TextBlock Grid.Row="5" Grid.ColumnSpan="2" x:Name="ErrorText" Foreground="#C62828" FontSize="10"
                    TextWrapping="Wrap" Margin="0,0,0,4" Visibility="Collapsed"/>

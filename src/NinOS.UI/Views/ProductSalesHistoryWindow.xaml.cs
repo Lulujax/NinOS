@@ -22,6 +22,14 @@ namespace NinOS.UI.Views
             _product = product;
             _history = history?.ToList() ?? new List<product_sales_history_dto>();
 
+            // Calcular el saldo o subtotal de stock correlativo para cada movimiento (del mas reciente hacia atras)
+            int saldo = product.stock_quantity;
+            foreach (var item in _history)
+            {
+                item.subtotal_stock = saldo;
+                saldo -= item.signed_units;
+            }
+
             ProductNameText.Text = product.name;
             ProductCodeText.Text = product.product_code;
             ProductCategoryText.Text = product.category;

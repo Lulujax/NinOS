@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common.ViewModels;
 using NinOS.UI.Common;
@@ -105,6 +107,29 @@ namespace NinOS.UI.Views
                 BtnRegistrar.IsEnabled = true;
             }
         }
+
+        private void ScrollObservationsToCaret()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    int lineIndex = ObservationsBox.GetLineIndexFromCharacterIndex(ObservationsBox.CaretIndex);
+                    if (lineIndex >= 0)
+                    {
+                        ObservationsBox.ScrollToLine(lineIndex);
+                    }
+                }
+                catch
+                {
+                    // Ignorar errores de scroll en estados transitorios
+                }
+            }), DispatcherPriority.Input);
+        }
+
+        private void ObservationsBox_TextChanged(object sender, TextChangedEventArgs e) => ScrollObservationsToCaret();
+
+        private void ObservationsBox_SelectionChanged(object sender, RoutedEventArgs e) => ScrollObservationsToCaret();
 
         private void OnCancelClick(object sender, RoutedEventArgs e) => Close();
     }

@@ -1,4 +1,4 @@
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.UI.Common.ViewModels;
@@ -99,6 +99,31 @@ namespace NinOS.UI.Views
             if (DataContext is InventoryViewModel view_model)
             {
                 view_model.generate_price_list_command.Execute(null);
+            }
+        }
+
+        private void on_print_inventory_click(object sender, RoutedEventArgs e)
+        {
+            popup_print_inventory.IsOpen = !popup_print_inventory.IsOpen;
+        }
+
+        private void on_download_current_inventory_click(object sender, RoutedEventArgs e)
+        {
+            popup_print_inventory.IsOpen = false;
+
+            if (DataContext is InventoryViewModel view_model)
+            {
+                view_model.print_current_inventory_command.Execute(null);
+            }
+        }
+
+        private void on_download_all_movements_click(object sender, RoutedEventArgs e)
+        {
+            popup_print_inventory.IsOpen = false;
+
+            if (DataContext is InventoryViewModel view_model)
+            {
+                view_model.print_all_movements_command.Execute(null);
             }
         }
 

@@ -126,9 +126,9 @@ namespace NinOS.UI.Common
                 container.Page(page =>
                 {
                     page.Size(PageSizes.Letter);
-                    page.MarginLeft(1, Unit.Centimetre);
+                    page.MarginLeft(0.8f, Unit.Centimetre);
                     page.MarginTop(1, Unit.Centimetre);
-                    page.MarginRight(1, Unit.Centimetre);
+                    page.MarginRight(0.8f, Unit.Centimetre);
                     page.MarginBottom(1, Unit.Centimetre);
                     page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(7.5f).FontColor(DarkText));
 
@@ -310,7 +310,7 @@ namespace NinOS.UI.Common
             int total_salidas)
         {
             bool con_saldos = model.MostrarSaldos;
-            int columnas = con_saldos ? 12 : 11;
+            int columnas = con_saldos ? 11 : 10;
 
             col.Item().PaddingBottom(2).Row(row =>
             {
@@ -329,23 +329,22 @@ namespace NinOS.UI.Common
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(0.95f); // Fecha (dd/MM/yyyy completo, sin partirse)
-                    columns.RelativeColumn(1.15f); // Documento
-                    columns.RelativeColumn(1.15f); // N documento
-                    columns.RelativeColumn(1.20f); // Motivo
-                    columns.RelativeColumn(2.10f); // Cliente
-                    columns.RelativeColumn(1.25f); // Vendedor
-                    columns.RelativeColumn(0.90f); // Movimiento
-                    columns.RelativeColumn(0.75f); // Unidades
+                    columns.RelativeColumn(1.05f); // Nota
+                    columns.RelativeColumn(0.95f); // Fecha
+                    columns.RelativeColumn(1.20f); // Documento
+                    columns.RelativeColumn(1.35f); // Motivo
+                    columns.RelativeColumn(2.15f); // Cliente
+                    columns.RelativeColumn(1.15f); // Vendedor
+                    columns.RelativeColumn(1.05f); // Movimiento
+                    columns.RelativeColumn(0.80f); // Unidades
 
                     if (con_saldos)
                     {
-                        columns.RelativeColumn(0.75f); // Saldo
+                        columns.RelativeColumn(0.80f); // Stock
                     }
 
-                    columns.RelativeColumn(0.85f); // Precio
-                    columns.RelativeColumn(0.95f); // Subtotal
-                    columns.RelativeColumn(0.95f); // Estado
+                    columns.RelativeColumn(0.90f); // Precio
+                    columns.RelativeColumn(1.10f); // Estado
                 });
 
                 table.Header(header =>
@@ -357,22 +356,21 @@ namespace NinOS.UI.Common
                         t.FontColor(Colors.White).Bold().FontSize(6.5f);
                     }
 
+                    h("NOTA");
                     h("FECHA");
                     h("DOCUMENTO");
-                    h("N DOC");
                     h("MOTIVO");
                     h("CLIENTE");
                     h("VENDEDOR");
-                    h("MOV.", center: true);
-                    h("UNID.", right: true);
+                    h("MOVIMIENTO", center: true);
+                    h("UNIDADES", right: true);
 
                     if (con_saldos)
                     {
-                        h("SALDO", right: true);
+                        h("SUBTOTAL\nSTOCK", right: true);
                     }
 
                     h("PRECIO ($)", right: true);
-                    h("SUBTOTAL ($)", right: true);
                     h("ESTADO");
                 });
 
@@ -392,9 +390,9 @@ namespace NinOS.UI.Common
                         t.FontColor(customColor ?? DarkText);
                     }
 
+                    cellText(string.IsNullOrWhiteSpace(r.NoteNumber) ? "-" : r.NoteNumber, bold: true);
                     cellText(r.FechaLocal.ToString("dd/MM/yyyy"));
                     cellText(string.IsNullOrWhiteSpace(r.Documento) ? "-" : r.Documento);
-                    cellText(string.IsNullOrWhiteSpace(r.NoteNumber) ? "-" : r.NoteNumber);
                     cellText(string.IsNullOrWhiteSpace(r.Motivo) ? "-" : r.Motivo);
                     cellText(string.IsNullOrWhiteSpace(r.Cliente) ? "-" : r.Cliente);
                     cellText(string.IsNullOrWhiteSpace(r.Vendedor) ? "-" : r.Vendedor);
@@ -407,7 +405,6 @@ namespace NinOS.UI.Common
                     }
 
                     cellText(r.PrecioUsd.ToString("N2", Ve), right: true);
-                    cellText(r.SubtotalUsd.ToString("N2", Ve), right: true);
                     cellText(string.IsNullOrWhiteSpace(r.Estado) ? "-" : r.Estado);
                 }
 
@@ -436,8 +433,8 @@ namespace NinOS.UI.Common
             });
 
             col.Item().PaddingTop(2).Text(con_saldos
-                    ? "El SALDO es la existencia que quedo despues de cada movimiento. Los movimientos se listan del mas reciente al mas antiguo."
-                    : "Los movimientos se listan del mas reciente al mas antiguo.")
+                    ? "El STOCK es la existencia que quedó después de cada movimiento. Los movimientos se listan del más reciente al más antiguo."
+                    : "Los movimientos se listan del más reciente al más antiguo.")
                 .FontSize(6.5f).Italic().FontColor(MutedText);
         }
 

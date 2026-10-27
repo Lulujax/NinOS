@@ -1,9 +1,15 @@
-﻿using System;
+using System;
 
 namespace NinOS.Domain.ViewModels
 {
     public class product_sales_history_dto
     {
+        public int id_product { get; set; }
+        public string product_code { get; set; } = string.Empty;
+        public string product_name { get; set; } = string.Empty;
+        public string product_category { get; set; } = string.Empty;
+        public int product_current_stock { get; set; }
+
         public int? id_delivery_note { get; set; }
         public string note_number { get; set; } = string.Empty;
         public DateTime creation_date { get; set; }
@@ -14,6 +20,7 @@ namespace NinOS.Domain.ViewModels
         public int units_sold { get; set; }
         public decimal unit_price_usd { get; set; }
         public decimal line_subtotal_usd { get; set; }
+        public int subtotal_stock { get; set; }
         public string status { get; set; } = string.Empty;
         public string movement_type { get; set; } = string.Empty;
         public string movement_reason { get; set; } = string.Empty;
@@ -28,6 +35,7 @@ namespace NinOS.Domain.ViewModels
         public string unidades_display => units_sold.ToString();
         public string precio_display => unit_price_usd.ToString("N2");
         public string subtotal_display => line_subtotal_usd.ToString("N2");
+        public string subtotal_stock_display => subtotal_stock.ToString("N0");
 
         // Con signo, para que en la grilla se lea "entro 5" o "salieron 3" y no un
         // numero suelto del que hay que adivinar la direccion.
