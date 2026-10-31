@@ -59,6 +59,8 @@ namespace NinOS.UI
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            base.OnStartup(e);
+
             try
             {
                 log_startup_message("OnStartup begin");
@@ -72,53 +74,78 @@ namespace NinOS.UI
 
                 SplashWindow splash = new SplashWindow();
                 splash.ShowWithAnimation();
-                DateTime started_at = DateTime.Now;
 
                 ServiceCollection service_collection = new ServiceCollection();
                 configure_services(service_collection);
                 _service_provider = service_collection.BuildServiceProvider();
 
-                System.Threading.Tasks.Task.Run(async () =>
+                splash.ExitRequested += (s, args) =>
                 {
-                    log_startup_message("Before DbInitializer");
-                    using (var scope = _service_provider.CreateScope())
-                    {
-                        var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                        DbInitializer.initialize(db_context);
+                    Current.Shutdown();
+                };
 
-                        // Pre-calentar conexion y datos en paralelo durante la pantalla de carga
-                        var receivable = scope.ServiceProvider.GetRequiredService<IAccountsReceivableService>();
-                        var commission = scope.ServiceProvider.GetRequiredService<ICommissionService>();
-                        var inventory = scope.ServiceProvider.GetRequiredService<IInventoryService>();
-                        var credit = scope.ServiceProvider.GetRequiredService<ICreditNoteService>();
-
-                        await System.Threading.Tasks.Task.WhenAll(
-                            receivable.get_all_notes_async(),
-                            commission.get_all_commissions_async(),
-                            inventory.get_all_products_async(),
-                            credit.get_credit_note_months_async()
-                        );
-                    }
-                    log_startup_message("After DbInitializer");
-                }).ContinueWith(previous =>
+                splash.RetryRequested += (s, args) =>
                 {
-                    if (previous.IsFaulted)
+                    start_startup_pipeline(splash);
+                };
+
+                start_startup_pipeline(splash);
+            }
+            catch (Exception ex)
+            {
+                log_startup_message("OnStartup critical exception", ex);
+                AppDialog.Show(
+                    "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) +
+                    "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
+                    "No se pudo iniciar NinOS");
+                Current.Shutdown();
+            }
+        }
+
+        private void start_startup_pipeline(SplashWindow splash)
+        {
+            DateTime started_at = DateTime.Now;
+
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                log_startup_message("Before DbInitializer (attempt)");
+
+                // Cada intento crea su propio scope limpio para evitar instancias de DbContext o conexiones dañadas
+                using (var scope = _service_provider!.CreateScope())
+                {
+                    var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                    DbInitializer.initialize(db_context);
+
+                    // Pre-calentar conexion y datos en paralelo durante la pantalla de carga
+                    var receivable = scope.ServiceProvider.GetRequiredService<IAccountsReceivableService>();
+                    var commission = scope.ServiceProvider.GetRequiredService<ICommissionService>();
+                    var inventory = scope.ServiceProvider.GetRequiredService<IInventoryService>();
+                    var credit = scope.ServiceProvider.GetRequiredService<ICreditNoteService>();
+
+                    await System.Threading.Tasks.Task.WhenAll(
+                        receivable.get_all_notes_async(),
+                        commission.get_all_commissions_async(),
+                        inventory.get_all_products_async(),
+                        credit.get_credit_note_months_async()
+                    );
+                }
+                log_startup_message("After DbInitializer (success)");
+            }).ContinueWith(previous =>
+            {
+                if (previous.IsFaulted)
+                {
+                    Exception exception = previous.Exception?.GetBaseException() ?? new Exception("Error de conexión");
+                    log_startup_message("Startup task faulted", exception);
+
+                    Dispatcher.BeginInvoke(() =>
                     {
-                        Exception exception = previous.Exception?.GetBaseException() ?? new Exception("Error de arranque");
-                        Dispatcher.BeginInvoke(() =>
-                        {
-                            log_startup_message("OnStartup exception", exception);
-                            AppDialog.Show(
-                                "NinOS no pudo iniciar.\n\n" + ErrorText.Get(exception) +
-                                "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
-                                "No se pudo iniciar NinOS");
-                            Current.Shutdown();
-                        });
-                        return;
-                    }
+                        splash.SetError("No se pudo conectar con el servidor. Verifique su conexión a internet.");
+                    });
+                    return;
+                }
 
-                    log_startup_message("After DbInitializer");
-
+                Dispatcher.BeginInvoke(() =>
+                {
                     DateTime ready_at = DateTime.Now;
                     int remaining_ms = Math.Max(0, (2 * 1000) - (int)((ready_at - started_at).TotalMilliseconds));
 
@@ -145,63 +172,13 @@ namespace NinOS.UI
                             main_window.Focus();
                             splash.CloseWithAnimation();
                             AppLog.Info("Aplicación iniciada correctamente");
-                            base.OnStartup(e);
                             log_startup_message("OnStartup end");
                         };
                         build_timer.Start();
                     };
                     ready_timer.Start();
-                }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
-
-            }
-            catch (Exception ex)
-            {
-                log_startup_message("OnStartup exception", ex);
-
-                // Lo mas comun al iniciar es que la base no este todavia. Cerrar y obligar a
-                // abrir la app de nuevo es una molestia, asi que se ofrece reintentar y solo
-                // se sale si el usuario elige salir o se acabaron los intentos.
-                const int max_intentos = 5;
-                bool salir = false;
-
-                for (int intento = 1; intento <= max_intentos && !salir; intento++)
-                {
-                    string detalle_intento = max_intentos > 1
-                        ? $"\n\n(Intento {intento} de {max_intentos}.)"
-                        : string.Empty;
-
-                    var reintentar = AppDialog.Show(
-                        "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) + detalle_intento +
-                        "\n\nSi la base de datos o la red todavia no estan listas, puede reintentar." +
-                        "\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
-                        "No se pudo iniciar NinOS",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Error,
-                        MessageBoxResult.No,
-                        "Reintentar", "Salir");
-
-                    if (reintentar != MessageBoxResult.Yes)
-                    {
-                        salir = true;
-                        break;
-                    }
-
-                    log_startup_message($"Reintento {intento} de arranque");
-
-                    try
-                    {
-                    OnStartup(e);
-                    return;
-                    }
-                    catch (Exception retry_ex)
-                    {
-                        ex = retry_ex;
-                        log_startup_message("OnStartup exception (reintento)", retry_ex);
-                    }
-                }
-
-                Current.Shutdown();
-            }
+                });
+            });
         }
 
         private static void log_startup_message(string message, Exception? exception = null)

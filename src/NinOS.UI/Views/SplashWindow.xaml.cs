@@ -8,6 +8,9 @@ namespace NinOS.UI.Views
 {
     public partial class SplashWindow : Window
     {
+        public event EventHandler? RetryRequested;
+        public event EventHandler? ExitRequested;
+
         private readonly DispatcherTimer _dots_timer;
         private int _dots_count;
 
@@ -74,11 +77,18 @@ namespace NinOS.UI.Views
             ProgressRect.RenderTransform = translate;
 
             // El recorrido va del ancho de la barra menos el del bloque: -76 entra por la
-            // izquierda y 280 deja el bloque al borde derecho. Los valores viejos (-60, 220)
-            // dejaban el bloque parado antes del final y sobraba hueco a la derecha.
+            // izquierda y 280 deja el bloque al borde derecho.
             DoubleAnimation slide = new DoubleAnimation(-76, 280, TimeSpan.FromMilliseconds(1100));
             slide.RepeatBehavior = RepeatBehavior.Forever;
             translate.BeginAnimation(TranslateTransform.XProperty, slide);
+        }
+
+        private void stop_progress_animation()
+        {
+            if (ProgressRect.RenderTransform is TranslateTransform translate)
+            {
+                translate.BeginAnimation(TranslateTransform.XProperty, null);
+            }
         }
 
         public void ShowWithAnimation()
@@ -90,6 +100,7 @@ namespace NinOS.UI.Views
         public void CloseWithAnimation()
         {
             _dots_timer.Stop();
+            stop_progress_animation();
             DoubleAnimation fade_out = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300));
             fade_out.Completed += (s, e) => Close();
             BeginAnimation(OpacityProperty, fade_out);
@@ -98,12 +109,66 @@ namespace NinOS.UI.Views
         public void SetReady()
         {
             _dots_timer.Stop();
-            ProgressRect.Visibility = Visibility.Collapsed;
+            stop_progress_animation();
+            if (ProgressBarContainer != null) ProgressBarContainer.Visibility = Visibility.Collapsed;
+            if (ErrorPanel != null) ErrorPanel.Visibility = Visibility.Collapsed;
             LoadingPanel.Visibility = Visibility.Collapsed;
             ReadyPanel.Visibility = Visibility.Visible;
             ReadyPanel.Opacity = 0;
             DoubleAnimation fade_in = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
             ReadyPanel.BeginAnimation(OpacityProperty, fade_in);
+        }
+
+        public void SetError(string? message = null)
+        {
+            _dots_timer.Stop();
+            stop_progress_animation();
+            LoadingPanel.Visibility = Visibility.Collapsed;
+            ReadyPanel.Visibility = Visibility.Collapsed;
+            if (ProgressBarContainer != null) ProgressBarContainer.Visibility = Visibility.Collapsed;
+
+            if (!string.IsNullOrWhiteSpace(message) && ErrorMessageText != null)
+            {
+                ErrorMessageText.Text = message;
+            }
+
+            if (ErrorPanel != null)
+            {
+                ErrorPanel.Visibility = Visibility.Visible;
+                ErrorPanel.Opacity = 0;
+                DoubleAnimation fade_in = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250));
+                ErrorPanel.BeginAnimation(OpacityProperty, fade_in);
+            }
+        }
+
+        public void SetLoading()
+        {
+            if (ErrorPanel != null) ErrorPanel.Visibility = Visibility.Collapsed;
+            ReadyPanel.Visibility = Visibility.Collapsed;
+            LoadingPanel.Visibility = Visibility.Visible;
+            if (ProgressBarContainer != null) ProgressBarContainer.Visibility = Visibility.Visible;
+            ProgressRect.Visibility = Visibility.Visible;
+
+            start_progress_animation();
+            _dots_timer.Start();
+        }
+
+        private void RetryButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetLoading();
+            RetryRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ExitRequested != null)
+            {
+                ExitRequested.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                Application.Current.Shutdown();
+            }
         }
 
         private void Border_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

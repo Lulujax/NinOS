@@ -53,11 +53,76 @@
                                VerticalAlignment="Center" Margin="6,0,0,0" />
                 </StackPanel>
 
-                <Border Width="280" Height="7" CornerRadius="4" Background="#2A3138"
+                <Border x:Name="ProgressBarContainer" Width="280" Height="7" CornerRadius="4" Background="#2A3138"
                         HorizontalAlignment="Center" Margin="0,16,0,0" ClipToBounds="True">
                     <Rectangle x:Name="ProgressRect" Width="76" Height="7" RadiusX="4" RadiusY="4"
                                Fill="#C9A227" HorizontalAlignment="Left" />
                 </Border>
+
+                <!-- Panel de Error / Reconexion -->
+                <StackPanel x:Name="ErrorPanel" HorizontalAlignment="Center" Margin="24,14,24,0" Visibility="Collapsed">
+                    <TextBlock x:Name="ErrorTitleText" Text="No se pudo conectar con el servidor" 
+                               FontSize="13.5" FontWeight="SemiBold" Foreground="#E06C75"
+                               HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="ErrorMessageText" Text="Verifique su conexión a internet e intente nuevamente." 
+                               FontSize="12" Foreground="#8A96A0"
+                               HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,14"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="RetryButton" Content="REINTENTAR CONEXIÓN" Click="RetryButton_Click"
+                                Background="#C9A227" Foreground="#161A1F" FontWeight="Bold" FontSize="11.5"
+                                Padding="16,8" Cursor="Hand" BorderThickness="0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="#DFB738"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="#B38F20"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button x:Name="ExitButton" Content="SALIR" Click="ExitButton_Click"
+                                Background="#252C34" Foreground="#C9D6CF" FontWeight="SemiBold" FontSize="11.5"
+                                Margin="10,0,0,0" Padding="16,8" Cursor="Hand" BorderThickness="0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="#313A45"/>
+                                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="#1C2128"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>
