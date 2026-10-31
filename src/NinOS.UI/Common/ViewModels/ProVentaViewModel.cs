@@ -461,7 +461,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private async Task load_report_async()
         {
-            if (_selected_week == null)
+            if (_selected_week == null && _selected_relation == null)
             {
                 _report = null;
                 report_rows.Clear();
@@ -471,7 +471,19 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                var report = await _pro_venta_service.get_weekly_report_async(_selected_week);
+                pro_venta_weekly_dto report;
+                if (_selected_relation != null && _selected_relation.id_relacion > 0)
+                {
+                    report = await _pro_venta_service.get_relation_report_async(_selected_relation.id_relacion);
+                }
+                else if (_selected_week != null)
+                {
+                    report = await _pro_venta_service.get_weekly_report_async(_selected_week);
+                }
+                else
+                {
+                    return;
+                }
                 report.city = "MARACAY";
                 _report = report;
 
@@ -576,15 +588,7 @@ namespace NinOS.UI.Common.ViewModels
 
             try
             {
-                var week = new pro_venta_week_info
-                {
-                    week_index = row.relation_number,
-                    start = row.week_start,
-                    end = row.week_end,
-                    label = $"{row.week_start:dd} AL {row.week_end:dd}"
-                };
-
-                var report = await _pro_venta_service.get_weekly_report_async(week);
+                var report = await _pro_venta_service.get_relation_report_async(row.id_relacion);
                 decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
                 var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
                     .OrderBy(p => p.payment_date)
@@ -654,15 +658,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var week = new pro_venta_week_info
-                {
-                    week_index = row.relation_number,
-                    start = row.week_start,
-                    end = row.week_end,
-                    label = $"{row.week_start:dd} AL {row.week_end:dd}"
-                };
-
-                var report = await _pro_venta_service.get_weekly_report_async(week);
+                var report = await _pro_venta_service.get_relation_report_async(row.id_relacion);
                 decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
                 var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
                     .OrderBy(p => p.payment_date)
@@ -717,6 +713,11 @@ namespace NinOS.UI.Common.ViewModels
                 return;
             }
 
+            if (_selected_relation != null && _selected_relation.week_start.Date == _selected_week.start.Date)
+            {
+                return;
+            }
+
             _is_syncing_week_relation = true;
             try
             {
@@ -751,10 +752,10 @@ namespace NinOS.UI.Common.ViewModels
                     {
                         _selected_week = current_week_match;
                         on_property_changed(nameof(selected_week));
-                        if (!_is_loading)
-                        {
-                            _ = load_report_async();
-                        }
+                    }
+                    if (!_is_loading)
+                    {
+                        _ = load_report_async();
                     }
                     return;
                 }

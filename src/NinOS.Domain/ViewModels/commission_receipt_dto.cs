@@ -12,6 +12,7 @@ namespace NinOS.Domain.ViewModels
         public DateTime? payment_date { get; set; }
         public decimal paid_amount { get; set; }
         public decimal early_payment_discount { get; set; }
+        public decimal commission_percentage { get; set; } = 0.10m;
         public decimal commission_10 { get; set; }
         public DateTime? commission_paid_date { get; set; }
     }

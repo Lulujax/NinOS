@@ -476,6 +476,10 @@ return new commission_dto
                     decimal paid = note?.adjusted_total_usd ?? 0m;
                     decimal pronto = invoiced > paid ? invoiced - paid : 0m;
 
+                    decimal comm_amt = c.amount_usd > 0
+                        ? c.amount_usd
+                        : Math.Round(paid * (c.commission_percentage > 0 ? c.commission_percentage : 0.10m), 2);
+
                     return new commission_receipt_row_dto
                     {
                         dispatch_date = note?.creation_date,
@@ -485,7 +489,8 @@ return new commission_dto
                         payment_date = raw_last_payment == default ? (DateTime?)null : raw_last_payment,
                         paid_amount = paid,
                         early_payment_discount = pronto,
-                        commission_10 = Math.Round(paid * 0.10m, 2),
+                        commission_percentage = c.commission_percentage > 0 ? c.commission_percentage : 0.10m,
+                        commission_10 = comm_amt,
                         commission_paid_date = batch_date
                     };
                 })

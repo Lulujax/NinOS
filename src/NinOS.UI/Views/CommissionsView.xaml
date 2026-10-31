@@ -199,6 +199,8 @@
                               ElementStyle="{StaticResource CellTextWrap}"/>
                             <DataGridTextColumn Header="VENTA" Binding="{Binding sale_amount_usd, StringFormat=F2}" Width="90"
                               ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="% COM." Binding="{Binding commission_percentage_text}" Width="65"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
                             <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=F2}" Width="90">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">

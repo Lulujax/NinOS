@@ -383,6 +383,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand remove_from_builder_command { get; }
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
+        public ICommand generate_price_list_excel_command { get; }
         public ICommand print_current_inventory_command { get; }
         public ICommand print_all_movements_command { get; }
         public ICommand clear_price_list_command { get; }
@@ -792,6 +793,7 @@ namespace NinOS.UI.Common.ViewModels
             remove_from_builder_command = new RelayCommand(execute_remove_from_builder);
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
+            generate_price_list_excel_command = new RelayCommand(execute_generate_price_list_excel);
             print_current_inventory_command = new RelayCommand(execute_print_current_inventory);
             print_all_movements_command = new RelayCommand(execute_print_all_movements);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
@@ -1898,7 +1900,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void execute_generate_price_list(object? parameter)
+        private async Task<(List<price_list_item> items, List<price_list_column> columns)?> prepare_price_list_data_async()
         {
             if (price_list_brand_options.Count == 0 || price_list_brand_options.All(o => !o.is_checked))
             {
@@ -1907,125 +1909,151 @@ namespace NinOS.UI.Common.ViewModels
                     "Lista de precios",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Information);
-                return;
+                return null;
             }
 
-            try
+            // Cargar precios propios de manera asíncrona sin bloquear el hilo de la UI
+            Dictionary<int, Dictionary<int, decimal>> allOwn = new Dictionary<int, Dictionary<int, decimal>>();
+            if (_price_list_service != null)
             {
-                var items = new List<price_list_item>();
-
-                // Cargar precios propios si hay servicio
-                Dictionary<int, Dictionary<int, decimal>> allOwn = new Dictionary<int, Dictionary<int, decimal>>();
-                if (_price_list_service != null)
+                try
                 {
-                    try
+                    allOwn = await _price_list_service.GetAllOwnPricesAsync();
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Warn($"No se pudieron cargar precios propios: {ex.Message}");
+                    allOwn = new Dictionary<int, Dictionary<int, decimal>>();
+                }
+            }
+
+            // Determinar listas seleccionadas
+            var selectedLists = price_list_selection_options.Where(x => x.is_checked).ToList();
+            bool includePrincipal = is_principal_included_in_report;
+
+            if (!includePrincipal && selectedLists.Count == 0)
+            {
+                AppDialog.Show(
+                    "Seleccione al menos una lista de precios para generar el reporte.",
+                    "Lista de precios",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            var columns = new List<price_list_column>();
+            if (includePrincipal)
+            {
+                columns.Add(new price_list_column { key = "ORIGINAL", name = _principal_price_list_name, is_original = true });
+            }
+            foreach (var sl in selectedLists)
+            {
+                columns.Add(new price_list_column { key = sl.id_price_list.ToString(), name = sl.name, is_original = false });
+            }
+
+            var items = new List<price_list_item>();
+
+            foreach (product p in _all_products_source)
+            {
+                if (string.IsNullOrWhiteSpace(p.product_code) || string.IsNullOrWhiteSpace(p.name)) continue;
+                if (p.unit_price_usd <= 0) continue;
+                if (!is_brand_selected(p.category)) continue;
+
+                var pricesByKey = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                if (allOwn.TryGetValue(p.id_product, out var ownDict))
+                {
+                    foreach (var kv in ownDict)
                     {
-                        allOwn = _price_list_service.GetAllOwnPricesAsync().GetAwaiter().GetResult();
-                    }
-                    catch
-                    {
-                        allOwn = new Dictionary<int, Dictionary<int, decimal>>();
+                        pricesByKey[kv.Key.ToString()] = kv.Value;
                     }
                 }
 
-                // Determinar listas seleccionadas
-                var selectedLists = price_list_selection_options.Where(x => x.is_checked).ToList();
-                bool includePrincipal = is_principal_included_in_report;
-
-                if (!includePrincipal && selectedLists.Count == 0)
+                items.Add(new price_list_item
                 {
-                    AppDialog.Show(
-                        "Seleccione al menos una lista de precios para generar el reporte.",
-                        "Lista de precios",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Information);
-                    return;
-                }
+                    product_code = p.product_code,
+                    name = p.name,
+                    brand = p.category,
+                    unit_price_usd = p.unit_price_usd,
+                    prices_by_key = pricesByKey
+                });
+            }
 
-                var columns = new List<price_list_column>();
-                if (includePrincipal)
+            foreach (promotion promo in _all_promotions_source)
+            {
+                if (promo.items == null || promo.items.Count == 0) continue;
+                if (promo.items.Any(i => i.product == null || i.quantity_required <= 0)) continue;
+
+                string raw = promo.promotion_code ?? string.Empty;
+
+                // Las ofertas no son precios de lista estandar.
+                if (promo_is_oferta(raw)) continue;
+
+                if (promo.unit_price_usd <= 0) continue;
+
+                // Solo kits y combos (productos empaquetados con precio fijo). Si el
+                // codigo viene del formato antiguo se deduce de la composicion.
+                int tipo = promo_type_from_code(
+                    raw,
+                    promo.items?.Count ?? 0,
+                    promo.items != null && promo.items.Count == 1 && promo.items[0].quantity_required == 1);
+
+                if (tipo == 0) continue;
+
+                string code = raw;
+
+                var brands = promo.items
+                    .Select(i => string.IsNullOrWhiteSpace(i.product!.category) ? "Otros" : i.product!.category!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Where(is_brand_selected)
+                    .ToList();
+
+                if (brands.Count == 0) continue;
+
+                foreach (string brand in brands)
                 {
-                    columns.Add(new price_list_column { key = "ORIGINAL", name = _principal_price_list_name, is_original = true });
-                }
-                foreach (var sl in selectedLists)
-                {
-                    columns.Add(new price_list_column { key = sl.id_price_list.ToString(), name = sl.name, is_original = false });
-                }
-
-                foreach (product p in _all_products_source)
-                {
-                    if (string.IsNullOrWhiteSpace(p.product_code) || string.IsNullOrWhiteSpace(p.name)) continue;
-                    if (p.unit_price_usd <= 0) continue;
-                    if (!is_brand_selected(p.category)) continue;
-
-                    var pricesByKey = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-                    if (allOwn.TryGetValue(p.id_product, out var ownDict))
-                    {
-                        foreach (var kv in ownDict)
-                        {
-                            pricesByKey[kv.Key.ToString()] = kv.Value;
-                        }
-                    }
-
                     items.Add(new price_list_item
                     {
-                        product_code = p.product_code,
-                        name = p.name,
-                        brand = p.category,
-                        unit_price_usd = p.unit_price_usd,
-                        prices_by_key = pricesByKey
+                        product_code = code,
+                        name = promo.name,
+                        brand = brand,
+                        unit_price_usd = promo.unit_price_usd,
+                        prices_by_key = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
                     });
                 }
+            }
 
-                foreach (promotion promo in _all_promotions_source)
-                {
-                    if (promo.items == null || promo.items.Count == 0) continue;
-                    if (promo.items.Any(i => i.product == null || i.quantity_required <= 0)) continue;
+            return (items, columns);
+        }
 
-                    string raw = promo.promotion_code ?? string.Empty;
+        private async void execute_generate_price_list(object? parameter)
+        {
+            try
+            {
+                var data = await prepare_price_list_data_async();
+                if (data == null) return;
 
-                    // Las ofertas no son precios de lista estandar.
-                    if (promo_is_oferta(raw)) continue;
-
-                    if (promo.unit_price_usd <= 0) continue;
-
-                    // Solo kits y combos (productos empaquetados con precio fijo). Si el
-                    // codigo viene del formato antiguo se deduce de la composicion.
-                    int tipo = promo_type_from_code(
-                        raw,
-                        promo.items?.Count ?? 0,
-                        promo.items != null && promo.items.Count == 1 && promo.items[0].quantity_required == 1);
-
-                    if (tipo == 0) continue;
-
-                    string code = raw;
-
-                    var brands = promo.items
-                        .Select(i => string.IsNullOrWhiteSpace(i.product!.category) ? "Otros" : i.product!.category!)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Where(is_brand_selected)
-                        .ToList();
-
-                    if (brands.Count == 0) continue;
-
-                    foreach (string brand in brands)
-                    {
-                        items.Add(new price_list_item
-                        {
-                            product_code = code,
-                            name = promo.name,
-                            brand = brand,
-                            unit_price_usd = promo.unit_price_usd,
-                            prices_by_key = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
-                        });
-                    }
-                }
-
-                PriceListPdfGenerator.generate(items, columns);
+                PriceListPdfGenerator.generate(data.Value.items, data.Value.columns);
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo generar la lista de precios: {ErrorText.Get(ex)}";
+                AppLog.Error("Error al generar la lista de precios en PDF", ex);
+                AppDialog.Show("No se pudo generar la lista de precios en PDF: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_generate_price_list_excel(object? parameter)
+        {
+            try
+            {
+                var data = await prepare_price_list_data_async();
+                if (data == null) return;
+
+                PriceListExcelGenerator.generate(data.Value.items, data.Value.columns);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al exportar la lista de precios a Excel", ex);
+                AppDialog.Show("No se pudo exportar la lista de precios a Excel: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

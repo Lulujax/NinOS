@@ -56,7 +56,10 @@ namespace NinOS.UI.Common
             // los asientos de anulacion (monto negativo) no cuentan como abono. Sumarlos correria el saldo.
             var vigente = dto.rows.Where(n => !n.esta_anulada).ToList();
 
-            decimal total_notes = vigente.Sum(n => n.amount);
+            decimal total_notes = relation_info != null
+                ? relation_info.amount
+                : (vigente.Count > 0 ? vigente.Sum(n => n.amount) : dto.total_amount);
+
             decimal total_paid = payments != null && payments.Count > 0
                 ? payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd)
                 : (relation_info?.paid_amount_usd ?? 0m);
@@ -220,13 +223,22 @@ namespace NinOS.UI.Common
             // asientos de anulacion (monto negativo) no cuentan como abono. Sumarlos correria el saldo.
             var vigente = dto.rows.Where(n => !n.esta_anulada).ToList();
 
-            decimal total_notes = vigente.Sum(n => n.amount);
+            decimal total_notes = relation_info != null
+                ? relation_info.amount
+                : (vigente.Count > 0 ? vigente.Sum(n => n.amount) : dto.total_amount);
+
             decimal total_paid = payments != null && payments.Count > 0
                 ? payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd)
                 : (relation_info?.paid_amount_usd ?? 0m);
 
-            decimal balance_due = total_notes - total_paid;
-            if (balance_due < 0) balance_due = 0;
+            decimal balance_due = relation_info != null
+                ? relation_info.balance_due_usd
+                : Math.Max(0m, total_notes - total_paid);
+
+            bool is_paid = string.Equals(relation_info?.status, "Pagada", StringComparison.OrdinalIgnoreCase)
+                || (total_paid > 0 && balance_due <= 0.005m);
+
+            if (is_paid || balance_due <= 0.005m) balance_due = 0m;
 
             string relation_label = $"NRO {dto.relation_number} ({dto.week_start:dd/MM} AL {dto.week_end:dd/MM})";
             string info_line = $"MONTO: {total_notes:N2}  |  ABONADO: {total_paid:N2}  |  SALDO PENDIENTE: {balance_due:N2}";

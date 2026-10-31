@@ -26,6 +26,7 @@ namespace NinOS.UI.Common.ViewModels
         public DateTime creation_date { get; set; }
         public string month_key { get; set; } = string.Empty;
         public decimal commission_percentage { get; set; }
+        public string commission_percentage_text => $"{(commission_percentage > 0 ? commission_percentage * 100 : 10):0.##}%";
         public decimal sale_amount_usd { get; set; }
         public decimal amount_usd { get; set; }
         public decimal paid_amount_usd { get; set; }

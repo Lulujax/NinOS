@@ -8,6 +8,7 @@ namespace NinOS.Domain
         private string _full_name;
         private string _seller_code;
         private string _customer_code_prefix;
+        private decimal _commission_percentage = 0.10m;
 
         public int id_seller
         {
@@ -55,6 +56,16 @@ namespace NinOS.Domain
 
         public bool is_active { get; set; } = true;
         public bool can_receive_commissions { get; set; } = true;
+
+        public decimal commission_percentage
+        {
+            get { return _commission_percentage; }
+            set
+            {
+                if (value < 0) throw new ArgumentException("El porcentaje de comisión no puede ser negativo.");
+                _commission_percentage = value;
+            }
+        }
         public DateTime? deleted_at { get; set; }
         public string? deleted_reason { get; set; }
 
@@ -69,12 +80,14 @@ namespace NinOS.Domain
             can_receive_commissions = true;
         }
 
-        public seller(string full_name, string seller_code, string customer_code_prefix)
+        public seller(string full_name, string seller_code, string customer_code_prefix, decimal commission_percentage = 0.10m)
         {
             this.full_name = full_name;
             this.seller_code = seller_code;
             this.customer_code_prefix = customer_code_prefix;
+            this.commission_percentage = commission_percentage;
             is_active = true;
+            can_receive_commissions = true;
         }
     }
 }

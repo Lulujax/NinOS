@@ -648,11 +648,18 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                             if (existing_commission == null && !is_pro_venta)
                             {
+                                var note_seller = await db_context.sellers
+                                    .AsNoTracking()
+                                    .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
+                                decimal pct = (note_seller != null && note_seller.commission_percentage > 0)
+                                    ? note_seller.commission_percentage
+                                    : 0.10m;
+
                                 existing_commission = new commission(
                                     delivery_note.id_seller,
                                     delivery_note.id_delivery_note,
-                                    0.10m,
-                                    Math.Round(adjusted * 0.10m, 2),
+                                    pct,
+                                    Math.Round(adjusted * pct, 2),
                                     false,
                                     null);
                                 await db_context.commissions.AddAsync(existing_commission);

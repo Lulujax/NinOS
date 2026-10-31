@@ -106,7 +106,7 @@ namespace NinOS.UI.Common
                                 h("FECHA DE\nPAGO");
                                 h("MONTO\nPAGADO $");
                                 h("PRONTO\nPAGO");
-                                h("COMISION\n10% $");
+                                h("%\nCOM.");
                                 h("TOTAL\nCOMISION $");
                                 h("PAGO\nCOMISION");
                             });
@@ -131,7 +131,7 @@ namespace NinOS.UI.Common
                                 cell(r.payment_date?.ToString("d/M/yyyy") ?? string.Empty);
                                 cell(Money(r.paid_amount));
                                 cell(r.early_payment_discount > 0 ? "SI" : "NO");
-                                cell(Money(r.commission_10));
+                                cell(r.commission_percentage > 0 ? (r.commission_percentage * 100).ToString("0.##") + "%" : "10%");
                                 cell(Money(r.commission_10));
                                 cell(DateDMon(r.commission_paid_date));
 

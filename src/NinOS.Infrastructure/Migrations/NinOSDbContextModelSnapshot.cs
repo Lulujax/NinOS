@@ -1048,6 +1048,13 @@ namespace NinOS.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("can_receive_commissions");
 
+                    b.Property<decimal>("commission_percentage")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0.10m)
+                        .HasColumnName("commission_percentage");
+
                     b.Property<string>("customer_code_prefix")
                         .IsRequired()
                         .HasMaxLength(50)
