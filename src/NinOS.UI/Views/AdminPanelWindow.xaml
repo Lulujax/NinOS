@@ -400,17 +400,6 @@
                                         Click="OnEditProductLinesClick"/>
                             </StackPanel>
                         </Border>
-
-                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="Listas de Precios"/>
-                                <TextBlock FontSize="11.5" Foreground="#777777" Margin="0,0,0,10"
-                                           Text="Crea listas de precios adicionales. Un producto sin precio propio en una lista usa el precio original."/>
-                                <Button Style="{StaticResource RefreshButton}" HorizontalAlignment="Left"
-                                        Content="Gestionar Listas de Precios..."
-                                        Click="OnEditPriceListsClick"/>
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

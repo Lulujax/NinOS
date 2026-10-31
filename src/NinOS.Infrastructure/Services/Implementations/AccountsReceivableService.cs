@@ -175,7 +175,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result.OrderByCorrelative(r => r.note_number).ToList();
+                return result.OrderBy(r => r.creation_date).ThenBy(r => r.id_delivery_note).ToList();
             }
         }
 
@@ -311,7 +311,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result.OrderByCorrelative(r => r.note_number).ToList();
+                return result.OrderBy(r => r.creation_date).ThenBy(r => r.id_delivery_note).ToList();
             }
         }
 
@@ -480,7 +480,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     });
                 }
 
-                return result.OrderByCorrelative(r => r.note_number).ToList();
+                return result.OrderBy(r => r.creation_date).ThenBy(r => r.id_delivery_note).ToList();
             }
         }
 

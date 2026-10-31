@@ -9,12 +9,20 @@ using QuestPDF.Infrastructure;
 
 namespace NinOS.UI.Common
 {
+    public class price_list_column
+    {
+        public string key { get; set; } = "ORIGINAL";
+        public string name { get; set; } = "Principal";
+        public bool is_original { get; set; } = true;
+    }
+
     public class price_list_item
     {
         public string product_code { get; set; } = string.Empty;
         public string name { get; set; } = string.Empty;
         public string brand { get; set; } = string.Empty;
         public decimal unit_price_usd { get; set; }
+        public Dictionary<string, decimal> prices_by_key { get; set; } = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
     }
 
     public static class PriceListPdfGenerator
@@ -45,7 +53,7 @@ namespace NinOS.UI.Common
             return ("#546E7A", "#ECEFF1"); // default grey
         }
 
-        public static void generate(IEnumerable<price_list_item> items)
+        public static void generate(IEnumerable<price_list_item> items, IEnumerable<price_list_column>? columns = null)
         {
             if (items == null) return;
 
@@ -57,14 +65,20 @@ namespace NinOS.UI.Common
             };
 
             if (save_dialog.ShowDialog() != true) return;
-            generate_to_file(items, save_dialog.FileName);
+            generate_to_file(items, save_dialog.FileName, columns);
         }
 
-        public static void generate_to_file(IEnumerable<price_list_item> items, string output_path)
+        public static void generate_to_file(IEnumerable<price_list_item> items, string output_path, IEnumerable<price_list_column>? columns = null)
         {
             if (items == null) return;
 
             QuestPDF.Settings.License = LicenseType.Community;
+
+            List<price_list_column> colsList = columns?.Where(c => c != null).ToList() ?? new List<price_list_column>();
+            if (colsList.Count == 0)
+            {
+                colsList.Add(new price_list_column { key = "ORIGINAL", name = "Principal", is_original = true });
+            }
 
             var ordered = items
                 .Where(i => !string.IsNullOrWhiteSpace(i.product_code))
@@ -139,14 +153,20 @@ namespace NinOS.UI.Common
                                 {
                                     columns.RelativeColumn(1.1f);
                                     columns.RelativeColumn(4.0f);
-                                    columns.RelativeColumn(1.2f);
+                                    foreach (var c in colsList)
+                                    {
+                                        columns.RelativeColumn(1.2f);
+                                    }
                                 });
 
                                 table.Header(header =>
                                 {
                                     header.Cell().Background(clr).Padding(3).Text("CODIGO").FontColor(Colors.White).Bold().FontSize(8);
                                     header.Cell().Background(clr).Padding(3).Text("PRODUCTO").FontColor(Colors.White).Bold().FontSize(8);
-                                    header.Cell().Background(clr).Padding(3).AlignRight().Text("COSTO ($)").FontColor(Colors.White).Bold().FontSize(8);
+                                    foreach (var c in colsList)
+                                    {
+                                        header.Cell().Background(clr).Padding(3).AlignRight().Text(c.name.ToUpper()).FontColor(Colors.White).Bold().FontSize(8);
+                                    }
                                 });
 
                                 bool alt = false;
@@ -155,7 +175,22 @@ namespace NinOS.UI.Common
                                     string bg = alt ? soft : Colors.White;
                                     table.Cell().Background(bg).Padding(3).Text(item.product_code).FontSize(7.5f).Bold().FontColor("#333333");
                                     table.Cell().Background(bg).Padding(3).Text(item.name).FontSize(7.5f);
-                                    table.Cell().Background(bg).Padding(3).AlignRight().Text(Money(item.unit_price_usd)).FontSize(7.5f).Bold();
+                                    foreach (var c in colsList)
+                                    {
+                                        decimal priceToShow = item.unit_price_usd;
+                                        if (!c.is_original && item.prices_by_key != null)
+                                        {
+                                            if (item.prices_by_key.TryGetValue(c.key, out decimal p2))
+                                            {
+                                                priceToShow = p2;
+                                            }
+                                            else if (item.prices_by_key.TryGetValue(c.name, out decimal p3))
+                                            {
+                                                priceToShow = p3;
+                                            }
+                                        }
+                                        table.Cell().Background(bg).Padding(3).AlignRight().Text(Money(priceToShow)).FontSize(7.5f).Bold();
+                                    }
                                     alt = !alt;
                                 }
                             });

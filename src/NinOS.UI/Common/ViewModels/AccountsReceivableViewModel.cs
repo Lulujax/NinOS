@@ -763,7 +763,8 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = filtered.Where(n => n.status != "Pagada").ToList();
 
             filtered = filtered
-                .OrderByCorrelative(n => n.note_number)
+                .OrderBy(n => n.creation_date)
+                .ThenBy(n => n.id_delivery_note)
                 .ToList();
 
             update_collection(all_notes, filtered);
@@ -1150,10 +1151,10 @@ namespace NinOS.UI.Common.ViewModels
                     show_dispatch_date_column = _is_report_year_mode,
                     rows = month_rows
                         // El orden definitivo lo hace el generador del PDF por hoja. Aqui solo
-                        // se conserva el correlativo para el caso de una sola hoja sin agrupar.
+                        // se conserva el orden cronologico para el caso de una sola hoja sin agrupar.
                         .OrderBy(n => _is_report_year_mode && n.is_customer_ghost ? 0 : 1)
-                        .ThenBy(n => SeriesCalculator.ParseCorrelative(n.note_number))
-                        .ThenBy(n => n.note_number ?? string.Empty)
+                        .ThenBy(n => n.creation_date)
+                        .ThenBy(n => n.id_delivery_note)
                         .Select(n => new monthly_report_row_dto
                         {
                             date = n.creation_date,

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="NinOS.UI.Views.InventoryView"
+<UserControl x:Class="NinOS.UI.Views.InventoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:NinOS.UI.Converters"
@@ -98,6 +98,36 @@
             <Setter Property="Margin" Value="0"/>
             <Setter Property="FontSize" Value="12.5"/>
         </Style>
+        <!-- Boton EDITAR LISTAS (diseno exacto de la captura: verde claro con borde y texto verde) -->
+        <Style x:Key="HeaderEditListsButton" TargetType="Button">
+            <Setter Property="Background" Value="#E8F5E9"/>
+            <Setter Property="Foreground" Value="#1B3A2D"/>
+            <Setter Property="BorderBrush" Value="#A5D6A7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#C8E6C9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="RowDeleteButton" TargetType="Button">
             <Setter Property="Padding" Value="6,2"/>
             <Setter Property="Margin" Value="1"/>
@@ -142,26 +172,33 @@
                     <TextBlock FontWeight="Bold" Margin="0,0,10,0" Text="Buscar Producto o Combo:" VerticalAlignment="Center"/>
                     <!-- Buscador con lupa (mismo estilo que los demas modulos) -->
                     <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
-                        <Grid Width="240">
+                        <Grid Width="220">
                             <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
                             <TextBox Margin="26,2,8,2" BorderThickness="0" Background="Transparent"
                                      VerticalContentAlignment="Center" FontSize="12.5"
                                      Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"/>
                         </Grid>
                     </Border>
-                    <Button x:Name="btn_price_list" Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
-                        Click="on_generate_price_list_click" Content="Descargar lista de precios"
-                        Margin="10,0,0,0"/>
-                    <Button x:Name="btn_print_inventory" Style="{StaticResource HeaderActionButton}" Background="#0D62B5"
-                        Click="on_print_inventory_click" Content="Imprimir inventario"
-                        Margin="8,0,0,0"/>
+                    <Button x:Name="btn_reports" Style="{StaticResource HeaderActionButton}" Background="#1B3A2D"
+                        Click="on_reports_click" Content="📄 Reportes ▾"
+                        Margin="10,0,18,0"/>
+
+                    <!-- BLOQUE LISTA DE PRECIOS (Opcion A: exactamente como la captura) -->
+                    <TextBlock Text="Lista:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox ItemsSource="{Binding price_list_options}"
+                              SelectedItem="{Binding selected_price_list, Mode=TwoWay}"
+                              DisplayMemberPath="name"
+                              Width="160" Height="28" VerticalContentAlignment="Center"
+                              FontSize="12" Margin="0,0,8,0" Cursor="Hand"/>
+                    <Button Style="{StaticResource HeaderEditListsButton}"
+                            Command="{Binding edit_price_lists_command}" Content="EDITAR LISTAS"/>
                 </StackPanel>
 
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
-                            Command="{Binding edit_lines_command}" Content="Editar Líneas" Margin="0,0,8,0"/>
+                            Command="{Binding edit_lines_command}" Content="Editar Marcas" Margin="0,0,8,0"/>
                     <Button Style="{StaticResource HeaderAddButton}"
                             Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
                 </StackPanel>
@@ -172,129 +209,149 @@
             <TextBlock Text="{Binding ErrorMessage}" Foreground="#CC0000" FontWeight="Bold" TextWrapping="Wrap"/>
         </Border>
 
-        <!-- POPUP: seleccion de marcas/categorias para la lista de precios -->
-        <Popup x:Name="popup_price_list"
-               PlacementTarget="{Binding ElementName=btn_price_list}"
+        <!-- POPUP UNIFICADO: REPORTES (Lista de precios e Inventario) -->
+        <Popup x:Name="popup_reports"
+               PlacementTarget="{Binding ElementName=btn_reports}"
                Placement="Bottom"
                StaysOpen="False"
                AllowsTransparency="True"
                PopupAnimation="Fade">
-            <Border Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="4"
-                    Padding="12,10" Width="250">
-                <StackPanel>
-                    <TextBlock Text="LISTA DE PRECIOS" FontSize="11" FontWeight="Bold"
-                               Foreground="#1B3A2D"/>
-                    <TextBlock Text="Marque las marcas/categorias que quiere incluir en el PDF."
-                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
+            <Border Background="White" BorderBrush="#1B3A2D" BorderThickness="1.5" CornerRadius="6"
+                    Padding="14,12" Width="610">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="285"/>
+                        <ColumnDefinition Width="1"/>
+                        <ColumnDefinition Width="295"/>
+                    </Grid.ColumnDefinitions>
 
-                    <CheckBox Content="Todas a la vez"
-                              IsChecked="{Binding all_brands_selected, Mode=TwoWay}"
-                              FontSize="12" FontWeight="Bold" Foreground="#333333" Margin="0,0,0,6" Cursor="Hand"/>
-                    <Button Content="Quitar todas" Background="Transparent" Foreground="#C62828"
-                            FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"
-                            HorizontalAlignment="Left" Margin="0,-4,0,6"
-                            Command="{Binding clear_price_list_command}"/>
+                    <!-- COLUMNA 1: LISTA DE PRECIOS -->
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="📋 LISTA DE PRECIOS" FontSize="11.5" FontWeight="Bold"
+                                   Foreground="#1B3A2D"/>
+                        <TextBlock Text="Marque las marcas/listas a incluir en el PDF."
+                                   FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
-                    <ItemsControl ItemsSource="{Binding price_list_brand_options}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <CheckBox Content="{Binding name}"
-                                          IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                          FontSize="12" Foreground="#333333" Margin="4,2,0,2" Cursor="Hand"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        <TextBlock Text="Listas a incluir" FontSize="10" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,3"/>
+                        <CheckBox Content="{Binding principal_price_list_name}" IsChecked="True" IsEnabled="False" FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
+                        <ItemsControl ItemsSource="{Binding price_list_selection_options}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding name}"
+                                              IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                              FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                    <Button Content="Descargar PDF"
-                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                            FontSize="12.5" Height="30" BorderThickness="0" Cursor="Hand"
-                            Margin="0,12,0,0" Click="on_download_price_list_click">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                </StackPanel>
-            </Border>
-        </Popup>
+                        <TextBlock Text="Marcas / Categorías" FontSize="10" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,8,0,3"/>
+                        <DockPanel Margin="0,0,0,4">
+                            <CheckBox Content="Todas a la vez"
+                                      IsChecked="{Binding all_brands_selected, Mode=TwoWay}"
+                                      FontSize="11" FontWeight="Bold" Foreground="#333333" Cursor="Hand"
+                                      DockPanel.Dock="Left"/>
+                            <Button Content="Quitar todas" Background="Transparent" Foreground="#C62828"
+                                    FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"
+                                    HorizontalAlignment="Right" DockPanel.Dock="Right"
+                                    Command="{Binding clear_price_list_command}"/>
+                        </DockPanel>
 
-        <!-- POPUP: opciones para imprimir inventario -->
-        <Popup x:Name="popup_print_inventory"
-               PlacementTarget="{Binding ElementName=btn_print_inventory}"
-               Placement="Bottom"
-               StaysOpen="False"
-               AllowsTransparency="True"
-               PopupAnimation="Fade">
-            <Border Background="White" BorderBrush="#0D62B5" BorderThickness="1.5" CornerRadius="6"
-                    Padding="14,12" Width="330">
-                <StackPanel>
-                    <TextBlock Text="IMPRIMIR INVENTARIO" FontSize="12" FontWeight="Bold"
-                               Foreground="#0D62B5"/>
-                    <TextBlock Text="Seleccione el tipo de reporte que desea emitir en PDF:"
-                               FontSize="10" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,12"/>
+                        <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
+                            <ItemsControl ItemsSource="{Binding price_list_brand_options}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding name}"
+                                                  IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                  FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
 
-                    <!-- Opcion 1: Solo Inventario Actual -->
-                    <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
-                            Padding="10,8" Margin="0,0,0,10">
-                        <StackPanel>
-                            <TextBlock Text="1. Solo inventario actual" FontWeight="Bold" FontSize="11.5" Foreground="#1A1A1A"/>
-                            <TextBlock Text="Existencias físicas disponibles en almacén con precios y valorización total en USD."
-                                       FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                            <Button Content="Descargar Inventario Actual"
-                                    Background="#0D62B5" Foreground="White" FontWeight="Bold"
-                                    FontSize="11.5" Height="28" BorderThickness="0" Cursor="Hand"
-                                    Click="on_download_current_inventory_click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#094A8A"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </StackPanel>
-                    </Border>
+                        <Button Content="📥 Descargar Lista (PDF)"
+                                Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                FontSize="12" Height="30" BorderThickness="0" Cursor="Hand"
+                                Click="on_download_price_list_click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
 
-                    <!-- Opcion 2: Todos los Movimientos -->
-                    <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
-                            Padding="10,8">
-                        <StackPanel>
-                            <TextBlock Text="2. Todos los movimientos (Kardex)" FontWeight="Bold" FontSize="11.5" Foreground="#1A1A1A"/>
-                            <TextBlock Text="Historial completo de entradas, salidas y ajustes de todos los productos (así sea extenso)."
-                                       FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                            <Button Content="Descargar Todos los Movimientos"
-                                    Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                                    FontSize="11.5" Height="28" BorderThickness="0" Cursor="Hand"
-                                    Click="on_download_all_movements_click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#132A20"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                    <!-- SEPARADOR VERTICAL -->
+                    <Border Grid.Column="1" Background="#E0E0E0" Margin="0,4"/>
+
+                    <!-- COLUMNA 2: REPORTES DE INVENTARIO -->
+                    <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                        <TextBlock Text="🖨️ REPORTES DE INVENTARIO" FontSize="11.5" FontWeight="Bold"
+                                   Foreground="#0D62B5"/>
+                        <TextBlock Text="Seleccione el tipo de reporte de inventario a emitir en PDF:"
+                                   FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,10"/>
+
+                        <!-- Opción 1: Solo Inventario Actual -->
+                        <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
+                                Padding="10,8" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="1. Solo inventario actual" FontWeight="Bold" FontSize="11" Foreground="#1A1A1A"/>
+                                <TextBlock Text="Existencias físicas disponibles en almacén con precios y valorización total en USD."
+                                           FontSize="9" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                                <Button Content="Descargar Inventario Actual"
+                                        Background="#0D62B5" Foreground="White" FontWeight="Bold"
+                                        FontSize="11" Height="26" BorderThickness="0" Cursor="Hand"
+                                        Click="on_download_current_inventory_click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="#094A8A"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Opción 2: Todos los Movimientos -->
+                        <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
+                                Padding="10,8">
+                            <StackPanel>
+                                <TextBlock Text="2. Todos los movimientos" FontWeight="Bold" FontSize="11" Foreground="#1A1A1A"/>
+                                <TextBlock Text="Historial completo de entradas, salidas y ajustes de todos los productos (así sea extenso)."
+                                           FontSize="9" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                                <Button Content="Descargar Todos los Movimientos"
+                                        Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                        FontSize="11" Height="26" BorderThickness="0" Cursor="Hand"
+                                        Click="on_download_all_movements_click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Popup>
 
@@ -316,14 +373,14 @@
                               ElementStyle="{StaticResource CellText}"/>
                             <DataGridTextColumn Binding="{Binding item_category}" Header="Categoría" Width="120"/>
                             <DataGridTextColumn Binding="{Binding item_quantity}" Header="Disponibles" Width="90" ElementStyle="{StaticResource QuantityCellStyle}"/>
-                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTextColumn Binding="{Binding item_price_display}" Header="Precio ($)" Width="100"/>
                             <DataGridTemplateColumn Header="Acciones" Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                 <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                                <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
+                                                <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" IsEnabled="{Binding can_delete_row}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding delete_tooltip}"/>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding is_promotion, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_promotion_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
@@ -345,13 +402,13 @@
                             <DataGridTextColumn Binding="{Binding item_name}" Header="Nombre" Width="*"
                               ElementStyle="{StaticResource CellText}"/>
                             <DataGridTextColumn Binding="{Binding item_quantity}" Header="Disponibles" Width="90" ElementStyle="{StaticResource QuantityCellStyle}"/>
-                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTextColumn Binding="{Binding item_price_display}" Header="Precio ($)" Width="100"/>
                             <DataGridTemplateColumn Header="Acciones" Width="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                             <Button Style="{StaticResource RowEditButton}" Command="{Binding DataContext.edit_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Editar"/>
-                                            <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar"/>
+                                            <Button Style="{StaticResource RowDeleteButton}" Command="{Binding DataContext.delete_command, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="Borrar" IsEnabled="{Binding can_delete_row}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding delete_tooltip}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -369,7 +426,7 @@
                               ElementStyle="{StaticResource CellText}"/>
                             <DataGridTextColumn Binding="{Binding promo_type_display}" Header="Tipo" Width="70"/>
                             <DataGridTextColumn Binding="{Binding item_quantity}" Header="Disponibles" Width="90" ElementStyle="{StaticResource QuantityCellStyle}"/>
-                            <DataGridTextColumn Binding="{Binding item_price}" Header="Precio ($)" Width="100"/>
+                            <DataGridTextColumn Binding="{Binding item_price_display}" Header="Precio ($)" Width="100"/>
                             <DataGridTemplateColumn Header="Acciones" Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

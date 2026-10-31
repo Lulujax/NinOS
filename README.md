@@ -5,7 +5,7 @@
 # ⚡ NinOS ERP — Commercial & Distribution Suite
 ### *Suite de escritorio para facturación, distribución, cobranzas y liquidación de comisiones*
 
-[![Versión](https://img.shields.io/badge/version-1.0.7-FF6F00?style=for-the-badge&logo=github&logoColor=white)](https://github.com/lulujax/ninos)
+[![Versión](https://img.shields.io/badge/version-1.0.9-FF6F00?style=for-the-badge&logo=github&logoColor=white)](https://github.com/lulujax/ninos)
 [![.NET Version](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-13.0-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
 [![WPF](https://img.shields.io/badge/UI-WPF%20%2F%20Modern%20XAML-0078D7?style=for-the-badge&logo=windows&logoColor=white)](https://learn.microsoft.com/visualstudio/xaml-tools/)
@@ -419,7 +419,7 @@ dotnet publish src/NinOS.UI -c Release -r win-x64 --self-contained true -o publi
 
 # 2. Compilar el instalador (requiere Inno Setup 6 en Windows)
 iscc installer/NinOS_Setup.iss
-# → genera NinOS_Setup_v1.0.7.exe en la carpeta configurada
+# → genera NinOS_Setup_v1.0.9.exe en la carpeta configurada
 ```
 
 El instalador crea acceso directo en el escritorio, entrada en el menú Inicio y opción de desinstalar.

@@ -332,7 +332,8 @@ var unique_months = all_rows
                 filtered = filtered.Where(n => n.remaining_amount_usd <= 0.005m).ToList();
 
             filtered = filtered
-                .OrderByCorrelative(n => n.note_number)
+                .OrderBy(n => n.creation_date)
+                .ThenBy(n => n.id_delivery_note)
                 .ToList();
 
             update_collection(all_rows, filtered);

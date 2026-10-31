@@ -236,7 +236,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     note_last_payment_date = note_last_payment_date
                 };
             })
-            .OrderByCorrelative(c => c.note_number)
+            .OrderBy(c => c.creation_date)
+            .ThenBy(c => c.id_commission)
             .ToList();
         }
 
@@ -320,7 +321,8 @@ return new commission_dto
                     payout_date = c.payout_date
                 };
             })
-            .OrderByCorrelative(c => c.note_number)
+            .OrderBy(c => c.creation_date)
+            .ThenBy(c => c.id_commission)
             .ToList();
         }
 
@@ -487,7 +489,8 @@ return new commission_dto
                         commission_paid_date = batch_date
                     };
                 })
-                .OrderByCorrelative(r => r.note_number)
+                .OrderBy(r => r.dispatch_date ?? DateTime.MinValue)
+                .ThenBy(r => r.note_number)
                 .ToList();
 
             return new commission_receipt_dto

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Logging;
@@ -25,6 +26,13 @@ namespace NinOS.UI.Common.ViewModels
         public decimal unit_price_usd { get; set; }
         public int available_stock { get; set; }
         public bool is_out_of_stock => available_stock <= 0;
+        public Dictionary<int, decimal> price_by_list { get; set; } = new Dictionary<int, decimal>();
+    }
+
+    public class note_price_list_option
+    {
+        public int? id_price_list { get; set; }
+        public string name { get; set; } = string.Empty;
     }
 
     public class note_detail_row : ViewModelBase
@@ -43,8 +51,11 @@ namespace NinOS.UI.Common.ViewModels
         private bool _show_search_popup_code;
         private decimal _promo_price_unit;
         private decimal _promo_discount_per_unit;
+        private int? _selected_price_list_id;
+        private note_price_list_option? _selected_price_list_option;
 
         public ObservableCollection<billable_item> available_items { get; }
+        public ObservableCollection<note_price_list_option> available_price_lists { get; set; } = new ObservableCollection<note_price_list_option>();
 
         public bool show_search_popup_text
         {
@@ -108,6 +119,70 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public int? selected_price_list_id
+        {
+            get { return _selected_price_list_id; }
+            set
+            {
+                if (_selected_price_list_id == value) return;
+                _selected_price_list_id = value;
+                _selected_price_list_option = available_price_lists.FirstOrDefault(o => o.id_price_list == value);
+                on_property_changed();
+                on_property_changed(nameof(selected_price_list_option));
+                ApplyPriceForCurrentList();
+                calculate_subtotal();
+            }
+        }
+
+        /// <summary>
+        /// Opcion del selector de lista del renglon. Se enlaza el objeto y no el id
+        /// porque la lista Principal viaja con id nulo: con SelectedValue WPF
+        /// interpreta null como "sin seleccion" y no deja volver a Principal una vez
+        /// que se eligio otra lista.
+        /// </summary>
+        public note_price_list_option? selected_price_list_option
+        {
+            get { return _selected_price_list_option; }
+            set
+            {
+                var opcion = value ?? available_price_lists.FirstOrDefault();
+                if (ReferenceEquals(_selected_price_list_option, opcion)) return;
+                _selected_price_list_option = opcion;
+                _selected_price_list_id = opcion?.id_price_list;
+                on_property_changed();
+                on_property_changed(nameof(selected_price_list_id));
+                ApplyPriceForCurrentList();
+                calculate_subtotal();
+            }
+        }
+
+        public bool is_promotion_row
+        {
+            get { return _selected_item != null && _selected_item.id_promotion > 0; }
+        }
+
+        public bool is_price_list_selector_enabled
+        {
+            get { return !is_promotion_row; }
+        }
+
+        private void ApplyPriceForCurrentList()
+        {
+            if (_selected_item == null) return;
+            if (is_promotion_row) return;
+
+            if (_selected_price_list_id.HasValue && _selected_item.price_by_list != null)
+            {
+                if (_selected_item.price_by_list.TryGetValue(_selected_price_list_id.Value, out decimal precio_lista))
+                {
+                    unit_price_usd = precio_lista;
+                    return;
+                }
+            }
+
+            unit_price_usd = _selected_item.unit_price_usd;
+        }
+
         public billable_item? selected_item
         {
             get { return _selected_item; }
@@ -119,7 +194,7 @@ namespace NinOS.UI.Common.ViewModels
                 show_search_popup_code = false;
                 if (_selected_item != null)
                 {
-                    unit_price_usd = _selected_item.unit_price_usd;
+                    ApplyPriceForCurrentList();
                     _item_search_code = _selected_item.code;
                     _item_search_text = _selected_item.name;
 
@@ -128,6 +203,8 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(item_search_code));
                 on_property_changed(nameof(item_search_text));
                 on_property_changed(nameof(quantity));
+                on_property_changed(nameof(is_promotion_row));
+                on_property_changed(nameof(is_price_list_selector_enabled));
                 calculate_subtotal();
             }
         }
@@ -202,7 +279,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand select_item_command { get; }
         public ICommand toggle_popup_command { get; }
 
-        public note_detail_row(IEnumerable<billable_item> items, ObservableCollection<note_detail_row>? owner = null)
+        public note_detail_row(IEnumerable<billable_item> items, ObservableCollection<note_detail_row>? owner = null, IEnumerable<price_list>? priceLists = null, string principalName = "Principal")
         {
             _all_items_ref = items.ToList();
             _owner = owner;
@@ -210,6 +287,15 @@ namespace NinOS.UI.Common.ViewModels
             _quantity = 1;
             _unit_price_usd = 0;
             _subtotal_usd = 0;
+            _selected_price_list_id = null;
+            available_price_lists.Clear();
+            available_price_lists.Add(new note_price_list_option { id_price_list = null, name = principalName });
+            if (priceLists != null)
+            {
+                foreach (var pl in priceLists)
+                    available_price_lists.Add(new note_price_list_option { id_price_list = pl.id_price_list, name = pl.name });
+            }
+            _selected_price_list_option = available_price_lists.FirstOrDefault();
             select_item_command = new RelayCommand(execute_select_item);
             toggle_popup_command = new RelayCommand(execute_toggle_popup);
 
@@ -235,6 +321,8 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 selected_item = item;
+                on_property_changed(nameof(is_promotion_row));
+                on_property_changed(nameof(is_price_list_selector_enabled));
             }
         }
 
@@ -415,6 +503,10 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IGenericRepository<seller> _seller_repository;
         private readonly IGenericRepository<note_type> _note_type_repository;
         private readonly ISellerService _seller_service;
+        private readonly IPriceListService? _price_list_service;
+        private readonly List<price_list> _active_price_lists = new List<price_list>();
+        private string _principal_price_list_name = "Principal";
+        private Dictionary<int, Dictionary<int, decimal>> _all_product_own_prices = new Dictionary<int, Dictionary<int, decimal>>();
         private bool _is_loading;
         private bool _is_updating_note_types;
 
@@ -1371,6 +1463,14 @@ namespace NinOS.UI.Common.ViewModels
             _seller_repository = seller_repository;
             _note_type_repository = note_type_repository;
             _seller_service = seller_service;
+            try
+            {
+                _price_list_service = (System.Windows.Application.Current as App)?.GetServiceProvider()?.GetService(typeof(IPriceListService)) as IPriceListService;
+            }
+            catch
+            {
+                _price_list_service = null;
+            }
 
             _all_customers_cache = new List<customer>();
             _all_note_types_cache = new List<note_type>();
@@ -1409,6 +1509,30 @@ namespace NinOS.UI.Common.ViewModels
             _is_loading = true;
             try
             {
+                if (_price_list_service != null)
+                {
+                    try
+                    {
+                        _active_price_lists.Clear();
+                        var principal = await _price_list_service.GetPrincipalAsync();
+                        _principal_price_list_name = principal.name;
+                        var pls = await _price_list_service.GetActiveAsync();
+                        foreach (var pl in pls.OrderBy(x => x.sort_order).ThenBy(x => x.name))
+                            _active_price_lists.Add(pl);
+                        _all_product_own_prices = await _price_list_service.GetAllOwnPricesAsync();
+                    }
+                    catch
+                    {
+                        _active_price_lists.Clear();
+                        _all_product_own_prices = new Dictionary<int, Dictionary<int, decimal>>();
+                    }
+                }
+                else
+                {
+                    _active_price_lists.Clear();
+                    _all_product_own_prices = new Dictionary<int, Dictionary<int, decimal>>();
+                }
+
                 var db_customers = await _customer_service.GetVisibleCustomersAsync();
                 _all_customers_cache.Clear();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
@@ -1456,19 +1580,28 @@ namespace NinOS.UI.Common.ViewModels
                         code = pr.promotion_code,
                         name = pr.name,
                         unit_price_usd = pr.unit_price_usd,
-                        available_stock = promo_stock == int.MaxValue ? 0 : promo_stock
+                        available_stock = promo_stock == int.MaxValue ? 0 : promo_stock,
+                        price_by_list = new Dictionary<int, decimal>()
                     });
                 }
 
                 IEnumerable<product> db_products = await _inventory_service.get_all_products_async();
                 foreach (product p in db_products)
                 {
+                    Dictionary<int, decimal> priceByList = new Dictionary<int, decimal>();
+                    if (_all_product_own_prices.TryGetValue(p.id_product, out var ownPrices))
+                    {
+                        foreach (var kv in ownPrices)
+                            priceByList[kv.Key] = kv.Value;
+                    }
+
                     all_items.Add(new billable_item {
                         id_product = p.id_product,
                         code = p.product_code,
                         name = p.name,
                         unit_price_usd = p.unit_price_usd,
-                        available_stock = p.stock_quantity
+                        available_stock = p.stock_quantity,
+                        price_by_list = priceByList
                     });
                 }
             }
@@ -1563,7 +1696,7 @@ namespace NinOS.UI.Common.ViewModels
                     AppDialog.Show($"La nota de entrega solo puede tener un maximo de {MAX_NOTE_ITEMS} items.", "Limite", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                     return;
                 }
-                note_detail_row new_row = new note_detail_row(all_items, note_details);
+                note_detail_row new_row = new note_detail_row(all_items, note_details, _active_price_lists, _principal_price_list_name);
                 new_row.on_subtotal_changed = recalculate_total;
                 new_row.is_promo_provider = () => has_promo_discount;
                 new_row.promo_percentage_provider = () =>
@@ -1846,14 +1979,16 @@ namespace NinOS.UI.Common.ViewModels
                         throw new InvalidOperationException("El item seleccionado no tiene producto ni promocion asociada.");
                     }
                     
-                    domain_details.Add(new note_detail(
+                    var nd = new note_detail(
                         0,
                         id_product,
                         id_promotion,
                         row.quantity,
                         row.unit_price_usd,
                         row.subtotal_usd
-                    ));
+                    );
+                    nd.id_price_list = row.selected_price_list_id;
+                    domain_details.Add(nd);
                 }
 
                 int save_attempts = 0;

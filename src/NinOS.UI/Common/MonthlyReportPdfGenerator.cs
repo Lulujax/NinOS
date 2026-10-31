@@ -130,6 +130,7 @@ namespace NinOS.UI.Common
                 // y el de ventas no cambian de comportamiento.
                 var srows = (group_rows ?? new List<monthly_report_row_dto>())
                     .OrderBy(r => report.ordenar_zombies_primero && r.is_customer_ghost ? 0 : 1)
+                    .ThenBy(r => r.date)
                     .ThenBy(r => SeriesCalculator.ParseCorrelative(r.document_number))
                     .ThenBy(r => r.document_number ?? string.Empty)
                     .ToList();

@@ -72,7 +72,6 @@
                         </Border>
                         <TextBlock Text="{Binding header_title}" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" TextDecorations="Underline"/>
                         <TextBlock Text="Caracas venezuela" FontSize="14" HorizontalAlignment="Center"/>
-                        <TextBlock Text="{Binding selected_seller.full_name}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
 
                     <Border Grid.Row="1" BorderBrush="Black" BorderThickness="1" Margin="0,0,0,10">
@@ -117,9 +116,17 @@
                                     <Popup Grid.ColumnSpan="2" IsOpen="{Binding show_customer_popup, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False" PopupAnimation="Fade">
                                         <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="400" CornerRadius="2" Padding="2">
                                             <ListBox ItemsSource="{Binding filtered_customers_display}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Background="White">
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                        <Setter Property="Padding" Value="0"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
+                                                        <Border Padding="8,5" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White" HorizontalAlignment="Stretch">
                                                             <Border.Style>
                                                                 <Style TargetType="Border">
                                                                     <Style.Triggers>
@@ -132,7 +139,7 @@
                                                             <Border.InputBindings>
                                                                 <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_customer_command, RelativeSource={RelativeSource AncestorType=Popup}}" CommandParameter="{Binding}"/>
                                                             </Border.InputBindings>
-                                                            <TextBlock Text="{Binding business_name}" FontSize="11" Foreground="Black"/>
+                                                            <TextBlock Text="{Binding business_name}" FontSize="11" Foreground="Black" HorizontalAlignment="Stretch"/>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -217,9 +224,17 @@
                                             <Popup Grid.ColumnSpan="2" IsOpen="{Binding show_search_popup_code, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False" PopupAnimation="Fade">
                                                 <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="2" Padding="2">
                                                     <ListBox x:Name="CodeListBox" ItemsSource="{Binding available_items}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Background="White">
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="ListBoxItem">
+                                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                <Setter Property="Padding" Value="0"/>
+                                                                <Setter Property="Margin" Value="0"/>
+                                                                <Setter Property="BorderThickness" Value="0"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
                                                         <ListBox.ItemTemplate>
                                                             <DataTemplate>
-                                                                <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
+                                                                <Border Padding="6,4" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White" HorizontalAlignment="Stretch">
                                                                     <Border.Style>
                                                                         <Style TargetType="Border">
                                                                             <Style.Triggers>
@@ -232,11 +247,17 @@
                                                                     <Border.InputBindings>
                                                                         <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
                                                                     </Border.InputBindings>
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="85"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="65"/>
+                                                                            <ColumnDefinition Width="45"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Grid.Column="0" Text="{Binding code}" FontWeight="Bold" FontSize="11" Foreground="Black" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="2" Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" TextAlignment="Right" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="3" Text="{Binding available_stock}" FontSize="11" TextAlignment="Right" FontWeight="Bold" VerticalAlignment="Center">
                                                                             <TextBlock.Style>
                                                                                 <Style TargetType="TextBlock">
                                                                                     <Setter Property="Foreground" Value="Black"/>
@@ -249,7 +270,7 @@
                                                                                 </Style>
                                                                             </TextBlock.Style>
                                                                         </TextBlock>
-                                                                    </StackPanel>
+                                                                    </Grid>
                                                                 </Border>
                                                             </DataTemplate>
                                                         </ListBox.ItemTemplate>
@@ -290,9 +311,17 @@
                                             <Popup Grid.ColumnSpan="2" IsOpen="{Binding show_search_popup_text, Mode=TwoWay}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False" PopupAnimation="Fade">
                                                 <Border Background="White" BorderBrush="#888888" BorderThickness="1" MaxHeight="200" MinWidth="560" CornerRadius="2" Padding="2">
                                                     <ListBox x:Name="DescListBox" ItemsSource="{Binding available_items}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Background="White">
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="ListBoxItem">
+                                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                <Setter Property="Padding" Value="0"/>
+                                                                <Setter Property="Margin" Value="0"/>
+                                                                <Setter Property="BorderThickness" Value="0"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
                                                         <ListBox.ItemTemplate>
                                                             <DataTemplate>
-                                                                <Border Padding="4,3" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White">
+                                                                <Border Padding="6,4" Cursor="Hand" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Background="White" HorizontalAlignment="Stretch">
                                                                     <Border.Style>
                                                                         <Style TargetType="Border">
                                                                             <Style.Triggers>
@@ -305,11 +334,17 @@
                                                                     <Border.InputBindings>
                                                                         <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.select_item_command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
                                                                     </Border.InputBindings>
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <TextBlock Text="{Binding code}" FontWeight="Bold" FontSize="11" Width="80" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding name}" FontSize="11" Width="330" TextTrimming="CharacterEllipsis" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" Width="50" TextAlignment="Right" Foreground="Black"/>
-                                                                        <TextBlock Text="{Binding available_stock}" FontSize="11" Width="35" TextAlignment="Right" FontWeight="Bold">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="85"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="65"/>
+                                                                            <ColumnDefinition Width="45"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Grid.Column="0" Text="{Binding code}" FontWeight="Bold" FontSize="11" Foreground="Black" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="2" Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" TextAlignment="Right" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="3" Text="{Binding available_stock}" FontSize="11" TextAlignment="Right" FontWeight="Bold" VerticalAlignment="Center">
                                                                             <TextBlock.Style>
                                                                                 <Style TargetType="TextBlock">
                                                                                     <Setter Property="Foreground" Value="Black"/>
@@ -322,7 +357,7 @@
                                                                                 </Style>
                                                                             </TextBlock.Style>
                                                                         </TextBlock>
-                                                                    </StackPanel>
+                                                                    </Grid>
                                                                 </Border>
                                                             </DataTemplate>
                                                         </ListBox.ItemTemplate>
@@ -334,6 +369,33 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
+                            <DataGridTemplateColumn Header="Lista" Width="110">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox
+                                            ItemsSource="{Binding available_price_lists}"
+                                            SelectedItem="{Binding selected_price_list_option, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            DisplayMemberPath="name"
+                                            IsEnabled="{Binding is_price_list_selector_enabled}"
+                                            Height="22">
+                                            <ComboBox.Resources>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Setter Property="Padding" Value="4,2"/>
+                                                </Style>
+                                            </ComboBox.Resources>
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Setter Property="Padding" Value="4,2"/>
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTextColumn Header="precio unitario" Binding="{Binding unit_price_usd, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Width="100">
                                 <DataGridTextColumn.HeaderStyle>
                                     <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>

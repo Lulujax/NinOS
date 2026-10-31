@@ -191,11 +191,13 @@ namespace NinOS.Infrastructure.Data
                 entity.HasKey(e => e.id_price_list);
                 entity.Property(e => e.id_price_list).HasColumnName("id_price_list").UseIdentityByDefaultColumn();
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.description).HasColumnName("description").HasMaxLength(500);
                 // El nombre es el identificador visible de la lista en notas, producto y
                 // PDF, asi que no puede repetirse ni en la papelera conceptual: al
                 // desactivar no se borra, el nombre queda reservado.
                 entity.HasIndex(e => e.name).IsUnique();
                 entity.Property(e => e.is_active).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.is_principal).HasColumnName("is_principal").IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.sort_order).HasColumnName("sort_order").IsRequired();
                 entity.Property(e => e.created_at).HasColumnName("created_at").IsRequired();
             });

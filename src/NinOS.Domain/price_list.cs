@@ -20,8 +20,17 @@ namespace NinOS.Domain
         [MaxLength(100)]
         public string name { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? description { get; set; }
+
         [Required]
         public bool is_active { get; set; } = true;
+
+        /// <summary>
+        /// Marca la lista Principal. Siempre existe, se puede editar pero no eliminar.
+        /// Sus precios no viven en product_price: son el precio base del producto.
+        /// </summary>
+        public bool is_principal { get; set; }
 
         [Required]
         public int sort_order { get; set; }

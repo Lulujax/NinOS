@@ -27,7 +27,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scope_factory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
             var all = await repo.get_all_async();
-            return all.OrderByCorrelative(n => n.note_number).ToList();
+            return all.OrderBy(n => n.creation_date).ThenBy(n => n.id_delivery_note).ToList();
         }
 
         public async Task<string> generate_correlative_async(int id_seller)

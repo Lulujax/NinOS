@@ -544,7 +544,8 @@ namespace NinOS.UI.Common.ViewModels
             var filtered = string.IsNullOrEmpty(_selected_month)
                 ? new List<payment_row_dto>()
                 : filter_by_month_and_search(source.ToList(), _selected_month, query)
-                    .OrderByCorrelative(n => n.note_number)
+                    .OrderBy(n => n.creation_date)
+                    .ThenBy(n => n.id_delivery_note)
                     .ToList();
 
             update_collection(all_notes, filtered);

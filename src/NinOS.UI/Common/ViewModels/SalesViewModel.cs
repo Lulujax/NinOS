@@ -715,7 +715,7 @@ public bool report_manual_scope
                 }).ToList();
             }
 
-            filtered = filtered.OrderByCorrelative(n => n.note_number).ToList();
+            filtered = filtered.OrderBy(n => n.creation_date).ThenBy(n => n.id_delivery_note).ToList();
 
             update_collection(all_notes, filtered);
             update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
@@ -1065,7 +1065,8 @@ public bool report_manual_scope
                     empty_text = "Sin ventas para los filtros seleccionados.",
                     group_mode = group_mode,
                     rows = month_rows
-                        .OrderByCorrelative(n => n.note_number)
+                        .OrderBy(n => n.creation_date)
+                        .ThenBy(n => n.id_delivery_note)
                         .Select(n => new monthly_report_row_dto
                         {
                             date = n.creation_date,

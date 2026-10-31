@@ -161,7 +161,8 @@ namespace NinOS.UI.Views
 
                 _all_combo_items = all_notes
                     .Where(n => n.status != "Anulada" && n.status != "Pagada")
-                    .OrderByCorrelative(n => n.note_number)
+                    .OrderBy(n => n.creation_date)
+                    .ThenBy(n => n.id_delivery_note)
                     .Select(n => new note_combo_item
                     {
                         id_delivery_note = n.id_delivery_note,

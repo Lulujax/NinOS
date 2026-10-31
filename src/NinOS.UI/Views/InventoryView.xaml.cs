@@ -1,4 +1,4 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Input;
 using NinOS.UI.Common.ViewModels;
@@ -83,18 +83,38 @@ namespace NinOS.UI.Views
                             wnd.ShowDialog();
                         }
                     };
+
+                    view_model.prompt_price_edit = (title, message, defaultVal) =>
+                        PromptWindow.ask(Window.GetWindow(this) ?? Application.Current.MainWindow, title, message, defaultVal);
+
+                    view_model.on_request_edit_price_lists_window = () =>
+                    {
+                        var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+                        var priceListService = serviceProvider?.GetService(typeof(NinOS.Infrastructure.Services.Interfaces.IPriceListService)) as NinOS.Infrastructure.Services.Interfaces.IPriceListService;
+                        if (priceListService != null)
+                        {
+                            var vm = new PriceListManagerViewModel(priceListService);
+                            var wnd = new EditListsWindow
+                            {
+                                DataContext = vm,
+                                Owner = Window.GetWindow(this) ?? Application.Current.MainWindow
+                            };
+                            wnd.ShowDialog();
+                            AppDataEvents.raise_catalogs_changed();
+                        }
+                    };
                 }
             };
         }
 
-        private void on_generate_price_list_click(object sender, RoutedEventArgs e)
+        private void on_reports_click(object sender, RoutedEventArgs e)
         {
-            popup_price_list.IsOpen = !popup_price_list.IsOpen;
+            popup_reports.IsOpen = !popup_reports.IsOpen;
         }
 
         private void on_download_price_list_click(object sender, RoutedEventArgs e)
         {
-            popup_price_list.IsOpen = false;
+            popup_reports.IsOpen = false;
 
             if (DataContext is InventoryViewModel view_model)
             {
@@ -102,14 +122,9 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void on_print_inventory_click(object sender, RoutedEventArgs e)
-        {
-            popup_print_inventory.IsOpen = !popup_print_inventory.IsOpen;
-        }
-
         private void on_download_current_inventory_click(object sender, RoutedEventArgs e)
         {
-            popup_print_inventory.IsOpen = false;
+            popup_reports.IsOpen = false;
 
             if (DataContext is InventoryViewModel view_model)
             {
@@ -119,7 +134,7 @@ namespace NinOS.UI.Views
 
         private void on_download_all_movements_click(object sender, RoutedEventArgs e)
         {
-            popup_print_inventory.IsOpen = false;
+            popup_reports.IsOpen = false;
 
             if (DataContext is InventoryViewModel view_model)
             {

@@ -1,7 +1,7 @@
 # 📖 Manual de Usuario — NinOS
 
 **Sistema Administrativo de Facturación, Cobranzas y Comisiones**
-Versión 1.0.7 · Windows
+Versión 1.0.9 · Windows
 
 ---
 
@@ -25,6 +25,7 @@ Versión 1.0.7 · Windows
 9. [Trabajar con clientes](#9-trabajar-con-clientes)
 10. [Trabajar con vendedoras y zonas](#10-trabajar-con-vendedoras-y-zonas)
 11. [Inventario: productos, precios y movimientos](#11-inventario-productos-precios-y-movimientos)
+    - 11.1. [Listas de Precios](#111-listas-de-precios)
 12. [Pro Venta: relaciones semanales](#12-pro-venta-relaciones-semanales)
 13. [Comisiones de las vendedoras](#13-comisiones-de-las-vendedoras)
 14. [Los colores y los estados](#14-los-colores-y-los-estados)
@@ -273,6 +274,38 @@ Cuando un cliente entrega dinero a cuenta de sus notas:
    - **Descargar lista de precios:** abre **LISTA DE PRECIOS**; marca las marcas/categorías que quieras incluir y genera el PDF.
 4. **Ver el movimiento de un producto (kárdex):** haz **doble clic** sobre el producto. Verás cada entrada y salida con el saldo acumulado, y podrás exportarlo a PDF.
 
+
+### 11.1. Listas de Precios
+
+Las **Listas de Precios** permiten manejar diferentes precios para un mismo producto según el tipo de cliente o canal de venta. Cada producto puede tener un precio distinto en cada lista, y al emitir una nota de entrega el sistema registra cuál lista de precios se utilizó.
+
+**¿Cuándo se usan?**
+
+- Cuando un mismo producto tiene precio diferente para distintos tipos de cliente (por ejemplo, precio mayorista vs. precio al detal).
+- Quien factura simplemente elige la lista que corresponde al cliente al momento de registrar la nota.
+
+**Pantalla de Listas de Precios (Inventario > Listas de Precios):**
+
+Al presionar el botón **Listas de Precios** (en la barra superior de Inventario) se abre la pantalla de gestión. No hay una página aparte en el Panel de Administración: todo se maneja desde aquí.
+
+- **Selector de Lista:** Un menú desplegable permite cambiar entre la lista **Principal** y cualquiera de las listas creadas. Al cambiar de lista, la tabla se actualiza con los precios de esa lista.
+- **Lista Principal:** Es la lista base del inventario y siempre existe. Sus precios se pueden editar desde esta pantalla, pero la lista **no se puede eliminar**.
+- **Listas Creadas / Adicionales:** Muestran el precio de cada producto en esa lista. Si un producto no tiene precio propio, **hereda automáticamente el precio de la lista Principal**. Al crear una lista nueva, todos sus productos heredan la Principal.
+- **Editar / Borrar (por producto):** El botón **Editar** permite cambiar el precio del producto en la lista seleccionada. El botón **Borrar** elimina el precio propio para que el producto vuelva a heredar el precio de la Principal (en la lista Principal este botón está deshabilitado).
+- **Botón Editar Listas:** Abre la ventana **Editar Listas**, igual que *Editar Zonas* en Clientes. Allí puedes:
+  - Agregar una lista nueva indicando **nombre** y una **descripción** opcional.
+  - Cambiar el nombre o la descripción de una lista existente.
+  - Eliminar una lista (la Principal sí aparece en la tabla, se puede renombrar y cambiar su descripción, pero no tiene botón de eliminar).
+
+**Al emitir una nota de entrega:**
+
+- Si hay listas activas creadas, verás un selector desplegable **Lista** en cada renglón al agregar un producto.
+- Al elegir una lista, el precio unitario del producto se llena automáticamente con el valor configurado en esa lista.
+- Puedes volver a la lista **Principal** en cualquier momento eligiéndola de nuevo en ese mismo selector; el precio regresa al precio base del inventario.
+- Si no hay listas o el producto no tiene precio especial en la lista seleccionada, se usará el precio base del inventario (lista Principal).
+
+> **Nota:** La lista de precios queda registrada en cada línea de la nota y es visible en los reportes detallados. No afecta el cálculo de descuentos ni de comisiones: esos siguen su lógica habitual.
+
 ---
 
 ## 12. Pro Venta: relaciones semanales
@@ -412,7 +445,8 @@ Sí. Cada quien trabaja en su pestaña; el servidor es quien controla que no se 
 | **Agregar Vendedor** | Da de alta una vendedora | Vendedores |
 | **Agregar (＋) cliente** | Da de alta un cliente | Clientes |
 | **Editar Líneas…** | Administra marcas y prefijos de código ⚠️ *(solo administrador)* | Inventario |
-| **Descargar lista de precios** | Genera el PDF del catálogo de precios | Inventario |
+| **📄 Reportes ▾** | Genera lista de precios en PDF o reportes de inventario (actual y todos los movimientos) | Inventario |
+| **Listas de Precios** | Abre la pantalla para elegir una lista y editar los precios de los productos | Inventario |
 | **Abonar / Pagar** | Registra el cobro de una relación Pro Venta | Pro Venta |
 | **Pago de comision** | Paga la comisión de la vendedora seleccionada | Comisiones |
 | **Seleccionar todo / Quitar todo** | Marca o desmarca vendedores y zonas del reporte | Popups de reporte |
@@ -422,7 +456,7 @@ Sí. Cada quien trabaja en su pestaña; el servidor es quien controla que no se 
 <div align="center">
 
 **NinOS — Sistema Administrativo**
-*Manual de usuario · Versión 1.0.7*
+*Manual de usuario · Versión 1.0.9*
 
 Ante cualquier duda, primero consulta a tu administrador antes de presionar botones que no reconozcas.
 

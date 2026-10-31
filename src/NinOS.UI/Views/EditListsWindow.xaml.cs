@@ -3,16 +3,16 @@ using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
 {
-    public partial class EditPriceListsWindow : Window
+    public partial class EditListsWindow : Window
     {
-        public EditPriceListsWindow()
+        public EditListsWindow()
         {
             InitializeComponent();
             Loaded += async (_, __) =>
             {
-                if (DataContext is PriceListEditViewModel vm)
+                if (DataContext is PriceListManagerViewModel vm)
                 {
-                    await vm.LoadPriceListsAsync();
+                    await vm.LoadAsync();
                 }
             };
         }

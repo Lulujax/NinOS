@@ -6,13 +6,13 @@
         ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="360" MinWidth="560">
     <Window.Style>
         <Style TargetType="Window">
-            <Setter Property="Height" Value="540"/>
+            <Setter Property="Height" Value="480"/>
             <Style.Triggers>
                 <!-- El apartado de ajuste de stock agrega filas: la ventana crece con el.
                      Si no cabe en la pantalla, el codigo de atras la recorta al area de
                      trabajo y el ScrollViewer se encarga del resto. -->
                 <DataTrigger Binding="{Binding is_stock_addition_mode}" Value="True">
-                    <Setter Property="Height" Value="660"/>
+                    <Setter Property="Height" Value="620"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -33,7 +33,6 @@
                       Padding="0,0,6,0" Focusable="False">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -260,53 +259,24 @@
                         <ColumnDefinition Width="170"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" VerticalAlignment="Center"><Run Text="Precio ($):"/><Run Text=" *" Foreground="Red"/></TextBlock>
-                    <TextBox x:Name="PriceBox" Grid.Column="1" Height="26" FontSize="11" VerticalContentAlignment="Center"
-                             Padding="4,0" MaxLength="10" Width="120" HorizontalAlignment="Left"
-                             PreviewTextInput="OnPricePreview"
-                             Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding price_field_label, FallbackValue='Precio ($):'}" VerticalAlignment="Center"/>
+                        <TextBlock Text=" *" Foreground="Red" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBox x:Name="PriceBox" Height="26" FontSize="11" VerticalContentAlignment="Center"
+                                 Padding="4,0" MaxLength="10" Width="120" HorizontalAlignment="Left"
+                                 PreviewTextInput="OnPricePreview"
+                                 Text="{Binding new_price, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontSize="10" Foreground="#757575"
+                                   TextWrapping="Wrap" MaxWidth="250"
+                                   Text="{Binding price_field_hint}"
+                                   Visibility="{Binding is_custom_list_selected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </StackPanel>
                 </Grid>
 
-                <!-- PRECIOS POR LISTA: solo aparece cuando hay listas activas creadas.
-                     Vacio = esa lista usa el precio de arriba (herencia). -->
-                <Border Grid.Row="6" Margin="0,0,0,6" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1"
-                        CornerRadius="4" Padding="12,8"
-                        Visibility="{Binding has_price_lists, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <StackPanel>
-                        <TextBlock FontSize="11.5" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,2"
-                                   Text="Precios por lista"/>
-                        <TextBlock FontSize="10" Foreground="#757575" Margin="0,0,0,6" TextWrapping="Wrap"
-                                   Text="Deja vacío para que la lista use el precio general. Las listas se crean en el Panel de Administración."/>
-                        <ItemsControl ItemsSource="{Binding product_list_prices}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="150"/>
-                                            <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="11"
-                                                   Text="{Binding name}" TextTrimming="CharacterEllipsis"
-                                                   ToolTip="{Binding name}"/>
-                                        <TextBox Grid.Column="1" Height="24" FontSize="11" Margin="0,0,8,0"
-                                                 VerticalContentAlignment="Center" Padding="4,0" MaxLength="10"
-                                                 PreviewTextInput="OnPricePreview"
-                                                 Text="{Binding price_text, UpdateSourceTrigger=PropertyChanged}"
-                                                 ToolTip="Vacío = hereda el precio general"/>
-                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="#757575"
-                                                   TextTrimming="CharacterEllipsis">
-                                            <Run Text="Usa: $"/><Run Text="{Binding effective_price_display, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-
                 <!-- APARTADO DE AJUSTE DE STOCK (se despliega con Agregar/Quitar Stock) -->
-                <Border Grid.Row="7" Margin="0,4,0,6" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1"
+                <Border Grid.Row="6" Margin="0,4,0,6" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1"
                         CornerRadius="4" Padding="12,10"
                         Visibility="{Binding is_stock_addition_mode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel>
@@ -430,7 +400,7 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Grid.Row="8" FontSize="9.5" Foreground="#757575" Margin="2,0,0,0" TextWrapping="Wrap"
+                <TextBlock Grid.Row="7" FontSize="9.5" Foreground="#757575" Margin="2,0,0,0" TextWrapping="Wrap"
                            Text="El codigo se puede escribir a mano, pero debe respetar el estandar de la marca (prefijo + 5 digitos). Si cambias la marca de un producto que ya existe, el sistema le asigna el codigo siguiente de la marca nueva."/>
             </Grid>
         </ScrollViewer>

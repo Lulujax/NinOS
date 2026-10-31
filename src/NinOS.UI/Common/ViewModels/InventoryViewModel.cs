@@ -26,7 +26,92 @@ namespace NinOS.UI.Common.ViewModels
         public string item_name { get; set; } = string.Empty;
         public string item_category { get; set; } = string.Empty;
         public string item_quantity { get; set; } = string.Empty;
-        public decimal item_price { get; set; }
+
+        private decimal _item_price;
+        public decimal item_price 
+        { 
+            get => _item_price;
+            set
+            {
+                if (_item_price != value)
+                {
+                    _item_price = value;
+                    on_property_changed();
+                    on_property_changed(nameof(item_price_display));
+                }
+            }
+        }
+
+        public string item_price_display => $"$ {item_price.ToString("N2", CultureInfo.InvariantCulture)}";
+
+        private bool _has_custom_price;
+        public bool has_custom_price
+        {
+            get => _has_custom_price;
+            set
+            {
+                if (_has_custom_price != value)
+                {
+                    _has_custom_price = value;
+                    on_property_changed();
+                    on_property_changed(nameof(can_delete_row));
+                    on_property_changed(nameof(delete_tooltip));
+                    on_property_changed(nameof(price_origin_tooltip));
+                }
+            }
+        }
+
+        private bool _is_custom_list;
+        public bool is_custom_list
+        {
+            get => _is_custom_list;
+            set
+            {
+                if (_is_custom_list != value)
+                {
+                    _is_custom_list = value;
+                    on_property_changed();
+                    on_property_changed(nameof(can_delete_row));
+                    on_property_changed(nameof(delete_tooltip));
+                    on_property_changed(nameof(price_origin_tooltip));
+                }
+            }
+        }
+
+        public bool can_delete_row
+        {
+            get
+            {
+                if (is_promotion) return true;
+                if (!is_custom_list) return true;
+                return has_custom_price;
+            }
+        }
+
+        public string delete_tooltip
+        {
+            get
+            {
+                if (is_promotion) return "Eliminar promoción";
+                if (!is_custom_list) return "Eliminar producto del inventario";
+                return has_custom_price
+                    ? "Quitar precio propio y volver a heredar de la lista Principal"
+                    : "Este producto ya hereda el precio de la lista Principal";
+            }
+        }
+
+        public string price_origin_tooltip
+        {
+            get
+            {
+                if (is_promotion) return "Precio de promoción";
+                if (!is_custom_list) return "Precio base del inventario (Lista Principal)";
+                return has_custom_price
+                    ? "Precio propio configurado para esta lista"
+                    : "Heredado de la lista Principal";
+            }
+        }
+
         public bool is_promotion { get; set; }
         public bool is_default_combo { get; set; }
         public product? product_ref { get; set; }
@@ -83,6 +168,24 @@ namespace NinOS.UI.Common.ViewModels
         }
     }
 
+    public class price_list_selection_option : ViewModelBase
+    {
+        private bool _is_checked;
+        public int id_price_list { get; set; }
+        public string name { get; set; } = string.Empty;
+
+        public bool is_checked
+        {
+            get => _is_checked;
+            set
+            {
+                if (_is_checked == value) return;
+                _is_checked = value;
+                on_property_changed();
+            }
+        }
+    }
+
     public abstract class InventoryTabItemBase : ViewModelBase
     {
         private string _header = string.Empty;
@@ -133,6 +236,8 @@ namespace NinOS.UI.Common.ViewModels
         }
     }
 
+
+
     public class InventoryViewModel : ViewModelBase
     {
         // Codigos de promocion con el mismo formato correlativo de los productos: prefijo + 5 digitos.
@@ -149,6 +254,40 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IInventoryService _inventory_service;
         private readonly IProductLineService? _product_line_service;
         private readonly IPriceListService? _price_list_service;
+        public ObservableCollection<price_list> price_list_options { get; } = new ObservableCollection<price_list>();
+        private price_list? _selected_price_list;
+        public price_list? selected_price_list
+        {
+            get => _selected_price_list;
+            set
+            {
+                if (_selected_price_list != value)
+                {
+                    _selected_price_list = value;
+                    on_property_changed();
+                    on_property_changed(nameof(is_principal_list_selected));
+                    on_property_changed(nameof(is_custom_list_selected));
+                    on_property_changed(nameof(price_field_label));
+                    on_property_changed(nameof(price_field_hint));
+                    on_property_changed(nameof(is_add_product_button_visible));
+                    update_displayed_prices();
+                }
+            }
+        }
+
+        public bool is_principal_list_selected => _selected_price_list == null || _selected_price_list.is_principal;
+        public bool is_custom_list_selected => !is_principal_list_selected;
+        public bool is_add_product_button_visible => true;
+
+        public string price_field_label => is_principal_list_selected || selected_price_list == null
+            ? "Precio ($):"
+            : $"Precio ({selected_price_list.name}) ($):";
+
+        public string price_field_hint => selected_price_list != null && !selected_price_list.is_principal
+            ? $"Se asignará a la lista \"{selected_price_list.name}\" y como base del inventario."
+            : string.Empty;
+        public Func<string, string, string, string?>? prompt_price_edit;
+        private Dictionary<int, Dictionary<int, decimal>> _all_own_prices = new Dictionary<int, Dictionary<int, decimal>>();
         private List<product> _all_products_source;
         private List<promotion> _all_promotions_source;
         private HashSet<string> _trashed_promotion_codes = new(StringComparer.Ordinal);
@@ -192,6 +331,10 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<InventoryTabItemBase> inventory_tabs { get; } = new ObservableCollection<InventoryTabItemBase>();
         public ObservableCollection<string> category_options { get; }
         public ObservableCollection<brand_selection_option> price_list_brand_options { get; }
+        public ObservableCollection<price_list_selection_option> price_list_selection_options { get; } = new ObservableCollection<price_list_selection_option>();
+
+        private string _principal_price_list_name = "Principal";
+        public string principal_price_list_name => _principal_price_list_name;
         public ObservableCollection<inventory_item_dto> todos_list { get; }
         public ObservableCollection<inventory_item_dto> defile_list { get; }
         public ObservableCollection<inventory_item_dto> oleos_list { get; }
@@ -216,6 +359,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public ICommand open_add_window_command { get; }
         public ICommand edit_lines_command { get; }
+        public ICommand edit_price_lists_command { get; }
         public ICommand save_product_command { get; }
         public ICommand edit_command { get; }
         public ICommand delete_command { get; }
@@ -234,6 +378,7 @@ namespace NinOS.UI.Common.ViewModels
         public Action? on_request_add_window;
         public Action? on_request_add_promotion_window;
         public Action? on_request_edit_lines_window;
+        public Action? on_request_edit_price_lists_window;
         public Action? on_close_add_window;
         public Action? on_close_add_promotion_window;
 
@@ -401,6 +546,8 @@ namespace NinOS.UI.Common.ViewModels
                     }
                     update_category_from_tab();
                     on_property_changed(nameof(can_edit_category));
+
+
                 }
             }
         }
@@ -432,6 +579,8 @@ namespace NinOS.UI.Common.ViewModels
             get { return _add_button_text; }
             set { _add_button_text = value; on_property_changed(); }
         }
+
+
 
         public string new_code
         {
@@ -520,93 +669,6 @@ namespace NinOS.UI.Common.ViewModels
             {
                 _new_price = value;
                 on_property_changed();
-                sync_price_list_rows_original();
-            }
-        }
-
-        // ---- Precios por lista (ventana de producto) ----
-
-        public ObservableCollection<product_price_list_row> product_list_prices { get; } = new();
-
-        public bool has_price_lists => product_list_prices.Count > 0;
-
-        /// <summary>
-        /// Mantiene el "precio original" que cada fila muestra cuando hereda. Se llama
-        /// al cambiar el precio general y al cargar las filas.
-        /// </summary>
-        private void sync_price_list_rows_original()
-        {
-            foreach (product_price_list_row fila in product_list_prices)
-            {
-                fila.original_price_display = _new_price ?? string.Empty;
-            }
-        }
-
-        /// <summary>
-        /// Carga las listas activas para la ventana de producto. En edicion trae los
-        /// precios propios del producto; vacio sigue significando herencia, asi que la
-        /// fila solo se llena si en base existe precio propio.
-        /// </summary>
-        private async void refresh_product_list_prices_async()
-        {
-            if (_price_list_service == null) return;
-
-            try
-            {
-                var listas = await _price_list_service.GetActiveAsync();
-                Dictionary<int, decimal>? propios = null;
-
-                if (_product_being_edited != null)
-                {
-                    Dictionary<int, Dictionary<int, decimal>> todos = await _price_list_service.GetAllOwnPricesAsync();
-                    todos.TryGetValue(_product_being_edited.id_product, out propios);
-                }
-
-                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
-                {
-                    Application.Current.Dispatcher.Invoke(() => fill_price_list_rows(listas, propios));
-                }
-                else
-                {
-                    fill_price_list_rows(listas, propios);
-                }
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn($"No se pudieron cargar las listas de precios: {ex.Message}");
-            }
-        }
-
-        private void fill_price_list_rows(List<Domain.price_list> listas, Dictionary<int, decimal>? propios)
-        {
-            product_list_prices.Clear();
-            foreach (Domain.price_list lista in listas)
-            {
-                decimal? propio = propios != null && propios.TryGetValue(lista.id_price_list, out decimal p) ? p : null;
-                product_list_prices.Add(new product_price_list_row
-                {
-                    id_price_list = lista.id_price_list,
-                    name = lista.name,
-                    price_text = propio.HasValue ? propio.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
-                    own_price = propio,
-                    original_price_display = _new_price ?? string.Empty
-                });
-            }
-            on_property_changed(nameof(has_price_lists));
-        }
-
-        /// <summary>
-        /// Guarda los precios por lista despues de crear/actualizar el producto. Si no
-        /// hay listas o el servicio no esta disponible no hace nada: el flujo del
-        /// producto ya termino y no debe fallar por esto.
-        /// </summary>
-        private async Task save_product_list_prices_async(int id_product, List<(int id_lista, decimal? precio)> precios)
-        {
-            if (_price_list_service == null || precios.Count == 0) return;
-
-            foreach ((int id_lista, decimal? precio) in precios)
-            {
-                await _price_list_service.SaveProductPriceAsync(id_product, id_lista, precio);
             }
         }
 
@@ -705,6 +767,7 @@ namespace NinOS.UI.Common.ViewModels
 
             open_add_window_command = new RelayCommand(execute_open_add_window);
             edit_lines_command = new RelayCommand(execute_edit_lines);
+            edit_price_lists_command = new RelayCommand(execute_edit_price_lists);
 
             save_product_command = new RelayCommand(execute_save_product);
             edit_command = new RelayCommand(execute_edit_product);
@@ -743,9 +806,57 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private async void load_price_list_selections_async()
+        {
+            if (_price_list_service == null) return;
+            try
+            {
+                var principal = await _price_list_service.GetPrincipalAsync();
+                var listas = await _price_list_service.GetActiveAsync();
+                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _principal_price_list_name = principal.name;
+                        on_property_changed(nameof(principal_price_list_name));
+                        fill_price_list_selections(listas);
+                    });
+                }
+                else
+                {
+                    _principal_price_list_name = principal.name;
+                    on_property_changed(nameof(principal_price_list_name));
+                    fill_price_list_selections(listas);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn($"No se pudieron cargar las listas de precios para el PDF: {ex.Message}");
+            }
+        }
+
+        private void fill_price_list_selections(List<Domain.price_list> listas)
+        {
+            price_list_selection_options.Clear();
+            foreach (var lista in listas.OrderBy(x => x.sort_order).ThenBy(x => x.name))
+            {
+                price_list_selection_options.Add(new price_list_selection_option
+                {
+                    id_price_list = lista.id_price_list,
+                    name = lista.name,
+                    is_checked = false
+                });
+            }
+        }
+
         private void execute_edit_lines(object? parameter)
         {
             on_request_edit_lines_window?.Invoke();
+        }
+
+        private void execute_edit_price_lists(object? parameter)
+        {
+            on_request_edit_price_lists_window?.Invoke();
         }
 
         public void sync_tabs(List<product_line> active_lines)
@@ -759,6 +870,7 @@ namespace NinOS.UI.Common.ViewModels
             string? previouslySelectedBrand = (_selected_tab as BrandTabItem)?.BrandName;
             bool wasPromocionesSelected = _selected_tab is PromocionesTabItem;
             bool wasTodosSelected = _selected_tab is TodosTabItem;
+
 
             // 1. Asegurar pestaña "Todos" en posición 0
             TodosTabItem? todosTab = inventory_tabs.OfType<TodosTabItem>().FirstOrDefault();
@@ -839,6 +951,8 @@ namespace NinOS.UI.Common.ViewModels
             // 6. Colocar Promociones al final
             inventory_tabs.Add(promoTab);
 
+
+
             // 7. Sincronizar category_options y price_list_brand_options
             category_options.Clear();
             var checkedBrands = new HashSet<string>(
@@ -857,6 +971,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 price_list_brand_options.Add(opt);
             }
+            load_price_list_selections_async();
 
             if (!category_options.Contains(new_category))
             {
@@ -868,6 +983,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 selected_tab = promoTab;
             }
+
             else if (!string.IsNullOrEmpty(previouslySelectedBrand))
             {
                 selected_tab = inventory_tabs.OfType<BrandTabItem>()
@@ -917,6 +1033,12 @@ namespace NinOS.UI.Common.ViewModels
                 
                 await load_product_lines_async();
 
+                if (_price_list_service != null)
+                {
+                    _all_own_prices = await _price_list_service.GetAllOwnPricesAsync();
+                    await load_price_list_options_async();
+                }
+
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
                 _all_products_source = products.Where(p => p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-")).ToList();
                 
@@ -926,6 +1048,7 @@ namespace NinOS.UI.Common.ViewModels
                 await load_trashed_promotion_codes_async();
 
                 filter_data();
+                load_price_list_selections_async();
             }
             catch (Exception ex)
             {
@@ -937,11 +1060,107 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public async Task load_price_list_options_async(int? selectListId = null)
+        {
+            if (_price_list_service == null) return;
+            try
+            {
+                var principal = await _price_list_service.GetPrincipalAsync();
+                var listas = await _price_list_service.GetActiveAsync();
+
+                void updateList()
+                {
+                    int? currentId = selectListId ?? selected_price_list?.id_price_list;
+
+                    price_list_options.Clear();
+                    price_list_options.Add(principal);
+                    foreach (var l in listas.OrderBy(x => x.sort_order).ThenBy(x => x.name))
+                    {
+                        price_list_options.Add(l);
+                    }
+
+                    price_list target = principal;
+                    if (currentId.HasValue)
+                    {
+                        target = price_list_options.FirstOrDefault(x => x.id_price_list == currentId.Value) ?? principal;
+                    }
+
+                    _selected_price_list = target;
+                    on_property_changed(nameof(selected_price_list));
+                    on_property_changed(nameof(is_principal_list_selected));
+                    on_property_changed(nameof(is_custom_list_selected));
+                    on_property_changed(nameof(price_field_label));
+                    on_property_changed(nameof(price_field_hint));
+                    on_property_changed(nameof(is_add_product_button_visible));
+                }
+
+                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(updateList);
+                }
+                else
+                {
+                    updateList();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn($"No se pudieron cargar opciones de lista de precios: {ex.Message}");
+            }
+        }
+
+        private void update_displayed_prices()
+        {
+            void runUpdate()
+            {
+                bool isCustomList = selected_price_list != null && !selected_price_list.is_principal;
+                int listId = selected_price_list?.id_price_list ?? 0;
+
+                foreach (var tab in inventory_tabs)
+                {
+                    foreach (var item in tab.Items)
+                    {
+                        if (item.is_promotion || item.product_ref == null) continue;
+
+                        decimal price = item.product_ref.unit_price_usd;
+                        bool hasCustom = false;
+
+                        if (isCustomList && _all_own_prices.TryGetValue(item.product_ref.id_product, out var ownPrices)
+                            && ownPrices != null
+                            && ownPrices.TryGetValue(listId, out decimal customPrice))
+                        {
+                            price = customPrice;
+                            hasCustom = true;
+                        }
+
+                        item.item_price = price;
+                        item.has_custom_price = hasCustom;
+                        item.is_custom_list = isCustomList;
+                    }
+                }
+            }
+
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(runUpdate);
+            }
+            else
+            {
+                runUpdate();
+            }
+        }
+
         public async void refresh_data()
         {
             try
             {
                 await load_product_lines_async();
+
+                if (_price_list_service != null)
+                {
+                    _all_own_prices = await _price_list_service.GetAllOwnPricesAsync();
+                    await load_price_list_options_async();
+                }
 
                 IEnumerable<product> products = await _inventory_service.get_all_products_async();
                 _all_products_source = products.Where(p => p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-")).ToList();
@@ -952,6 +1171,7 @@ namespace NinOS.UI.Common.ViewModels
                 await load_trashed_promotion_codes_async();
 
                 filter_data();
+                load_price_list_selections_async();
             }
             catch (Exception)
             {
@@ -1146,8 +1366,24 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private static inventory_item_dto create_product_dto(product p)
+        private inventory_item_dto create_product_dto(product p)
         {
+            decimal price = p.unit_price_usd;
+            bool hasCustom = false;
+            bool isCustomList = selected_price_list != null && !selected_price_list.is_principal;
+
+            if (isCustomList && selected_price_list != null)
+            {
+                if (_all_own_prices.TryGetValue(p.id_product, out var ownPrices) && ownPrices != null)
+                {
+                    if (ownPrices.TryGetValue(selected_price_list.id_price_list, out decimal customPrice))
+                    {
+                        price = customPrice;
+                        hasCustom = true;
+                    }
+                }
+            }
+
             return new inventory_item_dto
             {
                 id_display = p.id_product.ToString(),
@@ -1155,7 +1391,9 @@ namespace NinOS.UI.Common.ViewModels
                 item_name = p.name,
                 item_category = p.category,
                 item_quantity = p.stock_quantity.ToString(),
-                item_price = p.unit_price_usd,
+                item_price = price,
+                has_custom_price = hasCustom,
+                is_custom_list = isCustomList,
                 is_promotion = false,
                 is_default_combo = false,
                 product_ref = p,
@@ -1405,7 +1643,6 @@ namespace NinOS.UI.Common.ViewModels
             new_name = string.Empty;
             new_quantity = string.Empty;
             new_price = string.Empty;
-            refresh_product_list_prices_async();
             reset_adjustment_reason();
 
             update_category_from_tab();
@@ -1420,6 +1657,10 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(name_is_locked));
             on_property_changed(nameof(show_initial_quantity_box));
             on_property_changed(nameof(has_pending_brand_change));
+            on_property_changed(nameof(is_principal_list_selected));
+            on_property_changed(nameof(is_custom_list_selected));
+            on_property_changed(nameof(price_field_label));
+            on_property_changed(nameof(price_field_hint));
             on_request_add_window?.Invoke();
         }
 
@@ -1487,9 +1728,11 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(adjustment_reason_selected));
         }
 
-        private void execute_edit_product(object? parameter)
+        private async void execute_edit_product(object? parameter)
         {
-            if (parameter is inventory_item_dto dto && !dto.is_promotion && dto.product_ref != null)
+            if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
+
+            if (is_principal_list_selected)
             {
                 _product_being_edited = dto.product_ref;
                 _original_quantity_for_edit = dto.product_ref.stock_quantity;
@@ -1510,7 +1753,6 @@ namespace NinOS.UI.Common.ViewModels
                 new_category = dto.product_ref.category;
                 new_quantity = dto.product_ref.stock_quantity.ToString();
                 new_price = dto.product_ref.unit_price_usd.ToString();
-                refresh_product_list_prices_async();
 
                 on_property_changed(nameof(can_edit_category));
                 on_property_changed(nameof(is_editing_product));
@@ -1520,6 +1762,39 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(original_code_for_edit));
                 on_property_changed(nameof(has_pending_brand_change));
                 on_request_add_window?.Invoke();
+            }
+            else
+            {
+                // Edición de precio para la lista seleccionada
+                if (selected_price_list == null || _price_list_service == null) return;
+
+                string currentVal = dto.item_price.ToString("N2", CultureInfo.InvariantCulture);
+                string? input = prompt_price_edit?.Invoke(
+                    $"Precio en {selected_price_list.name}",
+                    $"Nuevo precio ($) para \"{dto.item_name}\" en {selected_price_list.name}:",
+                    currentVal);
+
+                if (string.IsNullOrWhiteSpace(input)) return;
+
+                string clean = input.Trim().Replace("$", "").Trim().Replace(',', '.');
+                if (!decimal.TryParse(clean, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal newPrice) || newPrice < 0)
+                {
+                    AppDialog.Show("Ingresa un precio válido (número mayor o igual a 0).", "Precio inválido");
+                    return;
+                }
+
+                try
+                {
+                    await _price_list_service.SaveProductPriceAsync(dto.product_ref.id_product, selected_price_list.id_price_list, newPrice);
+                    _all_own_prices = await _price_list_service.GetAllOwnPricesAsync();
+                    update_displayed_prices();
+                    AppDataEvents.raise_catalogs_changed();
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Error("Error al guardar precio en lista: " + ex.Message, ex);
+                    AppDialog.Show("Error al guardar el precio: " + ex.Message, "Error");
+                }
             }
         }
 
@@ -1625,18 +1900,53 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var items = new List<price_list_item>();
 
+                // Cargar precios propios si hay servicio
+                Dictionary<int, Dictionary<int, decimal>> allOwn = new Dictionary<int, Dictionary<int, decimal>>();
+                if (_price_list_service != null)
+                {
+                    try
+                    {
+                        allOwn = _price_list_service.GetAllOwnPricesAsync().GetAwaiter().GetResult();
+                    }
+                    catch
+                    {
+                        allOwn = new Dictionary<int, Dictionary<int, decimal>>();
+                    }
+                }
+
+                // Determinar listas seleccionadas
+                var selectedLists = price_list_selection_options.Where(x => x.is_checked).ToList();
+                var columns = new List<price_list_column>
+                {
+                    new price_list_column { key = "ORIGINAL", name = _principal_price_list_name, is_original = true }
+                };
+                foreach (var sl in selectedLists)
+                {
+                    columns.Add(new price_list_column { key = sl.id_price_list.ToString(), name = sl.name, is_original = false });
+                }
+
                 foreach (product p in _all_products_source)
                 {
                     if (string.IsNullOrWhiteSpace(p.product_code) || string.IsNullOrWhiteSpace(p.name)) continue;
                     if (p.unit_price_usd <= 0) continue;
                     if (!is_brand_selected(p.category)) continue;
 
+                    var pricesByKey = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                    if (allOwn.TryGetValue(p.id_product, out var ownDict))
+                    {
+                        foreach (var kv in ownDict)
+                        {
+                            pricesByKey[kv.Key.ToString()] = kv.Value;
+                        }
+                    }
+
                     items.Add(new price_list_item
                     {
                         product_code = p.product_code,
                         name = p.name,
                         brand = p.category,
-                        unit_price_usd = p.unit_price_usd
+                        unit_price_usd = p.unit_price_usd,
+                        prices_by_key = pricesByKey
                     });
                 }
 
@@ -1678,12 +1988,13 @@ namespace NinOS.UI.Common.ViewModels
                             product_code = code,
                             name = promo.name,
                             brand = brand,
-                            unit_price_usd = promo.unit_price_usd
+                            unit_price_usd = promo.unit_price_usd,
+                            prices_by_key = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
                         });
                     }
                 }
 
-                PriceListPdfGenerator.generate(items);
+                PriceListPdfGenerator.generate(items, columns);
             }
             catch (Exception ex)
             {
@@ -1812,51 +2123,85 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
 
-            List<promotion> affected_promos = new();
-            try
+            if (is_principal_list_selected)
             {
-                affected_promos = (await _inventory_service.get_promotions_using_product_async(dto.product_ref.id_product)).ToList();
-            }
-            catch (Exception)
-            {
-                // Si no se pueden consultar, se sigue con el aviso normal de siempre.
-            }
+                List<promotion> affected_promos = new();
+                try
+                {
+                    affected_promos = (await _inventory_service.get_promotions_using_product_async(dto.product_ref.id_product)).ToList();
+                }
+                catch (Exception)
+                {
+                    // Si no se pueden consultar, se sigue con el aviso normal de siempre.
+                }
 
-            string mensaje = $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?";
-            if (affected_promos.Count > 0)
-            {
-                string lista = string.Join("\n", affected_promos.Select(p => $"   • {p.promotion_code} — {p.name}"));
-                mensaje += $"\n\nEste producto forma parte de {affected_promos.Count} promoción(es) activa(s):\n{lista}\n\n" +
-                           "Esas promociones también se eliminarán, porque sin el producto no se pueden vender. " +
-                           "Si solo querías quitar el producto de la promoción, edita la promoción y quítalo de su composición.";
-            }
-
-            MessageBoxResult confirm = AppDialog.Show(mensaje, "Confirmar eliminación",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes) return;
-
-            try
-            {
-                await _inventory_service.soft_delete_product_async(dto.product_ref.id_product, null);
-                load_initial_data_async();
-                AppDataEvents.raise_catalogs_changed();
-
+                string mensaje = $"¿Seguro de eliminar el producto \"{dto.product_ref.name}\"?";
                 if (affected_promos.Count > 0)
                 {
-                    AppDialog.Show(
-                        $"Producto eliminado exitosamente.\n\nTambién se eliminaron {affected_promos.Count} promoción(es) que lo usaban.",
-                        "Exito", MessageBoxButton.OK, MessageBoxImage.Information);
+                    string lista = string.Join("\n", affected_promos.Select(p => $"   • {p.promotion_code} — {p.name}"));
+                    mensaje += $"\n\nEste producto forma parte de {affected_promos.Count} promoción(es) activa(s):\n{lista}\n\n" +
+                               "Esas promociones también se eliminarán, porque sin el producto no se pueden vender. " +
+                               "Si solo querías quitar el producto de la promoción, edita la promoción y quítalo de su composición.";
                 }
-                else
+
+                MessageBoxResult confirm = AppDialog.Show(mensaje, "Confirmar eliminación",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes) return;
+
+                try
                 {
-                    AppDialog.Show("Producto eliminado exitosamente.", "Exito",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    await _inventory_service.soft_delete_product_async(dto.product_ref.id_product, null);
+                    load_initial_data_async();
+                    AppDataEvents.raise_catalogs_changed();
+
+                    if (affected_promos.Count > 0)
+                    {
+                        AppDialog.Show(
+                            $"Producto eliminado exitosamente.\n\nTambién se eliminaron {affected_promos.Count} promoción(es) que lo usaban.",
+                            "Exito", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        AppDialog.Show("Producto eliminado exitosamente.", "Exito",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"No se pudo eliminar el producto: {ErrorText.Get(ex)}";
+                    AppDialog.Show($"Error al eliminar el producto: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                ErrorMessage = $"No se pudo eliminar el producto: {ErrorText.Get(ex)}";
-                AppDialog.Show($"Error al eliminar el producto: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // En lista personalizada: quitar precio propio y volver a heredar de la Principal
+                if (selected_price_list == null || _price_list_service == null) return;
+                if (!dto.has_custom_price) return;
+
+                var principal = await _price_list_service.GetPrincipalAsync();
+                string principalName = principal?.name ?? "Principal";
+
+                MessageBoxResult confirm = AppDialog.Show(
+                    $"¿Quitar el precio propio de \"{dto.item_name}\" en la lista \"{selected_price_list.name}\"?\n\n" +
+                    $"El producto volverá a usar el precio de la lista Principal (${dto.product_ref.unit_price_usd:N2}).",
+                    "Confirmar",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes) return;
+
+                try
+                {
+                    await _price_list_service.SaveProductPriceAsync(dto.product_ref.id_product, selected_price_list.id_price_list, null);
+                    _all_own_prices = await _price_list_service.GetAllOwnPricesAsync();
+                    update_displayed_prices();
+                    AppDataEvents.raise_catalogs_changed();
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Error("Error al borrar precio propio: " + ex.Message, ex);
+                    AppDialog.Show("Error al quitar el precio propio: " + ex.Message, "Error");
+                }
             }
         }
 
@@ -1939,32 +2284,6 @@ namespace NinOS.UI.Common.ViewModels
             {
                 ErrorMessage = "El precio debe ser un número mayor o igual a 0.";
                 return;
-            }
-
-            // Los precios por lista son opcionales: vacio = hereda el original. Si hay
-            // algo escrito, debe ser un numero valido; el guardado va despues del producto.
-            var precios_por_lista = new List<(int id_lista, decimal? precio)>();
-            foreach (product_price_list_row fila in product_list_prices)
-            {
-                if (string.IsNullOrWhiteSpace(fila.price_text))
-                {
-                    precios_por_lista.Add((fila.id_price_list, null));
-                    continue;
-                }
-
-                if (InputRestrictions.has_letters(fila.price_text))
-                {
-                    ErrorMessage = $"No se permiten letras en el precio de la lista \"{fila.name}\".";
-                    return;
-                }
-
-                if (!decimal.TryParse(fila.price_text.Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal precio_lista) || precio_lista < 0)
-                {
-                    ErrorMessage = $"El precio de la lista \"{fila.name}\" debe ser un número mayor o igual a 0.";
-                    return;
-                }
-
-                precios_por_lista.Add((fila.id_price_list, precio_lista));
             }
 
             // El apartado puede quedar abierto sin que la clienta haya escrito nada: en ese
@@ -2080,14 +2399,23 @@ namespace NinOS.UI.Common.ViewModels
                         _product_being_edited,
                         motivoParaPasar,
                         has_pending_brand_change ? new_category : null);
-
-                    await save_product_list_prices_async(_product_being_edited.id_product, precios_por_lista);
                 }
                 else
                 {
                     product new_prod = new product(normalized_code, new_name, new_category, parsed_price, parsed_quantity);
                     await _inventory_service.add_product_async(new_prod);
-                    await save_product_list_prices_async(new_prod.id_product, precios_por_lista);
+
+                    if (!is_principal_list_selected && selected_price_list != null && _price_list_service != null)
+                    {
+                        try
+                        {
+                            await _price_list_service.SaveProductPriceAsync(new_prod.id_product, selected_price_list.id_price_list, parsed_price);
+                        }
+                        catch (Exception ex)
+                        {
+                            AppLog.Warn($"No se pudo asignar el precio personalizado para la lista {selected_price_list.name}: {ex.Message}");
+                        }
+                    }
                 }
 
                 _product_being_edited = null;
@@ -2109,7 +2437,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 // Las ventanas de ventas, notas y lista de precios tienen el codigo en memoria:
                 // sin este aviso seguirian mostrando el anterior.
-                if (cambio_de_codigo)
+                if (cambio_de_codigo || !es_edicion)
                 {
                     AppDataEvents.raise_catalogs_changed();
                 }
