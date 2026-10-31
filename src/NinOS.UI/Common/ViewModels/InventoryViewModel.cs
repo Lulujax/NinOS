@@ -335,6 +335,20 @@ namespace NinOS.UI.Common.ViewModels
 
         private string _principal_price_list_name = "Principal";
         public string principal_price_list_name => _principal_price_list_name;
+
+        private bool _is_principal_included_in_report = true;
+        public bool is_principal_included_in_report
+        {
+            get => _is_principal_included_in_report;
+            set
+            {
+                if (_is_principal_included_in_report != value)
+                {
+                    _is_principal_included_in_report = value;
+                    on_property_changed();
+                }
+            }
+        }
         public ObservableCollection<inventory_item_dto> todos_list { get; }
         public ObservableCollection<inventory_item_dto> defile_list { get; }
         public ObservableCollection<inventory_item_dto> oleos_list { get; }
@@ -1916,10 +1930,23 @@ namespace NinOS.UI.Common.ViewModels
 
                 // Determinar listas seleccionadas
                 var selectedLists = price_list_selection_options.Where(x => x.is_checked).ToList();
-                var columns = new List<price_list_column>
+                bool includePrincipal = is_principal_included_in_report;
+
+                if (!includePrincipal && selectedLists.Count == 0)
                 {
-                    new price_list_column { key = "ORIGINAL", name = _principal_price_list_name, is_original = true }
-                };
+                    AppDialog.Show(
+                        "Seleccione al menos una lista de precios para generar el reporte.",
+                        "Lista de precios",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
+                var columns = new List<price_list_column>();
+                if (includePrincipal)
+                {
+                    columns.Add(new price_list_column { key = "ORIGINAL", name = _principal_price_list_name, is_original = true });
+                }
                 foreach (var sl in selectedLists)
                 {
                     columns.Add(new price_list_column { key = sl.id_price_list.ToString(), name = sl.name, is_original = false });

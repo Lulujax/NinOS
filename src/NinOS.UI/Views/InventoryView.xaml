@@ -233,7 +233,7 @@
                                    FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
                         <TextBlock Text="Listas a incluir" FontSize="10" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,3"/>
-                        <CheckBox Content="{Binding principal_price_list_name}" IsChecked="True" IsEnabled="False" FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
+                        <CheckBox Content="{Binding principal_price_list_name}" IsChecked="{Binding is_principal_included_in_report, Mode=TwoWay}" FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
                         <ItemsControl ItemsSource="{Binding price_list_selection_options}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
