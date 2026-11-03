@@ -229,7 +229,7 @@
                     <StackPanel Grid.Column="0" Margin="0,0,12,0">
                         <TextBlock Text="📋 LISTA DE PRECIOS" FontSize="11.5" FontWeight="Bold"
                                    Foreground="#1B3A2D"/>
-                        <TextBlock Text="Marque las marcas/listas a incluir en el PDF."
+                        <TextBlock Text="Marque las marcas y listas deseadas y elija el formato de exportación:"
                                    FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
                         <TextBlock Text="Listas a incluir" FontSize="10" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,3"/>
@@ -256,35 +256,69 @@
                                     Command="{Binding clear_price_list_command}"/>
                         </DockPanel>
 
-                        <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
-                            <ItemsControl ItemsSource="{Binding price_list_brand_options}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox Content="{Binding name}"
-                                                  IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                                  FontSize="11" Foreground="#333333" Margin="4,1,0,2" Cursor="Hand"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                        <Border Background="#FAFBFC" BorderBrush="#E1E4E8" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,8">
+                            <ScrollViewer MaxHeight="145" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding price_list_brand_options}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding name}"
+                                                      IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                      FontSize="11" Foreground="#333333" Margin="2,1,0,2" Cursor="Hand"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
 
-                        <Button Content="📥 Descargar Lista (PDF)"
-                                Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                                FontSize="12" Height="30" BorderThickness="0" Cursor="Hand"
-                                Click="on_download_price_list_click">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="📄 Exportar PDF"
+                                    ToolTip="Generar lista de precios en documento PDF profesional listo para imprimir"
+                                    Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                    FontSize="11" Height="32" BorderThickness="0" Cursor="Hand"
+                                    Click="on_download_price_list_click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="5">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#12261E"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button Grid.Column="2" Content="📊 Exportar Excel"
+                                    ToolTip="Exportar lista de precios estilizada a hoja de cálculo Excel (.xlsx / .csv)"
+                                    Background="#107C41" Foreground="White" FontWeight="Bold"
+                                    FontSize="11" Height="32" BorderThickness="0" Cursor="Hand"
+                                    Click="on_download_price_list_excel_click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="5">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#189953"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#0D5D31"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
                     </StackPanel>
 
                     <!-- SEPARADOR VERTICAL -->

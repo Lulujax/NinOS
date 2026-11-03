@@ -1951,6 +1951,15 @@ namespace NinOS.UI.Common.ViewModels
                 new_note.volume_discount_percentage = null;
                 new_note.original_discount_percentage = cond_pct;
                 new_note.original_volume_discount_percentage = vol_pct;
+
+                // Dias de credito, vencimiento y textos de condiciones se congelan en la nota.
+                // Antes solo vivian en la pantalla, asi que al reimprimir desde CxC salian con
+                // los valores por defecto (21 dias y el texto de la plantilla) en vez de los
+                // que se escribieron al emitirla.
+                new_note.credit_days = _credit_days;
+                new_note.due_date = _due_date;
+                new_note.conditions_text = _conditions_text;
+                new_note.discount_conditions_text = _discount_conditions_text;
                 if (!string.IsNullOrWhiteSpace(_observations_text))
                 {
                     new_note.cxc_observations = _observations_text.Trim();

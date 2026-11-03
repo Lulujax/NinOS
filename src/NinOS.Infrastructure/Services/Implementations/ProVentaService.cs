@@ -173,6 +173,90 @@ namespace NinOS.Infrastructure.Services.Implementations
             };
         }
 
+        public async Task<pro_venta_weekly_dto> get_relation_report_async(int id_relacion)
+        {
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            relacion? relation = await db_context.relaciones
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.id_relacion == id_relacion);
+
+            if (relation == null)
+                throw new InvalidOperationException($"No se encontró la relación con ID {id_relacion}.");
+
+            var mar_ids = await db_context.note_types
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            var raw_notes = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.id_relacion == id_relacion && (n.note_type_id == null || mar_ids.Contains(n.note_type_id.Value)))
+                .ToListAsync();
+
+            var notes = raw_notes.OrderByCorrelative(n => n.note_number).ToList();
+
+            var customer_ids = notes.Select(n => n.id_customer).Distinct().ToList();
+            var customers = await db_context.customers
+                .AsNoTracking()
+                .Where(c => customer_ids.Contains(c.id_customer))
+                .ToDictionaryAsync(c => c.id_customer, c => c.business_name);
+
+            var seller_ids = notes.Select(n => n.id_seller).Distinct().ToList();
+            var sellers = await db_context.sellers
+                .AsNoTracking()
+                .Where(s => seller_ids.Contains(s.id_seller))
+                .ToDictionaryAsync(s => s.id_seller, s => new { s.full_name, s.seller_code });
+
+            var rows = notes.Select(n =>
+            {
+                customers.TryGetValue(n.id_customer, out string? customer_name);
+                sellers.TryGetValue(n.id_seller, out var seller);
+                decimal amount = n.adjusted_total_usd;
+                return new pro_venta_weekly_row
+                {
+                    id_delivery_note = n.id_delivery_note,
+                    note_number = n.note_number,
+                    customer_name = customer_name ?? string.Empty,
+                    seller_name = seller?.full_name ?? string.Empty,
+                    seller_code = seller?.seller_code ?? string.Empty,
+                    amount = amount,
+                    commission_luis = Money.round(amount * 0.10m),
+                    gastos_25 = Money.round(amount * 0.25m),
+                    gastos_15 = Money.round(amount * 0.15m),
+                    status = n.status ?? string.Empty
+                };
+            }).ToList();
+
+            var valid_rows = rows.Where(r => !r.esta_anulada).ToList();
+            var annulled_rows = rows.Where(r => r.esta_anulada).ToList();
+
+            decimal total_amount = valid_rows.Count > 0
+                ? Money.round(valid_rows.Sum(r => r.amount))
+                : (relation.es_hueca ? relation.saldo : 0m);
+
+            decimal comm_luis = valid_rows.Count > 0 ? Money.round(valid_rows.Sum(r => r.commission_luis)) : 0m;
+            decimal g25 = valid_rows.Count > 0 ? Money.round(valid_rows.Sum(r => r.gastos_25)) : 0m;
+            decimal g15 = valid_rows.Count > 0 ? Money.round(valid_rows.Sum(r => r.gastos_15)) : 0m;
+
+            return new pro_venta_weekly_dto
+            {
+                id_relacion = relation.id_relacion,
+                relation_number = relation.relation_number,
+                week_start = relation.week_start,
+                week_end = relation.week_end,
+                city = "MARACAY",
+                rows = rows,
+                total_amount = total_amount,
+                total_commission_luis = comm_luis,
+                total_gastos_25 = g25,
+                total_gastos_15 = g15,
+                annulled_amount = Money.round(annulled_rows.Sum(r => r.amount)),
+                annulled_count = annulled_rows.Count
+            };
+        }
+
         /// <summary>
         /// Unica forma de decidir si una nota esta anulada en este servicio. Comparar contra
         /// pro_venta_weekly_row.esta_anulada, que es lo que usa la pantalla para pintar la fila

@@ -43,5 +43,10 @@ namespace NinOS.Domain.ViewModels
 
         public const string AnulacionPaymentType = "Anulacion";
         public decimal monto_usd_magnitud => Math.Abs(amount_usd);
+
+        /// <summary>
+        /// Subtotal restante (lo que falta por cobrar) de la relación tras registrar este pago.
+        /// </summary>
+        public decimal subtotal_usd { get; set; }
     }
 }

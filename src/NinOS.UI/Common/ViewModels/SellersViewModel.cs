@@ -23,6 +23,8 @@ namespace NinOS.UI.Common.ViewModels
         public List<int> AssignedZonaIds { get; set; } = new List<int>();
         public bool IsActive { get; set; } = true;
         public bool CanReceiveCommissions { get; set; } = true;
+        public decimal CommissionPercentage { get; set; } = 0.10m;
+        public string CommissionPercentageText => $"{(CommissionPercentage > 0 ? CommissionPercentage * 100 : 10):0.##}%";
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }
         public seller? SellerRef { get; set; }
@@ -71,6 +73,7 @@ namespace NinOS.UI.Common.ViewModels
         private string _newSellerCode = string.Empty;
         private string _newFullName = string.Empty;
         private bool _canReceiveCommissions = true;
+        private string _newCommissionPercentageText = "10";
         private string _addOrEditTitle = "Agregar Vendedor";
         private string _saveButtonText = "Agregar Vendedor";
         private bool _canEditCode = false;
@@ -113,6 +116,17 @@ namespace NinOS.UI.Common.ViewModels
         {
             get => _canReceiveCommissions;
             set { _canReceiveCommissions = value; on_property_changed(); }
+        }
+
+        public string NewCommissionPercentageText
+        {
+            get => _newCommissionPercentageText;
+            set
+            {
+                _newCommissionPercentageText = value;
+                on_property_changed();
+                (SaveSellerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
         }
 
         public string NewFullName
@@ -226,6 +240,7 @@ namespace NinOS.UI.Common.ViewModels
                 AssignedZonaIds = assignedZones.Select(z => z.id_zona).ToList(),
                 IsActive = s.is_active,
                 CanReceiveCommissions = s.can_receive_commissions,
+                CommissionPercentage = s.commission_percentage > 0 ? s.commission_percentage : 0.10m,
                 DeletedAt = s.deleted_at,
                 DeletedReason = s.deleted_reason,
                 SellerRef = s
@@ -246,6 +261,7 @@ namespace NinOS.UI.Common.ViewModels
                 filtered = _allSellersSource.Where(s =>
                     (s.SellerCode?.ToLower().Contains(query) ?? false) ||
                     (s.FullName?.ToLower().Contains(query) ?? false) ||
+                    (s.CommissionPercentageText?.ToLower().Contains(query) ?? false) ||
                     (s.AssignedZonasText?.ToLower().Contains(query) ?? false)
                 ).ToList();
             }
@@ -265,6 +281,7 @@ namespace NinOS.UI.Common.ViewModels
             SaveButtonText = "Agregar Vendedor";
             CanEditCode = false;
             CanReceiveCommissions = true;
+            NewCommissionPercentageText = "10";
 
             try
             {
@@ -292,6 +309,8 @@ namespace NinOS.UI.Common.ViewModels
                 NewSellerCode = selected.SellerCode;
                 NewFullName = selected.FullName;
                 CanReceiveCommissions = selected.CanReceiveCommissions;
+                decimal editPct = selected.CommissionPercentage > 0 ? selected.CommissionPercentage : 0.10m;
+                NewCommissionPercentageText = (editPct * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                 ErrorMessage = string.Empty;
 
                 await PopulateAvailableZonasAsync(selected.AssignedZonaIds);
@@ -352,17 +371,40 @@ namespace NinOS.UI.Common.ViewModels
                     .Select(z => z.IdZona)
                     .ToList();
 
+                decimal commPct = 0.10m;
+                if (!string.IsNullOrWhiteSpace(_newCommissionPercentageText))
+                {
+                    string cleaned = _newCommissionPercentageText.Replace("%", "").Trim().Replace(',', '.');
+                    if (decimal.TryParse(cleaned, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedVal))
+                    {
+                        if (parsedVal < 0 || parsedVal > 100)
+                        {
+                            ErrorMessage = "El porcentaje de comisión debe estar entre 0% y 100%.";
+                            return;
+                        }
+                        commPct = parsedVal > 1 ? Math.Round(parsedVal / 100m, 4) : Math.Round(parsedVal, 4);
+                        if (commPct == 0 && parsedVal > 0) commPct = 0.10m;
+                    }
+                    else
+                    {
+                        ErrorMessage = "Ingrese un porcentaje de comisión válido (ej. 10 o 15).";
+                        return;
+                    }
+                }
+
                 if (_editingSeller != null && _editingSeller.SellerRef != null)
                 {
                     var existing = _editingSeller.SellerRef;
                     existing.full_name = _newFullName.Trim();
                     existing.can_receive_commissions = _canReceiveCommissions;
+                    existing.commission_percentage = commPct;
                     await _sellerService.UpdateAsync(existing, selectedZonaIds);
                 }
                 else
                 {
                     var newSeller = new seller(_newFullName.Trim(), _newSellerCode.Trim(), _newSellerCode.Trim());
                     newSeller.can_receive_commissions = _canReceiveCommissions;
+                    newSeller.commission_percentage = commPct;
                     await _sellerService.CreateAsync(newSeller, selectedZonaIds);
                 }
 
@@ -450,6 +492,7 @@ namespace NinOS.UI.Common.ViewModels
             NewSellerCode = string.Empty;
             NewFullName = string.Empty;
             CanReceiveCommissions = true;
+            NewCommissionPercentageText = "10";
             ErrorMessage = string.Empty;
             _editingSeller = null;
             AvailableZonas.Clear();

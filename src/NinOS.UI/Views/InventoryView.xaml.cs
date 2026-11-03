@@ -112,13 +112,25 @@ namespace NinOS.UI.Views
             popup_reports.IsOpen = !popup_reports.IsOpen;
         }
 
-        private void on_download_price_list_click(object sender, RoutedEventArgs e)
+        private async void on_download_price_list_click(object sender, RoutedEventArgs e)
         {
             popup_reports.IsOpen = false;
+            await System.Threading.Tasks.Task.Yield();
 
             if (DataContext is InventoryViewModel view_model)
             {
                 view_model.generate_price_list_command.Execute(null);
+            }
+        }
+
+        private async void on_download_price_list_excel_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            await System.Threading.Tasks.Task.Yield();
+
+            if (DataContext is InventoryViewModel view_model)
+            {
+                view_model.generate_price_list_excel_command.Execute(null);
             }
         }
 

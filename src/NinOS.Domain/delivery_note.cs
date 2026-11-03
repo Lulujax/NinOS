@@ -107,6 +107,13 @@ namespace NinOS.Domain
         // Valores originales congelados al crear la nota. Solo los usa el PDF/vista previa.
         public decimal? original_discount_percentage { get; set; }
         public decimal? original_volume_discount_percentage { get; set; }
+        // Datos que salen impresos y que se congelan al emitir la nota para que la
+        // reimpresion salga identica: dias de credito, fecha de vencimiento y los dos
+        // textos de condiciones (el editable de la nota y el del cuadro de descuento).
+        public int? credit_days { get; set; }
+        public DateTime? due_date { get; set; }
+        public string? conditions_text { get; set; }
+        public string? discount_conditions_text { get; set; }
 
         protected delivery_note()
         {

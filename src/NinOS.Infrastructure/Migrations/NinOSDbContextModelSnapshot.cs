@@ -360,14 +360,26 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("adjusted_total_usd");
 
+                    b.Property<string>("conditions_text")
+                        .HasColumnType("text")
+                        .HasColumnName("conditions_text");
+
                     b.Property<DateTime>("creation_date")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("creation_date");
+
+                    b.Property<int?>("credit_days")
+                        .HasColumnType("integer")
+                        .HasColumnName("credit_days");
 
                     b.Property<string>("cxc_observations")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("cxc_observations");
+
+                    b.Property<string>("discount_conditions_text")
+                        .HasColumnType("text")
+                        .HasColumnName("discount_conditions_text");
 
                     b.Property<decimal?>("discount_percentage")
                         .HasPrecision(18, 3)
@@ -376,6 +388,10 @@ namespace NinOS.Infrastructure.Migrations
 
                     b.Property<DateTime?>("dispatch_date")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("due_date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_date");
 
                     b.Property<int>("id_customer")
                         .HasColumnType("integer")
@@ -1047,6 +1063,13 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("can_receive_commissions");
+
+                    b.Property<decimal>("commission_percentage")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0.10m)
+                        .HasColumnName("commission_percentage");
 
                     b.Property<string>("customer_code_prefix")
                         .IsRequired()

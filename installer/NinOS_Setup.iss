@@ -1,5 +1,12 @@
 ; Script de Inno Setup para NinOS - Sistema Administrativo
 ; Versión: 1.0.9
+;
+; Actualización sobre una instalación existente:
+;   El AppId es fijo, así que al ejecutar este setup sobre una 1.0.9 ya instalada
+;   se reemplazan los archivos en la misma carpeta, se conservan los accesos
+;   directos y el desinstalador, y no se toca ningún dato del usuario.
+;   [Files] usa "ignoreversion", por lo que los binarios se sobrescriben aunque
+;   la versión sea la misma.
 
 #define MyAppName "NinOS"
 #define MyAppFullName "NinOS - Sistema Administrativo"
@@ -27,6 +34,11 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
+; Si la app esta abierta en la PC del cliente, el setup la cierra (Restart Manager),
+; instala y NO la vuelve a abrir solo: el arranque queda en la casilla final [Run],
+; para que no se abran dos instancias.
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
