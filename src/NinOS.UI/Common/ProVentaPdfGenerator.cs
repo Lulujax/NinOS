@@ -317,6 +317,7 @@ namespace NinOS.UI.Common
                     {
                         columns.RelativeColumn(1.4f);
                         columns.RelativeColumn(1.4f);
+                        columns.RelativeColumn(1.4f);
                         columns.RelativeColumn(3f);
                     });
 
@@ -324,12 +325,14 @@ namespace NinOS.UI.Common
                     {
                         header.Cell().Background(Accent).Padding(3).AlignCenter().Text("FECHA DEL PAGO").Bold().FontColor(Colors.White);
                         header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO USD").Bold().FontColor(Colors.White);
+                        header.Cell().Background(Accent).Padding(3).AlignCenter().Text("SUBTOTAL USD").Bold().FontColor(Colors.White);
                         header.Cell().Background(Accent).Padding(3).Text("OBSERVACION").Bold().FontColor(Colors.White);
                     });
 
                     if (payments != null && payments.Count > 0)
                     {
                         bool alt = false;
+                        decimal running = 0m;
                         foreach (var p in payments)
                         {
                             string bg = alt ? SoftAccent : Colors.White;
@@ -337,18 +340,28 @@ namespace NinOS.UI.Common
                             string color = p.es_negativo ? "#D32F2F" : "#2E7D32";
                             string monto = Math.Abs(p.amount_usd).ToString("N2");
 
+                            if (!p.es_anulacion)
+                            {
+                                running += p.amount_usd;
+                            }
+                            decimal remaining = total_notes - running;
+                            if (remaining <= 0.005m) remaining = 0m;
+                            string subtotal = remaining.ToString("N2");
+
                             hist.Cell().Background(bg).Padding(2).AlignCenter().Text(p.payment_date.ToString("dd/MM/yyyy"));
                             hist.Cell().Background(bg).Padding(2).AlignCenter().Text(monto).FontColor(color).Bold();
+                            hist.Cell().Background(bg).Padding(2).AlignCenter().Text(subtotal).FontColor(Accent).Bold();
                             hist.Cell().Background(bg).Padding(2).Text(p.notes);
                         }
 
                         hist.Cell().Background(SoftAccent).Padding(2).Text("TOTAL").Bold();
                         hist.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(total_paid.ToString("N2")).Bold();
+                        hist.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(balance_due.ToString("N2")).Bold();
                         hist.Cell().Background(SoftAccent);
                     }
                     else
                     {
-                        hist.Cell().ColumnSpan(3).Padding(8).AlignCenter().Text("No se registran pagos para esta relacion.").FontColor("#777777");
+                        hist.Cell().ColumnSpan(4).Padding(8).AlignCenter().Text("No se registran pagos para esta relacion.").FontColor("#777777");
                     }
                 });
             });

@@ -31,16 +31,30 @@ namespace NinOS.UI.Views
             var notes = await _vm.get_relation_notes_async(_row.id_relacion);
             NotesGrid.ItemsSource = notes;
 
-            var payments = (await _vm.get_relation_payments_async(_row.id_relacion))
-                .OrderBy(p => p.payment_date)
-                .ToList();
-            HistoryGrid.ItemsSource = payments;
-
             // El monto y el saldo se calculan solo con lo que esta vigente: una nota anulada ya no
             // se cobra y su asiento en rojo es un registro, no un pago. Sumarlo correria el saldo.
             var vigente = notes.Where(n => !n.esta_anulada).ToList();
-
             decimal amount = vigente.Count > 0 ? vigente.Sum(n => n.amount) : _row.amount;
+
+            var payments = (await _vm.get_relation_payments_async(_row.id_relacion))
+                .OrderBy(p => p.payment_date)
+                .ToList();
+
+            // El subtotal representa lo que falta por cobrar (saldo restante) tras registrar cada pago.
+            decimal runningPaid = 0m;
+            foreach (var p in payments)
+            {
+                if (!p.es_anulacion)
+                {
+                    runningPaid += p.amount_usd;
+                }
+                decimal remaining = amount - runningPaid;
+                if (remaining <= 0.005m) remaining = 0m;
+                p.subtotal_usd = remaining;
+            }
+
+            HistoryGrid.ItemsSource = payments;
+
             decimal paid = payments.Where(p => !p.es_anulacion).Sum(p => p.amount_usd);
             if (paid == 0 && _row.paid_amount_usd > 0) paid = _row.paid_amount_usd;
             decimal balance = _row.balance_due_usd;

@@ -249,6 +249,10 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.volume_discount_percentage).HasColumnName("volume_discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.original_discount_percentage).HasColumnName("original_discount_percentage").HasPrecision(18, 3);
                 entity.Property(e => e.original_volume_discount_percentage).HasColumnName("original_volume_discount_percentage").HasPrecision(18, 3);
+                entity.Property(e => e.credit_days).HasColumnName("credit_days").IsRequired(false);
+                entity.Property(e => e.due_date).HasColumnName("due_date").IsRequired(false);
+                entity.Property(e => e.conditions_text).HasColumnName("conditions_text");
+                entity.Property(e => e.discount_conditions_text).HasColumnName("discount_conditions_text");
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);

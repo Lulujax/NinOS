@@ -959,6 +959,43 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal volume_amt = vol_pct > 0 ? (after_discount * vol_pct / 100m) : 0;
                 decimal total_calc = after_discount - volume_amt;
 
+                // Datos de credito y condiciones: se imprimen los que quedaron congelados en la
+                // nota al emitirla. Solo las notas viejas (sin esos campos guardados) caen al
+                // comportamiento anterior: 21 dias y el texto de la plantilla del tipo de nota.
+                DateTime local_creation = AppTimeZone.to_local(note.creation_date);
+                int credit_days = note.credit_days ?? 21;
+                DateTime due_date_local = note.due_date.HasValue
+                    ? AppTimeZone.to_local(note.due_date.Value)
+                    : local_creation.AddDays(credit_days);
+
+                string conditions_text;
+                if (!string.IsNullOrWhiteSpace(note.conditions_text))
+                {
+                    conditions_text = note.conditions_text;
+                }
+                else if (!string.IsNullOrWhiteSpace(note_type?.conditions_template))
+                {
+                    conditions_text = note_type.conditions_template;
+                }
+                else
+                {
+                    conditions_text = is_promo ? "DIAS CREDITO 21 DIAS SIN DESCUENTO" : "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
+                }
+
+                string discount_conditions_text;
+                if (!string.IsNullOrWhiteSpace(note.discount_conditions_text))
+                {
+                    discount_conditions_text = note.discount_conditions_text;
+                }
+                else if (!string.IsNullOrWhiteSpace(note_type?.discount_conditions_template))
+                {
+                    discount_conditions_text = note_type.discount_conditions_template;
+                }
+                else
+                {
+                    discount_conditions_text = is_promo ? string.Empty : "Descuento 10% SOLO\nCONTADO";
+                }
+
                 return new note_print_dto
                 {
                     id_delivery_note = note.id_delivery_note,
@@ -979,8 +1016,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     total_con_descuento_volumen = total_calc,
                     total_credito_volumen = gross - (gross * vol_pct / 100m),
                     discounted_total_usd = after_discount,
-                    creation_date = note.creation_date,
-                    due_date = note.creation_date.AddDays(15),
+                    creation_date = local_creation,
+                    due_date = due_date_local,
                     status = note.status,
                     gross_total_usd = gross,
                     discount_percentage = discount_pct,
@@ -994,11 +1031,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_rif = customer?.rif ?? string.Empty,
                     customer_phone = customer?.phone_number ?? string.Empty,
                     customer_contact = customer?.contact_name ?? string.Empty,
-                    credit_days_text = is_promo ? string.Empty : "21 DIAS",
+                    credit_days_text = is_promo ? string.Empty : $"{credit_days} DIAS",
                     customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
-                    conditions_text = is_promo ? "DIAS CREDITO 21 DIAS SIN DESCUENTO" : "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO",
-                    discount_conditions_text = is_promo ? string.Empty : "Descuento 10% SOLO\nCONTADO",
+                    conditions_text = conditions_text,
+                    discount_conditions_text = discount_conditions_text,
                     details = details
                 };
             }
