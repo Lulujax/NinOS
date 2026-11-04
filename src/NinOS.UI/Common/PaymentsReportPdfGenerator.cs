@@ -1,272 +1,616 @@
 using System;
+
 using System.Collections.Generic;
+
 using System.Globalization;
+
 using System.Linq;
+
 using Microsoft.Win32;
+
 using NinOS.Domain.ViewModels;
+
 using QuestPDF.Fluent;
+
 using QuestPDF.Helpers;
+
 using QuestPDF.Infrastructure;
 
+
+
 namespace NinOS.UI.Common
+
 {
+
     public static class PaymentsReportPdfGenerator
+
     {
+
         private static readonly string PrimaryColor = "#1B3A2D";
+
         private static readonly string LightBorder = "#000000";
+
         private static readonly string AccentBg = "#F0F4EC";
+
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        /// <summary>
-        /// Reporte de pagos del mes. Cada pagina es un grupo: por vendedor (el pedido) o por zona
-        /// del cliente del pago. El encabezado de cada pagina muestra el otro dato como columna,
-        /// igual que hace el reporte de ventas.
-        /// </summary>
-        public static void generate(
-            string month,
-            List<payment_dto> payments,
-            string group_mode = "Por Vendedor",
-            IReadOnlyCollection<string>? zonas_seleccionadas = null,
-            bool filtrar_por_zona = false,
-            bool filtrar_por_vendedor = false)
+
+
+        public static string get_default_file_name(string month, string group_mode = "Por Vendedor")
+
         {
-            QuestPDF.Settings.License = LicenseType.Community;
 
             bool por_zona = string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase);
 
-            var seller_suffix = !filtrar_por_vendedor || zonas_seleccionadas == null
-                ? string.Empty
-                : string.Empty;
+            return $"REPORTE PAGOS {month}{(por_zona ? " POR ZONA" : string.Empty)}.pdf".ToUpperInvariant();
+
+        }
+
+
+
+        public static IDocument build_document(
+
+            string month,
+
+            List<payment_dto> payments,
+
+            string group_mode = "Por Vendedor",
+
+            IReadOnlyCollection<string>? zonas_seleccionadas = null,
+
+            bool filtrar_por_zona = false,
+
+            bool filtrar_por_vendedor = false)
+
+        {
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+
+
+            bool por_zona = string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase);
+
+
+
             var zona_suffix = string.Empty;
 
             if (por_zona)
+
             {
+
                 zona_suffix = filtrar_por_zona && zonas_seleccionadas != null && zonas_seleccionadas.Count == 1
+
                     ? $" ({zonas_seleccionadas.First().ToUpperInvariant()})"
+
                     : string.Empty;
+
             }
 
+
+
             string titulo = por_zona
+
                 ? $"PAGOS REALIZADOS DEL MES - POR ZONA{zona_suffix}"
+
                 : "PAGOS REALIZADOS DEL MES";
 
-            string file_name = $"REPORTE PAGOS {month}{(por_zona ? " POR ZONA" : string.Empty)}.pdf".ToUpperInvariant();
 
-            var save_dialog = new SaveFileDialog
-            {
-                Title = file_name,
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = file_name
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
 
             var month_cap = Capitalize(month);
 
+
+
             var grouped = por_zona
+
                 ? payments
+
                     .GroupBy(p => string.IsNullOrWhiteSpace(p.zone_name) ? "SIN ZONA" : p.zone_name.Trim())
+
                     .OrderBy(g => g.Key)
+
                     .ToList()
+
                 : payments
+
                     .GroupBy(p => string.IsNullOrWhiteSpace(p.seller_name) ? "SIN VENDEDOR" : p.seller_name.Trim())
+
                     .OrderBy(g => g.Key)
+
                     .ToList();
 
-            var document = Document.Create(container =>
+
+
+            return Document.Create(container =>
+
             {
+
                 if (grouped.Count == 0)
+
                 {
-                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, null, null));
+
+                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, null, null, false, null));
+
                     return;
+
                 }
 
-                foreach (var g in grouped)
+
+
+                for (int i = 0; i < grouped.Count; i++)
+
                 {
-                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, g.Key, g.ToList()));
+
+                    var g = grouped[i];
+
+                    bool is_last = (i == grouped.Count - 1);
+
+                    container.Page(page => BuildGroupPage(page, month_cap, titulo, por_zona, g.Key, g.ToList(), is_last, payments));
+
                 }
+
             });
 
-            document.GeneratePdf(save_dialog.FileName);
         }
 
-        private static void BuildGroupPage(
-            PageDescriptor page,
-            string month_cap,
-            string titulo,
-            bool por_zona,
-            string? group_name,
-            List<payment_dto>? group_rows)
+
+
+        public static void generate(
+
+            string month,
+
+            List<payment_dto> payments,
+
+            string group_mode = "Por Vendedor",
+
+            IReadOnlyCollection<string>? zonas_seleccionadas = null,
+
+            bool filtrar_por_zona = false,
+
+            bool filtrar_por_vendedor = false)
+
         {
+
+            string file_name = get_default_file_name(month, group_mode);
+
+
+
+            var save_dialog = new SaveFileDialog
+
+            {
+
+                Title = file_name,
+
+                Filter = "PDF (*.pdf)|*.pdf",
+
+                FileName = file_name
+
+            };
+
+
+
+            if (save_dialog.ShowDialog() != true) return;
+
+
+
+            var doc = build_document(month, payments, group_mode, zonas_seleccionadas, filtrar_por_zona, filtrar_por_vendedor);
+
+            doc.GeneratePdf(save_dialog.FileName);
+
+        }
+
+
+
+        private static void BuildGroupPage(
+
+            PageDescriptor page,
+
+            string month_cap,
+
+            string titulo,
+
+            bool por_zona,
+
+            string? group_name,
+
+            List<payment_dto>? group_rows,
+
+            bool is_last,
+
+            List<payment_dto>? all_payments)
+
+        {
+
             page.Size(PageSizes.Letter);
+
             page.MarginLeft(1, Unit.Centimetre);
+
             page.MarginTop(1, Unit.Centimetre);
+
             page.MarginRight(1, Unit.Centimetre);
+
             page.MarginBottom(1, Unit.Centimetre);
+
             page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(8));
 
+
+
             page.Header().Column(col =>
+
             {
+
                 col.Item().Row(row =>
+
                 {
+
                     row.RelativeItem().Text(titulo).FontSize(13).Bold().FontColor(PrimaryColor);
+
                     row.RelativeItem().AlignRight().Text(month_cap).FontSize(11).Bold().FontColor("#000000");
+
                 });
+
                 col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
+
             });
 
+
+
             page.Content().PaddingVertical(4).Column(col =>
+
             {
+
                 if (group_name == null)
+
                 {
+
                     col.Item().Text("No hubo pagos en el mes seleccionado.").FontSize(11).FontColor("#000000");
+
                     return;
+
                 }
+
+
 
                 var srows = group_rows ?? new List<payment_dto>();
 
+
+
                 col.Item().Row(row =>
+
                 {
+
                     row.RelativeItem().Column(c =>
+
                     {
+
                         c.Item().Text(por_zona ? "ZONA" : "VENDEDOR").FontSize(6.5f).Bold().FontColor("#000000");
+
                         c.Item().PaddingTop(1).Text(group_name).FontSize(9).Bold();
+
                     });
+
                 });
+
+
 
                 col.Item().PaddingTop(6).Table(table =>
+
                 {
+
                     table.ColumnsDefinition(columns =>
+
                     {
+
                         columns.RelativeColumn(1.05f);   // FECHA
+
                         columns.RelativeColumn(0.95f);   // NOTA
+
                         columns.RelativeColumn(2.6f);    // CLIENTE
+
                         columns.RelativeColumn(1.35f);   // BANCO
+
                         columns.RelativeColumn(1.25f);   // NRO REF
+
                         columns.RelativeColumn(0.95f);   // TIPO
+
                         columns.RelativeColumn(1.05f);   // MONTO $
+
                         columns.RelativeColumn(1.05f);   // MONTO BS
+
                     });
+
+
 
                     table.Header(header =>
+
                     {
+
                         void h(string text, bool left = false)
+
                         {
+
                             var c = header.Cell().Background(PrimaryColor).PaddingVertical(2).PaddingHorizontal(1.5f);
+
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+
                             t.FontColor(Colors.White).Bold().FontSize(6.5f);
+
                         }
+
+
 
                         h("FECHA");
+
                         h("NOTA");
+
                         h("CLIENTE", left: true);
+
                         h("BANCO");
+
                         h("NRO REF");
+
                         h("TIPO");
+
                         h("MONTO $");
+
                         h("MONTO BS");
+
                     });
+
+
 
                     bool alternate = false;
+
                     foreach (var r in srows)
+
                     {
+
                         string bg = alternate ? AccentBg : Colors.White;
 
+
+
                         void cell(string text, bool left = false)
+
                         {
+
                             var c = table.Cell().Background(bg).BorderBottom(0.4f).BorderColor(LightBorder)
+
                                 .PaddingVertical(2).PaddingHorizontal(1.5f);
+
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+
                             t.FontSize(7.5f);
+
                         }
+
+
 
                         cell(r.payment_date.ToString("d/M/yyyy"));
+
                         cell(r.note_number);
+
                         cell(r.customer_name, left: true);
+
                         cell(r.bank_name);
+
                         cell(r.reference_number);
+
                         cell(r.payment_type);
+
                         cell(Money(r.amount_usd));
+
                         cell(r.amount_bs > 0 ? MoneyBs(r.amount_bs) : "-");
 
+
+
                         alternate = !alternate;
+
                     }
+
                 });
+
+
 
                 // Los abonos de tipo "Anulacion" son el asiento contable que deja una anulacion: no es plata
+
                 // que entro. Se muestran en la tabla para dejar rastro, pero fuera de los
+
                 // subtotales y del TOTAL PAGADO, que es lo que el usuario lee como plata real.
+
                 var contables = srows.Where(p => p.es_anulacion).ToList();
+
                 var reales = srows.Where(p => !p.es_anulacion).ToList();
 
+
+
                 decimal sub_total_usd = reales.Sum(p => p.amount_usd);
+
                 decimal sub_total_bs = reales.Sum(p => p.amount_bs);
+
                 decimal anulaciones_usd = contables.Sum(p => p.amount_usd);
 
+
+
                 col.Item().PaddingTop(10).Row(outerRow =>
+
                 {
+
                     outerRow.RelativeItem();
 
+
+
                     outerRow.ConstantItem(320).Border(0.5f).BorderColor(LightBorder).Column(bottom =>
+
                     {
+
                         bottom.Item().Padding(4).Row(r =>
+
                         {
+
                             r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
+
                             r.ConstantItem(120).AlignRight().Text(Money(sub_total_usd)).FontSize(10).Bold();
+
                         });
+
                         bottom.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
+
                         {
+
                             r.RelativeItem().Text("SUB TOTAL BS").FontSize(9).Bold().FontColor("#000000");
+
                             r.ConstantItem(120).AlignRight().Text(MoneyBs(sub_total_bs)).FontSize(10).Bold();
+
                         });
+
+
 
                         if (contables.Count > 0)
+
                         {
+
                             bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+
                             bottom.Item().Background("#FFEBEE").Padding(4).Row(r =>
+
                             {
+
                                 r.RelativeItem().Text($"ANULACIONES ({contables.Count}):").FontSize(8).Bold().FontColor("#C62828");
+
                                 r.ConstantItem(120).AlignRight().Text(Money(anulaciones_usd)).FontSize(8.5f).Bold().FontColor("#C62828");
+
                             });
+
                             bottom.Item().Background("#FFEBEE").PaddingHorizontal(4).PaddingBottom(2).Text("(Asientos de anulacion: no son pagos y no suman)").FontSize(6.5f).Italic().FontColor("#C62828");
+
                         }
 
+
+
                         bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+
                         bottom.Item().Padding(4).Row(r =>
+
                         {
+
                             r.RelativeItem().Text("TOTAL PAGADO $").FontSize(9).Bold().FontColor(PrimaryColor);
+
                             r.ConstantItem(120).AlignRight().Text(Money(sub_total_usd)).FontSize(12).Bold().FontColor(PrimaryColor);
+
                         });
+
                     });
+
                 });
+
+
+
+                if (is_last && all_payments != null && all_payments.Count > 0)
+
+                {
+
+                    var non_contable = all_payments.Where(p => !p.es_anulacion).ToList();
+
+                    decimal grand_total_usd = non_contable.Sum(p => p.amount_usd);
+
+                    decimal grand_total_bs = non_contable.Sum(p => p.amount_bs);
+
+
+
+                    col.Item().PaddingTop(12).Border(1.5f).BorderColor(PrimaryColor).Column(grand =>
+
+                    {
+
+                        grand.Item().Background(PrimaryColor).Padding(3).AlignCenter()
+
+                            .Text("TOTAL GENERAL").FontSize(9.5f).Bold().FontColor(Colors.White);
+
+
+
+                        grand.Item().Padding(4).Row(r =>
+
+                        {
+
+                            r.RelativeItem().Text("TOTAL GENERAL PAGADO $").FontSize(9).Bold().FontColor(PrimaryColor);
+
+                            r.ConstantItem(120).AlignRight().Text(Money(grand_total_usd)).FontSize(11.5f).Bold().FontColor(PrimaryColor);
+
+                        });
+
+
+
+                        grand.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
+
+                        {
+
+                            r.RelativeItem().Text("TOTAL GENERAL PAGADO BS").FontSize(8.5f).Bold().FontColor("#000000");
+
+                            r.ConstantItem(120).AlignRight().Text(MoneyBs(grand_total_bs)).FontSize(9.5f).Bold();
+
+                        });
+
+                    });
+
+                }
+
             });
 
+
+
             page.Footer().Column(col =>
+
             {
+
                 col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+
                 col.Item().PaddingTop(2).Row(row =>
+
                 {
+
                     row.RelativeItem().Text("Reporte de pagos del mes").FontSize(7).FontColor("#000000");
+
                     row.RelativeItem().AlignCenter().Text($"Impreso: {DateTime.UtcNow:dd/MM/yyyy HH:mm}").FontSize(7).FontColor("#000000");
+
                     row.RelativeItem().AlignRight().Text(t =>
+
                     {
+
                         t.Span("Pagina ").FontSize(7).FontColor("#000000");
+
                         t.CurrentPageNumber().FontSize(7).FontColor("#000000");
+
                         t.Span(" de ").FontSize(7).FontColor("#000000");
+
                         t.TotalPages().FontSize(7).FontColor("#000000");
+
                     });
+
                 });
+
             });
+
         }
+
+
 
         private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);
 
+
+
         private static string MoneyBs(decimal value) => "Bs " + value.ToString("#,##0.00", Ve);
 
+
+
         private static string Capitalize(string text)
+
         {
+
             if (string.IsNullOrWhiteSpace(text)) return text;
+
             return char.ToUpper(text[0]) + text.Substring(1);
+
         }
+
     }
+
 }
+

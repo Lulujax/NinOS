@@ -1,380 +1,399 @@
-<UserControl x:Class="NinOS.UI.Views.PaymentsView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d" Background="White">
-    <UserControl.Resources>
-        <Style x:Key="PillButton" TargetType="RadioButton">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="border" Background="#E3F2FD" CornerRadius="12"
-                                Padding="10,4" BorderBrush="#BBDEFB" BorderThickness="1"
-                                Cursor="Hand" Margin="2,0">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1565C0"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#1565C0"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="CompactDataGrid" TargetType="DataGrid">
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="RowHeaderWidth" Value="0"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="CanUserDeleteRows" Value="False"/>
-            <Setter Property="CanUserReorderColumns" Value="False"/>
-            <Setter Property="CanUserResizeColumns" Value="False"/>
-            <Setter Property="SelectionMode" Value="Single"/>
-            <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="MinRowHeight" Value="20"/>
-        </Style>
-        <Style x:Key="CellText" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-        </Style>
-        <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="TextAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="CellTextWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="TextTrimming" Value="None"/>
-        </Style>
-        <Style x:Key="CellTextCenterWrap" TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="TextTrimming" Value="None"/>
-        </Style>
-        <Style x:Key="BlueComboBox" TargetType="ComboBox">
-            <Setter Property="Height" Value="26"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton x:Name="ToggleButton" Focusable="False" ClickMode="Press"
-                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                                <ToggleButton.Template>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Border x:Name="bd" Background="#1565C0" BorderBrush="#0D47A1"
-                                                BorderThickness="1" CornerRadius="3" Padding="8,0">
-                                            <ContentPresenter/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#1976D2"/>
-                                            </Trigger>
-                                            <Trigger Property="IsChecked" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#0D47A1"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </ToggleButton.Template>
-                            </ToggleButton>
-                            <ContentPresenter x:Name="ContentSite" Margin="8,0,20,0" VerticalAlignment="Center"
-                                              HorizontalAlignment="Center" IsHitTestVisible="False"
-                                              Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
-                            <Path x:Name="Arrow" Data="M 0 0 L 8 0 L 4 5 Z" Fill="White"
-                                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" IsHitTestVisible="False"/>
-                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
-                                   Focusable="False" PopupAnimation="Slide">
-                                <Border MinWidth="{Binding ActualWidth, ElementName=ContentSite}"
-                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                        Background="White" BorderBrush="#0D47A1" BorderThickness="1" CornerRadius="3">
-                                    <ScrollViewer>
-                                        <ItemsPresenter/>
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
-    <Grid Margin="6">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- FILA 0: HEADER - titulo + busqueda + mes + boton -->
-        <Grid Grid.Row="0" Margin="0,0,0,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="260"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0" Text="PAGOS" FontSize="16.5" FontWeight="Bold"
-                       Foreground="#1565C0" VerticalAlignment="Center" Margin="0,0,12,0"/>
-
-            <!-- Busqueda -->
-            <Grid Grid.Column="1" Margin="0,0,8,0">
-                <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
-                    <Grid>
-                        <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
-                        <TextBox x:Name="txt_search" Margin="26,2,22,2" BorderThickness="0" Background="Transparent"
-                                 VerticalContentAlignment="Center" FontSize="12.5"
-                                 Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button x:Name="btn_clear_search" Content="&#x2715;" Margin="0,0,4,0"
-                                HorizontalAlignment="Right" Width="20" Height="20"
-                                Cursor="Hand" Visibility="Collapsed" Click="btn_clear_search_Click">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="Transparent" Padding="2">
-                                        <TextBlock Text="{TemplateBinding Content}" FontSize="10.5" Foreground="#9E9E9E"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <!-- Mes + Filtro + Boton registrar -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="110"
-                          ItemsSource="{Binding pending_months}"
-                          SelectedItem="{Binding selected_month}"
-                          FontSize="12.5" Height="26"
-                          HorizontalContentAlignment="Center"/>
-
-                <Button x:Name="btn_reporte" Content="Reporte" Background="#1B3A2D" Foreground="White"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        FontSize="12.5" ToolTip="Reporte de pagos del mes"
-                        Click="on_reporte_click">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <!-- FILA 1: TABS DE VENDEDORAS -->
-        <TabControl Grid.Row="1" ItemsSource="{Binding seller_tabs}" SelectedItem="{Binding selected_tab, Mode=TwoWay}" Margin="0,0,0,4">
-            <TabControl.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="12.5"/>
-                </DataTemplate>
-            </TabControl.ItemTemplate>
-            <TabControl.ContentTemplate>
-                <DataTemplate>
-                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Items}"
-                              MouseDoubleClick="DataGrid_MouseDoubleClick">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
-                              ElementStyle="{StaticResource CellTextWrap}"/>
-                            <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="DCTO" Binding="{Binding discount_amount, StringFormat=N2}" Width="55"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"
-                              ElementStyle="{StaticResource CellTextCenterWrap}"/>
-                            <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"
-                              ElementStyle="{StaticResource CellTextCenter}"/>
-                            <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="75">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="HorizontalAlignment" Value="Center"/>
-                                        <Setter Property="FontWeight" Value="Bold"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding status}" Value="Pagada">
-                                                <Setter Property="Foreground" Value="#2E7D32"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding status}" Value="Pendiente">
-                                                <Setter Property="Foreground" Value="#F57C00"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding status}" Value="Anulada">
-                                                <Setter Property="Foreground" Value="#9E9E9E"/>
-                                                <Setter Property="FontStyle" Value="Italic"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding status}" Value="Devuelta">
-                                                <Setter Property="Foreground" Value="#7B1FA2"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DataTemplate>
-            </TabControl.ContentTemplate>
-        </TabControl>
-
-        <!-- FILA 3: FOOTER - 2 totales. El "total por cobrar" no va aqui: este modulo es de
-             pagos, no de cobranza, y ese total vive en Cuentas por Cobrar. -->
-        <Border Grid.Row="3" Background="#0D62B5" Padding="10,5" CornerRadius="0,0,4,4">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Total Facturado -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="TOTAL FACTURADO: $" Foreground="#BBDEFB" FontSize="12.5" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding total_invoiced_usd, StringFormat=N2}" Foreground="White" FontSize="14.5"
-                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
-
-                <!-- Total Cobrado -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="TOTAL COBRADO: $" Foreground="#BBDEFB" FontSize="12.5" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding total_paid_usd, StringFormat=N2}" Foreground="White" FontSize="14.5"
-                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- POPUP: CONFIGURADOR DE REPORTE DE PAGOS -->
-        <!-- Las checklists de vendedores y zonas son el filtro: no hay interruptor de "cambiar
-             alcance", seria redundante y confuso. -->
-        <Popup x:Name="popup_reporte"
-               PlacementTarget="{Binding ElementName=btn_reporte}"
-               Placement="Bottom"
-               StaysOpen="False"
-               AllowsTransparency="True"
-               PopupAnimation="Fade">
-            <Border x:Name="panel_reporte"
-                    Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="5"
-                    Padding="14,12" Width="330">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
-                </Border.Effect>
-                <StackPanel>
-                    <TextBlock Text="REPORTE DE PAGOS DEL MES" FontSize="11.5" FontWeight="Bold"
-                               Foreground="#1B3A2D"/>
-                    <TextBlock Text="Elija el mes y qu&#233; vendedor y zona quiere incluir."
-                               FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
-
-                    <TextBlock Text="MES" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
-                    <ComboBox x:Name="cmb_reporte_month"
-                              ItemsSource="{Binding pending_months}"
-                              SelectedItem="{Binding selected_month}"
-                              FontSize="11.5" Height="25" Cursor="Hand"/>
-
-                    <TextBlock Text="AGRUPAR EN (p&#225;ginas del PDF)" FontSize="9.5" FontWeight="Bold"
-                               Foreground="#55665C" Margin="0,10,0,3"/>
-                    <ComboBox ItemsSource="{Binding report_group_options}"
-                              SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
-                              FontSize="11.5" Height="25" Cursor="Hand"/>
-                    <TextBlock Text="Por Vendedor: una p&#225;gina por vendedor. Por Zona: una p&#225;gina por zona del cliente."
-                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
-
-                    <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4"
-                            Padding="8,6" Margin="0,10,0,0">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,4">
-                                <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <CheckBox Content="Todos" IsChecked="{Binding all_report_sellers_selected, Mode=TwoWay}"
-                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
-                                    <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
-                                            FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
-                                            Command="{Binding clear_report_sellers_command}"/>
-                                </StackPanel>
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding report_seller_options}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                                  FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <Grid Margin="0,8,0,4">
-                                <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <CheckBox Content="Todas" IsChecked="{Binding all_report_zones_selected, Mode=TwoWay}"
-                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
-                                    <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
-                                            FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
-                                            Command="{Binding clear_report_zones_command}"/>
-                                </StackPanel>
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding report_zone_options}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
-                                                  FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <Button Content="Descargar PDF"
-                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                            FontSize="12.5" Height="32" BorderThickness="0" Cursor="Hand"
-                            Margin="0,10,0,0" Click="on_descargar_reporte_click">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                </StackPanel>
-            </Border>
-        </Popup>
-    </Grid>
-</UserControl>
+<UserControl x:Class="NinOS.UI.Views.PaymentsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" Background="White">
+    <UserControl.Resources>
+        <Style x:Key="PillButton" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="#E3F2FD" CornerRadius="12"
+                                Padding="10,4" BorderBrush="#BBDEFB" BorderThickness="1"
+                                Cursor="Hand" Margin="2,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#1565C0"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CompactDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinRowHeight" Value="20"/>
+        </Style>
+        <Style x:Key="CellText" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="CellTextCenter" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CellTextWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="CellTextCenterWrap" TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="BlueComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton" Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd" Background="#1565C0" BorderBrush="#0D47A1"
+                                                BorderThickness="1" CornerRadius="3" Padding="8,0">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#1976D2"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#0D47A1"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ContentSite" Margin="8,0,20,0" VerticalAlignment="Center"
+                                              HorizontalAlignment="Center" IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                            <Path x:Name="Arrow" Data="M 0 0 L 8 0 L 4 5 Z" Fill="White"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" IsHitTestVisible="False"/>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Slide">
+                                <Border MinWidth="{Binding ActualWidth, ElementName=ContentSite}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="White" BorderBrush="#0D47A1" BorderThickness="1" CornerRadius="3">
+                                    <ScrollViewer>
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- FILA 0: HEADER - titulo + busqueda + mes + boton -->
+        <Grid Grid.Row="0" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="PAGOS" FontSize="16.5" FontWeight="Bold"
+                       Foreground="#1565C0" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+            <!-- Busqueda -->
+            <Grid Grid.Column="1" Margin="0,0,8,0">
+                <Border Background="White" CornerRadius="4" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <Grid>
+                        <TextBlock Text="&#x1F50D;" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13.5" Foreground="#9E9E9E"/>
+                        <TextBox x:Name="txt_search" Margin="26,2,22,2" BorderThickness="0" Background="Transparent"
+                                 VerticalContentAlignment="Center" FontSize="12.5"
+                                 Text="{Binding search_query, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button x:Name="btn_clear_search" Content="&#x2715;" Margin="0,0,4,0"
+                                HorizontalAlignment="Right" Width="20" Height="20"
+                                Cursor="Hand" Visibility="Collapsed" Click="btn_clear_search_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="Transparent" Padding="2">
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="10.5" Foreground="#9E9E9E"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Mes + Filtro + Boton registrar -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <ComboBox x:Name="cmb_year" Margin="0,0,6,0" MinWidth="75"
+                          ItemsSource="{Binding available_years}"
+                          SelectedItem="{Binding selected_year}"
+                          FontSize="12.5" Height="26"
+                          HorizontalContentAlignment="Center"/>
+
+                <ComboBox x:Name="cmb_month" Margin="0,0,8,0" MinWidth="105"
+                          ItemsSource="{Binding available_months}"
+                          SelectedItem="{Binding selected_month}"
+                          FontSize="12.5" Height="26"
+                          HorizontalContentAlignment="Center"/>
+
+                <Button x:Name="btn_reporte" Content="Reporte" Background="#1B3A2D" Foreground="White"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        FontSize="12.5" ToolTip="Reporte de pagos del mes"
+                        Click="on_reporte_click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- FILA 1: TABS DE VENDEDORAS -->
+        <TabControl Grid.Row="1" ItemsSource="{Binding seller_tabs}" SelectedItem="{Binding selected_tab, Mode=TwoWay}" Margin="0,0,0,4">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="12.5"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Items}"
+                              MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="NRO" Binding="{Binding note_number}" Width="70"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="CLIENTE" Binding="{Binding customer_name}" Width="*"
+                              ElementStyle="{StaticResource CellTextWrap}"/>
+                            <DataGridTextColumn Header="MONTO" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="80"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="DCTO" Binding="{Binding discount_amount, StringFormat=N2}" Width="55"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="PAGOS" Binding="{Binding paid_amount_usd, StringFormat=N2}" Width="80"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="SALDO PEND." Binding="{Binding balance_due_usd, StringFormat=N2}" Width="90"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="FORMA PAGO" Binding="{Binding payment_method_text}" Width="*"
+                              ElementStyle="{StaticResource CellTextCenterWrap}"/>
+                            <DataGridTextColumn Header="BANCO" Binding="{Binding bank_name_text}" Width="80"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="ULT. FECHA" Binding="{Binding last_payment_date, StringFormat=dd/MM/yy}" Width="75"
+                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="75">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding status}" Value="Pagada">
+                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding status}" Value="Pendiente">
+                                                <Setter Property="Foreground" Value="#F57C00"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding status}" Value="Anulada">
+                                                <Setter Property="Foreground" Value="#9E9E9E"/>
+                                                <Setter Property="FontStyle" Value="Italic"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding status}" Value="Devuelta">
+                                                <Setter Property="Foreground" Value="#7B1FA2"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+        <!-- FILA 3: FOOTER - 2 totales. El "total por cobrar" no va aqui: este modulo es de
+             pagos, no de cobranza, y ese total vive en Cuentas por Cobrar. -->
+        <Border Grid.Row="3" Background="#0D62B5" Padding="10,5" CornerRadius="0,0,4,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Total Facturado -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="TOTAL FACTURADO: $" Foreground="#BBDEFB" FontSize="12.5" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding total_invoiced_usd, StringFormat=N2}" Foreground="White" FontSize="14.5"
+                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <!-- Total Cobrado -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="TOTAL COBRADO: $" Foreground="#BBDEFB" FontSize="12.5" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding total_paid_usd, StringFormat=N2}" Foreground="White" FontSize="14.5"
+                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- POPUP: CONFIGURADOR DE REPORTE DE PAGOS -->
+        <!-- Las checklists de vendedores y zonas son el filtro: no hay interruptor de "cambiar
+             alcance", seria redundante y confuso. -->
+        <Popup x:Name="popup_reporte"
+               PlacementTarget="{Binding ElementName=btn_reporte}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border x:Name="panel_reporte"
+                    Background="White" BorderBrush="#C9D3C7" BorderThickness="1" CornerRadius="5"
+                    Padding="14,12" Width="330">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="REPORTE DE PAGOS DEL MES" FontSize="11.5" FontWeight="Bold"
+                               Foreground="#1B3A2D"/>
+                    <TextBlock Text="Elija el mes y qu&#233; vendedor y zona quiere incluir."
+                               FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
+
+                    <Grid Margin="0,0,0,3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1.8*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="AÑO" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                            <ComboBox x:Name="cmb_reporte_year"
+                                      ItemsSource="{Binding available_years}"
+                                      SelectedItem="{Binding selected_year}"
+                                      FontSize="11.5" Height="25" Cursor="Hand"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="MES" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
+                            <ComboBox x:Name="cmb_reporte_month"
+                                      ItemsSource="{Binding available_months}"
+                                      SelectedItem="{Binding selected_month}"
+                                      FontSize="11.5" Height="25" Cursor="Hand"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="AGRUPAR EN (p&#225;ginas del PDF)" FontSize="9.5" FontWeight="Bold"
+                               Foreground="#55665C" Margin="0,10,0,3"/>
+                    <ComboBox ItemsSource="{Binding report_group_options}"
+                              SelectedItem="{Binding selected_report_group, Mode=TwoWay}"
+                              FontSize="11.5" Height="25" Cursor="Hand"/>
+                    <TextBlock Text="Por Vendedor: una p&#225;gina por vendedor. Por Zona: una p&#225;gina por zona del cliente."
+                               FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,3,0,0"/>
+
+                    <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4"
+                            Padding="8,6" Margin="0,10,0,0">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4">
+                                <TextBlock Text="VENDEDORES" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <CheckBox Content="Todos" IsChecked="{Binding all_report_sellers_selected, Mode=TwoWay}"
+                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                    <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                            FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                            Command="{Binding clear_report_sellers_command}"/>
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding report_seller_options}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                  FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Grid Margin="0,8,0,4">
+                                <TextBlock Text="ZONAS" FontSize="9.5" FontWeight="Bold" Foreground="#1B3A2D" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <CheckBox Content="Todas" IsChecked="{Binding all_report_zones_selected, Mode=TwoWay}"
+                                              FontSize="10.5" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,8,0" Cursor="Hand"/>
+                                    <Button Content="Quitar" Background="Transparent" Foreground="#C62828"
+                                            FontWeight="SemiBold" FontSize="10.5" BorderThickness="0" Cursor="Hand"
+                                            Command="{Binding clear_report_zones_command}"/>
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding report_zone_options}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding display_name}" IsChecked="{Binding is_checked, Mode=TwoWay}"
+                                                  FontSize="11" Foreground="#333333" Width="105" Margin="2,2,4,2" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0">
+                        <Button Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"
+                                Click="on_preview_reporte_click"/>
+                        <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"
+                                Click="on_print_reporte_click"/>
+                        <Button Content="📄 Descargar PDF" Background="#374151" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"
+                                Click="on_descargar_reporte_click"/>
+                        <Button Content="📊 Excel" Background="#16A34A" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"
+                                Click="on_excel_reporte_click"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

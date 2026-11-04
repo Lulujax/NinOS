@@ -515,6 +515,30 @@ namespace NinOS.UI.Common.ViewModels
         private List<zona> _seller_assigned_zones = new();
         private seller? _selected_seller;
         private note_type? _selected_note_type;
+        private note_price_list_option? _selected_note_price_list;
+        public ObservableCollection<note_price_list_option> note_price_lists { get; } = new ObservableCollection<note_price_list_option>();
+
+        public note_price_list_option? selected_note_price_list
+        {
+            get => _selected_note_price_list;
+            set
+            {
+                if (ReferenceEquals(_selected_note_price_list, value)) return;
+                _selected_note_price_list = value ?? note_price_lists.FirstOrDefault();
+                on_property_changed();
+                apply_note_price_list_to_rows();
+            }
+        }
+
+        private void apply_note_price_list_to_rows()
+        {
+            int? list_id = _selected_note_price_list?.id_price_list;
+            foreach (var row in note_details)
+            {
+                row.selected_price_list_id = list_id;
+            }
+            recalculate_total();
+        }
         private customer? _selected_customer;
         private string _note_number = string.Empty;
         private DateTime _creation_date = DateTime.UtcNow;
@@ -1533,6 +1557,15 @@ namespace NinOS.UI.Common.ViewModels
                     _all_product_own_prices = new Dictionary<int, Dictionary<int, decimal>>();
                 }
 
+                note_price_lists.Clear();
+                note_price_lists.Add(new note_price_list_option { id_price_list = null, name = _principal_price_list_name });
+                foreach (var pl in _active_price_lists)
+                {
+                    note_price_lists.Add(new note_price_list_option { id_price_list = pl.id_price_list, name = pl.name });
+                }
+                _selected_note_price_list = note_price_lists.FirstOrDefault();
+                on_property_changed(nameof(selected_note_price_list));
+
                 var db_customers = await _customer_service.GetVisibleCustomersAsync();
                 _all_customers_cache.Clear();
                 foreach (customer c in db_customers) _all_customers_cache.Add(c);
@@ -1705,6 +1738,10 @@ namespace NinOS.UI.Common.ViewModels
                     if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed)) return parsed;
                     return 0;
                 };
+                if (_selected_note_price_list != null)
+                {
+                    new_row.selected_price_list_id = _selected_note_price_list.id_price_list;
+                }
                 note_details.Add(new_row);
             }
             catch (Exception ex)
@@ -2031,6 +2068,7 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(customer_code_text));
                 creation_date = DateTime.Now;
                 credit_days_text = "21";
+                selected_note_price_list = note_price_lists.FirstOrDefault();
                 recalculate_total();
                 update_correlative_async();
                 OnNoteSaved?.Invoke();
@@ -2073,6 +2111,7 @@ namespace NinOS.UI.Common.ViewModels
             contact_name_text = string.Empty;
             observations_text = string.Empty;
             _selected_customer = null;
+            selected_note_price_list = note_price_lists.FirstOrDefault();
             on_property_changed(nameof(selected_customer));
             on_property_changed(nameof(customer_code_text));
             creation_date = DateTime.Now;

@@ -33,11 +33,32 @@ namespace NinOS.UI.Views
                 vm.sync_report_scope_from_screen();
         }
 
+        private void on_preview_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is PaymentsViewModel vm)
+                vm.month_report_preview_command.Execute(null);
+        }
+
+        private void on_print_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is PaymentsViewModel vm)
+                vm.month_report_print_command.Execute(null);
+        }
+
         private void on_descargar_reporte_click(object sender, RoutedEventArgs e)
         {
             popup_reporte.IsOpen = false;
             if (DataContext is PaymentsViewModel vm)
                 vm.month_report_command.Execute(null);
+        }
+
+        private void on_excel_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is PaymentsViewModel vm)
+                vm.month_report_excel_command.Execute(null);
         }
 
         private void Txt_search_TextChanged(object sender, TextChangedEventArgs e)

@@ -692,7 +692,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await db_context.sellers.AsNoTracking().ToListAsync();
+                return await db_context.sellers
+                    .AsNoTracking()
+                    .Include(s => s.seller_zones)
+                        .ThenInclude(sz => sz.zona)
+                    .ToListAsync();
             }
         }
 

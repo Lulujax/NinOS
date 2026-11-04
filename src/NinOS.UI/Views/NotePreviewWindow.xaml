@@ -19,7 +19,9 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="CancelButton" Content="Cancelar" Width="110" Height="36" Margin="0,0,8,0" Background="#888888" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnCancel"/>
                 <Button x:Name="SaveOnlyButton" Content="Guardar" Width="130" Height="36" Margin="0,0,8,0" Background="#2196F3" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSaveOnly"/>
-                <Button x:Name="SavePdfButton" Content="Guardar y PDF" Width="140" Height="36" Background="#4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSavePdf"/>
+                <Button x:Name="SavePdfButton" Content="Guardar y PDF" Width="140" Height="36" Margin="0,0,8,0" Background="#4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSavePdf"/>
+                <Button x:Name="DirectPrintButton" Content="🖨️ Imprimir" Width="120" Height="36" Margin="0,0,8,0" Background="#0284C7" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnDirectPrint" Visibility="Collapsed"/>
+                <Button x:Name="ExcelButton" Content="📊 Excel" Width="110" Height="36" Background="#16A34A" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnExcel" Visibility="Collapsed"/>
             </StackPanel>
         </Border>
     </Grid>

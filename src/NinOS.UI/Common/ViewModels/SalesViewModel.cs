@@ -10,6 +10,7 @@ using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Views;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -304,7 +305,11 @@ public bool report_manual_scope
 
         public ICommand preview_note_command { get; }
         public ICommand print_pdf_command { get; }
+        public ICommand export_note_excel_command { get; }
         public ICommand sales_report_command { get; }
+        public ICommand sales_report_preview_command { get; }
+        public ICommand sales_report_print_command { get; }
+        public ICommand sales_report_excel_command { get; }
         public ICommand save_goal_command { get; }
         public ICommand edit_goal_command { get; }
         public ICommand cancel_goal_edit_command { get; }
@@ -354,8 +359,12 @@ public bool report_manual_scope
 
             preview_note_command = new RelayCommand(execute_preview_note);
             print_pdf_command = new RelayCommand(execute_print_pdf);
+            export_note_excel_command = new RelayCommand(execute_export_note_excel);
 
             sales_report_command = new RelayCommand(execute_sales_report);
+            sales_report_preview_command = new RelayCommand(execute_sales_report_preview);
+            sales_report_print_command = new RelayCommand(execute_sales_report_print);
+            sales_report_excel_command = new RelayCommand(execute_sales_report_excel);
             save_goal_command = new RelayCommand(execute_save_goal);
             edit_goal_command = new RelayCommand(execute_edit_goal);
             cancel_goal_edit_command = new RelayCommand(execute_cancel_goal_edit);
@@ -381,7 +390,7 @@ public bool report_manual_scope
 
         private void sync_seller_tabs(IEnumerable<seller> sellers)
         {
-            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
+            var activeSellers = sellers.Where(s => s.is_active && !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
 
             if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
             {
@@ -613,12 +622,16 @@ public bool report_manual_scope
                 // Poblar opciones para el reporte de vendedores: los activos primero y, además,
                 // cualquiera que tenga notas en el mes aunque esté desactivado. Si no, sus notas
                 // quedarían fuera del reporte sin avisar.
-                var active_seller_names = dbSellers
+                var generalSellers = dbSellers
+                    .Where(s => !s.is_pro_venta_only)
+                    .ToList();
+
+                var active_seller_names = generalSellers
                     .Select(s => (s.full_name ?? string.Empty).Trim())
                     .Where(n => n.Length > 0)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                var report_seller_rows = dbSellers
+                var report_seller_rows = generalSellers
                     .OrderBy(s => s.seller_code)
                     .Select(s => (name: (s.full_name ?? string.Empty).Trim(), active: true, id: (int?)s.id_seller))
                     .Where(t => t.name.Length > 0)
@@ -934,165 +947,229 @@ public bool report_manual_scope
             }
         }
 
+        public async Task<monthly_report_dto?> build_sales_report_dto_async()
+        {
+            if (string.IsNullOrEmpty(_selected_month))
+            {
+                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            // --- Alcance del reporte -------------------------------------------------
+            var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            bool filter_sellers = !_all_report_sellers_selected;
+            bool filter_zones = !_all_report_zones_selected;
+
+            if (filter_sellers && seller_scope.Count == 0)
+            {
+                AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            if (filter_zones && zone_scope.Count == 0)
+            {
+                AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty).ToList();
+
+            // Filtro de vendedores
+            if (filter_sellers)
+                month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
+
+            // Filtro de zonas
+            if (filter_zones)
+                month_rows = month_rows.Where(n => zone_scope.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())).ToList();
+
+            // Filtro de tipo de nota
+            string tipo_nota = string.IsNullOrWhiteSpace(_selected_report_type) ? TipoNotaTodas : _selected_report_type;
+            if (!string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase))
+            {
+                month_rows = month_rows.Where(n => matches_note_type(n, tipo_nota)).ToList();
+            }
+
+            // Filtro de estado de nota
+            if (!_report_include_voided_and_returned)
+            {
+                month_rows = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").ToList();
+            }
+
+            string type_suffix = note_type_suffix(tipo_nota);
+            string seller_suffix = !filter_sellers
+                ? string.Empty
+                : (seller_scope.Count == 1 ? seller_scope.First().ToUpperInvariant() : "VARIOS VENDEDORES");
+            string zone_suffix = !filter_zones
+                ? string.Empty
+                : (zone_scope.Count == 1 ? zone_scope.First().ToUpperInvariant() : "VARIAS ZONAS");
+            string combined = string.Join(" - ", new[] { type_suffix, seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
+
+            DateTime? monthStart = parse_selected_month();
+            decimal cum_venta = month_rows
+                .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
+                         && (string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
+                .Sum(n => n.total_amount_usd);
+
+            string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
+
+            bool filtrado_por_tipo = !string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
+                                  && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase);
+            decimal? goal_usd = null;
+            var goal_by_group = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
+            bool show_goal = _report_include_goal && monthStart.HasValue && !filter_zones && !filtrado_por_tipo;
+            string goal_scope_label = "META DEL MES";
+
+            if (show_goal && monthStart.HasValue)
+            {
+                DateTime month_start_date = monthStart.Value;
+
+                if (string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase))
+                {
+                    show_goal = false;
+                }
+                else if (string.Equals(group_mode, "Por Vendedor", StringComparison.OrdinalIgnoreCase))
+                {
+                    goal_scope_label = "META DEL VENDEDOR";
+
+                    foreach (var seller_name in month_rows
+                        .Select(n => (n.seller_name ?? string.Empty).Trim())
+                        .Where(s => s.Length > 0)
+                        .Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        int? seller_id = _seller_name_to_id.TryGetValue(seller_name, out var mapped_id) ? (int?)mapped_id : null;
+                        goal_by_group[seller_name] = await _receivable_service.get_sales_goal_async(month_start_date, seller_id);
+                    }
+
+                    if (goal_by_group.Count == 0) show_goal = false;
+                }
+                else
+                {
+                    show_goal = false;
+                }
+            }
+
+            return new monthly_report_dto
+            {
+                title = string.IsNullOrEmpty(combined)
+                    ? "VENTAS - DETALLE DEL MES"
+                    : $"VENTAS - DETALLE DEL MES ({combined})",
+                month = _selected_month,
+                report_name = "ventas",
+                detail_column_header = "ABONADO",
+                show_paid_balance_summary = _report_include_collections,
+                empty_text = "Sin ventas para los filtros seleccionados.",
+                group_mode = group_mode,
+                rows = month_rows
+                    .OrderBy(n => n.creation_date)
+                    .ThenBy(n => n.id_delivery_note)
+                    .Select(n => new monthly_report_row_dto
+                    {
+                        date = n.creation_date,
+                        document_number = n.note_number,
+                        customer_name = n.customer_name,
+                        seller_name = n.seller_name,
+                        zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
+                        amount_usd = n.total_amount_usd,
+                        paid_amount_usd = n.paid_amount_usd,
+                        balance_due_usd = n.balance_due_usd,
+                        detail_text = $"{n.paid_amount_usd:N2}",
+                        status = n.status
+                    })
+                    .ToList(),
+                sales_goal_usd = goal_usd,
+                month_total_usd = cum_venta,
+                goal_by_group = goal_by_group,
+                goal_scope_label = goal_scope_label,
+                show_goal_block = show_goal
+            };
+        }
+
         private async void execute_sales_report(object? parameter)
         {
             try
             {
-                if (string.IsNullOrEmpty(_selected_month))
-                {
-                    AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                // --- Alcance del reporte -------------------------------------------------
-                // Las checklists son el filtro. Con "Todos/Todas" marcado no se filtra, para
-                // que también entren notas de vendedores o zonas que no aparezcan en la lista.
-                var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                bool filter_sellers = !_all_report_sellers_selected;
-                bool filter_zones = !_all_report_zones_selected;
-
-                if (filter_sellers && seller_scope.Count == 0)
-                {
-                    AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                if (filter_zones && zone_scope.Count == 0)
-                {
-                    AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty).ToList();
-
-                // Filtro de vendedores
-                if (filter_sellers)
-                    month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
-
-                // Filtro de zonas
-                if (filter_zones)
-                    month_rows = month_rows.Where(n => zone_scope.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())).ToList();
-
-                // Filtro de tipo de nota
-                string tipo_nota = string.IsNullOrWhiteSpace(_selected_report_type) ? TipoNotaTodas : _selected_report_type;
-                if (!string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase))
-                {
-                    month_rows = month_rows.Where(n => matches_note_type(n, tipo_nota)).ToList();
-                }
-
-                // Filtro de estado de nota
-                if (!_report_include_voided_and_returned)
-                {
-                    month_rows = month_rows.Where(n => n.status == "Pendiente" || n.status == "Pagada").ToList();
-                }
-
-                string type_suffix = note_type_suffix(tipo_nota);
-                string seller_suffix = !filter_sellers
-                    ? string.Empty
-                    : (seller_scope.Count == 1 ? seller_scope.First().ToUpperInvariant() : "VARIOS VENDEDORES");
-                string zone_suffix = !filter_zones
-                    ? string.Empty
-                    : (zone_scope.Count == 1 ? zone_scope.First().ToUpperInvariant() : "VARIAS ZONAS");
-                string combined = string.Join(" - ", new[] { type_suffix, seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
-
-                DateTime? monthStart = parse_selected_month();
-                decimal cum_venta = month_rows
-                    .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
-                             && (string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
-                              || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
-                    .Sum(n => n.total_amount_usd);
-
-                string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
-
-                // --- Meta de ventas -------------------------------------------------------
-                // La meta es por vendedor o del mes completo, nunca por zona. Solo se imprime
-                // cuando el alcance del reporte coincide con lo que cubre la meta: si el PDF
-                // filtra zonas o tipos de nota, la venta que queda no es la del mes completo y
-                // el cumplimiento que saldría sería mentira.
-                bool filtrado_por_tipo = !string.Equals(tipo_nota, TipoNotaTodas, StringComparison.OrdinalIgnoreCase)
-                                      && !string.Equals(tipo_nota, "Ambas", StringComparison.OrdinalIgnoreCase);
-                decimal? goal_usd = null;
-                var goal_by_group = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
-                bool show_goal = _report_include_goal && monthStart.HasValue && !filter_zones && !filtrado_por_tipo;
-                string goal_scope_label = "META DEL MES";
-
-                if (show_goal && monthStart.HasValue)
-                {
-                    DateTime month_start_date = monthStart.Value;
-
-                    if (string.Equals(group_mode, "Por Zona", StringComparison.OrdinalIgnoreCase))
-                    {
-                        show_goal = false; // las metas no son por zona
-                    }
-                    else if (string.Equals(group_mode, "Por Vendedor", StringComparison.OrdinalIgnoreCase))
-                    {
-                        goal_scope_label = "META DEL VENDEDOR";
-
-                        // Una meta por página: la del vendedor de esa página, contra su propia venta.
-                        foreach (var seller_name in month_rows
-                            .Select(n => (n.seller_name ?? string.Empty).Trim())
-                            .Where(s => s.Length > 0)
-                            .Distinct(StringComparer.OrdinalIgnoreCase))
-                        {
-                            int? seller_id = _seller_name_to_id.TryGetValue(seller_name, out var mapped_id) ? (int?)mapped_id : null;
-                            goal_by_group[seller_name] = await _receivable_service.get_sales_goal_async(month_start_date, seller_id);
-                        }
-
-                        if (goal_by_group.Count == 0) show_goal = false;
-                    }
-                    else
-                    {
-                        // Solo existen "Por Vendedor" y "Por Zona". Si algún día aparece otra
-                        // agrupación, no se imprime meta: no hay una que le corresponda.
-                        show_goal = false;
-                    }
-                }
-
-                var report = new monthly_report_dto
-                {
-                    title = string.IsNullOrEmpty(combined)
-                        ? "VENTAS - DETALLE DEL MES"
-                        : $"VENTAS - DETALLE DEL MES ({combined})",
-                    month = _selected_month,
-                    report_name = "ventas",
-                    detail_column_header = "ABONADO",
-                    show_paid_balance_summary = _report_include_collections,
-                    empty_text = "Sin ventas para los filtros seleccionados.",
-                    group_mode = group_mode,
-                    rows = month_rows
-                        .OrderBy(n => n.creation_date)
-                        .ThenBy(n => n.id_delivery_note)
-                        .Select(n => new monthly_report_row_dto
-                        {
-                            date = n.creation_date,
-                            document_number = n.note_number,
-                            customer_name = n.customer_name,
-                            seller_name = n.seller_name,
-                            zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
-                            amount_usd = n.total_amount_usd,
-                            paid_amount_usd = n.paid_amount_usd,
-                            balance_due_usd = n.balance_due_usd,
-                            detail_text = $"{n.paid_amount_usd:N2}",
-                            status = n.status
-                        })
-                        .ToList(),
-                    sales_goal_usd = goal_usd,
-                    month_total_usd = cum_venta,
-                    goal_by_group = goal_by_group,
-                    goal_scope_label = goal_scope_label,
-                    show_goal_block = show_goal
-                };
-
-                MonthlyReportPdfGenerator.generate(report);
+                var report = await build_sales_report_dto_async();
+                if (report != null)
+                    MonthlyReportPdfGenerator.generate(report);
             }
             catch (Exception ex)
             {
                 AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_sales_report_preview(object? parameter)
+        {
+            try
+            {
+                var report = await build_sales_report_dto_async();
+                if (report == null) return;
+
+                var doc = MonthlyReportPdfGenerator.build_document(report);
+                var fileName = MonthlyReportPdfGenerator.get_default_file_name(report);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    report.title,
+                    fileName,
+                    () => MonthlyReportExcelExporter.export(report));
+                preview.Owner = System.Windows.Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error en vista previa: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_sales_report_print(object? parameter)
+        {
+            try
+            {
+                var report = await build_sales_report_dto_async();
+                if (report == null) return;
+
+                var doc = MonthlyReportPdfGenerator.build_document(report);
+                var fileName = MonthlyReportPdfGenerator.get_default_file_name(report);
+                ReportPrintService.DirectPrint(doc, System.Windows.Application.Current?.MainWindow, report.title, fileName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_sales_report_excel(object? parameter)
+        {
+            try
+            {
+                var report = await build_sales_report_dto_async();
+                if (report == null) return;
+
+                MonthlyReportExcelExporter.export(report);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_export_note_excel(object? parameter)
+        {
+            if (parameter is not accounts_receivable_dto row) return;
+            try
+            {
+                var note = await _receivable_service.get_printable_note_async(row.id_delivery_note);
+                NoteExcelExporter.export(note);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

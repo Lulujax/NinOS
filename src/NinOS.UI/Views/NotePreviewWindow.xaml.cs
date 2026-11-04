@@ -46,7 +46,9 @@ namespace NinOS.UI.Views
             {
                 CancelButton.Content = "Cerrar";
                 SaveOnlyButton.Visibility = System.Windows.Visibility.Collapsed;
-                SavePdfButton.Content = "PDF";
+                SavePdfButton.Content = "📄 PDF";
+                DirectPrintButton.Visibility = System.Windows.Visibility.Visible;
+                ExcelButton.Visibility = System.Windows.Visibility.Visible;
             }
 
             BuildPreview(note);
@@ -100,6 +102,39 @@ namespace NinOS.UI.Views
             Confirmed = true;
             PdfRequested = true;
             DialogResult = true;
+        }
+
+        private void OnDirectPrint(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var doc = _pair_original != null
+                    ? NotePdfGenerator.build_document(_pair_original, _note)
+                    : NotePdfGenerator.build_document(_note);
+                string filename = _pair_original != null
+                    ? NotePdfGenerator.get_default_file_name(_pair_original, _note)
+                    : NotePdfGenerator.get_default_file_name(_note);
+                ReportPrintService.DirectPrint(doc, this, filename, filename);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnExcel(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_pair_original != null)
+                    NoteExcelExporter.export(_pair_original, _note);
+                else
+                    NoteExcelExporter.export(_note);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void BuildPreview(note_print_dto note)

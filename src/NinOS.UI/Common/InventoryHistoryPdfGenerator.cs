@@ -82,6 +82,12 @@ namespace NinOS.UI.Common
         private static readonly string OrangeColor = "#E65100";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
+        public static string get_default_file_name(InventoryHistoryPdfModel model)
+        {
+            string safe_code = SanitizeFileName(string.IsNullOrWhiteSpace(model?.ItemCode) ? "INVENTARIO" : model.ItemCode);
+            return $"HISTORIAL_{safe_code}_{DateTime.Now:yyyyMMdd}.pdf".ToUpperInvariant();
+        }
+
         public static void generate(InventoryHistoryPdfModel model)
         {
             if (model == null) return;

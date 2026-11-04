@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace NinOS.Domain
 {
@@ -70,6 +71,16 @@ namespace NinOS.Domain
         public string? deleted_reason { get; set; }
 
         public virtual System.Collections.Generic.ICollection<seller_zone> seller_zones { get; set; } = new System.Collections.Generic.List<seller_zone>();
+
+        /// <summary>
+        /// Indica si el vendedor opera exclusivamente en la modalidad Pro Venta
+        /// (tiene al menos una zona asignada y todas sus zonas asignadas son Pro Venta,
+        /// sin ninguna zona General).
+        /// </summary>
+        public bool is_pro_venta_only =>
+            seller_zones != null &&
+            seller_zones.Count > 0 &&
+            seller_zones.All(sz => sz.zona != null && sz.zona.is_pro_venta);
 
         public seller()
         {

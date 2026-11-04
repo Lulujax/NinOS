@@ -88,52 +88,48 @@ namespace NinOS.UI.Common
             generate_to_file(delivery_note, credit_note, save_dialog.FileName);
         }
 
-        public static void generate_to_file(note_print_dto note, string output_path)
+        public static string get_default_file_name(note_print_dto note)
+        {
+            bool is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", System.StringComparison.OrdinalIgnoreCase);
+            return is_credit ? $"NotaCredito_{note.note_number}.pdf" : $"NotaEntrega_{note.note_number}.pdf";
+        }
+
+        public static string get_default_file_name(note_print_dto delivery_note, note_print_dto credit_note)
+        {
+            return $"NotaEntrega_{delivery_note.note_number}_NotaCredito_{credit_note.note_number}.pdf";
+        }
+
+        public static IDocument build_document(note_print_dto note)
         {
             QuestPDF.Settings.License = LicenseType.Community;
-
-            var document = Document.Create(container =>
+            return Document.Create(container =>
             {
-                container.Page(page =>
-                {
-                    BuildNotePage(page, note, "ORIGINAL");
-                });
-                container.Page(page =>
-                {
-                    BuildNotePage(page, note, "COPIA");
-                });
+                container.Page(page => BuildNotePage(page, note, "ORIGINAL"));
+                container.Page(page => BuildNotePage(page, note, "COPIA"));
             });
+        }
 
-            document.GeneratePdf(output_path);
+        public static IDocument build_document(note_print_dto delivery_note, note_print_dto credit_note)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            return Document.Create(container =>
+            {
+                container.Page(page => BuildNotePage(page, delivery_note, "ORIGINAL"));
+                container.Page(page => BuildNotePage(page, delivery_note, "COPIA"));
+                container.Page(page => BuildNotePage(page, credit_note, "ORIGINAL"));
+                container.Page(page => BuildNotePage(page, credit_note, "COPIA"));
+            });
+        }
+
+        public static void generate_to_file(note_print_dto note, string output_path)
+        {
+            build_document(note).GeneratePdf(output_path);
         }
 
         public static void generate_to_file(note_print_dto delivery_note, note_print_dto credit_note, string output_path)
         {
-            QuestPDF.Settings.License = LicenseType.Community;
-
-            var document = Document.Create(container =>
-            {
-                container.Page(page =>
-                {
-                    BuildNotePage(page, delivery_note, "ORIGINAL");
-                });
-                container.Page(page =>
-                {
-                    BuildNotePage(page, delivery_note, "COPIA");
-                });
-                container.Page(page =>
-                {
-                    BuildNotePage(page, credit_note, "ORIGINAL");
-                });
-                container.Page(page =>
-                {
-                    BuildNotePage(page, credit_note, "COPIA");
-                });
-            });
-
-            document.GeneratePdf(output_path);
+            build_document(delivery_note, credit_note).GeneratePdf(output_path);
         }
-
         private static void BuildNotePage(PageDescriptor page, note_print_dto note, string? copy_type = null)
         {
             string primary = string.IsNullOrWhiteSpace(note.accent_color) ? "#1B3A2D" : note.accent_color;

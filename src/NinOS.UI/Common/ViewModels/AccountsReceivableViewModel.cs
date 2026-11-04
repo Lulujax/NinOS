@@ -12,6 +12,7 @@ using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Views;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -369,6 +370,10 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand request_payment_command { get; }
         public ICommand add_payment_command { get; }
         public ICommand month_report_command { get; }
+        public ICommand month_report_preview_command { get; }
+        public ICommand month_report_print_command { get; }
+        public ICommand month_report_excel_command { get; }
+        public ICommand export_note_excel_command { get; }
         public ICommand clear_report_sellers_command { get; }
         public ICommand clear_report_zones_command { get; }
         public ICommand select_all_report_options_command { get; }
@@ -415,6 +420,10 @@ namespace NinOS.UI.Common.ViewModels
             add_payment_command = new RelayCommand(execute_add_payment);
 
             month_report_command = new RelayCommand(execute_month_report);
+            month_report_preview_command = new RelayCommand(execute_month_report_preview);
+            month_report_print_command = new RelayCommand(execute_month_report_print);
+            month_report_excel_command = new RelayCommand(execute_month_report_excel);
+            export_note_excel_command = new RelayCommand(execute_export_note_excel);
             clear_report_sellers_command = new RelayCommand(execute_clear_report_sellers);
             clear_report_zones_command = new RelayCommand(execute_clear_report_zones);
             select_all_report_options_command = new RelayCommand(execute_select_all_report_options);
@@ -432,7 +441,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void sync_seller_tabs(IEnumerable<seller> sellers)
         {
-            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
+            var activeSellers = sellers.Where(s => s.is_active && !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
 
             if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
             {
@@ -496,12 +505,16 @@ namespace NinOS.UI.Common.ViewModels
                 _seller_name_to_id[name] = s.id_seller;
             }
 
-            var active_seller_names = sellers
+            var generalSellers = sellers
+                .Where(s => !s.is_pro_venta_only)
+                .ToList();
+
+            var active_seller_names = generalSellers
                 .Select(s => (s.full_name ?? string.Empty).Trim())
                 .Where(n => n.Length > 0)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            var report_seller_rows = sellers
+            var report_seller_rows = generalSellers
                 .OrderBy(s => s.seller_code)
                 .Select(s => (name: (s.full_name ?? string.Empty).Trim(), active: true, id: (int?)s.id_seller))
                 .Where(t => t.name.Length > 0)
@@ -1050,134 +1063,201 @@ namespace NinOS.UI.Common.ViewModels
             on_request_add_payment_for_month?.Invoke(selected_month);
         }
 
+        public monthly_report_dto? build_cxc_report_dto()
+        {
+            if (_is_report_year_mode)
+            {
+                if (_selected_report_year <= 0)
+                {
+                    AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return null;
+                }
+            }
+            else if (string.IsNullOrWhiteSpace(_selected_month))
+            {
+                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            // --- Alcance: vendedores y zonas ---
+            var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            bool filter_sellers = !_all_report_sellers_selected;
+            bool filter_zones = !_all_report_zones_selected;
+
+            if (filter_sellers && seller_scope.Count == 0)
+            {
+                AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de cuentas por cobrar",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            if (filter_zones && zone_scope.Count == 0)
+            {
+                AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de cuentas por cobrar",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            var month_rows = (_is_report_year_mode
+                    ? filter_by_year(_all_notes_source, _selected_report_year)
+                    : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
+                .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (filter_sellers)
+                month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
+
+            if (filter_zones)
+                month_rows = month_rows.Where(n => zone_scope.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())).ToList();
+
+            string seller_suffix = !filter_sellers
+                ? string.Empty
+                : (seller_scope.Count == 1 ? seller_scope.First().ToUpperInvariant() : "VARIOS VENDEDORES");
+
+            string zone_suffix = string.Empty;
+            if (filter_zones && zone_scope.Count == 1)
+            {
+                zone_suffix = zone_scope.First().ToUpperInvariant();
+            }
+            else if (filter_zones)
+            {
+                zone_suffix = filter_sellers ? "VARIOS VENDEDORES Y ZONAS" : "VARIAS ZONAS";
+            }
+            string combined = string.Join(" - ", new[] { seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
+
+            string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
+
+            string period_label = _is_report_year_mode
+                ? $"AÑO {_selected_report_year}"
+                : _selected_month;
+            string period_title = _is_report_year_mode
+                ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
+                : "CUENTAS POR COBRAR - DETALLE DEL MES";
+
+            return new monthly_report_dto
+            {
+                title = string.IsNullOrEmpty(combined)
+                    ? period_title
+                    : $"{period_title} ({combined})",
+                month = period_label,
+                report_name = "cuentas por cobrar",
+                detail_column_header = "SALDO",
+                show_paid_balance_summary = true,
+                empty_text = _is_report_year_mode
+                    ? "Sin cuentas por cobrar para el año seleccionado."
+                    : "Sin cuentas por cobrar para el mes seleccionado.",
+                group_mode = group_mode,
+                ordenar_zombies_primero = _is_report_year_mode,
+                show_dispatch_date_column = _is_report_year_mode,
+                rows = month_rows
+                    .OrderBy(n => _is_report_year_mode && n.is_customer_ghost ? 0 : 1)
+                    .ThenBy(n => n.creation_date)
+                    .ThenBy(n => n.id_delivery_note)
+                    .Select(n => new monthly_report_row_dto
+                    {
+                        date = n.creation_date,
+                        dispatch_date = n.dispatch_date,
+                        document_number = n.note_number,
+                        customer_name = n.customer_name,
+                        seller_name = n.seller_name,
+                        zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
+                        amount_usd = n.total_amount_usd,
+                        paid_amount_usd = n.paid_amount_usd,
+                        balance_due_usd = n.balance_due_usd,
+                        detail_text = $"{n.balance_due_usd:N2}",
+                        status = n.status,
+                        is_customer_ghost = n.is_customer_ghost
+                    })
+                    .ToList()
+            };
+        }
+
         private void execute_month_report(object? parameter)
         {
             try
             {
-                if (_is_report_year_mode)
-                {
-                    if (_selected_report_year <= 0)
-                    {
-                        AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
-                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                        return;
-                    }
-                }
-                else if (string.IsNullOrWhiteSpace(_selected_month))
-                {
-                    AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                // --- Alcance: vendedores y zonas ---
-                // Las checklists son el filtro. Con "Todos/Todas" marcado no se filtra, para
-                // que tambien entren notas de vendedores o zonas que no esten en la lista.
-                var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                bool filter_sellers = !_all_report_sellers_selected;
-                bool filter_zones = !_all_report_zones_selected;
-
-                if (filter_sellers && seller_scope.Count == 0)
-                {
-                    AppDialog.Show("Seleccione al menos un vendedor para incluir en el reporte.", "Reporte de cuentas por cobrar",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                if (filter_zones && zone_scope.Count == 0)
-                {
-                    AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Reporte de cuentas por cobrar",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                // Este reporte es de cuentas por cobrar: solo entran notas Pendientes.
-                // Pagadas, Anuladas y Devueltas quedan fuera del PDF y de todas las sumas.
-                // Para ver las pagadas esta el reporte de Ventas.
-                var month_rows = (_is_report_year_mode
-                        ? filter_by_year(_all_notes_source, _selected_report_year)
-                        : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
-                    .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                if (filter_sellers)
-                    month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
-
-                if (filter_zones)
-                    month_rows = month_rows.Where(n => zone_scope.Contains(string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name.Trim())).ToList();
-
-                string seller_suffix = !filter_sellers
-                    ? string.Empty
-                    : (seller_scope.Count == 1 ? seller_scope.First().ToUpperInvariant() : "VARIOS VENDEDORES");
-
-                string zone_suffix = string.Empty;
-                if (filter_zones && zone_scope.Count == 1)
-                {
-                    zone_suffix = zone_scope.First().ToUpperInvariant();
-                }
-                else if (filter_zones)
-                {
-                    zone_suffix = filter_sellers ? "VARIOS VENDEDORES Y ZONAS" : "VARIAS ZONAS";
-                }
-                string combined = string.Join(" - ", new[] { seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
-
-                string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
-
-                string period_label = _is_report_year_mode
-                    ? $"AÑO {_selected_report_year}"
-                    : _selected_month;
-                string period_title = _is_report_year_mode
-                    ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
-                    : "CUENTAS POR COBRAR - DETALLE DEL MES";
-
-                var report = new monthly_report_dto
-                {
-                    title = string.IsNullOrEmpty(combined)
-                        ? period_title
-                        : $"{period_title} ({combined})",
-                    month = period_label,
-                    report_name = "cuentas por cobrar",
-                    detail_column_header = "SALDO",
-                    show_paid_balance_summary = true,
-                    empty_text = _is_report_year_mode
-                        ? "Sin cuentas por cobrar para el año seleccionado."
-                        : "Sin cuentas por cobrar para el mes seleccionado.",
-                    group_mode = group_mode,
-                    ordenar_zombies_primero = _is_report_year_mode,
-                    show_dispatch_date_column = _is_report_year_mode,
-                    rows = month_rows
-                        // El orden definitivo lo hace el generador del PDF por hoja. Aqui solo
-                        // se conserva el orden cronologico para el caso de una sola hoja sin agrupar.
-                        .OrderBy(n => _is_report_year_mode && n.is_customer_ghost ? 0 : 1)
-                        .ThenBy(n => n.creation_date)
-                        .ThenBy(n => n.id_delivery_note)
-                        .Select(n => new monthly_report_row_dto
-                        {
-                            date = n.creation_date,
-                            dispatch_date = n.dispatch_date,
-                            document_number = n.note_number,
-                            customer_name = n.customer_name,
-                            seller_name = n.seller_name,
-                            zone_name = string.IsNullOrWhiteSpace(n.zone_name) ? "Sin zona" : n.zone_name,
-                            amount_usd = n.total_amount_usd,
-                            paid_amount_usd = n.paid_amount_usd,
-                            balance_due_usd = n.balance_due_usd,
-                            detail_text = $"{n.balance_due_usd:N2}",
-                            status = n.status,
-                            is_customer_ghost = n.is_customer_ghost
-                        })
-                        .ToList()
-                };
-
-                MonthlyReportPdfGenerator.generate(report);
+                var report = build_cxc_report_dto();
+                if (report != null)
+                    MonthlyReportPdfGenerator.generate(report);
             }
             catch (Exception ex)
             {
                 AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_month_report_preview(object? parameter)
+        {
+            try
+            {
+                var report = build_cxc_report_dto();
+                if (report == null) return;
+
+                var doc = MonthlyReportPdfGenerator.build_document(report);
+                var fileName = MonthlyReportPdfGenerator.get_default_file_name(report);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    report.title,
+                    fileName,
+                    () => MonthlyReportExcelExporter.export(report));
+                preview.Owner = System.Windows.Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error en vista previa: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_month_report_print(object? parameter)
+        {
+            try
+            {
+                var report = build_cxc_report_dto();
+                if (report == null) return;
+
+                var doc = MonthlyReportPdfGenerator.build_document(report);
+                var fileName = MonthlyReportPdfGenerator.get_default_file_name(report);
+                ReportPrintService.DirectPrint(doc, System.Windows.Application.Current?.MainWindow, report.title, fileName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_month_report_excel(object? parameter)
+        {
+            try
+            {
+                var report = build_cxc_report_dto();
+                if (report == null) return;
+
+                MonthlyReportExcelExporter.export(report);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_export_note_excel(object? parameter)
+        {
+            if (parameter is not accounts_receivable_row_dto row) return;
+            try
+            {
+                var note = await _receivable_service.get_printable_note_async(row.id_delivery_note);
+                NoteExcelExporter.export(note);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
     }

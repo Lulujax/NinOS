@@ -16,36 +16,25 @@ namespace NinOS.UI.Common
         private static readonly string AccentBg = "#F0F4EC";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        public static void generate(commission_receipt_dto receipt)
+        public static string get_default_file_name(commission_receipt_dto receipt)
         {
-            if (receipt == null || receipt.rows.Count == 0) return;
-
-            string seller = (receipt.seller_name ?? string.Empty).ToUpperInvariant();
+            string seller = (receipt?.seller_name ?? string.Empty).ToUpperInvariant();
             string seller_tag = seller.Replace(" ", string.Empty);
-            string base_name = $"Comprobante_Comision_{seller_tag}_{receipt.payment_date:yyyyMMdd}";
-
-            var save_dialog = new SaveFileDialog
-            {
-                Title = "Guardar comprobante de pago de comision",
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = base_name + ".pdf"
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
-
-            generate(receipt, save_dialog.FileName);
+            var date = receipt?.payment_date ?? DateTime.Now;
+            return $"Comprobante_Comision_{seller_tag}_{date:yyyyMMdd}.pdf";
         }
 
-        public static void generate(commission_receipt_dto receipt, string file_path)
+        public static IDocument build_document(commission_receipt_dto receipt)
         {
-            if (receipt == null || receipt.rows.Count == 0) return;
+            if (receipt == null || receipt.rows.Count == 0)
+                throw new ArgumentException("El comprobante no contiene líneas.", nameof(receipt));
 
             QuestPDF.Settings.License = LicenseType.Community;
 
             string seller = (receipt.seller_name ?? string.Empty).ToUpperInvariant();
             decimal sub_total = receipt.rows.Sum(r => r.commission_10);
 
-            var document = Document.Create(container =>
+            return Document.Create(container =>
             {
                 container.Page(page =>
                 {
@@ -78,16 +67,15 @@ namespace NinOS.UI.Common
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(1.15f);
-                                columns.RelativeColumn(0.95f);
+                                columns.RelativeColumn(1.0f);
                                 columns.RelativeColumn(3.0f);
-                                columns.RelativeColumn(1.25f);
-                                columns.RelativeColumn(1.15f);
-                                columns.RelativeColumn(1.15f);
-                                columns.RelativeColumn(1.25f);
-                                columns.RelativeColumn(1.05f);
-                                columns.RelativeColumn(1.15f);
-                                columns.RelativeColumn(1.15f);
+                                columns.RelativeColumn(1.3f);
+                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.1f);
+                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.1f);
                             });
 
                             table.Header(header =>
@@ -99,14 +87,13 @@ namespace NinOS.UI.Common
                                     t.FontColor(Colors.White).Bold().FontSize(6.5f);
                                 }
 
-                                h("FECHA\nDESPACHO");
                                 h("NRO");
                                 h("CLIENTE", left: true);
                                 h("MONTO\nFACTURADO $");
                                 h("FECHA DE\nPAGO");
                                 h("MONTO\nPAGADO $");
                                 h("PRONTO\nPAGO");
-                                h("%\nCOM.");
+                                h("COMISION\n10%");
                                 h("TOTAL\nCOMISION $");
                                 h("PAGO\nCOMISION");
                             });
@@ -124,16 +111,15 @@ namespace NinOS.UI.Common
                                     t.FontSize(7.5f);
                                 }
 
-                                cell(r.dispatch_date?.ToString("d/M/yyyy") ?? string.Empty);
                                 cell(r.note_number);
                                 cell(r.customer_name, left: true);
                                 cell(Money(r.invoiced_amount));
-                                cell(r.payment_date?.ToString("d/M/yyyy") ?? string.Empty);
+                                cell(r.payment_date?.ToString("dd/MM/yyyy") ?? string.Empty);
                                 cell(Money(r.paid_amount));
-                                cell(r.early_payment_discount > 0 ? "SI" : "NO");
-                                cell(r.commission_percentage > 0 ? (r.commission_percentage * 100).ToString("0.##") + "%" : "10%");
+                                cell(r.early_payment_discount_pct > 0 ? $"SI ({r.early_payment_discount_pct:0.##}%)" : (r.early_payment_discount > 0 ? "SI" : "NO"));
                                 cell(Money(r.commission_10));
-                                cell(DateDMon(r.commission_paid_date));
+                                cell(Money(r.commission_10));
+                                cell(r.commission_paid_date?.ToString("dd/MM/yyyy") ?? string.Empty);
 
                                 alternate = !alternate;
                             }
@@ -243,8 +229,31 @@ namespace NinOS.UI.Common
                     });
                 });
             });
+        }
 
-            document.GeneratePdf(file_path);
+        public static void generate(commission_receipt_dto receipt)
+        {
+            if (receipt == null || receipt.rows.Count == 0) return;
+
+            string file_name = get_default_file_name(receipt);
+
+            var save_dialog = new SaveFileDialog
+            {
+                Title = "Guardar comprobante de pago de comision",
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = file_name
+            };
+
+            if (save_dialog.ShowDialog() != true) return;
+
+            generate(receipt, save_dialog.FileName);
+        }
+
+        public static void generate(commission_receipt_dto receipt, string file_path)
+        {
+            if (receipt == null || receipt.rows.Count == 0) return;
+
+            build_document(receipt).GeneratePdf(file_path);
         }
 
         private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);

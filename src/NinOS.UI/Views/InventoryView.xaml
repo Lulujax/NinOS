@@ -270,55 +270,24 @@
                             </ScrollViewer>
                         </Border>
 
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Content="📄 Exportar PDF"
-                                    ToolTip="Generar lista de precios en documento PDF profesional listo para imprimir"
+                        <UniformGrid Columns="2" Rows="2" Margin="0,4,0,0">
+                            <Button Content="👁️ Vista Previa" ToolTip="Ver lista de precios en vista previa interactiva"
                                     Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                                    FontSize="11" Height="32" BorderThickness="0" Cursor="Hand"
-                                    Click="on_download_price_list_click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="5">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#12261E"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                            <Button Grid.Column="2" Content="📊 Exportar Excel"
-                                    ToolTip="Exportar lista de precios estilizada a hoja de cálculo Excel (.xlsx / .csv)"
+                                    FontSize="10.5" Height="28" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"
+                                    Click="on_preview_price_list_click"/>
+                            <Button Content="🖨️ Imprimir" ToolTip="Imprimir lista de precios directamente en la impresora"
+                                    Background="#0284C7" Foreground="White" FontWeight="Bold"
+                                    FontSize="10.5" Height="28" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"
+                                    Click="on_print_price_list_click"/>
+                            <Button Content="📄 Exportar PDF" ToolTip="Descargar lista de precios en documento PDF"
+                                    Background="#374151" Foreground="White" FontWeight="Bold"
+                                    FontSize="10.5" Height="28" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"
+                                    Click="on_download_price_list_click"/>
+                            <Button Content="📊 Exportar Excel" ToolTip="Exportar lista de precios estilizada a hoja Excel"
                                     Background="#107C41" Foreground="White" FontWeight="Bold"
-                                    FontSize="11" Height="32" BorderThickness="0" Cursor="Hand"
-                                    Click="on_download_price_list_excel_click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="5">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#189953"/>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="#0D5D31"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
+                                    FontSize="10.5" Height="28" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"
+                                    Click="on_download_price_list_excel_click"/>
+                        </UniformGrid>
                     </StackPanel>
 
                     <!-- SEPARADOR VERTICAL -->
@@ -327,9 +296,9 @@
                     <!-- COLUMNA 2: REPORTES DE INVENTARIO -->
                     <StackPanel Grid.Column="2" Margin="12,0,0,0">
                         <TextBlock Text="🖨️ REPORTES DE INVENTARIO" FontSize="11.5" FontWeight="Bold"
-                                   Foreground="#0D62B5"/>
+                                    Foreground="#0D62B5"/>
                         <TextBlock Text="Seleccione el tipo de reporte de inventario a emitir en PDF:"
-                                   FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                                    FontSize="9.5" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,10"/>
 
                         <!-- Opción 1: Solo Inventario Actual -->
                         <Border Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="4"
@@ -338,23 +307,20 @@
                                 <TextBlock Text="1. Solo inventario actual" FontWeight="Bold" FontSize="11" Foreground="#1A1A1A"/>
                                 <TextBlock Text="Existencias físicas disponibles en almacén con precios y valorización total en USD."
                                            FontSize="9" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                                <Button Content="Descargar Inventario Actual"
-                                        Background="#0D62B5" Foreground="White" FontWeight="Bold"
-                                        FontSize="11" Height="26" BorderThickness="0" Cursor="Hand"
-                                        Click="on_download_current_inventory_click">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="bd" Property="Background" Value="#094A8A"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
+                                <UniformGrid Columns="2" Rows="2" Margin="0,4,0,0">
+                                    <Button Content="👁️ Vista Previa" Background="#0D62B5" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,0,2,2"
+                                            Click="on_preview_current_inventory_click"/>
+                                    <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="2,0,0,2"
+                                            Click="on_print_current_inventory_click"/>
+                                    <Button Content="📄 PDF" Background="#374151" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,2,2,0"
+                                            Click="on_download_current_inventory_click"/>
+                                    <Button Content="📊 Excel" Background="#16A34A" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="2,2,0,0"
+                                            Click="on_excel_current_inventory_click"/>
+                                </UniformGrid>
                             </StackPanel>
                         </Border>
 
@@ -365,23 +331,20 @@
                                 <TextBlock Text="2. Todos los movimientos" FontWeight="Bold" FontSize="11" Foreground="#1A1A1A"/>
                                 <TextBlock Text="Historial completo de entradas, salidas y ajustes de todos los productos (así sea extenso)."
                                            FontSize="9" Foreground="#555555" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                                <Button Content="Descargar Todos los Movimientos"
-                                        Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                                        FontSize="11" Height="26" BorderThickness="0" Cursor="Hand"
-                                        Click="on_download_all_movements_click">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
+                                <UniformGrid Columns="2" Rows="2" Margin="0,4,0,0">
+                                    <Button Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,0,2,2"
+                                            Click="on_preview_all_movements_click"/>
+                                    <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="2,0,0,2"
+                                            Click="on_print_all_movements_click"/>
+                                    <Button Content="📄 PDF" Background="#374151" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,2,2,0"
+                                            Click="on_download_all_movements_click"/>
+                                    <Button Content="📊 Excel" Background="#16A34A" Foreground="White" FontWeight="Bold"
+                                            FontSize="10" Height="26" BorderThickness="0" Cursor="Hand" Margin="2,2,0,0"
+                                            Click="on_excel_all_movements_click"/>
+                                </UniformGrid>
                             </StackPanel>
                         </Border>
                     </StackPanel>

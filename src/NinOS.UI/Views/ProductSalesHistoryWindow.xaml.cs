@@ -22,7 +22,6 @@ namespace NinOS.UI.Views
             _product = product;
             _history = history?.ToList() ?? new List<product_sales_history_dto>();
 
-            // Calcular el saldo o subtotal de stock correlativo para cada movimiento (del mas reciente hacia atras)
             int saldo = product.stock_quantity;
             foreach (var item in _history)
             {
@@ -39,26 +38,25 @@ namespace NinOS.UI.Views
             HistoryGrid.ItemsSource = _history;
         }
 
-        /// <summary>
-        /// Arma el respaldo imprimible del historial. El PDF se genera desde la lista que ya
-        /// esta en pantalla, asi que el papel muestra exactamente los mismos movimientos y en
-        /// el mismo orden que ve el usuario.
-        /// </summary>
+        private InventoryHistoryPdfModel BuildModel()
+        {
+            return new InventoryHistoryPdfModel
+            {
+                ItemLabel = "PRODUCTO",
+                ItemName = _product.name,
+                ItemCode = _product.product_code,
+                Category = _product.category,
+                UnitPriceUsd = _product.unit_price_usd,
+                CurrentStock = _product.stock_quantity,
+                Rows = _history.Select(ToPdfRow).ToList()
+            };
+        }
+
         private void PrintPdfButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var model = new InventoryHistoryPdfModel
-                {
-                    ItemLabel = "PRODUCTO",
-                    ItemName = _product.name,
-                    ItemCode = _product.product_code,
-                    Category = _product.category,
-                    UnitPriceUsd = _product.unit_price_usd,
-                    CurrentStock = _product.stock_quantity,
-                    Rows = _history.Select(ToPdfRow).ToList()
-                };
-
+                var model = BuildModel();
                 InventoryHistoryPdfGenerator.generate(model);
             }
             catch (Exception ex)
@@ -68,6 +66,58 @@ namespace NinOS.UI.Views
                     "No se pudo generar el PDF del historial.\n\n" + ErrorText.Get(ex, "historial de inventario") +
                     "\n\nCierra la ventana e inténtalo otra vez.",
                     "No se pudo generar el PDF");
+            }
+        }
+
+        private void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                var doc = InventoryHistoryPdfGenerator.build_document(model);
+                string fileName = InventoryHistoryPdfGenerator.get_default_file_name(model);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    $"Historial - {model.ItemCode}",
+                    fileName,
+                    () => InventoryHistoryExcelExporter.export(model));
+                preview.Owner = this;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de producto: error en vista previa de '{_product.product_code}'.", ex);
+                AppDialog.Show("No se pudo abrir la vista previa: " + ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void DirectPrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                var doc = InventoryHistoryPdfGenerator.build_document(model);
+                string fileName = InventoryHistoryPdfGenerator.get_default_file_name(model);
+                ReportPrintService.DirectPrint(doc, this, $"Historial - {model.ItemCode}", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de producto: error al imprimir '{_product.product_code}'.", ex);
+                AppDialog.Show("No se pudo imprimir: " + ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void ExcelButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                InventoryHistoryExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de producto: error al exportar a Excel '{_product.product_code}'.", ex);
+                AppDialog.Show("No se pudo exportar a Excel: " + ErrorText.Get(ex), "Error");
             }
         }
 

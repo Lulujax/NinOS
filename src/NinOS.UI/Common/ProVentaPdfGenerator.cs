@@ -32,22 +32,18 @@ namespace NinOS.UI.Common
                  + $"Anuladas: {count} nota(s) por {amount:N2} USD.";
         }
 
-        public static void generate(
+        public static string get_default_file_name(pro_venta_weekly_dto dto)
+        {
+            return $"Relacion_{dto.relation_number}_Semana_{dto.week_start:ddMMyy}-{dto.week_end:ddMMyy}.pdf";
+        }
+
+        public static IDocument build_document(
             pro_venta_weekly_dto dto,
             decimal nota_por_pagar,
             List<payment_dto>? payments = null,
             pro_venta_relation_row? relation_info = null)
         {
             QuestPDF.Settings.License = LicenseType.Community;
-
-            var save_dialog = new SaveFileDialog
-            {
-                Title = "Guardar reporte de relacion",
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = $"Relacion_{dto.relation_number}_Semana_{dto.week_start:ddMMyy}-{dto.week_end:ddMMyy}.pdf"
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
 
             decimal total_cobrado = dto.total_amount - dto.total_commission_luis;
             decimal diferencial = total_cobrado - nota_por_pagar;
@@ -71,7 +67,7 @@ namespace NinOS.UI.Common
             bool is_paid = string.Equals(relation_info?.status, "Pagada", StringComparison.OrdinalIgnoreCase)
                 || (total_paid > 0 && balance_due <= 0.005m);
 
-            var document = Document.Create(container =>
+            return Document.Create(container =>
             {
                 // PAGINA 1: REPORTE SEMANAL DE LA RELACION (Hoja de cobranza / liquidacion con columnas para llenado manual)
                 container.Page(page =>
@@ -88,8 +84,24 @@ namespace NinOS.UI.Common
                     });
                 }
             });
+        }
 
-            document.GeneratePdf(save_dialog.FileName);
+        public static void generate(
+            pro_venta_weekly_dto dto,
+            decimal nota_por_pagar,
+            List<payment_dto>? payments = null,
+            pro_venta_relation_row? relation_info = null)
+        {
+            var save_dialog = new SaveFileDialog
+            {
+                Title = "Guardar reporte de relacion",
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = get_default_file_name(dto)
+            };
+
+            if (save_dialog.ShowDialog() != true) return;
+
+            build_document(dto, nota_por_pagar, payments, relation_info).GeneratePdf(save_dialog.FileName);
         }
 
         private static void BuildWeeklyReportPage(

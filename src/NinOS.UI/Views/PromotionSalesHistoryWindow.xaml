@@ -179,11 +179,20 @@
 
         <!-- PANEL DE ACCIONES -->
         <DockPanel Grid.Row="3" Margin="0,8,0,0" LastChildFill="False">
-            <Button DockPanel.Dock="Left" Content="Imprimir PDF" Background="#2E7D32" Foreground="White"
-                    FontWeight="SemiBold" FontSize="13" Padding="10,3" BorderThickness="0" Cursor="Hand"
+            <Button DockPanel.Dock="Left" Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White"
+                    FontWeight="SemiBold" FontSize="11.5" Padding="10,3" Height="26" BorderThickness="0" Cursor="Hand"
+                    Click="PreviewButton_Click"/>
+            <Button DockPanel.Dock="Left" Margin="6,0,0,0" Content="🖨️ Imprimir" Background="#0284C7" Foreground="White"
+                    FontWeight="SemiBold" FontSize="11.5" Padding="10,3" Height="26" BorderThickness="0" Cursor="Hand"
+                    Click="DirectPrintButton_Click"/>
+            <Button DockPanel.Dock="Left" Margin="6,0,0,0" Content="📄 PDF" Background="#374151" Foreground="White"
+                    FontWeight="SemiBold" FontSize="11.5" Padding="10,3" Height="26" BorderThickness="0" Cursor="Hand"
                     Click="PrintPdfButton_Click"/>
-            <Button DockPanel.Dock="Left" Margin="8,0,0,0" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
-                    FontSize="13" Padding="8,3" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
+            <Button DockPanel.Dock="Left" Margin="6,0,0,0" Content="📊 Excel" Background="#16A34A" Foreground="White"
+                    FontWeight="SemiBold" FontSize="11.5" Padding="10,3" Height="26" BorderThickness="0" Cursor="Hand"
+                    Click="ExcelButton_Click"/>
+            <Button DockPanel.Dock="Right" Content="Cerrar" Background="#E0E0E0" Foreground="#424242"
+                    FontSize="11.5" Padding="14,3" Height="26" BorderThickness="0" Cursor="Hand" Click="CloseButton_Click"/>
         </DockPanel>
     </Grid>
 </Window>

@@ -241,17 +241,18 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                    <Button Content="Imprimir Historial PDF" Command="{Binding PrintCustomerHistoryPdfCommand}"
-                            Background="#0D62B5" Foreground="White" FontWeight="Bold"
-                            FontSize="11.5" Padding="14,3" Height="25" BorderThickness="0" Cursor="Hand">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <Button Content="👁️ Vista Previa" Command="{Binding PreviewCustomerHistoryCommand}"
+                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                            FontSize="11" Padding="8,3" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                    <Button Content="🖨️ Imprimir" Command="{Binding DirectPrintCustomerHistoryCommand}"
+                            Background="#0284C7" Foreground="White" FontWeight="Bold"
+                            FontSize="11" Padding="8,3" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                    <Button Content="📄 PDF" Command="{Binding PrintCustomerHistoryPdfCommand}"
+                            Background="#374151" Foreground="White" FontWeight="Bold"
+                            FontSize="11" Padding="8,3" Height="26" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                    <Button Content="📊 Excel" Command="{Binding ExportCustomerHistoryExcelCommand}"
+                            Background="#16A34A" Foreground="White" FontWeight="Bold"
+                            FontSize="11" Padding="8,3" Height="26" BorderThickness="0" Cursor="Hand"/>
                 </StackPanel>
             </DockPanel>
         </Border>

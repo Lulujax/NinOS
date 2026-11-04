@@ -20,6 +20,10 @@ namespace NinOS.Domain.ViewModels
         public bool is_paid { get; set; }
         public DateTime? payout_date { get; set; }
         public DateTime? note_last_payment_date { get; set; }
+        public decimal invoiced_amount { get; set; }
+        public decimal paid_amount { get; set; }
+        public decimal? discount_percentage { get; set; }
+        public DateTime? commission_paid_date { get; set; }
         public bool is_selected { get; set; }
     }
 }

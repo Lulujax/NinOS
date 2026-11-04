@@ -1,9 +1,12 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
+using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Views;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -169,52 +172,136 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        public async Task<credit_note_report_dto?> build_report_dto_async()
+        {
+            if (!resolve_period(out var from, out var to, out var period_label)) return null;
+
+            var category = resolve_category();
+            var report = await _credit_note_service.get_credit_note_report_async(from, to, category, null);
+
+            report.period_label = period_label;
+            report.category_label = _selected_category;
+            report.include_annulled = _include_annulled;
+            if (!_include_annulled)
+            {
+                report.rows = report.rows.Where(r => !r.esta_anulada).ToList();
+            }
+
+            if (period_label == PeriodGeneral)
+            {
+                report.previous_period_label = string.Empty;
+                report.previous_total_usd = 0;
+                report.previous_total_notes = 0;
+            }
+
+            if (!report.has_data)
+            {
+                AppDialog.Show(
+                    "No hay notas de credito para el periodo y la categoria seleccionados.",
+                    "Reporte de Notas de Credito",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            return report;
+        }
+
         public async Task descargar_reporte_async()
         {
             try
             {
                 is_loading = true;
-
-                if (!resolve_period(out var from, out var to, out var period_label)) return;
-
-                var category = resolve_category();
-
-                var report = await _credit_note_service.get_credit_note_report_async(from, to, category, null);
-
-                report.period_label = period_label;
-                report.category_label = _selected_category;
-
-                // Con la opcion apagada se sacan las anuladas del reporte; encendida quedan a la
-                // vista, marcadas en rojo y sin sumar. El generador ya las saca de los totales.
-                report.include_annulled = _include_annulled;
-                if (!_include_annulled)
-                {
-                    report.rows = report.rows.Where(r => !r.esta_anulada).ToList();
-                }
-
-                if (period_label == PeriodGeneral)
-                {
-                    report.previous_period_label = string.Empty;
-                    report.previous_total_usd = 0;
-                    report.previous_total_notes = 0;
-                }
-
-                if (!report.has_data)
-                {
-                    AppDialog.Show(
-                        "No hay notas de credito para el periodo y la categoria seleccionados.",
-                        "Reporte de Notas de Credito",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Information);
-                    return;
-                }
-
-                CreditNotesReportPdfGenerator.generate(report);
+                var report = await build_report_dto_async();
+                if (report != null)
+                    CreditNotesReportPdfGenerator.generate(report);
             }
             catch (Exception ex)
             {
                 AppDialog.Show(
                     $"Error al generar el reporte: {ErrorText.Get(ex)}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            finally
+            {
+                is_loading = false;
+            }
+        }
+
+        public async Task preview_reporte_async()
+        {
+            try
+            {
+                is_loading = true;
+                var report = await build_report_dto_async();
+                if (report == null) return;
+
+                var doc = CreditNotesReportPdfGenerator.build_document(report);
+                var fileName = CreditNotesReportPdfGenerator.get_default_file_name(report);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    $"Reporte de Notas de Crédito - {report.period_label}",
+                    fileName,
+                    () => CreditNotesReportExcelExporter.export(report));
+                preview.Owner = System.Windows.Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(
+                    $"Error en vista previa: {ErrorText.Get(ex)}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            finally
+            {
+                is_loading = false;
+            }
+        }
+
+        public async Task print_reporte_async()
+        {
+            try
+            {
+                is_loading = true;
+                var report = await build_report_dto_async();
+                if (report == null) return;
+
+                var doc = CreditNotesReportPdfGenerator.build_document(report);
+                var fileName = CreditNotesReportPdfGenerator.get_default_file_name(report);
+                ReportPrintService.DirectPrint(doc, System.Windows.Application.Current?.MainWindow, $"Reporte de Notas de Crédito - {report.period_label}", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(
+                    $"Error al imprimir: {ErrorText.Get(ex)}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            finally
+            {
+                is_loading = false;
+            }
+        }
+
+        public async Task excel_reporte_async()
+        {
+            try
+            {
+                is_loading = true;
+                var report = await build_report_dto_async();
+                if (report == null) return;
+
+                CreditNotesReportExcelExporter.export(report);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(
+                    $"Error al exportar Excel: {ErrorText.Get(ex)}",
                     "Error",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);

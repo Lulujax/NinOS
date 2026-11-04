@@ -8,6 +8,7 @@ using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Views;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -164,6 +165,9 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand ViewCreditNoteDetailCommand { get; }
         public ICommand PrintCreditNotePdfCommand { get; }
         public ICommand PrintCustomerHistoryPdfCommand { get; }
+        public ICommand PreviewCustomerHistoryCommand { get; }
+        public ICommand DirectPrintCustomerHistoryCommand { get; }
+        public ICommand ExportCustomerHistoryExcelCommand { get; }
 
         public CustomerHistoryViewModel(
             ICustomerService customerService,
@@ -184,6 +188,9 @@ namespace NinOS.UI.Common.ViewModels
             ViewCreditNoteDetailCommand = new RelayCommand(ExecuteViewCreditNoteDetail);
             PrintCreditNotePdfCommand = new RelayCommand(ExecutePrintCreditNotePdf);
             PrintCustomerHistoryPdfCommand = new RelayCommand(_ => ExecutePrintCustomerHistoryPdf());
+            PreviewCustomerHistoryCommand = new RelayCommand(_ => ExecutePreviewCustomerHistory());
+            DirectPrintCustomerHistoryCommand = new RelayCommand(_ => ExecuteDirectPrintCustomerHistory());
+            ExportCustomerHistoryExcelCommand = new RelayCommand(_ => ExecuteExportCustomerHistoryExcel());
         }
 
         public async Task LoadHistoryAsync(int customerId)
@@ -359,52 +366,112 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private void ExecutePrintCustomerHistoryPdf()
+        private CustomerHistoryPdfModel? BuildHistoryModel()
         {
             if (_customer == null)
             {
                 AppDialog.Show("No hay datos de cliente disponibles para imprimir.", "Aviso");
-                return;
+                return null;
             }
 
+            string periodLabel = "Historial Completo";
+            if (FromDate.HasValue && ToDate.HasValue)
+                periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy} Hasta {ToDate.Value:dd/MM/yyyy}";
+            else if (FromDate.HasValue)
+                periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy}";
+            else if (ToDate.HasValue)
+                periodLabel = $"Hasta {ToDate.Value:dd/MM/yyyy}";
+
+            return new CustomerHistoryPdfModel
+            {
+                CustomerCode = CustomerCode,
+                CustomerName = BusinessName,
+                Rif = Rif,
+                ContactName = ContactName,
+                Phone = PhoneNumber,
+                ZoneName = ZonaName,
+                FiscalAddress = FiscalAddress,
+                DeliveryAddress = EffectiveDeliveryAddress,
+                PeriodLabel = periodLabel,
+                TotalInvoicedUsd = TotalInvoicedUsd,
+                TotalNotesCount = TotalNotesCount,
+                TotalPaidUsd = TotalPaidUsd,
+                BalanceDueUsd = BalanceDueUsd,
+                TotalCreditNotesUsd = TotalCreditNotesUsd,
+                TotalCreditNotesCount = TotalCreditNotesCount,
+                DeliveryNotes = DeliveryNotes.ToList(),
+                CreditNotes = CreditNotes.ToList(),
+                Payments = Payments.ToList(),
+                TopProducts = TopProducts.ToList()
+            };
+        }
+
+        private void ExecutePrintCustomerHistoryPdf()
+        {
             try
             {
-                string periodLabel = "Historial Completo";
-                if (FromDate.HasValue && ToDate.HasValue)
-                    periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy} Hasta {ToDate.Value:dd/MM/yyyy}";
-                else if (FromDate.HasValue)
-                    periodLabel = $"Desde {FromDate.Value:dd/MM/yyyy}";
-                else if (ToDate.HasValue)
-                    periodLabel = $"Hasta {ToDate.Value:dd/MM/yyyy}";
-
-                var model = new CustomerHistoryPdfModel
-                {
-                    CustomerCode = CustomerCode,
-                    CustomerName = BusinessName,
-                    Rif = Rif,
-                    ContactName = ContactName,
-                    Phone = PhoneNumber,
-                    ZoneName = ZonaName,
-                    FiscalAddress = FiscalAddress,
-                    DeliveryAddress = EffectiveDeliveryAddress,
-                    PeriodLabel = periodLabel,
-                    TotalInvoicedUsd = TotalInvoicedUsd,
-                    TotalNotesCount = TotalNotesCount,
-                    TotalPaidUsd = TotalPaidUsd,
-                    BalanceDueUsd = BalanceDueUsd,
-                    TotalCreditNotesUsd = TotalCreditNotesUsd,
-                    TotalCreditNotesCount = TotalCreditNotesCount,
-                    DeliveryNotes = DeliveryNotes.ToList(),
-                    CreditNotes = CreditNotes.ToList(),
-                    Payments = Payments.ToList(),
-                    TopProducts = TopProducts.ToList()
-                };
-
-                CustomerHistoryPdfGenerator.generate(model);
+                var model = BuildHistoryModel();
+                if (model != null)
+                    CustomerHistoryPdfGenerator.generate(model);
             }
             catch (Exception ex)
             {
                 AppDialog.Show($"Error al generar el PDF del historial: {ErrorText.Get(ex)}", "Error");
+            }
+        }
+
+        private void ExecutePreviewCustomerHistory()
+        {
+            try
+            {
+                var model = BuildHistoryModel();
+                if (model == null) return;
+
+                var doc = CustomerHistoryPdfGenerator.build_document(model);
+                var fileName = CustomerHistoryPdfGenerator.get_default_file_name(model);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    $"Historial de Cliente - {model.CustomerName}",
+                    fileName,
+                    () => CustomerHistoryExcelExporter.export(model));
+                preview.Owner = System.Windows.Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error en vista previa del historial: {ErrorText.Get(ex)}", "Error");
+            }
+        }
+
+        private void ExecuteDirectPrintCustomerHistory()
+        {
+            try
+            {
+                var model = BuildHistoryModel();
+                if (model == null) return;
+
+                var doc = CustomerHistoryPdfGenerator.build_document(model);
+                var fileName = CustomerHistoryPdfGenerator.get_default_file_name(model);
+                ReportPrintService.DirectPrint(doc, System.Windows.Application.Current?.MainWindow, $"Historial de Cliente - {model.CustomerName}", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir historial: {ErrorText.Get(ex)}", "Error");
+            }
+        }
+
+        private void ExecuteExportCustomerHistoryExcel()
+        {
+            try
+            {
+                var model = BuildHistoryModel();
+                if (model == null) return;
+
+                CustomerHistoryExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar historial a Excel: {ErrorText.Get(ex)}", "Error");
             }
         }
     }

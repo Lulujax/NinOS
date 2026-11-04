@@ -10,6 +10,7 @@ using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
+using NinOS.UI.Views;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -383,9 +384,17 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand remove_from_builder_command { get; }
         public ICommand edit_promotion_command { get; }
         public ICommand generate_price_list_command { get; }
+        public ICommand generate_price_list_preview_command { get; }
+        public ICommand generate_price_list_print_command { get; }
         public ICommand generate_price_list_excel_command { get; }
         public ICommand print_current_inventory_command { get; }
+        public ICommand print_current_inventory_preview_command { get; }
+        public ICommand print_current_inventory_print_command { get; }
+        public ICommand export_current_inventory_excel_command { get; }
         public ICommand print_all_movements_command { get; }
+        public ICommand print_all_movements_preview_command { get; }
+        public ICommand print_all_movements_print_command { get; }
+        public ICommand export_all_movements_excel_command { get; }
         public ICommand clear_price_list_command { get; }
         public ICommand open_stock_section_command { get; }
         public ICommand close_stock_section_command { get; }
@@ -793,9 +802,17 @@ namespace NinOS.UI.Common.ViewModels
             remove_from_builder_command = new RelayCommand(execute_remove_from_builder);
             edit_promotion_command = new RelayCommand(execute_edit_promotion);
             generate_price_list_command = new RelayCommand(execute_generate_price_list);
+            generate_price_list_preview_command = new RelayCommand(execute_generate_price_list_preview);
+            generate_price_list_print_command = new RelayCommand(execute_generate_price_list_print);
             generate_price_list_excel_command = new RelayCommand(execute_generate_price_list_excel);
             print_current_inventory_command = new RelayCommand(execute_print_current_inventory);
+            print_current_inventory_preview_command = new RelayCommand(execute_print_current_inventory_preview);
+            print_current_inventory_print_command = new RelayCommand(execute_print_current_inventory_print);
+            export_current_inventory_excel_command = new RelayCommand(execute_export_current_inventory_excel);
             print_all_movements_command = new RelayCommand(execute_print_all_movements);
+            print_all_movements_preview_command = new RelayCommand(execute_print_all_movements_preview);
+            print_all_movements_print_command = new RelayCommand(execute_print_all_movements_print);
+            export_all_movements_excel_command = new RelayCommand(execute_export_all_movements_excel);
             clear_price_list_command = new RelayCommand(execute_clear_price_list);
             open_stock_section_command = new RelayCommand(execute_open_stock_section);
             close_stock_section_command = new RelayCommand(execute_close_stock_section);
@@ -2041,6 +2058,46 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private async void execute_generate_price_list_preview(object? parameter)
+        {
+            try
+            {
+                var data = await prepare_price_list_data_async();
+                if (data == null) return;
+
+                var doc = PriceListPdfGenerator.build_document(data.Value.items, data.Value.columns);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    "Lista de Precios",
+                    "ListaDePrecios.pdf",
+                    () => PriceListExcelGenerator.generate(data.Value.items, data.Value.columns));
+                preview.Owner = Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error en vista previa de la lista de precios", ex);
+                AppDialog.Show("No se pudo generar la vista previa: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_generate_price_list_print(object? parameter)
+        {
+            try
+            {
+                var data = await prepare_price_list_data_async();
+                if (data == null) return;
+
+                var doc = PriceListPdfGenerator.build_document(data.Value.items, data.Value.columns);
+                ReportPrintService.DirectPrint(doc, Application.Current?.MainWindow, "Lista de Precios", "ListaDePrecios.pdf");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al imprimir la lista de precios", ex);
+                AppDialog.Show("No se pudo imprimir: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private async void execute_generate_price_list_excel(object? parameter)
         {
             try
@@ -2064,28 +2121,32 @@ namespace NinOS.UI.Common.ViewModels
                 o.is_checked && o.name.Equals(safe, StringComparison.OrdinalIgnoreCase));
         }
 
+        private CurrentInventoryPdfModel build_current_inventory_model()
+        {
+            var items = _all_products_source
+                .Where(p => !string.IsNullOrWhiteSpace(p.product_code) && p.is_active && p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-"))
+                .Select(p => new CurrentInventoryPdfItem
+                {
+                    ProductCode = p.product_code,
+                    Name = p.name,
+                    Category = p.category,
+                    StockQuantity = p.stock_quantity,
+                    UnitPriceUsd = p.unit_price_usd
+                })
+                .ToList();
+
+            return new CurrentInventoryPdfModel
+            {
+                EmissionDate = DateTime.Now,
+                Items = items
+            };
+        }
+
         private void execute_print_current_inventory(object? parameter)
         {
             try
             {
-                var items = _all_products_source
-                    .Where(p => !string.IsNullOrWhiteSpace(p.product_code) && p.is_active && p.product_code != "Z-9999-INT" && !p.product_code.StartsWith("Z-"))
-                    .Select(p => new CurrentInventoryPdfItem
-                    {
-                        ProductCode = p.product_code,
-                        Name = p.name,
-                        Category = p.category,
-                        StockQuantity = p.stock_quantity,
-                        UnitPriceUsd = p.unit_price_usd
-                    })
-                    .ToList();
-
-                var model = new CurrentInventoryPdfModel
-                {
-                    EmissionDate = DateTime.Now,
-                    Items = items
-                };
-
+                var model = build_current_inventory_model();
                 CurrentInventoryPdfGenerator.generate(model);
             }
             catch (Exception ex)
@@ -2099,46 +2160,101 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
+        private void execute_print_current_inventory_preview(object? parameter)
+        {
+            try
+            {
+                var model = build_current_inventory_model();
+                var doc = CurrentInventoryPdfGenerator.build_document(model);
+                string fileName = $"INVENTARIO_ACTUAL_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    "Inventario Actual",
+                    fileName,
+                    () => CurrentInventoryExcelExporter.export(model));
+                preview.Owner = Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error en vista previa de inventario actual", ex);
+                AppDialog.Show("No se pudo generar la vista previa: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_print_current_inventory_print(object? parameter)
+        {
+            try
+            {
+                var model = build_current_inventory_model();
+                var doc = CurrentInventoryPdfGenerator.build_document(model);
+                string fileName = $"INVENTARIO_ACTUAL_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                ReportPrintService.DirectPrint(doc, Application.Current?.MainWindow, "Inventario Actual", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al imprimir inventario actual", ex);
+                AppDialog.Show("No se pudo imprimir: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void execute_export_current_inventory_excel(object? parameter)
+        {
+            try
+            {
+                var model = build_current_inventory_model();
+                CurrentInventoryExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al exportar inventario actual a Excel", ex);
+                AppDialog.Show("No se pudo exportar a Excel: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task<AllMovementsPdfModel> build_all_movements_model_async()
+        {
+            var movements = await _inventory_service.get_all_stock_movements_async();
+            var list = movements
+                .Where(m => m.product_code != "Z-9999-INT" && !m.product_code.StartsWith("Z-") && !string.IsNullOrWhiteSpace(m.product_code) && m.product_code != "-")
+                .ToList();
+
+            var productGroups = list
+                .GroupBy(m => m.id_product)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    return new ProductMovementGroup
+                    {
+                        IdProduct = first.id_product,
+                        ProductCode = first.product_code,
+                        ProductName = first.product_name,
+                        Category = first.product_category,
+                        CurrentStock = first.product_current_stock,
+                        UnitPriceUsd = first.unit_price_usd,
+                        Rows = g.OrderByDescending(r => r.creation_date)
+                                .ThenByDescending(r => r.id_delivery_note)
+                                .Select(ToPdfRow)
+                                .ToList()
+                    };
+                })
+                .OrderBy(g => g.Category)
+                .ThenBy(g => g.ProductCode)
+                .ToList();
+
+            return new AllMovementsPdfModel
+            {
+                EmissionDate = DateTime.Now,
+                ProductGroups = productGroups
+            };
+        }
+
         private async void execute_print_all_movements(object? parameter)
         {
             try
             {
                 IsLoading = true;
-
-                var movements = await _inventory_service.get_all_stock_movements_async();
-                var list = movements
-                    .Where(m => m.product_code != "Z-9999-INT" && !m.product_code.StartsWith("Z-") && !string.IsNullOrWhiteSpace(m.product_code) && m.product_code != "-")
-                    .ToList();
-
-                var productGroups = list
-                    .GroupBy(m => m.id_product)
-                    .Select(g =>
-                    {
-                        var first = g.First();
-                        return new ProductMovementGroup
-                        {
-                            IdProduct = first.id_product,
-                            ProductCode = first.product_code,
-                            ProductName = first.product_name,
-                            Category = first.product_category,
-                            CurrentStock = first.product_current_stock,
-                            UnitPriceUsd = first.unit_price_usd,
-                            Rows = g.OrderByDescending(r => r.creation_date)
-                                    .ThenByDescending(r => r.id_delivery_note)
-                                    .Select(ToPdfRow)
-                                    .ToList()
-                        };
-                    })
-                    .OrderBy(g => g.Category)
-                    .ThenBy(g => g.ProductCode)
-                    .ToList();
-
-                var model = new AllMovementsPdfModel
-                {
-                    EmissionDate = DateTime.Now,
-                    ProductGroups = productGroups
-                };
-
+                var model = await build_all_movements_model_async();
                 AllMovementsPdfGenerator.generate(model);
             }
             catch (Exception ex)
@@ -2149,6 +2265,73 @@ namespace NinOS.UI.Common.ViewModels
                     "Error de impresión",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private async void execute_print_all_movements_preview(object? parameter)
+        {
+            try
+            {
+                IsLoading = true;
+                var model = await build_all_movements_model_async();
+                var doc = AllMovementsPdfGenerator.build_document(model);
+                string fileName = $"MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    "Todos los Movimientos de Inventario",
+                    fileName,
+                    () => AllMovementsExcelExporter.export(model));
+                preview.Owner = Application.Current?.MainWindow;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error en vista previa de movimientos de inventario", ex);
+                AppDialog.Show("No se pudo generar la vista previa: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private async void execute_print_all_movements_print(object? parameter)
+        {
+            try
+            {
+                IsLoading = true;
+                var model = await build_all_movements_model_async();
+                var doc = AllMovementsPdfGenerator.build_document(model);
+                string fileName = $"MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                ReportPrintService.DirectPrint(doc, Application.Current?.MainWindow, "Movimientos de Inventario", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al imprimir movimientos de inventario", ex);
+                AppDialog.Show("No se pudo imprimir: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private async void execute_export_all_movements_excel(object? parameter)
+        {
+            try
+            {
+                IsLoading = true;
+                var model = await build_all_movements_model_async();
+                AllMovementsExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al exportar movimientos de inventario a Excel", ex);
+                AppDialog.Show("No se pudo exportar a Excel: " + ErrorText.Get(ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

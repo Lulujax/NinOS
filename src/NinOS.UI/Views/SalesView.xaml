@@ -322,23 +322,20 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <Button Content="Descargar PDF"
-                            Background="#1B3A2D" Foreground="White" FontWeight="Bold"
-                            FontSize="12.5" Height="32" BorderThickness="0" Cursor="Hand"
-                            Margin="0,8,0,0" Click="on_descargar_sales_report_click">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="bd" Property="Background" Value="#2E5A46"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <UniformGrid Columns="2" Rows="2" Margin="0,8,0,0">
+                        <Button Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"
+                                Click="on_preview_sales_report_click"/>
+                        <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"
+                                Click="on_print_sales_report_click"/>
+                        <Button Content="📄 Descargar PDF" Background="#374151" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"
+                                Click="on_descargar_sales_report_click"/>
+                        <Button Content="📊 Excel" Background="#16A34A" Foreground="White" FontWeight="Bold"
+                                FontSize="11.5" Height="30" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"
+                                Click="on_excel_sales_report_click"/>
+                    </UniformGrid>
                 </StackPanel>
             </Border>
         </Popup>
@@ -424,17 +421,21 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="ACCIONES" Width="140">
+                        <DataGridTemplateColumn Header="ACCIONES" Width="185">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Vista Previa" FontSize="11.5" Padding="6,2" Margin="0,0,4,0" Cursor="Hand"
+                                        <Button Content="Vista Previa" FontSize="11" Padding="5,2" Margin="0,0,3,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.preview_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="PDF" FontSize="11.5" Padding="6,2" Cursor="Hand"
+                                        <Button Content="PDF" FontSize="11" Padding="5,2" Margin="0,0,3,0" Cursor="Hand"
                                                 Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#424242"
                                                 Command="{Binding DataContext.print_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Excel" FontSize="11" Padding="5,2" Cursor="Hand"
+                                                Background="#F5F5F5" BorderThickness="1" BorderBrush="#E0E0E0" Foreground="#16A34A" FontWeight="SemiBold"
+                                                Command="{Binding DataContext.export_note_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
                                     </StackPanel>
                                 </DataTemplate>

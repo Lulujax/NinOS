@@ -33,6 +33,24 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<pro_venta_weekly_row> report_rows { get; } = new();
         public ObservableCollection<pro_venta_relation_row> pending_rows { get; } = new();
         public ObservableCollection<pro_venta_relation_row> paid_rows { get; } = new();
+        public ICommand preview_command { get; }
+        public ICommand direct_print_command { get; }
+        public ICommand excel_command { get; }
+
+        public ICommand preview_pending_command { get; }
+        public ICommand direct_print_pending_command { get; }
+        public ICommand pdf_pending_command { get; }
+        public ICommand excel_pending_command { get; }
+
+        public ICommand preview_paid_command { get; }
+        public ICommand direct_print_paid_command { get; }
+        public ICommand pdf_paid_command { get; }
+        public ICommand excel_paid_command { get; }
+
+        public ICommand preview_all_command { get; }
+        public ICommand direct_print_all_command { get; }
+        public ICommand pdf_all_command { get; }
+        public ICommand excel_all_command { get; }
 
         public ICommand print_command { get; }
         public ICommand refresh_command { get; }
@@ -65,6 +83,24 @@ namespace NinOS.UI.Common.ViewModels
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
             annul_note_command = new RelayCommand(execute_annul_note);
+            preview_command = new RelayCommand(_ => preview_report());
+            direct_print_command = new RelayCommand(_ => direct_print_report());
+            excel_command = new RelayCommand(_ => excel_report());
+
+            preview_pending_command = new RelayCommand(_ => preview_pending_relations());
+            direct_print_pending_command = new RelayCommand(_ => direct_print_pending_relations());
+            pdf_pending_command = new RelayCommand(_ => pdf_pending_relations());
+            excel_pending_command = new RelayCommand(_ => excel_pending_relations());
+
+            preview_paid_command = new RelayCommand(_ => preview_paid_relations());
+            direct_print_paid_command = new RelayCommand(_ => direct_print_paid_relations());
+            pdf_paid_command = new RelayCommand(_ => pdf_paid_relations());
+            excel_paid_command = new RelayCommand(_ => excel_paid_relations());
+
+            preview_all_command = new RelayCommand(_ => preview_all_relations());
+            direct_print_all_command = new RelayCommand(_ => direct_print_all_relations());
+            pdf_all_command = new RelayCommand(_ => pdf_all_relations());
+            excel_all_command = new RelayCommand(_ => excel_all_relations());
         }
 
         public int selected_report_index
@@ -549,6 +585,312 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(diferencial));
             on_property_changed(nameof(has_annulled));
             on_property_changed(nameof(annulled_legend_text));
+        }
+
+                private async Task<(List<payment_dto>? payments, pro_venta_relation_row? relation_row)> get_weekly_context_async()
+        {
+            List<payment_dto>? payments = null;
+            pro_venta_relation_row? relation_row = null;
+
+            if (_report != null && _report.id_relacion > 0)
+            {
+                payments = (await _payment_service.get_payments_by_relation_async(_report.id_relacion))
+                    .OrderBy(p => p.payment_date)
+                    .ToList();
+                relation_row = pending_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                            ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion);
+            }
+
+            return (payments, relation_row);
+        }
+
+        private async void preview_report()
+        {
+            if (_report == null || !has_rows) return;
+            try
+            {
+                var (payments, relation_row) = await get_weekly_context_async();
+                var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
+                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
+                string defName = ProVentaPdfGenerator.get_default_file_name(_report);
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    title,
+                    defName,
+                    onExportExcel: () => ProVentaWeeklyExcelExporter.export(_report, nota_por_pagar, payments, relation_row));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void direct_print_report()
+        {
+            if (_report == null || !has_rows) return;
+            try
+            {
+                var (payments, relation_row) = await get_weekly_context_async();
+                var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
+                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
+                ReportPrintService.DirectPrint(doc, null, title, ProVentaPdfGenerator.get_default_file_name(_report));
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void excel_report()
+        {
+            if (_report == null || !has_rows) return;
+            try
+            {
+                var (payments, relation_row) = await get_weekly_context_async();
+                ProVentaWeeklyExcelExporter.export(_report, nota_por_pagar, payments, relation_row);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar a Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void preview_pending_relations()
+        {
+            if (pending_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Relaciones Pendientes por Cobrar",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    null);
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    "Relaciones Pendientes",
+                    ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Pendientes", monthLabel),
+                    onExportExcel: () => ProVentaRelationsSummaryExcelExporter.export("Relaciones Pendientes", monthLabel, pending_rows.ToList(), null));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void direct_print_pending_relations()
+        {
+            if (pending_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Relaciones Pendientes por Cobrar",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    null);
+                ReportPrintService.DirectPrint(doc, null, "Relaciones Pendientes", ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Pendientes", monthLabel));
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void pdf_pending_relations()
+        {
+            if (pending_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryPdfGenerator.generate(
+                    "Relaciones Pendientes por Cobrar",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    null);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void excel_pending_relations()
+        {
+            if (pending_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryExcelExporter.export(
+                    "Relaciones Pendientes",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    null);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void preview_paid_relations()
+        {
+            if (paid_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Relaciones Pagadas",
+                    monthLabel,
+                    null,
+                    paid_rows.ToList());
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    "Relaciones Pagadas",
+                    ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Pagadas", monthLabel),
+                    onExportExcel: () => ProVentaRelationsSummaryExcelExporter.export("Relaciones Pagadas", monthLabel, null, paid_rows.ToList()));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void direct_print_paid_relations()
+        {
+            if (paid_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Relaciones Pagadas",
+                    monthLabel,
+                    null,
+                    paid_rows.ToList());
+                ReportPrintService.DirectPrint(doc, null, "Relaciones Pagadas", ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Pagadas", monthLabel));
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void pdf_paid_relations()
+        {
+            if (paid_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryPdfGenerator.generate(
+                    "Relaciones Pagadas",
+                    monthLabel,
+                    null,
+                    paid_rows.ToList());
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void excel_paid_relations()
+        {
+            if (paid_rows.Count == 0) return;
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryExcelExporter.export(
+                    "Relaciones Pagadas",
+                    monthLabel,
+                    null,
+                    paid_rows.ToList());
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void preview_all_relations()
+        {
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Consolidado de Relaciones (Pendientes y Pagadas)",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    paid_rows.ToList());
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    "Consolidado de Relaciones",
+                    ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Consolidado", monthLabel),
+                    onExportExcel: () => ProVentaRelationsSummaryExcelExporter.export("Consolidado", monthLabel, pending_rows.ToList(), paid_rows.ToList()));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void direct_print_all_relations()
+        {
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Consolidado de Relaciones (Pendientes y Pagadas)",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    paid_rows.ToList());
+                ReportPrintService.DirectPrint(doc, null, "Consolidado de Relaciones", ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Consolidado", monthLabel));
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void pdf_all_relations()
+        {
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryPdfGenerator.generate(
+                    "Consolidado de Relaciones (Pendientes y Pagadas)",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    paid_rows.ToList());
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void excel_all_relations()
+        {
+            try
+            {
+                string monthLabel = selected_month?.label ?? "Todas las relaciones";
+                ProVentaRelationsSummaryExcelExporter.export(
+                    "Consolidado",
+                    monthLabel,
+                    pending_rows.ToList(),
+                    paid_rows.ToList());
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void print_report()

@@ -112,6 +112,22 @@ namespace NinOS.UI.Views
             popup_reports.IsOpen = !popup_reports.IsOpen;
         }
 
+        private async void on_preview_price_list_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            await System.Threading.Tasks.Task.Yield();
+            if (DataContext is InventoryViewModel view_model)
+                view_model.generate_price_list_preview_command.Execute(null);
+        }
+
+        private async void on_print_price_list_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            await System.Threading.Tasks.Task.Yield();
+            if (DataContext is InventoryViewModel view_model)
+                view_model.generate_price_list_print_command.Execute(null);
+        }
+
         private async void on_download_price_list_click(object sender, RoutedEventArgs e)
         {
             popup_reports.IsOpen = false;
@@ -134,6 +150,20 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void on_preview_current_inventory_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.print_current_inventory_preview_command.Execute(null);
+        }
+
+        private void on_print_current_inventory_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.print_current_inventory_print_command.Execute(null);
+        }
+
         private void on_download_current_inventory_click(object sender, RoutedEventArgs e)
         {
             popup_reports.IsOpen = false;
@@ -144,6 +174,27 @@ namespace NinOS.UI.Views
             }
         }
 
+        private void on_excel_current_inventory_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.export_current_inventory_excel_command.Execute(null);
+        }
+
+        private void on_preview_all_movements_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.print_all_movements_preview_command.Execute(null);
+        }
+
+        private void on_print_all_movements_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.print_all_movements_print_command.Execute(null);
+        }
+
         private void on_download_all_movements_click(object sender, RoutedEventArgs e)
         {
             popup_reports.IsOpen = false;
@@ -152,6 +203,13 @@ namespace NinOS.UI.Views
             {
                 view_model.print_all_movements_command.Execute(null);
             }
+        }
+
+        private void on_excel_all_movements_click(object sender, RoutedEventArgs e)
+        {
+            popup_reports.IsOpen = false;
+            if (DataContext is InventoryViewModel view_model)
+                view_model.export_all_movements_excel_command.Execute(null);
         }
 
         private async void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)

@@ -35,7 +35,6 @@ namespace NinOS.UI.Views
             PromoTypeText.Text = InventoryViewModel.promo_type_name(
                 InventoryViewModel.promo_type_from_code(promotion.promotion_code, componentes.Count, es_oferta_individual));
 
-            // Muestra de que esta compuesta la promocion.
             var lineas = componentes
                 .Select(i =>
                 {
@@ -58,25 +57,25 @@ namespace NinOS.UI.Views
             HistoryGrid.ItemsSource = _history;
         }
 
-        /// <summary>
-        /// Respaldo imprimible del historial del combo. Usa el mismo generador que el
-        /// historial de un producto, para que los dos PDF se lean igual.
-        /// </summary>
+        private InventoryHistoryPdfModel BuildModel()
+        {
+            return new InventoryHistoryPdfModel
+            {
+                ItemLabel = "PROMOCION",
+                ItemName = _promotion.name ?? string.Empty,
+                ItemCode = _promotion.promotion_code ?? string.Empty,
+                Category = _promotion.category ?? string.Empty,
+                UnitPriceUsd = _promotion.unit_price_usd,
+                MostrarSaldos = false,
+                Rows = _history.Select(ToPdfRow).ToList()
+            };
+        }
+
         private void PrintPdfButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var model = new InventoryHistoryPdfModel
-                {
-                    ItemLabel = "PROMOCION",
-                    ItemName = _promotion.name ?? string.Empty,
-                    ItemCode = _promotion.promotion_code ?? string.Empty,
-                    Category = _promotion.category ?? string.Empty,
-                    UnitPriceUsd = _promotion.unit_price_usd,
-                    MostrarSaldos = false,
-                    Rows = _history.Select(ToPdfRow).ToList()
-                };
-
+                var model = BuildModel();
                 InventoryHistoryPdfGenerator.generate(model);
             }
             catch (Exception ex)
@@ -86,6 +85,58 @@ namespace NinOS.UI.Views
                     "No se pudo generar el PDF del historial.\n\n" + ErrorText.Get(ex, "historial de inventario") +
                     "\n\nCierra la ventana e inténtalo otra vez.",
                     "No se pudo generar el PDF");
+            }
+        }
+
+        private void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                var doc = InventoryHistoryPdfGenerator.build_document(model);
+                string fileName = InventoryHistoryPdfGenerator.get_default_file_name(model);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    $"Historial Promo - {model.ItemCode}",
+                    fileName,
+                    () => InventoryHistoryExcelExporter.export(model));
+                preview.Owner = this;
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de promocion: error en vista previa de '{_promotion.promotion_code}'.", ex);
+                AppDialog.Show("No se pudo abrir la vista previa: " + ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void DirectPrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                var doc = InventoryHistoryPdfGenerator.build_document(model);
+                string fileName = InventoryHistoryPdfGenerator.get_default_file_name(model);
+                ReportPrintService.DirectPrint(doc, this, $"Historial Promo - {model.ItemCode}", fileName);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de promocion: error al imprimir '{_promotion.promotion_code}'.", ex);
+                AppDialog.Show("No se pudo imprimir: " + ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private void ExcelButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var model = BuildModel();
+                InventoryHistoryExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error($"Historial de promocion: error al exportar a Excel '{_promotion.promotion_code}'.", ex);
+                AppDialog.Show("No se pudo exportar a Excel: " + ErrorText.Get(ex), "Error");
             }
         }
 

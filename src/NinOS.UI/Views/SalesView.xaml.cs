@@ -111,11 +111,32 @@ namespace NinOS.UI.Views
                 vm.sync_report_scope_from_screen();
         }
 
+        private void on_preview_sales_report_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is SalesViewModel vm)
+                vm.sales_report_preview_command.Execute(null);
+        }
+
+        private void on_print_sales_report_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is SalesViewModel vm)
+                vm.sales_report_print_command.Execute(null);
+        }
+
         private void on_descargar_sales_report_click(object sender, RoutedEventArgs e)
         {
             popup_reporte.IsOpen = false;
             if (DataContext is SalesViewModel vm)
                 vm.sales_report_command.Execute(null);
+        }
+
+        private void on_excel_sales_report_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is SalesViewModel vm)
+                vm.sales_report_excel_command.Execute(null);
         }
 
         private async void ObsTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

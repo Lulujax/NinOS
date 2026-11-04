@@ -72,16 +72,16 @@ namespace NinOS.UI.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-        private async void PrintButton_Click(object sender, RoutedEventArgs e)
+        private async Task<commission_receipt_dto?> GetReceiptAsync()
         {
-            if (_commission == null) return;
+            if (_commission == null) return null;
 
             var payments = HistoryGrid.Items.Cast<commission_payment_dto>().ToList();
             if (payments.Count == 0)
             {
                 AppDialog.Show("No hay pagos de comision para imprimir.", "Imprimir",
                     MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                return null;
             }
 
             string reference = payments[0].reference_number;
@@ -90,10 +90,51 @@ namespace NinOS.UI.Views
             {
                 AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
                     MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                return null;
             }
 
-            CommissionPdfGenerator.generate(receipt);
+            return receipt;
+        }
+
+        private async void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            var receipt = await GetReceiptAsync();
+            if (receipt != null)
+                CommissionPdfGenerator.generate(receipt);
+        }
+
+        private async void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            var receipt = await GetReceiptAsync();
+            if (receipt == null) return;
+
+            var doc = CommissionPdfGenerator.build_document(receipt);
+            string fileName = CommissionPdfGenerator.get_default_file_name(receipt);
+            var preview = new PdfPreviewWindow(
+                doc,
+                $"Comprobante Comisión - {receipt.payment_reference}",
+                fileName,
+                () => CommissionExcelExporter.export(receipt));
+            preview.Owner = this;
+            preview.ShowDialog();
+        }
+
+        private async void DirectPrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            var receipt = await GetReceiptAsync();
+            if (receipt == null) return;
+
+            var doc = CommissionPdfGenerator.build_document(receipt);
+            string fileName = CommissionPdfGenerator.get_default_file_name(receipt);
+            ReportPrintService.DirectPrint(doc, this, $"Comprobante Comisión - {receipt.payment_reference}", fileName);
+        }
+
+        private async void ExcelButton_Click(object sender, RoutedEventArgs e)
+        {
+            var receipt = await GetReceiptAsync();
+            if (receipt == null) return;
+
+            CommissionExcelExporter.export(receipt);
         }
 
         private async void EditButton_Click(object sender, RoutedEventArgs e)

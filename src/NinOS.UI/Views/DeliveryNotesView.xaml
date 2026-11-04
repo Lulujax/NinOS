@@ -15,6 +15,9 @@
                 <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"><Run Text="Tipo de nota:"/><Run Text="*" Foreground="Red"/></TextBlock>
                 <ComboBox x:Name="NoteTypeComboBox" ItemsSource="{Binding note_type_options}" SelectedItem="{Binding selected_note_type, Mode=TwoWay}" DisplayMemberPath="name" Width="140"/>
 
+                <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="25,0,8,0" Text="Lista de precios:"/>
+                <ComboBox x:Name="PriceListComboBox" ItemsSource="{Binding note_price_lists}" SelectedItem="{Binding selected_note_price_list, Mode=TwoWay}" DisplayMemberPath="name" Width="140"/>
+
                 <StackPanel Orientation="Horizontal" Margin="15,0,0,0">
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
@@ -365,33 +368,6 @@
                                                 </Border>
                                             </Popup>
                                         </Grid>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            
-                            <DataGridTemplateColumn Header="Lista" Width="110">
-                                <DataGridTemplateColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader"><Setter Property="FontStyle" Value="Italic"/><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
-                                </DataGridTemplateColumn.HeaderStyle>
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <ComboBox
-                                            ItemsSource="{Binding available_price_lists}"
-                                            SelectedItem="{Binding selected_price_list_option, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                            DisplayMemberPath="name"
-                                            IsEnabled="{Binding is_price_list_selector_enabled}"
-                                            Height="22">
-                                            <ComboBox.Resources>
-                                                <Style TargetType="ComboBoxItem">
-                                                    <Setter Property="Padding" Value="4,2"/>
-                                                </Style>
-                                            </ComboBox.Resources>
-                                            <ComboBox.ItemContainerStyle>
-                                                <Style TargetType="ComboBoxItem">
-                                                    <Setter Property="Padding" Value="4,2"/>
-                                                </Style>
-                                            </ComboBox.ItemContainerStyle>
-                                        </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

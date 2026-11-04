@@ -53,25 +53,13 @@ namespace NinOS.UI.Common
             return ("#546E7A", "#ECEFF1"); // default grey
         }
 
-        public static void generate(IEnumerable<price_list_item> items, IEnumerable<price_list_column>? columns = null)
+        public static string get_default_file_name()
         {
-            if (items == null) return;
-
-            var save_dialog = new SaveFileDialog
-            {
-                Title = "Guardar lista de precios",
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = $"LISTA_DE_PRECIOS_{DateTime.UtcNow:yyyyMMdd}.pdf"
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
-            generate_to_file(items, save_dialog.FileName, columns);
+            return $"LISTA_DE_PRECIOS_{DateTime.UtcNow:yyyyMMdd}.pdf";
         }
 
-        public static void generate_to_file(IEnumerable<price_list_item> items, string output_path, IEnumerable<price_list_column>? columns = null)
+        public static IDocument build_document(IEnumerable<price_list_item> items, IEnumerable<price_list_column>? columns = null)
         {
-            if (items == null) return;
-
             QuestPDF.Settings.License = LicenseType.Community;
 
             List<price_list_column> colsList = columns?.Where(c => c != null).ToList() ?? new List<price_list_column>();
@@ -80,7 +68,7 @@ namespace NinOS.UI.Common
                 colsList.Add(new price_list_column { key = "ORIGINAL", name = "Principal", is_original = true });
             }
 
-            var ordered = items
+            var ordered = (items ?? Enumerable.Empty<price_list_item>())
                 .Where(i => !string.IsNullOrWhiteSpace(i.product_code))
                 .OrderBy(i => i.brand)
                 .ThenBy(i => i.product_code)
@@ -90,7 +78,7 @@ namespace NinOS.UI.Common
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            var doc = Document.Create(container =>
+            return Document.Create(container =>
             {
                 container.Page(page =>
                 {
@@ -212,8 +200,27 @@ namespace NinOS.UI.Common
                     });
                 });
             });
+        }
 
-            doc.GeneratePdf(output_path);
+        public static void generate(IEnumerable<price_list_item> items, IEnumerable<price_list_column>? columns = null)
+        {
+            if (items == null) return;
+
+            var save_dialog = new SaveFileDialog
+            {
+                Title = "Guardar lista de precios",
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = get_default_file_name()
+            };
+
+            if (save_dialog.ShowDialog() != true) return;
+            generate_to_file(items, save_dialog.FileName, columns);
+        }
+
+        public static void generate_to_file(IEnumerable<price_list_item> items, string output_path, IEnumerable<price_list_column>? columns = null)
+        {
+            if (items == null) return;
+            build_document(items, columns).GeneratePdf(output_path);
         }
 
         private static string Money(decimal value)

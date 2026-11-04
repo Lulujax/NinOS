@@ -43,6 +43,22 @@ namespace NinOS.UI.Views
             popup_reporte.IsOpen = !popup_reporte.IsOpen;
         }
 
+        private async void on_preview_reporte_click(object sender, RoutedEventArgs e)
+        {
+            var reporte_vm = get_reporte_vm();
+            if (reporte_vm == null) return;
+            popup_reporte.IsOpen = false;
+            await reporte_vm.preview_reporte_async();
+        }
+
+        private async void on_print_reporte_click(object sender, RoutedEventArgs e)
+        {
+            var reporte_vm = get_reporte_vm();
+            if (reporte_vm == null) return;
+            popup_reporte.IsOpen = false;
+            await reporte_vm.print_reporte_async();
+        }
+
         private async void on_descargar_reporte_click(object sender, RoutedEventArgs e)
         {
             var reporte_vm = get_reporte_vm();
@@ -51,6 +67,14 @@ namespace NinOS.UI.Views
             popup_reporte.IsOpen = false;
 
             await reporte_vm.descargar_reporte_async();
+        }
+
+        private async void on_excel_reporte_click(object sender, RoutedEventArgs e)
+        {
+            var reporte_vm = get_reporte_vm();
+            if (reporte_vm == null) return;
+            popup_reporte.IsOpen = false;
+            await reporte_vm.excel_reporte_async();
         }
 
         public CreditNotesView()
@@ -128,6 +152,24 @@ namespace NinOS.UI.Views
                     NotePdfGenerator.generate(pair.original, pair.credit);
                 else
                     NotePdfGenerator.generate(pair.credit);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private async void ExcelButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!((sender as Button)?.Tag is credit_note_dto selected) || vm == null) return;
+
+            try
+            {
+                var pair = await vm.get_printable_pair_async(selected);
+                if (pair.original != null)
+                    NoteExcelExporter.export(pair.original, pair.credit);
+                else
+                    NoteExcelExporter.export(pair.credit);
             }
             catch (Exception ex)
             {

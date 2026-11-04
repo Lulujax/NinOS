@@ -23,22 +23,17 @@ namespace NinOS.UI.Common
         private static readonly string ReturnColor = "#C62828";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        public static void generate(credit_note_report_dto report)
+        public static string get_default_file_name(credit_note_report_dto report)
+        {
+            string period = string.IsNullOrWhiteSpace(report.period_label) ? "GENERAL" : report.period_label.Trim();
+            return Slug($"REPORTE NOTAS DE CREDITO {period}").ToUpperInvariant() + ".pdf";
+        }
+
+        public static IDocument build_document(credit_note_report_dto report)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
             string period = string.IsNullOrWhiteSpace(report.period_label) ? "GENERAL" : report.period_label.Trim();
-            string file_name = Slug($"REPORTE NOTAS DE CREDITO {period}").ToUpperInvariant();
-
-            var save_dialog = new SaveFileDialog
-            {
-                Title = file_name,
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = file_name
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
-
             string period_cap = Capitalize(period);
             string title = BuildTitle(report.category_label);
 
@@ -53,7 +48,7 @@ namespace NinOS.UI.Common
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            var document = Document.Create(container =>
+            return Document.Create(container =>
             {
                 if (grouped.Count == 0)
                 {
@@ -66,8 +61,22 @@ namespace NinOS.UI.Common
                     container.Page(page => BuildGroupPage(page, title, period_cap, g.Key, g.ToList(), isObsequio));
                 }
             });
+        }
 
-            document.GeneratePdf(save_dialog.FileName);
+        public static void generate(credit_note_report_dto report)
+        {
+            string file_name = get_default_file_name(report);
+
+            var save_dialog = new SaveFileDialog
+            {
+                Title = file_name,
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = file_name
+            };
+
+            if (save_dialog.ShowDialog() != true) return;
+
+            build_document(report).GeneratePdf(save_dialog.FileName);
         }
 
         private static string BuildTitle(string? category)

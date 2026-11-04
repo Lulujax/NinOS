@@ -1,531 +1,2561 @@
 ﻿using System;
+
+
+
 using System.Collections.Generic;
+
+
+
 using System.Collections.ObjectModel;
+
+
+
 using System.ComponentModel;
+
+
+
 using System.Globalization;
+
+
+
 using System.Linq;
+
+
+
 using System.Runtime.CompilerServices;
+
+
+
 using System.Threading.Tasks;
+
+
+
 using System.Windows.Input;
+
+
+
 using NinOS.Domain;
+
+
+
 using NinOS.Domain.ViewModels;
+
+
+
 using NinOS.Infrastructure.Common;
+
+
+
 using NinOS.Infrastructure.Services.Interfaces;
+
+
+
 using NinOS.UI.Common;
+using NinOS.UI.Views;
+
+
+
+
+
+
 
 namespace NinOS.UI.Common.ViewModels
+
+
+
 {
+
+
+
     public class commission_row_dto : INotifyPropertyChanged
+
+
+
     {
+
+
+
         public int id_commission { get; set; }
+
+
+
         public int id_seller { get; set; }
+
+
+
         public string seller_name { get; set; } = string.Empty;
+
+
+
         public int id_delivery_note { get; set; }
+
+
+
         public string note_number { get; set; } = string.Empty;
+
+
+
         public string customer_name { get; set; } = string.Empty;
+
+
+
         public DateTime creation_date { get; set; }
+
+
+
         public string month_key { get; set; } = string.Empty;
+
+
+
         public decimal commission_percentage { get; set; }
+
+
+
         public string commission_percentage_text => $"{(commission_percentage > 0 ? commission_percentage * 100 : 10):0.##}%";
+
+
+
         public decimal sale_amount_usd { get; set; }
+
+
+
         public decimal amount_usd { get; set; }
+
+
+
         public decimal paid_amount_usd { get; set; }
+
+
+
         public DateTime dispatch_date { get; set; }                    // FECHA DE LA NOTA DE ENTREGA
+
+
+
         public decimal invoiced_amount { get; set; }                   // MONTO FACTURADO
+
+
+
+        public decimal paid_amount { get; set; }                       // MONTO PAGADO FINAL
+
+
+
+        public decimal? discount_percentage { get; set; }              // DCTO CXC %
+
+
+
         public decimal early_payment_discount { get; set; }            // DESCUENTO PRONTO PAGO QUE ES EL PRECIO CON LOS DESCUENTOS APLICADOS AUN NO TRABAJREMOS ESTO PERO MANTEN LA IDEA AQUI DEBE SALIR CUANTO ES EL MONTO DEL DESCUENTO EN USD
+
+
+
         public decimal volume_discount { get; set; }                   // DESCUENTO POR VOLUMEN PARA LO DE ARRIBA
+
+
+
         public decimal commission_10 { get; set; }                     // 10% COMISIÓN
+
+
+
         public decimal updated_balance { get; set; }                   // SALDO ACTUALIZADO POR COBRAR
+
+
+
         public DateTime? commission_cancelled_date { get; set; }       // FECHA COMISIÓN PAGADA
+
+
+
         public decimal updated_receivable { get; set; }                // POR COBRAR ACTUALIZADO
+
+
+
         public decimal amount_bs { get; set; }
+
+
+
         public decimal exchange_rate { get; set; }
+
+
+
         public string reference_number { get; set; } = string.Empty;
+
+
+
         public DateTime? payout_date { get; set; }
+
+
+
+        public DateTime? note_last_payment_date { get; set; }          // FECHA DE ULTIMO PAGO DEL CLIENTE
+
+
+
+        public DateTime? commission_paid_date { get; set; }            // FECHA EN QUE LA COMISION FUE PAGADA
+
+
+
+        public string note_last_payment_date_text => note_last_payment_date?.ToString("dd/MM/yyyy") ?? string.Empty;
+
+
+
+        public string commission_paid_date_text => commission_paid_date?.ToString("dd/MM/yyyy") ?? string.Empty;
+
+
+
+        public string early_payment_text => (discount_percentage != null && discount_percentage.Value > 0)
+
+
+
+            ? $"SI ({discount_percentage.Value:0.##}%)"
+
+
+
+            : "NO";
+
+
+
         public bool is_paid { get; set; }
+
+
+
         public string status
+
+
+
         {
+
+
+
             get
+
+
+
             {
+
+
+
                 if (remaining_amount_usd <= 0.005m) return "Pagada";
+
+
+
                 return paid_amount_usd > 0 ? "Parcial" : "Pendiente";
+
+
+
             }
+
+
+
         }
+
+
+
         public decimal remaining_amount_usd => amount_usd - paid_amount_usd;
+
+
+
+
+
+
 
         private bool _is_selected;
 
+
+
+
+
+
+
         public bool is_selected
+
+
+
         {
+
+
+
             get => _is_selected;
+
+
+
             set { _is_selected = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(is_selected))); }
+
+
+
         }
 
+
+
+
+
+
+
         public event PropertyChangedEventHandler? PropertyChanged;
+
+
+
     }
 
+
+
+
+
+
+
     public class CommissionsViewModel : ViewModelBase
+
+
+
     {
+
+
+
         private readonly ICommissionService _commission_service;
+
+
+
         private readonly ISellerService? _seller_service;
 
+
+
+
+
+
+
         /// <summary>
+
+
+
         /// Vendedoras que ya se cargaron, para que la ventana de liquidacion de comisiones
+
+
+
         /// pueda armar su combo de "Vendedora" sin volver a pegarle a la base.
+
+
+
         /// </summary>
+
+
+
         public List<seller> sellers { get; private set; } = new();
 
+
+
+
+
+
+
         private SellerTabItem<commission_row_dto>? _selected_tab;
+
+
+
         private string _search_query = string.Empty;
+
+
+
         private string _selected_month = string.Empty;
+
+
+
         private string _selected_filter = "Pendientes";
+
+
+
         private decimal _total_sold_usd;
+
+
+
         private decimal _total_commission_usd;
+
+
+
         private decimal _total_pending_usd;
+
+
+
         private bool _is_loading;
+
+
+
+
+
+
 
         private List<commission_row_dto> _all_rows_source = new();
 
+
+
+
+
+
+
         public ObservableCollection<SellerTabItem<commission_row_dto>> seller_tabs { get; } = new();
 
+
+
+
+
+
+
         public SellerTabItem<commission_row_dto>? selected_tab
+
+
+
         {
+
+
+
             get => _selected_tab;
+
+
+
             set
+
+
+
             {
+
+
+
                 if (_selected_tab == value) return;
+
+
+
                 _selected_tab = value;
+
+
+
                 on_property_changed();
+
+
+
                 on_property_changed(nameof(selected_tab_index));
+
+
+
                 recalc_totals();
+
+
+
             }
+
+
+
         }
 
-        public ObservableCollection<string> pending_months { get; }
+
+
+
+
+
+
+                private int _selected_year = DateTime.Now.Year;
+
+        public ObservableCollection<int> available_years { get; } = new ObservableCollection<int>();
+
+        public ObservableCollection<string> available_months { get; } = new ObservableCollection<string>();
+
+        public ObservableCollection<string> pending_months => available_months;
+
+
+
+        public int selected_year
+
+        {
+
+            get => _selected_year;
+
+            set
+
+            {
+
+                if (_selected_year == value) return;
+
+                _selected_year = value;
+
+                on_property_changed();
+
+                update_available_months();
+
+                if (!_is_loading) apply_filters();
+
+            }
+
+        }
+
+
+
         public ObservableCollection<string> filter_options { get; }
+
+
+
         public ObservableCollection<commission_row_dto> all_rows { get; }
+
+
+
         public ObservableCollection<commission_row_dto> sandra_rows { get; }
+
+
+
         public ObservableCollection<commission_row_dto> anais_rows { get; }
+
+
+
         public ObservableCollection<commission_row_dto> alejandra_rows { get; }
+
+
+
         public ObservableCollection<commission_row_dto> juan_luis_rows { get; }
 
+
+
+
+
+
+
         public string selected_month
+
+
+
         {
+
+
+
             get => _selected_month;
+
+
+
             set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
+
+
+
         }
+
+
+
+
+
+
 
         public int selected_tab_index
+
+
+
         {
+
+
+
             get
+
+
+
             {
+
+
+
                 if (_selected_tab == null) return 0;
+
+
+
                 int idx = seller_tabs.IndexOf(_selected_tab);
+
+
+
                 return idx >= 0 ? idx : 0;
+
+
+
             }
+
+
+
             set
+
+
+
             {
+
+
+
                 if (value >= 0 && value < seller_tabs.Count)
+
+
+
                 {
+
+
+
                     selected_tab = seller_tabs[value];
+
+
+
                 }
+
+
+
             }
+
+
+
         }
+
+
+
+
+
+
 
         public string search_query
+
+
+
         {
+
+
+
             get => _search_query;
+
+
+
             set { _search_query = value; on_property_changed(); apply_filters(); }
+
+
+
         }
+
+
+
+
+
+
 
         public string selected_filter
+
+
+
         {
+
+
+
             get => _selected_filter;
+
+
+
             set { if (_selected_filter == value) return; _selected_filter = value; on_property_changed(); apply_filters(); }
+
+
+
         }
+
+
+
+
+
+
 
         public decimal total_sold_usd
+
+
+
         {
+
+
+
             get => _total_sold_usd;
+
+
+
             private set { _total_sold_usd = value; on_property_changed(); }
+
+
+
         }
+
+
+
+
+
+
 
         public decimal total_commission_usd
+
+
+
         {
+
+
+
             get => _total_commission_usd;
+
+
+
             private set { _total_commission_usd = value; on_property_changed(); }
+
+
+
         }
+
+
+
+
+
+
 
         public decimal total_pending_usd
+
+
+
         {
+
+
+
             get => _total_pending_usd;
+
+
+
             private set { _total_pending_usd = value; on_property_changed(); }
+
+
+
         }
+
+
+
+
+
+
 
         public ICommand add_commission_payment_command { get; }
-        public ICommand print_commission_pdf_command { get; }
+
+
+
+                public ICommand print_commission_pdf_command { get; }
+        public ICommand preview_commission_pdf_command { get; }
+        public ICommand direct_print_commission_pdf_command { get; }
+        public ICommand export_commission_excel_command { get; }
+        public ICommand print_report_command { get; }
+        public ICommand preview_report_command { get; }
+        public ICommand direct_print_report_command { get; }
+        public ICommand export_report_excel_command { get; }
+
+
+
         public Action<List<commission_row_dto>>? on_request_add_commission_payment_window { get; set; }
+
+
+
         public Action<commission_row_dto>? on_request_commission_history_window { get; set; }
 
+
+
+
+
+
+
         public CommissionsViewModel(ICommissionService commission_service, ISellerService? seller_service = null)
+
+
+
         {
+
+
+
             _commission_service = commission_service ?? throw new ArgumentNullException(nameof(commission_service));
+
+
+
             _seller_service = seller_service;
 
-            pending_months = new ObservableCollection<string>();
+
+
+
+
+
+
+            // available_months already initialized
+
+
+
             filter_options = new ObservableCollection<string>();
+
+
+
             all_rows = new ObservableCollection<commission_row_dto>();
+
+
+
             sandra_rows = new ObservableCollection<commission_row_dto>();
+
+
+
             anais_rows = new ObservableCollection<commission_row_dto>();
+
+
+
             alejandra_rows = new ObservableCollection<commission_row_dto>();
+
+
+
             juan_luis_rows = new ObservableCollection<commission_row_dto>();
 
+
+
+
+
+
+
             filter_options.Add("Pendientes");
+
+
+
             filter_options.Add("Pagadas");
+
+
+
             filter_options.Add("Todas");
 
+
+
+
+
+
+
             add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
+
+
+
             print_commission_pdf_command = new RelayCommand(execute_print_commission_pdf);
+            preview_commission_pdf_command = new RelayCommand(execute_preview_commission_pdf);
+            direct_print_commission_pdf_command = new RelayCommand(execute_direct_print_commission_pdf);
+            export_commission_excel_command = new RelayCommand(execute_export_commission_excel);
+
+            print_report_command = new RelayCommand(execute_print_report);
+            preview_report_command = new RelayCommand(execute_preview_report);
+            direct_print_report_command = new RelayCommand(execute_direct_print_report);
+            export_report_excel_command = new RelayCommand(execute_export_report_excel);
+
+
+
+
+
+
 
             AppDataEvents.CatalogsChanged += () =>
+
+
+
             {
+
+
+
                 System.Windows.Application.Current?.Dispatcher?.InvokeAsync(refresh_data);
+
+
+
             };
 
+
+
+
+
+
+
             load_all_async();
+
+
+
         }
+
+
+
+
+
+
 
         public void refresh_data() => load_all_async();
 
+
+
+
+
+
+
         private void sync_seller_tabs(IEnumerable<seller> sellers)
+
+
+
         {
-            var activeSellers = sellers.Where(s => s.is_active).OrderBy(s => s.seller_code).ToList();
 
-            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
-            {
-                seller_tabs.Insert(0, new SellerTabItem<commission_row_dto>(null, "Todos"));
-            }
-            else
-            {
-                seller_tabs[0].Header = "Todos";
-            }
 
-            var currentSellerTabs = seller_tabs.Skip(1).ToList();
-            foreach (var tab in currentSellerTabs)
-            {
-                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
-                {
-                    seller_tabs.Remove(tab);
-                }
-            }
 
-            int targetIndex = 1;
-            foreach (var s in activeSellers)
-            {
-                var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
-                if (existing == null)
-                {
-                    var newTab = new SellerTabItem<commission_row_dto>(s.id_seller, s.full_name ?? string.Empty);
-                    seller_tabs.Insert(targetIndex, newTab);
-                }
-                else
-                {
-                    existing.Header = s.full_name ?? string.Empty;
-                    int currentIndex = seller_tabs.IndexOf(existing);
-                    if (currentIndex != targetIndex)
-                    {
-                        seller_tabs.Move(currentIndex, targetIndex);
-                    }
-                }
-                targetIndex++;
-            }
+            var activeSellers = sellers
 
-            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
-            {
-                selected_tab = seller_tabs[0];
-            }
-        }
 
-        private async void load_all_async()
-        {
-            try
-            {
-                var current_selection = _selected_month;
-                _is_loading = true;
 
-                var dbSellers = _seller_service != null
-                    ? await _seller_service.GetAllActiveAsync()
-                    : await _commission_service.get_sellers_with_commissions_async();
+                .Where(s => s.is_active && s.can_receive_commissions && !s.is_pro_venta_only)
 
-                sellers = dbSellers.OrderBy(s => s.seller_code).ToList();
-                sync_seller_tabs(dbSellers);
 
-                var raw = await _commission_service.get_all_commissions_async();
-                var all_rows = raw.Select(map_to_row).ToList();
 
-var unique_months = all_rows
-                    .Where(n => n.creation_date.Year >= 2000)
-                    .Select(n => new DateTime(
-                        AppTimeZone.to_local(n.creation_date).Year,
-                        AppTimeZone.to_local(n.creation_date).Month, 1))
-                    .Distinct()
-                    .OrderBy(d => d)
-                    .Select(d => d.ToString("MMMM yyyy", new CultureInfo("es-VE")))
-                    .ToList();
+                .OrderBy(s => s.seller_code)
 
-                var new_months = new List<string> { "" };
-                new_months.AddRange(unique_months);
 
-                // Si el usuario ya tenia un mes seleccionado y sigue existiendo, conservarlo.
-                // Si tenia un mes que ya no existe, buscar el mes actual o el mas reciente.
-                // Si nunca habia seleccionado nada (primera carga, string.Empty), dejarlo vacio.
-                string desired = current_selection ?? string.Empty;
-                if (!string.IsNullOrEmpty(desired) && !new_months.Contains(desired))
-                {
-                    var current_month_str = DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-                    desired = new_months.Contains(current_month_str)
-                        ? current_month_str
-                        : (unique_months.Count > 0 ? unique_months[unique_months.Count - 1] : string.Empty);
-                }
 
-                // Reconstruir la lista de meses sin vaciarla: el item seleccionado nunca se pierde y el orden cronologico estricto se preserva.
-                for (int i = pending_months.Count - 1; i >= 0; i--)
-                {
-                    if (!new_months.Contains(pending_months[i]))
-                        pending_months.RemoveAt(i);
-                }
-                for (int i = 0; i < new_months.Count; i++)
-                {
-                    var item = new_months[i];
-                    int currentIndex = pending_months.IndexOf(item);
-                    if (currentIndex < 0)
-                        pending_months.Insert(i, item);
-                    else if (currentIndex != i)
-                        pending_months.Move(currentIndex, i);
-                }
-
-                _all_rows_source = all_rows;
-
-                if (_selected_month != desired)
-                {
-                    _selected_month = desired;
-                    on_property_changed(nameof(selected_month));
-                }
-
-                _is_loading = false;
-                apply_filters();
-            }
-            catch (Exception ex)
-            {
-                _is_loading = false;
-                AppDialog.Show(ErrorText.Get(ex), "Error");
-            }
-        }
-
-        private void apply_filters()
-        {
-            var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_rows_source, _selected_month, query);
-
-            if (_selected_filter == "Pendientes")
-                filtered = filtered.Where(n => n.remaining_amount_usd > 0.005m).ToList();
-            else if (_selected_filter == "Pagadas")
-                filtered = filtered.Where(n => n.remaining_amount_usd <= 0.005m).ToList();
-
-            filtered = filtered
-                .OrderBy(n => n.creation_date)
-                .ThenBy(n => n.id_delivery_note)
                 .ToList();
 
-            update_collection(all_rows, filtered);
-            update_collection(sandra_rows, filtered.Where(n => n.seller_name == "Sandra").ToList());
-            update_collection(anais_rows, filtered.Where(n => n.seller_name == "Anais").ToList());
-            update_collection(alejandra_rows, filtered.Where(n => n.seller_name == "Alejandra").ToList());
-            update_collection(juan_luis_rows, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
-            foreach (var tab in seller_tabs)
+
+
+
+
+
+            if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
+
+
+
             {
-                var tabItems = tab.IdSeller == null
-                    ? filtered
-                    : filtered.Where(n => (tab.IdSeller.HasValue && n.id_seller == tab.IdSeller.Value) || string.Equals(n.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-                update_collection(tab.Items, tabItems);
+
+
+
+                seller_tabs.Insert(0, new SellerTabItem<commission_row_dto>(null, "Todos"));
+
+
+
             }
 
-            recalc_totals();
+
+
+            else
+
+
+
+            {
+
+
+
+                seller_tabs[0].Header = "Todos";
+
+
+
+            }
+
+
+
+
+
+
+
+            var currentSellerTabs = seller_tabs.Skip(1).ToList();
+
+
+
+            foreach (var tab in currentSellerTabs)
+
+
+
+            {
+
+
+
+                if (!activeSellers.Any(s => s.id_seller == tab.IdSeller))
+
+
+
+                {
+
+
+
+                    seller_tabs.Remove(tab);
+
+
+
+                }
+
+
+
+            }
+
+
+
+
+
+
+
+            int targetIndex = 1;
+
+
+
+            foreach (var s in activeSellers)
+
+
+
+            {
+
+
+
+                var existing = seller_tabs.FirstOrDefault(t => t.IdSeller == s.id_seller);
+
+
+
+                if (existing == null)
+
+
+
+                {
+
+
+
+                    var newTab = new SellerTabItem<commission_row_dto>(s.id_seller, s.full_name ?? string.Empty);
+
+
+
+                    seller_tabs.Insert(targetIndex, newTab);
+
+
+
+                }
+
+
+
+                else
+
+
+
+                {
+
+
+
+                    existing.Header = s.full_name ?? string.Empty;
+
+
+
+                    int currentIndex = seller_tabs.IndexOf(existing);
+
+
+
+                    if (currentIndex != targetIndex)
+
+
+
+                    {
+
+
+
+                        seller_tabs.Move(currentIndex, targetIndex);
+
+
+
+                    }
+
+
+
+                }
+
+
+
+                targetIndex++;
+
+
+
+            }
+
+
+
+
+
+
+
+            if (selected_tab == null || !seller_tabs.Contains(selected_tab))
+
+
+
+            {
+
+
+
+                selected_tab = seller_tabs[0];
+
+
+
+            }
+
+
+
         }
 
-        private List<commission_row_dto> filter_by_month_and_search(List<commission_row_dto> source, string selected_month, string query)
+
+
+
+
+
+
+        private async void load_all_async()
+
+
+
         {
+
+
+
+            try
+
+
+
+            {
+
+
+
+                var current_selection = _selected_month;
+
+
+
+                _is_loading = true;
+
+
+
+
+
+
+
+                var dbSellers = _seller_service != null
+
+
+
+                    ? await _seller_service.GetAllActiveAsync()
+
+
+
+                    : await _commission_service.get_sellers_with_commissions_async();
+
+
+
+
+
+
+
+                var eligibleSellers = dbSellers
+
+
+
+                    .Where(s => s.is_active && s.can_receive_commissions && !s.is_pro_venta_only)
+
+
+
+                    .OrderBy(s => s.seller_code)
+
+
+
+                    .ToList();
+
+
+
+
+
+
+
+                sellers = eligibleSellers;
+
+
+
+                sync_seller_tabs(eligibleSellers);
+
+
+
+
+
+
+
+                var raw = await _commission_service.get_all_commissions_async();
+
+
+
+                var eligibleSellerIds = eligibleSellers.Select(s => s.id_seller).ToHashSet();
+
+
+
+                var all_rows = raw
+
+
+
+                    .Where(c => eligibleSellerIds.Contains(c.id_seller))
+
+
+
+                    .Select(map_to_row)
+
+
+
+                    .ToList();
+
+
+
+
+
+
+
+_all_rows_source = all_rows;
+
+
+
+                var detected_years = all_rows
+
+                    .Where(n => n.creation_date.Year >= 2000)
+
+                    .Select(n => AppTimeZone.to_local(n.creation_date).Year)
+
+                    .Distinct()
+
+                    .OrderByDescending(y => y)
+
+                    .ToList();
+
+
+
+                if (detected_years.Count == 0)
+
+                    detected_years.Add(DateTime.Now.Year);
+
+
+
+                available_years.Clear();
+
+                foreach (var y in detected_years) available_years.Add(y);
+
+
+
+                if (!available_years.Contains(_selected_year))
+
+                {
+
+                    _selected_year = available_years[0];
+
+                    on_property_changed(nameof(selected_year));
+
+                }
+
+
+
+                update_available_months();
+
+
+
+
+
+
+
+                _is_loading = false;
+
+
+
+                apply_filters();
+
+
+
+            }
+
+
+
+            catch (Exception ex)
+
+
+
+            {
+
+
+
+                _is_loading = false;
+
+
+
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+
+
+
+            }
+
+
+
+        }
+
+
+
+
+
+
+
+        private void apply_filters()
+
+
+
+        {
+
+
+
+            var query = _search_query?.Trim().ToLower() ?? string.Empty;
+
+
+
+            var filtered = filter_by_month_and_search(_all_rows_source, _selected_month, query);
+
+
+
+
+
+
+
+            if (_selected_filter == "Pendientes")
+
+
+
+                filtered = filtered.Where(n => n.remaining_amount_usd > 0.005m).ToList();
+
+
+
+            else if (_selected_filter == "Pagadas")
+
+
+
+                filtered = filtered.Where(n => n.remaining_amount_usd <= 0.005m).ToList();
+
+
+
+
+
+
+
+            filtered = filtered
+
+
+
+                .OrderBy(n => n.creation_date)
+
+
+
+                .ThenBy(n => n.id_delivery_note)
+
+
+
+                .ToList();
+
+
+
+
+
+
+
+            update_collection(all_rows, filtered);
+
+
+
+            update_collection(sandra_rows, filtered.Where(n => n.seller_name == "Sandra").ToList());
+
+
+
+            update_collection(anais_rows, filtered.Where(n => n.seller_name == "Anais").ToList());
+
+
+
+            update_collection(alejandra_rows, filtered.Where(n => n.seller_name == "Alejandra").ToList());
+
+
+
+            update_collection(juan_luis_rows, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
+
+
+
+
+
+
+
+            foreach (var tab in seller_tabs)
+
+
+
+            {
+
+
+
+                var tabItems = tab.IdSeller == null
+
+
+
+                    ? filtered
+
+
+
+                    : filtered.Where(n => (tab.IdSeller.HasValue && n.id_seller == tab.IdSeller.Value) || string.Equals(n.seller_name?.Trim(), tab.Header?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+
+
+                update_collection(tab.Items, tabItems);
+
+
+
+            }
+
+
+
+
+
+
+
+            recalc_totals();
+
+
+
+        }
+
+
+
+
+
+
+
+        private void update_available_months()
+
+        {
+
+            var months_in_year = _all_rows_source
+
+                .Where(n => n.creation_date.Year >= 2000 && AppTimeZone.to_local(n.creation_date).Year == _selected_year)
+
+                .Select(n => AppTimeZone.to_local(n.creation_date).Month)
+
+                .Distinct()
+
+                .OrderBy(m => m)
+
+                .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
+
+                .ToList();
+
+
+
+            var new_months = new List<string> { "Todos", "" };
+
+            new_months.AddRange(months_in_year);
+
+
+
+            string desired = _selected_month;
+
+            if (!new_months.Contains(desired))
+
+            {
+
+                desired = "";
+
+            }
+
+
+
+            available_months.Clear();
+
+            foreach (var m in new_months) available_months.Add(m);
+
+
+
+            if (_selected_month != desired)
+
+            {
+
+                _selected_month = desired;
+
+                on_property_changed(nameof(selected_month));
+
+            }
+
+        }
+
+
+
+        private List<commission_row_dto> filter_by_month_and_search(List<commission_row_dto> source, string selected_month, string query)
+
+        {
+
             if (string.IsNullOrEmpty(selected_month))
+
                 return new List<commission_row_dto>();
+
+
 
             var result = source.AsEnumerable();
 
-            if (!string.IsNullOrEmpty(selected_month))
-                result = result.Where(n => n.month_key == selected_month);
+
+
+            if (selected_month == "Todos")
+
+            {
+
+                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year);
+
+            }
+
+            else
+
+            {
+
+                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year
+
+                                        && string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), selected_month, StringComparison.OrdinalIgnoreCase));
+
+            }
+
+
+
+
+
+
 
             if (!string.IsNullOrEmpty(query))
+
+
+
             {
+
+
+
                 result = result.Where(n =>
+
+
+
                     SearchText.combine(
+
+
+
                         n.note_number,
+
+
+
                         n.customer_name,
+
+
+
                         n.seller_name,
+
+
+
                         n.status,
+
+
+
                         n.reference_number,
+
+
+
                         n.month_key,
+
+
+
                         SearchText.date(n.creation_date),
+
+
+
                         SearchText.date(n.dispatch_date),
+
+
+
                         SearchText.date(n.commission_cancelled_date),
+
+
+
                         SearchText.date(n.payout_date),
-                        SearchText.money(n.sale_amount_usd),
-                        SearchText.money(n.amount_usd),
-                        SearchText.money(n.paid_amount_usd),
+
+
+
+                        n.early_payment_text,
+
+
+
+                        n.note_last_payment_date_text,
+
+
+
+                        n.commission_paid_date_text,
+
+
+
                         SearchText.money(n.invoiced_amount),
+
+
+
+                        SearchText.money(n.paid_amount),
+
+
+
+                        SearchText.money(n.sale_amount_usd),
+
+
+
+                        SearchText.money(n.amount_usd),
+
+
+
+                        SearchText.money(n.paid_amount_usd),
+
+
+
+                        SearchText.money(n.invoiced_amount),
+
+
+
                         SearchText.money(n.early_payment_discount),
+
+
+
                         SearchText.money(n.volume_discount),
+
+
+
                         SearchText.money(n.commission_10),
+
+
+
                         SearchText.money(n.updated_balance),
+
+
+
                         SearchText.money(n.updated_receivable),
+
+
+
                         SearchText.money(n.amount_bs),
+
+
+
                         SearchText.money(n.exchange_rate),
+
+
+
                         SearchText.pct(n.commission_percentage)
+
+
+
                     ).Contains(query));
+
+
+
             }
+
+
+
+
+
+
 
             return result.ToList();
+
+
+
         }
+
+
+
+
+
+
 
         private void recalc_totals()
+
+
+
         {
+
+
+
             var list = (selected_tab != null ? selected_tab.Items.ToList() : all_rows.ToList());
 
-            total_sold_usd = list.Sum(n => n.sale_amount_usd);
+
+
+
+
+
+
+            total_sold_usd = list.Sum(n => n.invoiced_amount > 0 ? n.invoiced_amount : n.sale_amount_usd);
+
+
+
             total_commission_usd = list.Sum(n => n.amount_usd);
+
+
+
             total_pending_usd = list.Where(n => n.remaining_amount_usd > 0.005m).Sum(n => n.remaining_amount_usd);
+
+
+
         }
+
+
+
+
+
+
 
         private commission_row_dto map_to_row(commission_dto c)
+
+
+
         {
+
+
+
             return new commission_row_dto
+
+
+
             {
+
+
+
                 id_commission = c.id_commission,
+
+
+
                 id_seller = c.id_seller,
+
+
+
                 seller_name = c.seller_name,
+
+
+
                 id_delivery_note = c.id_delivery_note,
+
+
+
                 note_number = c.note_number,
+
+
+
                 customer_name = c.customer_name,
+
+
+
                 creation_date = c.creation_date,
+
+
+
                 month_key = new DateTime(
+
+
+
                         AppTimeZone.to_local(c.creation_date).Year,
+
+
+
                         AppTimeZone.to_local(c.creation_date).Month, 1)
+
+
+
                     .ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-VE")),
+
+
+
                 commission_percentage = c.commission_percentage,
-                sale_amount_usd = c.commission_percentage > 0 ? Math.Round(c.amount_usd / c.commission_percentage, 2) : c.amount_usd,
+
+
+
+                sale_amount_usd = c.invoiced_amount > 0 ? c.invoiced_amount : (c.commission_percentage > 0 ? Math.Round(c.amount_usd / c.commission_percentage, 2) : c.amount_usd),
+
+
+
                 amount_usd = c.amount_usd,
+
+
+
                 paid_amount_usd = c.paid_amount_usd,
+
+
+
+                invoiced_amount = c.invoiced_amount,
+
+
+
+                paid_amount = c.paid_amount,
+
+
+
+                discount_percentage = c.discount_percentage,
+
+
+
+                note_last_payment_date = c.note_last_payment_date,
+
+
+
+                commission_paid_date = c.commission_paid_date,
+
+
+
                 amount_bs = c.amount_bs,
+
+
+
                 exchange_rate = c.exchange_rate,
+
+
+
                 reference_number = c.reference_number,
+
+
+
                 payout_date = c.note_last_payment_date ?? c.payout_date,
+
+
+
                 is_paid = c.is_paid
+
+
+
             };
+
+
+
         }
+
+
+
+
+
+
 
         private void update_collection(ObservableCollection<commission_row_dto> collection, List<commission_row_dto> items)
+
+
+
         {
+
+
+
             collection.Clear();
+
+
+
             foreach (var item in items) collection.Add(item);
+
+
+
         }
+
+
+
+
+
+
 
         private List<commission_row_dto> get_available_pending_rows()
+
+
+
         {
+
+
+
             // Mostrar todas las comisiones pendientes independientemente del mes para permitir pagar comisiones de otros meses
+
+
+
             return _all_rows_source
+
+
+
                 .Where(r => r.remaining_amount_usd > 0.005m)
+
+
+
                 .ToList();
+
+
+
         }
+
+
+
+
+
+
 
         private void execute_add_commission_payment(object? parameter)
+
+
+
         {
+
+
+
             var available = get_available_pending_rows();
+
+
+
             if (available.Count == 0)
+
+
+
             {
+
+
+
                 AppDialog.Show("No hay comisiones pendientes para pagar.", "Pago de comision",
+
+
+
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+
+
                 return;
+
+
+
             }
+
+
+
+
+
+
 
             on_request_add_commission_payment_window?.Invoke(available);
+
+
+
         }
+
+
+
+
+
+
 
         public async Task<IEnumerable<commission_dto>> get_all_commissions_async()
+
+
+
         {
+
+
+
             return await _commission_service.get_all_commissions_async();
+
+
+
         }
+
+
+
+
+
+
 
         private async void execute_print_commission_pdf(object? parameter)
+
+
+
         {
+
+
+
             if (parameter is not commission_row_dto row) return;
 
+
+
+
+
+
+
             try
+
+
+
             {
+
+
+
                 var payments = (await _commission_service.get_commission_payments_async(row.id_commission)).ToList();
+
+
+
                 if (payments.Count == 0)
+
+
+
                 {
+
+
+
                     AppDialog.Show("No hay pagos de comision para imprimir.", "Imprimir",
+
+
+
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+
+
                     return;
+
+
+
                 }
+
+
+
+
+
+
 
                 string reference = payments[0].reference_number;
-                // Un mismo pago (referencia) puede cubrir varias notas; el comprobante las incluye todas.
-                var receipt = await _commission_service.get_commission_receipt_async(new[] { row.id_commission }, reference);
-                if (receipt == null || receipt.rows.Count == 0)
+
+
+
+                bool only_this_note = false;
+
+
+
+
+
+
+
+                if (!string.IsNullOrWhiteSpace(reference))
+
+
+
                 {
-                    AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return;
+
+
+
+                    // Consultar si este pago en lote contiene mas de una nota
+
+
+
+                    var batch_receipt = await _commission_service.get_commission_receipt_async(new[] { row.id_commission }, reference, only_specified_commissions: false);
+
+
+
+                    if (batch_receipt != null && batch_receipt.rows.Count > 1)
+
+
+
+                    {
+
+
+
+                        var dialog_result = AppDialog.Show(
+
+
+
+                            $"Esta comision fue liquidada en un lote de {batch_receipt.rows.Count} notas (Ref: {reference}).\n\n¿Desea imprimir el comprobante unicamente de esta nota o del lote completo?",
+
+
+
+                            "Tipo de comprobante",
+
+
+
+                            System.Windows.MessageBoxButton.YesNoCancel,
+
+
+
+                            System.Windows.MessageBoxImage.Question,
+
+
+
+                            System.Windows.MessageBoxResult.Yes,
+
+
+
+                            "Solo esta nota",
+
+
+
+                            "Lote completo");
+
+
+
+
+
+
+
+                        if (dialog_result == System.Windows.MessageBoxResult.Cancel)
+
+
+
+                            return;
+
+
+
+
+
+
+
+                        only_this_note = (dialog_result == System.Windows.MessageBoxResult.Yes);
+
+
+
+                    }
+
+
+
                 }
 
+
+
+
+
+
+
+                var receipt = await _commission_service.get_commission_receipt_async(
+
+
+
+                    new[] { row.id_commission },
+
+
+
+                    reference,
+
+
+
+                    only_specified_commissions: only_this_note);
+
+
+
+
+
+
+
+                if (receipt == null || receipt.rows.Count == 0)
+
+
+
+                {
+
+
+
+                    AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
+
+
+
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+
+
+
+
                 CommissionPdfGenerator.generate(receipt);
+
+
+
             }
+
+
+
             catch (Exception ex)
+
+
+
             {
+
+
+
                 AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+
+
+
             }
+
+
+
         }
+
+
+
+
+
+
+
+        private void execute_print_report(object? parameter)
+
+
+
+        {
+
+
+
+            try
+
+
+
+            {
+
+
+
+                var current_tab_items = selected_tab != null ? selected_tab.Items.ToList() : all_rows.ToList();
+
+
+
+                if (current_tab_items.Count == 0 && all_rows.Count == 0)
+
+
+
+                {
+
+
+
+                    AppDialog.Show("No hay comisiones para mostrar en el mes seleccionado.", "Reporte",
+
+
+
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+
+
+
+
+                bool is_single_seller = selected_tab != null && selected_tab.IdSeller != null;
+
+
+
+                List<commission_row_dto> rows_to_print;
+
+
+
+                string? seller_scope = null;
+
+
+
+
+
+
+
+                if (is_single_seller)
+
+
+
+                {
+
+
+
+                    var opt = AppDialog.Show(
+
+
+
+                        $"¿Desea generar el reporte de comisiones unicamente para '{selected_tab!.Header}' o para todas las vendedoras?",
+
+
+
+                        "Alcance del reporte",
+
+
+
+                        System.Windows.MessageBoxButton.YesNoCancel,
+
+
+
+                        System.Windows.MessageBoxImage.Question,
+
+
+
+                        System.Windows.MessageBoxResult.Yes,
+
+
+
+                        $"Solo {selected_tab.Header}",
+
+
+
+                        "Todas las vendedoras");
+
+
+
+
+
+
+
+                    if (opt == System.Windows.MessageBoxResult.Cancel) return;
+
+
+
+
+
+
+
+                    if (opt == System.Windows.MessageBoxResult.Yes)
+
+
+
+                    {
+
+
+
+                        rows_to_print = current_tab_items;
+
+
+
+                        seller_scope = selected_tab.Header;
+
+
+
+                    }
+
+
+
+                    else
+
+
+
+                    {
+
+
+
+                        rows_to_print = all_rows.ToList();
+
+
+
+                        seller_scope = "Todas";
+
+
+
+                    }
+
+
+
+                }
+
+
+
+                else
+
+
+
+                {
+
+
+
+                    rows_to_print = all_rows.ToList();
+
+
+
+                    seller_scope = "Todas";
+
+
+
+                }
+
+
+
+
+
+
+
+                if (rows_to_print.Count == 0)
+
+
+
+                {
+
+
+
+                    AppDialog.Show("No hay registros que coincidan con los filtros actuales.", "Reporte",
+
+
+
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+
+
+
+
+                string period_label = _selected_month == "Todos" ? $"AÑO {_selected_year}" : $"{_selected_month} {_selected_year}".ToUpperInvariant();
+
+                CommissionsReportPdfGenerator.generate(period_label, selected_filter, seller_scope, rows_to_print);
+
+
+
+            }
+
+
+
+            catch (Exception ex)
+
+
+
+            {
+
+
+
+                AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error",
+
+
+
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+
+
+
 
         public async Task<bool> pay_commissions_async(int[] id_commissions, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
+
+
+
         {
+
+
+
             try
+
+
+
             {
+
+
+
                 await _commission_service.register_commission_payment_async(id_commissions, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
+
+
+
                 AppDialog.Show("Comision(es) liquidadas exitosamente.", "Exito");
+
+
+
                 load_all_async();
+
+
+
                 return true;
+
+
+
             }
+
+
+
             catch (Exception ex)
+
+
+
             {
+
+
+
                 AppDialog.Show(ErrorText.Get(ex), "Error");
+
+
+
                 return false;
+
+
+
             }
+
+
+
         }
+
+
+
+
+
+
 
         public async Task<IEnumerable<commission_payment_dto>> get_commission_payments_async(int id_commission)
+
+
+
         {
+
+
+
             return await _commission_service.get_commission_payments_async(id_commission);
+
+
+
         }
+
+
+
+
+
+
 
         public async Task update_commission_payment_async(int id_commission_payment, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)
+
+
+
         {
+
+
+
             await _commission_service.update_commission_payment_async(id_commission_payment, amount_usd, exchange_rate, payment_type, reference_number, amount_bs, payment_date, bank_name, observations);
+
+
+
             load_all_async();
+
+
+
         }
 
+
+
+
+
+
+
         public async Task<commission_receipt_dto?> get_commission_receipt_async(int[] commission_ids, string reference_number)
+
+
+
         {
+
+
+
             return await _commission_service.get_commission_receipt_async(commission_ids, reference_number);
+
+
+
         }
+
+
+
     }
+
+
+
 }

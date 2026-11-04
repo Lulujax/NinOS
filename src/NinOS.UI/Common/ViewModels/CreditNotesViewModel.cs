@@ -260,7 +260,7 @@ namespace NinOS.UI.Common.ViewModels
                 var current_selection = _selected_month;
                 _is_loading = true;
 
-                _cached_sellers = (await _seller_service.GetAllActiveAsync()).OrderBy(s => s.seller_code).ToList();
+                _cached_sellers = (await _seller_service.GetAllActiveAsync()).Where(s => !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
                 _cached_zonas = (await _zona_service.GetActiveAsync()).OrderBy(z => z.name).ToList();
                 sync_tabs();
 
@@ -479,7 +479,7 @@ namespace NinOS.UI.Common.ViewModels
             => await _customer_service.GetVisibleCustomersAsync();
 
         public async Task<IEnumerable<seller>> get_sellers_async()
-            => await _seller_service.GetAllActiveAsync();
+            => (await _seller_service.GetAllActiveAsync()).Where(s => !s.is_pro_venta_only);
 
         public async Task<IEnumerable<zona>> get_assigned_zonas_for_seller_async(int id_seller)
             => await _seller_service.GetAssignedZonasAsync(id_seller);

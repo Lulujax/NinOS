@@ -24,7 +24,9 @@ namespace NinOS.UI.Common.ViewModels
         public bool IsActive { get; set; } = true;
         public bool CanReceiveCommissions { get; set; } = true;
         public decimal CommissionPercentage { get; set; } = 0.10m;
-        public string CommissionPercentageText => $"{(CommissionPercentage > 0 ? CommissionPercentage * 100 : 10):0.##}%";
+        public string CommissionPercentageText => CanReceiveCommissions
+            ? $"{(CommissionPercentage > 0 ? CommissionPercentage * 100 : 10):0.##}%"
+            : "Sin comisión";
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }
         public seller? SellerRef { get; set; }

@@ -50,23 +50,17 @@ namespace NinOS.UI.Common
         private static readonly string PurpleColor = "#6A1B9A";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
 
-        public static void generate(CustomerHistoryPdfModel model)
+        public static string get_default_file_name(CustomerHistoryPdfModel model)
+        {
+            string safeCustomer = SanitizeFileName(string.IsNullOrWhiteSpace(model.CustomerName) ? "CLIENTE" : model.CustomerName);
+            return $"HISTORIAL_{safeCustomer}_{DateTime.Now:yyyyMMdd}.pdf".ToUpperInvariant();
+        }
+
+        public static IDocument build_document(CustomerHistoryPdfModel model)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            string safeCustomer = SanitizeFileName(string.IsNullOrWhiteSpace(model.CustomerName) ? "CLIENTE" : model.CustomerName);
-            string defaultName = $"HISTORIAL_{safeCustomer}_{DateTime.Now:yyyyMMdd}.pdf".ToUpperInvariant();
-
-            var save_dialog = new SaveFileDialog
-            {
-                Title = "Guardar historial del cliente en PDF",
-                Filter = "PDF (*.pdf)|*.pdf",
-                FileName = defaultName
-            };
-
-            if (save_dialog.ShowDialog() != true) return;
-
-            var document = Document.Create(container =>
+            return Document.Create(container =>
             {
                 container.Page(page =>
                 {
@@ -143,8 +137,22 @@ namespace NinOS.UI.Common
                     });
                 });
             });
+        }
 
-            document.GeneratePdf(save_dialog.FileName);
+        public static void generate(CustomerHistoryPdfModel model)
+        {
+            string defaultName = get_default_file_name(model);
+
+            var save_dialog = new SaveFileDialog
+            {
+                Title = "Guardar historial del cliente en PDF",
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = defaultName
+            };
+
+            if (save_dialog.ShowDialog() != true) return;
+
+            build_document(model).GeneratePdf(save_dialog.FileName);
         }
 
         private static void BuildCustomerInfoBox(ColumnDescriptor col, CustomerHistoryPdfModel model)
