@@ -728,13 +728,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
                 public ICommand print_commission_pdf_command { get; }
-        public ICommand preview_commission_pdf_command { get; }
-        public ICommand direct_print_commission_pdf_command { get; }
-        public ICommand export_commission_excel_command { get; }
         public ICommand print_report_command { get; }
-        public ICommand preview_report_command { get; }
-        public ICommand direct_print_report_command { get; }
-        public ICommand export_report_excel_command { get; }
 
 
 
@@ -823,14 +817,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
             print_commission_pdf_command = new RelayCommand(execute_print_commission_pdf);
-            preview_commission_pdf_command = new RelayCommand(execute_preview_commission_pdf);
-            direct_print_commission_pdf_command = new RelayCommand(execute_direct_print_commission_pdf);
-            export_commission_excel_command = new RelayCommand(execute_export_commission_excel);
-
             print_report_command = new RelayCommand(execute_print_report);
-            preview_report_command = new RelayCommand(execute_preview_report);
-            direct_print_report_command = new RelayCommand(execute_direct_print_report);
-            export_report_excel_command = new RelayCommand(execute_export_report_excel);
 
 
 

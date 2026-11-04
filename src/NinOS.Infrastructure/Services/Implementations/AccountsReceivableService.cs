@@ -640,7 +640,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     var existing_commission = await db_context.commissions
                         .FirstOrDefaultAsync(c => c.id_delivery_note == id_delivery_note);
 
-                    if (total_paid >= adjusted)
+                    bool is_fully_paid = total_paid > 0 && (adjusted - total_paid) <= 0.01m;
+
+                    if (is_fully_paid)
                     {
                         if (delivery_note.status != "Pagada" && delivery_note.status != "Devuelta")
                         {
@@ -650,28 +652,40 @@ namespace NinOS.Infrastructure.Services.Implementations
                             {
                                 var note_seller = await db_context.sellers
                                     .AsNoTracking()
+                                    .Include(s => s.seller_zones)
+                                        .ThenInclude(sz => sz.zona)
                                     .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
-                                decimal pct = (note_seller != null && note_seller.commission_percentage > 0)
-                                    ? note_seller.commission_percentage
-                                    : 0.10m;
 
-                                existing_commission = new commission(
-                                    delivery_note.id_seller,
-                                    delivery_note.id_delivery_note,
-                                    pct,
-                                    Math.Round(adjusted * pct, 2),
-                                    false,
-                                    null);
-                                await db_context.commissions.AddAsync(existing_commission);
+                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only)
+                                {
+                                    decimal pct = (note_seller != null && note_seller.commission_percentage > 0)
+                                        ? note_seller.commission_percentage
+                                        : 0.10m;
+
+                                    existing_commission = new commission(
+                                        delivery_note.id_seller,
+                                        delivery_note.id_delivery_note,
+                                        pct,
+                                        Math.Round(adjusted * pct, 2),
+                                        false,
+                                        null);
+                                    await db_context.commissions.AddAsync(existing_commission);
+                                }
                             }
                         }
                     }
                     else
                     {
                         if (delivery_note.status == "Pagada") delivery_note.status = "Pendiente";
+
+                        if (!is_pro_venta && existing_commission != null && !existing_commission.is_paid)
+                        {
+                            db_context.commissions.Remove(existing_commission);
+                            existing_commission = null;
+                        }
                     }
 
-                    if (existing_commission != null)
+                    if (existing_commission != null && !existing_commission.is_paid)
                     {
                         existing_commission.amount_usd = Math.Round(adjusted * existing_commission.commission_percentage, 2);
                     }

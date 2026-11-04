@@ -1403,15 +1403,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 AppDialog.Show("Pago registrado exitosamente.", "Exito");
 
-                await Task.Run(async () =>
-
-                {
-
-                    await System.Threading.Tasks.Task.Delay(100);
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() => load_all_async());
-
-                });
+                _ = System.Windows.Application.Current?.Dispatcher?.InvokeAsync(load_all_async);
 
             }
 
@@ -1463,15 +1455,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 await _payment_service.update_payment_async(updated);
 
-                await Task.Run(async () =>
-
-                {
-
-                    await System.Threading.Tasks.Task.Delay(100);
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() => load_all_async());
-
-                });
+                _ = System.Windows.Application.Current?.Dispatcher?.InvokeAsync(load_all_async);
 
             }
 

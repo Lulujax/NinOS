@@ -1003,7 +1003,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                                 .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
-                            if (existing_paid >= original_note.adjusted_total_usd)
+                            bool is_fully_paid = existing_paid > 0 && (original_note.adjusted_total_usd - existing_paid) <= 0.01m;
+                            if (is_fully_paid)
                             {
                                 original_note.status = "Pagada";
                             }
@@ -1182,7 +1183,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                         .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
-                    if (pagado >= original_note.adjusted_total_usd)
+                    bool is_fully_paid = pagado > 0 && (original_note.adjusted_total_usd - pagado) <= 0.01m;
+                    if (is_fully_paid)
                         original_note.status = "Pagada";
                     else
                         original_note.status = "Pendiente";
