@@ -38,6 +38,8 @@ namespace NinOS.UI.Views
         // En edicion: saldo de la nota sin descontar este pago (para que el calculo en vivo no lo reste dos veces).
         private decimal _edit_effective_balance;
         private List<note_combo_item> _all_combo_items = new();
+        private System.Threading.Tasks.Task? _load_notes_task;
+        private bool _was_popup_open_on_preview_mouse_down;
 
         public event EventHandler? PaymentRegistered;
 
@@ -65,12 +67,15 @@ namespace NinOS.UI.Views
                 PaymentDatePicker.SelectedDate = DateTime.Now;
             }
 
-            Loaded += async (_, _) =>
+            Loaded += (_, _) =>
             {
                 InputRestrictions.attach_decimal(AmountBox);
                 InputRestrictions.attach_decimal(RateBox);
                 InputRestrictions.attach_decimal(BsAmountBox);
-                if (!_is_edit_mode && !_is_preloaded) await LoadNotesAsync();
+                if (!_is_edit_mode && !_is_preloaded)
+                {
+                    _load_notes_task = LoadNotesAsync();
+                }
             };
         }
 
@@ -142,22 +147,14 @@ namespace NinOS.UI.Views
         {
             try
             {
-                var all_months = await _vm.get_all_months_async();
                 var all_notes = new List<accounts_receivable_dto>();
 
-                if (!string.IsNullOrEmpty(_current_month))
-                {
-                    var notes = await _vm.get_notes_by_month_async(_current_month);
-                    all_notes.AddRange(notes);
-                }
-                else
-                {
-                    foreach (var month in all_months)
-                    {
-                        var notes = await _vm.get_notes_by_month_async(month);
-                        all_notes.AddRange(notes);
-                    }
-                }
+                bool has_specific_month = !string.IsNullOrWhiteSpace(_current_month) &&
+                                          !string.Equals(_current_month, "Todos", StringComparison.OrdinalIgnoreCase);
+
+                string month_filter = has_specific_month ? _current_month : string.Empty;
+                var notes = await _vm.get_notes_by_month_async(month_filter);
+                all_notes.AddRange(notes);
 
                 _all_combo_items = all_notes
                     .Where(n => n.status != "Anulada" && n.status != "Pagada")
@@ -189,8 +186,32 @@ namespace NinOS.UI.Views
             NotePopup.IsOpen = !string.IsNullOrEmpty(query) && NoteListBox.Items.Count > 0;
         }
 
-        private void OnToggleDropdown(object sender, RoutedEventArgs e)
+        private void OnToggleDropdownPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            _was_popup_open_on_preview_mouse_down = NotePopup.IsOpen;
+        }
+
+        private async void OnToggleDropdown(object sender, RoutedEventArgs e)
+        {
+            if (_was_popup_open_on_preview_mouse_down)
+            {
+                _was_popup_open_on_preview_mouse_down = false;
+                NotePopup.IsOpen = false;
+                return;
+            }
+
+            if (_load_notes_task != null && !_load_notes_task.IsCompleted)
+            {
+                try
+                {
+                    await _load_notes_task;
+                }
+                catch
+                {
+                    // Error ya manejado en LoadNotesAsync
+                }
+            }
+
             if (NotePopup.IsOpen)
             {
                 NotePopup.IsOpen = false;
@@ -200,7 +221,7 @@ namespace NinOS.UI.Views
                 // Al pulsar el triangulo se muestra la lista completa de notas disponibles,
                 // sin usar el texto ya escrito como filtro (el cual ya no coincide con nada).
                 FilterNotes(string.Empty);
-                NotePopup.IsOpen = NoteListBox.Items.Count > 0;
+                NotePopup.IsOpen = _all_combo_items.Count > 0;
             }
         }
 
@@ -249,7 +270,7 @@ namespace NinOS.UI.Views
             }
         }
 
-        private void OnClearNoteClick(object sender, RoutedEventArgs e)
+        private async void OnClearNoteClick(object sender, RoutedEventArgs e)
         {
             _selected_note = null;
             NoteTextBox.IsReadOnly = false;
@@ -258,8 +279,20 @@ namespace NinOS.UI.Views
             NoteInfoBorder.Visibility = Visibility.Collapsed;
             NoteInfoText.Text = "";
             UpdateEquiv();
+            if (_all_combo_items.Count == 0)
+            {
+                if (_load_notes_task != null && !_load_notes_task.IsCompleted)
+                {
+                    await _load_notes_task;
+                }
+                else
+                {
+                    _load_notes_task = LoadNotesAsync();
+                    await _load_notes_task;
+                }
+            }
             FilterNotes(string.Empty);
-            NotePopup.IsOpen = NoteListBox.Items.Count > 0;
+            NotePopup.IsOpen = _all_combo_items.Count > 0;
         }
 
         private void OnPaymentTypeChanged(object sender, RoutedEventArgs e)

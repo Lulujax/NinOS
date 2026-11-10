@@ -31,6 +31,23 @@ namespace NinOS.UI.Views
             };
         }
 
+        private async void OnEditNotesClick(object sender, RoutedEventArgs e)
+        {
+            var window = new ProVentaEditNotesWindow(_vm, _row);
+            window.Owner = this;
+            window.ShowDialog();
+
+            await _vm.load_pending_async();
+            var updated = System.Linq.Enumerable.FirstOrDefault(_vm.pending_rows, r => r.id_relacion == _row.id_relacion);
+            if (updated != null)
+            {
+                _row.amount = updated.amount;
+                _row.balance_due_usd = updated.balance_due_usd;
+                RelationInfoText.Text = $"{_row.relation_label}\n" +
+                    $"MONTO: {_row.amount:N2}  |  ABONADO: {_row.paid_amount_usd:N2}  |  SALDO PENDIENTE: {_row.balance_due_usd:N2}";
+            }
+        }
+
         private decimal ParseDecimal(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return 0;

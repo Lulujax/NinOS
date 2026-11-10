@@ -218,6 +218,7 @@
                                             <MultiDataTrigger.Conditions>
                                                 <Condition Binding="{Binding is_stock_addition_mode}" Value="True"/>
                                                 <Condition Binding="{Binding is_stock_removal_mode}" Value="False"/>
+                                                <Condition Binding="{Binding is_stock_edit_mode}" Value="False"/>
                                             </MultiDataTrigger.Conditions>
                                             <Setter Property="Background" Value="#E65100"/>
                                             <Setter Property="BorderThickness" Value="2"/>
@@ -245,6 +246,29 @@
                                             <Setter Property="Background" Value="#B71C1C"/>
                                             <Setter Property="BorderThickness" Value="2"/>
                                             <Setter Property="BorderBrush" Value="#3E2723"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button x:Name="EditStockButton" Content="Editar Stock" Height="26" Padding="10,0" Margin="6,0,0,0"
+                                BorderThickness="0" Cursor="Hand" FontSize="11" FontWeight="SemiBold"
+                                Command="{Binding open_stock_section_command}" CommandParameter="edit"
+                                ToolTip="Establece manualmente la cantidad exacta de inventario y registra el ajuste en el kardex">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="#1976D2"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding is_stock_addition_mode}" Value="True"/>
+                                                <Condition Binding="{Binding is_stock_edit_mode}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="#0D47A1"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="BorderBrush" Value="#002171"/>
                                         </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -296,6 +320,10 @@
                                                 <Setter Property="Text" Value="Quitar Stock"/>
                                                 <Setter Property="Foreground" Value="#C62828"/>
                                             </DataTrigger>
+                                            <DataTrigger Binding="{Binding is_stock_edit_mode}" Value="True">
+                                                <Setter Property="Text" Value="Editar Stock (Ajuste Manual)"/>
+                                                <Setter Property="Foreground" Value="#1976D2"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
@@ -345,6 +373,9 @@
                                             <DataTrigger Binding="{Binding is_stock_removal_mode}" Value="True">
                                                 <Setter Property="Text" Value="Cantidad a quitar:"/>
                                             </DataTrigger>
+                                            <DataTrigger Binding="{Binding is_stock_edit_mode}" Value="True">
+                                                <Setter Property="Text" Value="Nuevo stock (conteo físico):"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
@@ -359,6 +390,16 @@
                                            Visibility="{Binding stock_addition_exceeds_stock, Converter={StaticResource BooleanToVisibilityConverter}}"
                                            Text="No hay suficiente stock para quitar esa cantidad."/>
                             </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,6" Visibility="{Binding is_stock_edit_mode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="157"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Variación calculada:"/>
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="#1976D2" Text="{Binding stock_edit_difference_display}"/>
                         </Grid>
 
                         <Grid Margin="0,0,0,6">

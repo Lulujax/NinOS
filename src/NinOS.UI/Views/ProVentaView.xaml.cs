@@ -89,6 +89,13 @@ namespace NinOS.UI.Views
                 window.ShowDialog();
             };
 
+            view_model.on_request_edit_notes = (row) =>
+            {
+                var window = new ProVentaEditNotesWindow(view_model, row);
+                window.Owner = Window.GetWindow(this);
+                window.ShowDialog();
+            };
+
             view_model.on_request_annul_note = async (row) =>
             {
                 string seller_line = string.IsNullOrWhiteSpace(row.seller_name)
@@ -202,12 +209,13 @@ namespace NinOS.UI.Views
         {
             if (_isSyncingWeeklyTotals) return;
             if (WeeklyDataGrid == null || WeeklyTotalsGrid == null) return;
-            if (WeeklyDataGrid.Columns.Count < 9 || WeeklyTotalsGrid.ColumnDefinitions.Count < 9) return;
+            if (WeeklyDataGrid.Columns.Count == 0 || WeeklyTotalsGrid.ColumnDefinitions.Count == 0) return;
 
             try
             {
                 _isSyncingWeeklyTotals = true;
-                for (int i = 0; i < 8; i++)
+                int count = Math.Min(WeeklyDataGrid.Columns.Count, WeeklyTotalsGrid.ColumnDefinitions.Count);
+                for (int i = 0; i < count; i++)
                 {
                     double colWidth = WeeklyDataGrid.Columns[i].ActualWidth;
                     if (colWidth > 0)
@@ -217,16 +225,6 @@ namespace NinOS.UI.Views
                         {
                             colDef.Width = new GridLength(colWidth, GridUnitType.Pixel);
                         }
-                    }
-                }
-
-                double col8Width = WeeklyDataGrid.Columns[8].ActualWidth;
-                if (col8Width > 0)
-                {
-                    var colDef8 = WeeklyTotalsGrid.ColumnDefinitions[8];
-                    if (colDef8.Width.GridUnitType != GridUnitType.Pixel || Math.Abs(colDef8.Width.Value - col8Width) > 0.5)
-                    {
-                        colDef8.Width = new GridLength(col8Width, GridUnitType.Pixel);
                     }
                 }
             }

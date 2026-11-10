@@ -60,9 +60,17 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand note_pdf_command { get; }
         public ICommand note_preview_command { get; }
         public ICommand annul_note_command { get; }
+        public ICommand start_edit_note_command { get; }
+        public ICommand apply_edit_note_command { get; }
+        public ICommand cancel_edit_note_command { get; }
+        public ICommand relation_preview_command { get; }
+        public ICommand relation_excel_command { get; }
+        public ICommand note_excel_command { get; }
+        public ICommand edit_relation_notes_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
+        public Action<pro_venta_relation_row>? on_request_edit_notes;
         public Action<pro_venta_weekly_row>? on_request_note_preview;
         public Action<pro_venta_weekly_row>? on_request_annul_note;
 
@@ -83,6 +91,13 @@ namespace NinOS.UI.Common.ViewModels
             note_pdf_command = new RelayCommand(execute_note_pdf);
             note_preview_command = new RelayCommand(execute_note_preview);
             annul_note_command = new RelayCommand(execute_annul_note);
+            start_edit_note_command = new RelayCommand(execute_start_edit_note);
+            apply_edit_note_command = new RelayCommand(execute_apply_edit_note);
+            cancel_edit_note_command = new RelayCommand(execute_cancel_edit_note);
+            relation_preview_command = new RelayCommand(execute_relation_preview);
+            relation_excel_command = new RelayCommand(execute_relation_excel);
+            edit_relation_notes_command = new RelayCommand(execute_edit_relation_notes);
+            note_excel_command = new RelayCommand(execute_note_excel);
             preview_command = new RelayCommand(_ => preview_report());
             direct_print_command = new RelayCommand(_ => direct_print_report());
             excel_command = new RelayCommand(_ => excel_report());
@@ -611,7 +626,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var (payments, relation_row) = await get_weekly_context_async();
                 var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
-                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relaci�n Pro Venta" : relation_title;
+                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
                 string defName = ProVentaPdfGenerator.get_default_file_name(_report);
 
                 var preview = new NinOS.UI.Views.PdfPreviewWindow(
@@ -634,7 +649,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 var (payments, relation_row) = await get_weekly_context_async();
                 var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
-                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relaci�n Pro Venta" : relation_title;
+                string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
                 ReportPrintService.DirectPrint(doc, null, title, ProVentaPdfGenerator.get_default_file_name(_report));
             }
             catch (Exception ex)
@@ -975,6 +990,147 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is pro_venta_weekly_row row)
                 on_request_annul_note?.Invoke(row);
+        }
+
+        private void execute_edit_relation_notes(object? parameter)
+        {
+            if (parameter is pro_venta_relation_row row)
+                on_request_edit_notes?.Invoke(row);
+        }
+
+        public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage)
+        {
+            await _accounts_receivable_service.update_note_total_async(id_delivery_note, adjusted_total_usd, discount_percentage, null);
+            await load_report_async();
+            await load_pending_async();
+            await load_paid_async();
+        }
+
+        private void execute_start_edit_note(object? parameter)
+        {
+            if (parameter is not pro_venta_weekly_row row) return;
+            if (row.esta_anulada) return;
+            if (string.Equals(row.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase))
+            {
+                AppDialog.Show("Esta nota ya está pagada y no puede editarse.", "Editar Nota",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            if (string.Equals(row.status?.Trim(), "Devuelta", StringComparison.OrdinalIgnoreCase))
+            {
+                AppDialog.Show("Esta nota fue devuelta y no puede editarse.", "Editar Nota",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            foreach (var r in report_rows) r.is_editing = false;
+            row.begin_edit();
+            row.is_editing = true;
+        }
+
+        private void execute_cancel_edit_note(object? parameter)
+        {
+            if (parameter is pro_venta_weekly_row row)
+                row.is_editing = false;
+        }
+
+        private async void execute_apply_edit_note(object? parameter)
+        {
+            if (parameter is not pro_venta_weekly_row row) return;
+            if (row.esta_anulada || string.Equals(row.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase))
+            {
+                row.is_editing = false;
+                return;
+            }
+
+            try
+            {
+                decimal monto = pro_venta_weekly_row.parse_numeric(row.edit_monto_text);
+                if (monto < 0) throw new InvalidOperationException("El monto no puede ser negativo.");
+
+                decimal dcto_entered = string.IsNullOrWhiteSpace(row.edit_dcto_text)
+                    ? 0
+                    : pro_venta_weekly_row.parse_numeric(row.edit_dcto_text);
+                if (dcto_entered < 0 || dcto_entered > 100)
+                    throw new InvalidOperationException("El porcentaje de descuento debe estar entre 0 y 100.");
+
+                decimal adjusted = Math.Max(0, monto);
+                decimal dcto = row.edit_result_condition_pct;
+
+                await _accounts_receivable_service.update_note_total_async(row.id_delivery_note, adjusted, dcto, null);
+
+                row.is_editing = false;
+
+                // Recargar el reporte semanal y actualizar relaciones pendientes/pagadas
+                await load_report_async();
+                await load_pending_async();
+                await load_paid_async();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al guardar: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_relation_preview(object? parameter)
+        {
+            if (parameter is not pro_venta_relation_row row) return;
+            try
+            {
+                var report = await _pro_venta_service.get_relation_report_async(row.id_relacion);
+                decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
+                var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
+                    .OrderBy(p => p.payment_date)
+                    .ToList();
+
+                var doc = ProVentaPdfGenerator.build_document(report, nota_por_pagar, payments, row);
+                string title = $"Relación Nro {row.relation_number}";
+                string defName = ProVentaPdfGenerator.get_default_file_name(report);
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    title,
+                    defName,
+                    onExportExcel: () => ProVentaWeeklyExcelExporter.export(report, nota_por_pagar, payments, row));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_relation_excel(object? parameter)
+        {
+            if (parameter is not pro_venta_relation_row row) return;
+            try
+            {
+                var report = await _pro_venta_service.get_relation_report_async(row.id_relacion);
+                decimal nota_por_pagar = Money.round(report.total_amount - report.total_gastos_25 - report.total_gastos_15);
+                var payments = (await _payment_service.get_payments_by_relation_async(row.id_relacion))
+                    .OrderBy(p => p.payment_date)
+                    .ToList();
+
+                ProVentaWeeklyExcelExporter.export(report, nota_por_pagar, payments, row);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void execute_note_excel(object? parameter)
+        {
+            if (parameter is not pro_venta_weekly_row row) return;
+            try
+            {
+                var note = await _accounts_receivable_service.get_printable_note_async(row.id_delivery_note);
+                NoteExcelExporter.export(note);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public async Task confirm_annul_note_async(pro_venta_weekly_row row)

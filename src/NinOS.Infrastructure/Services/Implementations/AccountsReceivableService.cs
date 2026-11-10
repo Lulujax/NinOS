@@ -88,7 +88,15 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 
-                var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
+                if (string.IsNullOrWhiteSpace(month_year) || string.Equals(month_year, "Todos", StringComparison.OrdinalIgnoreCase))
+                {
+                    return await get_all_notes_async();
+                }
+
+                if (!DateTime.TryParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"), DateTimeStyles.None, out var target_date))
+                {
+                    return Enumerable.Empty<accounts_receivable_dto>();
+                }
                 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 
@@ -191,7 +199,15 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 
-                var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"));
+                if (string.IsNullOrWhiteSpace(month_year) || string.Equals(month_year, "Todos", StringComparison.OrdinalIgnoreCase))
+                {
+                    return await get_all_notes_async();
+                }
+
+                if (!DateTime.TryParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"), DateTimeStyles.None, out var target_date))
+                {
+                    return Enumerable.Empty<accounts_receivable_dto>();
+                }
                 
                 var mar_ids = await get_pro_venta_type_ids_async(db_context);
 

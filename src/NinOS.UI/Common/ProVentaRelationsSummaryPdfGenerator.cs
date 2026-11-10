@@ -22,7 +22,9 @@ namespace NinOS.UI.Common
         public static string get_default_file_name(string sectionLabel, string monthLabel)
         {
             string cleanSection = sectionLabel.Replace(" ", "_").ToUpperInvariant();
-            string cleanMonth = monthLabel.Replace(" ", "_").ToUpperInvariant();
+            string cleanMonth = (string.IsNullOrWhiteSpace(monthLabel) || string.Equals(monthLabel.Trim(), "Todas las relaciones", StringComparison.OrdinalIgnoreCase) || string.Equals(monthLabel.Trim(), "Todas", StringComparison.OrdinalIgnoreCase))
+                ? "TODAS"
+                : monthLabel.Replace(" ", "_").ToUpperInvariant();
             return $"RELACIONES_PRO_VENTA_{cleanSection}_{cleanMonth}_{DateTime.Now:yyyyMMdd}.pdf";
         }
 
@@ -64,7 +66,10 @@ namespace NinOS.UI.Common
                             row.RelativeItem().AlignRight().Column(c =>
                             {
                                 c.Item().Text($"EMISION: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).Bold().FontColor("#555555");
-                                c.Item().PaddingTop(1).Text($"PERIODO: {monthLabel.ToUpperInvariant()}").FontSize(8).Bold().FontColor(Accent);
+                                string displayPeriod = (string.IsNullOrWhiteSpace(monthLabel) || string.Equals(monthLabel.Trim(), "Todas las relaciones", StringComparison.OrdinalIgnoreCase) || string.Equals(monthLabel.Trim(), "Todas", StringComparison.OrdinalIgnoreCase))
+                                    ? "TODAS"
+                                    : monthLabel.ToUpperInvariant();
+                                c.Item().PaddingTop(1).Text(displayPeriod).FontSize(8).Bold().FontColor(Accent);
                             });
                         });
 
@@ -97,7 +102,7 @@ namespace NinOS.UI.Common
                         }
 
                         // RESUMEN / GRAN TOTAL
-                        if (pending.Count > 0 && paid.Count > 0)
+                        if (pending.Count > 0 || paid.Count > 0)
                         {
                             col.Item().PaddingTop(14).Row(outerRow =>
                             {
@@ -105,7 +110,10 @@ namespace NinOS.UI.Common
 
                                 outerRow.ConstantItem(360).Border(0.8f).BorderColor(Accent).Background(SoftAccent).Padding(6).Column(box =>
                                 {
-                                    box.Item().Text("CONSOLIDADO GENERAL DE RELACIONES").FontSize(9.5f).Bold().FontColor(Accent).AlignCenter();
+                                    string boxTitle = (pending.Count > 0 && paid.Count > 0)
+                                        ? "CONSOLIDADO GENERAL DE RELACIONES"
+                                        : (pending.Count > 0 ? "TOTAL RELACIONES PENDIENTES" : "TOTAL RELACIONES PAGADAS");
+                                    box.Item().Text(boxTitle).FontSize(9.5f).Bold().FontColor(Accent).AlignCenter();
                                     box.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(Accent);
 
                                     decimal totalMontoPagar = pending.Sum(r => r.amount) + paid.Sum(r => r.amount);

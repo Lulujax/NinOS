@@ -20,23 +20,40 @@ namespace NinOS.UI.Common
             using var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add($"Relacion {dto.relation_number}");
 
+            // 1. BANNER DE ENCABEZADO (Idéntico a la Página 1 del PDF)
+            ws.Cell(1, 1).SetValue($"RELACION NRO {dto.relation_number}");
+            ws.Range(1, 1, 1, 8).Merge();
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Cell(1, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+            ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Cell(2, 1).SetValue($"{dto.week_start:dd/MM} AL {dto.week_end:dd/MM} _ FACTURAS POR COBRAR {dto.city}");
+            ws.Range(2, 1, 2, 8).Merge();
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Font.FontSize = 10;
+            ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // 2. ENCABEZADOS DE LA TABLA
             string[] headers = new[]
             {
-                "NRO NOTA", "CLIENTE", "MONTO NOTA ($)", "COMISION LUIS 10% ($)",
+                "NRO NOTA CLIENTE", "CLIENTE", "MONTO NOTA ($)", "COMISION LUIS 10% ($)",
                 "GASTOS OPER 25% ($)", "GASTOS ADM 15% ($)", "FECHA PAGO CLIENTE", "FORMA DE PAGO"
             };
 
+            int headerRow = 4;
             for (int i = 0; i < headers.Length; i++)
             {
-                ws.Cell(1, i + 1).Value = headers[i];
-                ExcelFlatExporter.StyleHeaderCell(ws.Cell(1, i + 1), ExcelFlatExporter.DarkBlueHeader);
+                ws.Cell(headerRow, i + 1).Value = headers[i];
+                ExcelFlatExporter.StyleHeaderCell(ws.Cell(headerRow, i + 1), ExcelFlatExporter.DarkBlueHeader);
             }
 
-            int rowIdx = 2;
+            int rowIdx = 5;
             foreach (var r in dto.rows)
             {
                 int c = 1;
-                ws.Cell(rowIdx, c++).SetValue(r.note_number);
+                string noteNum = r.esta_anulada ? $"{r.note_number} [ANULADA]" : r.note_number;
+                ws.Cell(rowIdx, c++).SetValue(noteNum);
                 ws.Cell(rowIdx, c++).SetValue(r.customer_name);
 
                 var amtCell = ws.Cell(rowIdx, c++);
@@ -60,7 +77,8 @@ namespace NinOS.UI.Common
 
                 if (r.esta_anulada)
                 {
-                    ws.Range(rowIdx, 1, rowIdx, headers.Length).Style.Font.FontColor = XLColor.Red;
+                    ws.Range(rowIdx, 1, rowIdx, headers.Length).Style.Font.FontColor = XLColor.FromHtml("#C62828");
+                    ws.Range(rowIdx, 1, rowIdx, headers.Length).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFEBEE");
                 }
 
                 rowIdx++;
@@ -78,57 +96,201 @@ namespace NinOS.UI.Common
             ws.Cell(rowIdx, 6).Style.NumberFormat.Format = "#,##0.00";
 
             ExcelFlatExporter.StyleTotalRow(ws.Range(rowIdx, 1, rowIdx, headers.Length), ExcelFlatExporter.BlueSoftBg);
-            rowIdx += 2;
-
-            // Bloque de Liquidación
-            ws.Cell(rowIdx, 1).SetValue("LIQUIDACION").Style.Font.Bold = true;
             rowIdx++;
 
+            // Leyenda de anuladas si las hay
+            if (dto.has_annulled)
+            {
+                rowIdx++;
+                ws.Cell(rowIdx, 1).SetValue($"Las notas marcadas en rojo están ANULADAS y no se incluyen en los totales ni en la liquidación. Anuladas: {dto.annulled_count} nota(s) por {dto.annulled_amount:N2} USD.");
+                ws.Range(rowIdx, 1, rowIdx, 8).Merge();
+                ws.Range(rowIdx, 1, rowIdx, 8).Style.Font.FontSize = 9;
+                ws.Range(rowIdx, 1, rowIdx, 8).Style.Font.FontColor = XLColor.FromHtml("#C62828");
+                ws.Range(rowIdx, 1, rowIdx, 8).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFEBEE");
+                ws.Range(rowIdx, 1, rowIdx, 8).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                ws.Range(rowIdx, 1, rowIdx, 8).Style.Border.OutsideBorderColor = XLColor.FromHtml("#C62828");
+            }
+
+            rowIdx += 2;
+
+            // Bloque de Liquidación (idéntico al cuadro del PDF)
+            ws.Cell(rowIdx, 1).SetValue("LIQUIDACION");
+            ws.Cell(rowIdx, 1).Style.Font.Bold = true;
+            ws.Cell(rowIdx, 1).Style.Font.FontSize = 11;
+            ws.Cell(rowIdx, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+            rowIdx++;
+
+            decimal total_cobrado = dto.total_amount - dto.total_commission_luis;
+            decimal diferencial = total_cobrado - nota_por_pagar;
+
             ws.Cell(rowIdx, 1).SetValue("TOTAL COBRADO (NOTAS MENOS COMISION LUIS G)");
-            ws.Cell(rowIdx, 3).SetValue(dto.total_amount - dto.total_commission_luis);
+            ws.Range(rowIdx, 1, rowIdx, 2).Merge();
+            ws.Cell(rowIdx, 1).Style.Font.Bold = true;
+            ws.Cell(rowIdx, 3).SetValue(total_cobrado);
             ws.Cell(rowIdx, 3).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(rowIdx, 3).Style.Font.Bold = true;
             ws.Range(rowIdx, 1, rowIdx, 3).Style.Fill.BackgroundColor = XLColor.FromHtml(ExcelFlatExporter.BlueSoftBg);
+            ws.Range(rowIdx, 1, rowIdx, 3).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             rowIdx++;
 
             ws.Cell(rowIdx, 1).SetValue("NOTA DE ENTREGA POR PAGAR A PRO VENTA");
+            ws.Range(rowIdx, 1, rowIdx, 2).Merge();
+            ws.Cell(rowIdx, 1).Style.Font.Bold = true;
             ws.Cell(rowIdx, 3).SetValue(nota_por_pagar);
             ws.Cell(rowIdx, 3).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(rowIdx, 3).Style.Font.Bold = true;
             ws.Range(rowIdx, 1, rowIdx, 3).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF2A8");
+            ws.Range(rowIdx, 1, rowIdx, 3).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             rowIdx++;
 
             ws.Cell(rowIdx, 1).SetValue("DIFERENCIAL");
-            ws.Cell(rowIdx, 3).SetValue((dto.total_amount - dto.total_commission_luis) - nota_por_pagar);
+            ws.Range(rowIdx, 1, rowIdx, 2).Merge();
+            ws.Cell(rowIdx, 1).Style.Font.Bold = true;
+            ws.Cell(rowIdx, 3).SetValue(diferencial);
             ws.Cell(rowIdx, 3).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(rowIdx, 3).Style.Font.Bold = true;
             ws.Range(rowIdx, 1, rowIdx, 3).Style.Fill.BackgroundColor = XLColor.FromHtml(ExcelFlatExporter.BlueSoftBg);
+            ws.Range(rowIdx, 1, rowIdx, 3).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
-            ExcelFlatExporter.FormatTable(ws, headerRow: 1);
+            ExcelFlatExporter.FormatTable(ws, headerRow: headerRow);
 
-            // Hoja de Pagos si hay
+            // 3. HOJA 2: RESUMEN Y PAGOS (Réplica de la Página 2 del PDF)
+            var wsDetail = wb.Worksheets.Add("Resumen y Pagos");
+
+            wsDetail.Cell(1, 1).SetValue($"RELACION NRO {dto.relation_number} — RESUMEN Y PAGOS");
+            wsDetail.Range(1, 1, 1, 4).Merge();
+            wsDetail.Cell(1, 1).Style.Font.Bold = true;
+            wsDetail.Cell(1, 1).Style.Font.FontSize = 13;
+            wsDetail.Cell(1, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+            wsDetail.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            wsDetail.Cell(3, 1).SetValue("RESUMEN DE LA RELACION");
+            wsDetail.Cell(3, 1).Style.Font.Bold = true;
+            wsDetail.Cell(3, 1).Style.Font.FontSize = 10;
+            wsDetail.Cell(3, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+
+            string[] hNotes = new[] { "NRO NOTA", "CLIENTE", "MONTO ($)" };
+            for (int i = 0; i < hNotes.Length; i++)
+            {
+                wsDetail.Cell(4, i + 1).Value = hNotes[i];
+                ExcelFlatExporter.StyleHeaderCell(wsDetail.Cell(4, i + 1), ExcelFlatExporter.DarkBlueHeader);
+            }
+
+            int rn = 5;
+            foreach (var n in dto.rows)
+            {
+                string noteLabel = n.esta_anulada ? $"{n.note_number} [ANULADA]" : n.note_number;
+                wsDetail.Cell(rn, 1).SetValue(noteLabel);
+                wsDetail.Cell(rn, 2).SetValue(n.customer_name);
+                var cM = wsDetail.Cell(rn, 3);
+                cM.SetValue(n.amount);
+                cM.Style.NumberFormat.Format = "#,##0.00";
+
+                if (n.esta_anulada)
+                {
+                    wsDetail.Range(rn, 1, rn, 3).Style.Font.FontColor = XLColor.FromHtml("#C62828");
+                    wsDetail.Range(rn, 1, rn, 3).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFEBEE");
+                }
+                rn++;
+            }
+
+            decimal total_notes = dto.rows.Where(r => !r.esta_anulada).Sum(r => r.amount);
+            wsDetail.Cell(rn, 1).SetValue("TOTAL");
+            wsDetail.Cell(rn, 1).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 3).SetValue(total_notes);
+            wsDetail.Cell(rn, 3).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 3).Style.Font.Bold = true;
+            ExcelFlatExporter.StyleTotalRow(wsDetail.Range(rn, 1, rn, 3), ExcelFlatExporter.BlueSoftBg);
+            rn += 2;
+
+            // Tabla 2: Registro de Pagos
+            wsDetail.Cell(rn, 1).SetValue("REGISTRO DE PAGOS");
+            wsDetail.Cell(rn, 1).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 1).Style.Font.FontSize = 10;
+            wsDetail.Cell(rn, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+            rn++;
+
+            string[] hPay = new[] { "FECHA DEL PAGO", "MONTO USD", "SUBTOTAL USD", "OBSERVACION" };
+            int payHeaderRow = rn;
+            for (int i = 0; i < hPay.Length; i++)
+            {
+                wsDetail.Cell(payHeaderRow, i + 1).Value = hPay[i];
+                ExcelFlatExporter.StyleHeaderCell(wsDetail.Cell(payHeaderRow, i + 1), ExcelFlatExporter.DarkBlueHeader);
+            }
+            rn++;
+
+            decimal total_paid = 0m;
+            decimal running = 0m;
             if (payments != null && payments.Count > 0)
             {
-                var wsPay = wb.Worksheets.Add("Pagos Registrados");
-                string[] hPay = new[] { "FECHA", "MONTO ($)", "OBSERVACIONES" };
-                for (int i = 0; i < hPay.Length; i++)
-                {
-                    wsPay.Cell(1, i + 1).Value = hPay[i];
-                    ExcelFlatExporter.StyleHeaderCell(wsPay.Cell(1, i + 1), ExcelFlatExporter.DarkBlueHeader);
-                }
-                int rp = 2;
                 foreach (var p in payments)
                 {
-                    wsPay.Cell(rp, 1).SetValue(p.payment_date.ToString("dd/MM/yyyy"));
-                    var cellM = wsPay.Cell(rp, 2);
-                    cellM.SetValue(p.amount_usd);
-                    cellM.Style.NumberFormat.Format = "#,##0.00";
-                    wsPay.Cell(rp, 3).SetValue(p.notes);
-                    rp++;
+                    wsDetail.Cell(rn, 1).SetValue(p.payment_date.ToString("dd/MM/yyyy"));
+                    var mCell = wsDetail.Cell(rn, 2);
+                    mCell.SetValue(p.amount_usd);
+                    mCell.Style.NumberFormat.Format = "#,##0.00";
+                    mCell.Style.Font.Bold = true;
+                    if (p.es_negativo) mCell.Style.Font.FontColor = XLColor.FromHtml("#D32F2F");
+                    else mCell.Style.Font.FontColor = XLColor.FromHtml("#2E7D32");
+
+                    if (!p.es_anulacion)
+                    {
+                        running += p.amount_usd;
+                        total_paid += p.amount_usd;
+                    }
+                    decimal remaining = total_notes - running;
+                    if (remaining <= 0.005m) remaining = 0m;
+
+                    var subCell = wsDetail.Cell(rn, 3);
+                    subCell.SetValue(remaining);
+                    subCell.Style.NumberFormat.Format = "#,##0.00";
+                    subCell.Style.Font.Bold = true;
+                    subCell.Style.Font.FontColor = XLColor.FromHtml("#1565C0");
+
+                    wsDetail.Cell(rn, 4).SetValue(p.notes);
+                    rn++;
                 }
-                wsPay.Cell(rp, 1).SetValue("TOTAL PAGADO");
-                wsPay.Cell(rp, 2).SetValue(payments.Where(p => !p.es_anulacion).Sum(x => x.amount_usd));
-                wsPay.Cell(rp, 2).Style.NumberFormat.Format = "#,##0.00";
-                ExcelFlatExporter.StyleTotalRow(wsPay.Range(rp, 1, rp, 3), ExcelFlatExporter.BlueSoftBg);
-                ExcelFlatExporter.FormatTable(wsPay, headerRow: 1);
             }
+
+            wsDetail.Cell(rn, 1).SetValue("TOTAL PAGADO");
+            wsDetail.Cell(rn, 1).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 2).SetValue(total_paid);
+            wsDetail.Cell(rn, 2).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 2).Style.Font.Bold = true;
+            ExcelFlatExporter.StyleTotalRow(wsDetail.Range(rn, 1, rn, 4), ExcelFlatExporter.BlueSoftBg);
+            rn += 2;
+
+            // Bloque Resumen Financiero de la Relación (idéntico a página 2 PDF)
+            decimal balance = total_notes - total_paid;
+            if (balance <= 0.005m) balance = 0m;
+            string status = relation_info?.status ?? (balance <= 0.005m ? "Pagada" : "Pendiente");
+
+            wsDetail.Cell(rn, 1).SetValue("MONTO TOTAL DE NOTAS:");
+            wsDetail.Cell(rn, 2).SetValue(total_notes);
+            wsDetail.Cell(rn, 2).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 2).Style.Font.Bold = true;
+            rn++;
+
+            wsDetail.Cell(rn, 1).SetValue("TOTAL ABONADO:");
+            wsDetail.Cell(rn, 2).SetValue(total_paid);
+            wsDetail.Cell(rn, 2).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 2).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 2).Style.Font.FontColor = XLColor.FromHtml("#2E7D32");
+            rn++;
+
+            wsDetail.Cell(rn, 1).SetValue("SALDO PENDIENTE:");
+            wsDetail.Cell(rn, 2).SetValue(balance);
+            wsDetail.Cell(rn, 2).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 2).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 2).Style.Font.FontColor = balance > 0 ? XLColor.FromHtml("#C62828") : XLColor.FromHtml("#2E7D32");
+            rn++;
+
+            wsDetail.Cell(rn, 1).SetValue("ESTADO:");
+            wsDetail.Cell(rn, 2).SetValue(status);
+            wsDetail.Cell(rn, 2).Style.Font.Bold = true;
+            wsDetail.Cell(rn, 2).Style.Font.FontColor = status == "Pagada" ? XLColor.FromHtml("#2E7D32") : XLColor.FromHtml("#E65100");
+
+            ExcelFlatExporter.FormatTable(wsDetail, headerRow: 4);
 
             string defaultName = Path.GetFileNameWithoutExtension(ProVentaPdfGenerator.get_default_file_name(dto)) + ".xlsx";
             ExcelFlatExporter.SaveWithDialog(wb, defaultName, "Guardar relación Pro Venta en Excel");

@@ -36,7 +36,7 @@
             <TextBox x:Name="NoteTextBox" Grid.Column="0" Height="26" FontSize="11" VerticalContentAlignment="Center"
                      TextChanged="OnNoteSearchChanged"/>
             <Button x:Name="BtnToggleDropdown" Grid.Column="1" Content="&#x25BC;" Width="24" Height="26"
-                    FontSize="9" Cursor="Hand" Click="OnToggleDropdown"
+                    FontSize="9" Cursor="Hand" Click="OnToggleDropdown" PreviewMouseDown="OnToggleDropdownPreviewMouseDown"
                     Background="#F5F5F5" Foreground="#757575" BorderBrush="#BDBDBD" BorderThickness="1,0,0,0"
                     VerticalAlignment="Center">
                 <Button.Template>

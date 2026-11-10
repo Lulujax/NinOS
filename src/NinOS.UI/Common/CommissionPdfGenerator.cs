@@ -89,12 +89,12 @@ namespace NinOS.UI.Common
 
                                 h("NRO");
                                 h("CLIENTE", left: true);
-                                h("MONTO\nFACTURADO $");
+                                h("MONTO\nFACTURADO");
                                 h("FECHA DE\nPAGO");
-                                h("MONTO\nPAGADO $");
+                                h("MONTO\nPAGADO");
                                 h("PRONTO\nPAGO");
                                 h("COMISION\n10%");
-                                h("TOTAL\nCOMISION $");
+                                h("TOTAL\nCOMISION");
                                 h("PAGO\nCOMISION");
                             });
 
@@ -114,7 +114,7 @@ namespace NinOS.UI.Common
                                 cell(r.note_number);
                                 cell(r.customer_name, left: true);
                                 cell(Money(r.invoiced_amount));
-                                cell(r.note_payments_text);
+                                cell(r.note_payments_text?.Replace("$", string.Empty) ?? string.Empty);
                                 cell(Money(r.paid_amount));
                                 cell(r.early_payment_discount_pct > 0 ? $"SI ({r.early_payment_discount_pct:0.##}%)" : (r.early_payment_discount > 0 ? "SI" : "NO"));
                                 cell(Money(r.commission_10));
@@ -133,14 +133,14 @@ namespace NinOS.UI.Common
                             {
                                 bottom.Item().Padding(4).Row(r =>
                                 {
-                                    r.RelativeItem().Text("SUB TOTAL $").FontSize(9).Bold().FontColor("#000000");
+                                    r.RelativeItem().Text("SUB TOTAL").FontSize(9).Bold().FontColor("#000000");
                                     r.ConstantItem(120).AlignRight().Text(Money(sub_total)).FontSize(10).Bold();
                                 });
                                 bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
 
                                 bottom.Item().Padding(4).Row(r =>
                                 {
-                                    r.RelativeItem().Text("COMISION PAGADA $").FontSize(9).Bold().FontColor(PrimaryColor);
+                                    r.RelativeItem().Text("COMISION PAGADA").FontSize(9).Bold().FontColor(PrimaryColor);
                                     r.ConstantItem(120).AlignRight().Text(Money(sub_total)).FontSize(12).Bold().FontColor(PrimaryColor);
                                 });
                                 bottom.Item().LineHorizontal(0.5f).LineColor(LightBorder);
@@ -256,7 +256,7 @@ namespace NinOS.UI.Common
             build_document(receipt).GeneratePdf(file_path);
         }
 
-        private static string Money(decimal value) => "$" + value.ToString("#,##0.00", Ve);
+        private static string Money(decimal value) => value.ToString("#,##0.00", Ve);
 
         private static string MoneyBs(decimal value) => "Bs " + value.ToString("#,##0.00", Ve);
 

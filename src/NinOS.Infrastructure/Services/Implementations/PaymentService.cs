@@ -405,8 +405,17 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         public Task<IEnumerable<payment_dto>> get_payments_by_month_async(string month_year)
         {
-            var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"));
-            return get_payments_by_period_async(target_date.Year, target_date.Month);
+            if (string.IsNullOrWhiteSpace(month_year) || string.Equals(month_year, "Todos", StringComparison.OrdinalIgnoreCase))
+            {
+                return get_payments_by_period_async(DateTime.UtcNow.Year, null);
+            }
+
+            if (DateTime.TryParseExact(month_year, "MMMM yyyy", new System.Globalization.CultureInfo("es-VE"), System.Globalization.DateTimeStyles.None, out var target_date))
+            {
+                return get_payments_by_period_async(target_date.Year, target_date.Month);
+            }
+
+            return Task.FromResult(Enumerable.Empty<payment_dto>());
         }
 
         public async Task<IEnumerable<payment_dto>> get_payments_by_period_async(int year, int? month = null)

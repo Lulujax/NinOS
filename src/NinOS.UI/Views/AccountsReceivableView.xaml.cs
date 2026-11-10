@@ -87,6 +87,10 @@ namespace NinOS.UI.Views
         {
             if (PaymentsContext == null) return;
 
+            string safe_month = string.IsNullOrWhiteSpace(month) || string.Equals(month, "Todos", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : month;
+
             accounts_receivable_dto? note = null;
             if (preselected_note != null)
             {
@@ -102,7 +106,7 @@ namespace NinOS.UI.Views
                 };
             }
 
-            var window = new AddPaymentWindow(PaymentsContext, month, null, note);
+            var window = new AddPaymentWindow(PaymentsContext, safe_month, null, note);
             window.Owner = Window.GetWindow(this);
             window.PaymentRegistered += (_, _) =>
             {

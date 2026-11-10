@@ -2271,7 +2271,7 @@ return new commission_dto
 
                     ? $"{p.amount_bs.ToString("#,##0.00", ve)} BS"
 
-                    : $"${p.amount_usd.ToString("#,##0.00", ve)}";
+                    : $"{p.amount_usd.ToString("#,##0.00", ve)}";
 
                 string refLine = p.reference_number ?? string.Empty;
 

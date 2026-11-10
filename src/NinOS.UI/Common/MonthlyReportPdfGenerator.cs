@@ -38,20 +38,19 @@ namespace NinOS.UI.Common
             {
                 if (rows.Count == 0)
                 {
-                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", null, null));
+                    container.Page(page => BuildEmptyPage(page, report, month_cap));
                     return;
                 }
 
                 // Si TODAS las notas del reporte son anuladas o devueltas, no hay nada que
-                // consolidar: se avisa en vez de imprimir paginas con total 0 que parecen
-                // una venta de cero.
+                // consolidar: se avisa en vez de imprimir páginas con total 0 que parecen una venta de cero.
                 bool hay_vigentes = rows.Any(r =>
                     !string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(r.status?.Trim(), "Devuelta", StringComparison.OrdinalIgnoreCase));
 
                 if (!hay_vigentes)
                 {
-                    container.Page(page => BuildPage(page, report, month_cap, "GENERAL", null, null));
+                    container.Page(page => BuildEmptyPage(page, report, month_cap));
                     return;
                 }
 
@@ -65,9 +64,11 @@ namespace NinOS.UI.Common
                     for (int i = 0; i < grouped.Count; i++)
                     {
                         var g = grouped[i];
-                        bool is_last = (i == grouped.Count - 1);
-                        container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList(), is_last, rows));
+                        container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList()));
                     }
+
+                    // Última página: RESUMEN GENERAL (réplica exacta de la última hoja de Excel)
+                    container.Page(page => BuildSummaryPage(page, report, month_cap, "ZONA", rows, grouped));
                 }
                 else // Por Vendedor
                 {
@@ -79,9 +80,11 @@ namespace NinOS.UI.Common
                     for (int i = 0; i < grouped.Count; i++)
                     {
                         var g = grouped[i];
-                        bool is_last = (i == grouped.Count - 1);
-                        container.Page(page => BuildPage(page, report, month_cap, "VENDEDOR", g.Key, g.ToList(), is_last, rows));
+                        container.Page(page => BuildPage(page, report, month_cap, "VENDEDOR", g.Key, g.ToList()));
                     }
+
+                    // Última página: RESUMEN GENERAL (réplica exacta de la última hoja de Excel)
+                    container.Page(page => BuildSummaryPage(page, report, month_cap, "VENDEDOR", rows, grouped));
                 }
             });
         }
@@ -102,52 +105,35 @@ namespace NinOS.UI.Common
             build_document(report).GeneratePdf(save_dialog.FileName);
         }
 
+        private static void BuildEmptyPage(PageDescriptor page, monthly_report_dto report, string month_cap)
+        {
+            SetupPage(page, report, month_cap);
+
+            page.Content().PaddingVertical(10).Column(col =>
+            {
+                col.Item().Text(report.empty_text).FontSize(11).FontColor("#555555");
+            });
+        }
+
         private static void BuildPage(
             PageDescriptor page,
             monthly_report_dto report,
             string month_cap,
             string group_type,
-            string? group_title,
-            List<monthly_report_row_dto>? group_rows,
-            bool is_last = false,
-            List<monthly_report_row_dto>? all_rows = null)
+            string group_title,
+            List<monthly_report_row_dto> group_rows)
         {
-            page.Size(PageSizes.Letter);
-            page.MarginLeft(1, Unit.Centimetre);
-            page.MarginTop(1, Unit.Centimetre);
-            page.MarginRight(1, Unit.Centimetre);
-            page.MarginBottom(1, Unit.Centimetre);
-            page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(8));
-
-            page.Header().Column(col =>
-            {
-                col.Item().Row(row =>
-                {
-                    float title_size = Math.Max(8.5f, Math.Min(12f, 380f / (report.title.Length * 0.7f)));
-                    row.RelativeItem(3f).Text(report.title).FontSize(title_size).Bold().FontColor(PrimaryColor);
-                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(9.5f).Bold().FontColor("#000000");
-                });
-                col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
-            });
+            SetupPage(page, report, month_cap);
 
             page.Content().PaddingVertical(4).Column(col =>
             {
-                if (group_title == null)
-                {
-                    col.Item().Text(report.empty_text).FontSize(11).FontColor("#000000");
-                    return;
-                }
-
-                // Orden de impresion: primero las cuentas zombie del grupo y luego la cartera organica,
-                // todo seguido. Dentro de cada bloque va por correlativo, como siempre.
-                // Solo aplica cuando el reporte pide ese orden (anual de CxC); el mensual
-                // y el de ventas no cambian de comportamiento.
                 var srows = (group_rows ?? new List<monthly_report_row_dto>())
                     .OrderBy(r => report.ordenar_zombies_primero && r.is_customer_ghost ? 0 : 1)
                     .ThenBy(r => r.date)
                     .ThenBy(r => SeriesCalculator.ParseCorrelative(r.document_number))
                     .ThenBy(r => r.document_number ?? string.Empty)
                     .ToList();
+
                 var detail_header = string.IsNullOrWhiteSpace(report.detail_column_header) ? "DETALLE" : report.detail_column_header;
                 var status_header = string.IsNullOrWhiteSpace(report.status_column_header) ? "ESTADO" : report.status_column_header;
 
@@ -157,7 +143,7 @@ namespace NinOS.UI.Common
                     {
                         string badge = group_type == "ZONA" ? "ZONA" : (group_type == "VENDEDOR" ? "VENDEDOR" : "REPORTE");
                         c.Item().Text(badge).FontSize(6.5f).Bold().FontColor("#000000");
-                        c.Item().PaddingTop(1).Text(group_title).FontSize(9).Bold();
+                        c.Item().PaddingTop(1).Text(group_title.ToUpperInvariant()).FontSize(9).Bold().FontColor(PrimaryColor);
                     });
                 });
 
@@ -173,10 +159,11 @@ namespace NinOS.UI.Common
                         }
                         columns.RelativeColumn(2.6f);  // CLIENTE
                         columns.RelativeColumn(1.4f);  // ZONA o VENDEDOR
-                        columns.RelativeColumn(1.15f); // MONTO $
+                        columns.RelativeColumn(1.15f); // MONTO
                         if (report.show_paid_balance_summary)
                         {
                             columns.RelativeColumn(1.15f); // ABONADO
+                            columns.RelativeColumn(1.15f); // SALDO
                         }
                         columns.RelativeColumn(1.1f);  // ESTADO
                     });
@@ -185,7 +172,7 @@ namespace NinOS.UI.Common
                     {
                         void h(string text, bool left = false)
                         {
-                            var c = header.Cell().Background(PrimaryColor).PaddingVertical(2).PaddingHorizontal(1.5f);
+                            var c = header.Cell().Background(PrimaryColor).Border(0.4f).BorderColor(LightBorder).PaddingVertical(2).PaddingHorizontal(1.5f);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
                             t.FontColor(Colors.White).Bold().FontSize(6.5f);
                         }
@@ -199,6 +186,7 @@ namespace NinOS.UI.Common
                         h("MONTO");
                         if (report.show_paid_balance_summary)
                         {
+                            h("ABONADO");
                             h(detail_header);
                         }
                         h(status_header);
@@ -213,7 +201,7 @@ namespace NinOS.UI.Common
 
                         void cell(string text, bool left = false, string? color = null, bool bold = false)
                         {
-                            var c = table.Cell().Background(bg).BorderBottom(0.4f).BorderColor(LightBorder)
+                            var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
                                 .PaddingVertical(2).PaddingHorizontal(1.5f);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
                             t.FontSize(7.5f).FontColor(color ?? defaultColor);
@@ -232,7 +220,8 @@ namespace NinOS.UI.Common
                         cell(Money(r.amount_usd));
                         if (report.show_paid_balance_summary)
                         {
-                            cell(r.detail_text);
+                            cell(Money(r.paid_amount_usd));
+                            cell(Money(r.balance_due_usd));
                         }
                         cell(r.status, color: StatusColor(r.status), bold: true);
 
@@ -240,10 +229,7 @@ namespace NinOS.UI.Common
                     }
                 });
 
-                // Ni las anuladas ni las devueltas suman. Antes solo se excluian las anuladas y las notas
-                // Devuelta se colaban en el subtotal y en el total, con lo que el reporte de
-                // ventas daba un monto que no era el vendido. Se muestran aparte para que se
-                // vean sin que falseen la cifra.
+                // TOTALES Y RESUMEN DE LA VENDEDORA / ZONA (Sin símbolos $)
                 var valid_srows = srows.Where(x => !es_anulada(x) && !es_devuelta(x)).ToList();
                 decimal group_total = valid_srows.Sum(x => x.amount_usd);
                 decimal group_paid = valid_srows.Sum(x => x.paid_amount_usd);
@@ -265,7 +251,7 @@ namespace NinOS.UI.Common
                     {
                         bottom.Item().Padding(4).Row(r =>
                         {
-                            r.RelativeItem().Text("SUBTOTAL POR COBRAR").FontSize(9).Bold().FontColor("#000000");
+                            r.RelativeItem().Text(report.show_paid_balance_summary ? "SUBTOTAL FACTURADO" : "SUBTOTAL").FontSize(9).Bold().FontColor("#000000");
                             r.ConstantItem(120).AlignRight().Text(Money(group_total)).FontSize(10).Bold();
                         });
 
@@ -308,10 +294,7 @@ namespace NinOS.UI.Common
                     });
                 });
 
-                // Bloque de meta: la meta es por vendedor, nunca por zona. En "Por Vendedor"
-                // cada pagina lleva la meta de SU vendedor contra la venta de ese vendedor. Si el
-                // alcance del reporte no coincide con lo que cubre la meta, SalesViewModel deja
-                // show_goal_block en false para no imprimir un cumplimiento que seria mentira.
+                // Bloque de meta de ventas si aplica
                 bool show_goal = report.show_goal_block;
                 decimal? goal_value = report.sales_goal_usd;
                 decimal goal_sale = report.month_total_usd;
@@ -329,7 +312,7 @@ namespace NinOS.UI.Common
                     }
                     else
                     {
-                        show_goal = false; // este vendedor no tiene meta que comparar
+                        show_goal = false;
                     }
                 }
 
@@ -375,41 +358,164 @@ namespace NinOS.UI.Common
                         }
                     });
                 }
+            });
+        }
 
-                if (is_last && all_rows != null && all_rows.Count > 0)
+        private static void BuildSummaryPage(
+            PageDescriptor page,
+            monthly_report_dto report,
+            string month_cap,
+            string group_type,
+            List<monthly_report_row_dto> all_rows,
+            List<IGrouping<string, monthly_report_row_dto>> all_groups)
+        {
+            SetupPage(page, report, month_cap);
+
+            page.Content().PaddingVertical(6).Column(sumCol =>
+            {
+                string title = report.show_paid_balance_summary
+                    ? "RESUMEN GENERAL DE CUENTAS POR COBRAR"
+                    : "RESUMEN GENERAL DE VENTAS";
+                string groupHeader = group_type == "ZONA" ? "ZONA" : "VENDEDOR";
+
+                sumCol.Item().Text(title).FontSize(13).Bold().FontColor(PrimaryColor);
+                sumCol.Item().PaddingTop(2).Text($"Consolidado de todas las {groupHeader.ToLowerInvariant()}s del período.")
+                    .FontSize(8.5f).FontColor("#555555");
+
+                sumCol.Item().PaddingTop(8).Table(table =>
                 {
-                    var valid_all = all_rows.Where(r => !es_anulada(r) && !es_devuelta(r)).ToList();
-                    decimal grand_facturado = valid_all.Sum(r => r.amount_usd);
-                    decimal grand_abonado = valid_all.Sum(r => r.paid_amount_usd);
-                    decimal grand_saldo = grand_facturado - grand_abonado;
-
-                    col.Item().PaddingTop(12).Border(1.5f).BorderColor(PrimaryColor).Column(grand =>
+                    table.ColumnsDefinition(columns =>
                     {
-                        grand.Item().Background(PrimaryColor).Padding(3).AlignCenter()
-                            .Text("TOTAL GENERAL").FontSize(9.5f).Bold().FontColor(Colors.White);
-
-                        grand.Item().Padding(4).Row(r =>
-                        {
-                            r.RelativeItem().Text("TOTAL GENERAL FACTURADO:").FontSize(9).Bold().FontColor(PrimaryColor);
-                            r.ConstantItem(120).AlignRight().Text("$" + Money(grand_facturado)).FontSize(11.5f).Bold().FontColor(PrimaryColor);
-                        });
-
+                        columns.RelativeColumn(2.0f);   // GRUPO
+                        columns.RelativeColumn(0.8f);   // NOTAS
+                        columns.RelativeColumn(1.4f);   // FACTURADO
                         if (report.show_paid_balance_summary)
                         {
-                            grand.Item().PaddingHorizontal(4).PaddingBottom(2).Row(r =>
-                            {
-                                r.RelativeItem().Text("TOTAL GENERAL ABONADO:").FontSize(8.5f).Bold().FontColor("#000000");
-                                r.ConstantItem(120).AlignRight().Text("$" + Money(grand_abonado)).FontSize(9.5f).Bold().FontColor("#2E7D32");
-                            });
+                            columns.RelativeColumn(1.4f); // ABONADO
+                            columns.RelativeColumn(1.4f); // SALDO
+                        }
+                        columns.RelativeColumn(1.0f);   // PENDIENTES / VALIDAS
+                    });
 
-                            grand.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
-                            {
-                                r.RelativeItem().Text("TOTAL GENERAL SALDO POR COBRAR:").FontSize(8.5f).Bold().FontColor("#000000");
-                                r.ConstantItem(120).AlignRight().Text("$" + Money(grand_saldo)).FontSize(9.5f).Bold().FontColor("#C62828");
-                            });
+                    table.Header(header =>
+                    {
+                        void h(string text, bool left = false)
+                        {
+                            var c = header.Cell().Background(PrimaryColor).Border(0.4f).BorderColor(LightBorder).PaddingVertical(3).PaddingHorizontal(2);
+                            var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                            t.FontColor(Colors.White).Bold().FontSize(7);
+                        }
+
+                        h(groupHeader, left: true);
+                        h("NOTAS");
+                        h("FACTURADO");
+                        if (report.show_paid_balance_summary)
+                        {
+                            h("ABONADO");
+                            h("SALDO");
+                            h("PENDIENTES");
+                        }
+                        else
+                        {
+                            h("VALIDAS");
                         }
                     });
-                }
+
+                    bool alternateSummary = false;
+                    int grand_notas = 0;
+                    decimal grand_facturado = 0;
+                    decimal grand_abonado = 0;
+                    decimal grand_saldo = 0;
+                    int grand_pendientes = 0;
+
+                    foreach (var g in all_groups)
+                    {
+                        string bg = alternateSummary ? AccentBg : Colors.White;
+                        var gRows = g.ToList();
+
+                        int count = gRows.Count;
+                        var valid = gRows.Where(r => !es_anulada(r) && !es_devuelta(r)).ToList();
+                        decimal facturado = valid.Sum(r => r.amount_usd);
+                        decimal abonado = valid.Sum(r => r.paid_amount_usd);
+                        decimal saldo = valid.Sum(r => r.balance_due_usd);
+                        int pendientes = valid.Count(r => string.Equals(r.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase));
+
+                        grand_notas += count;
+                        grand_facturado += facturado;
+                        grand_abonado += abonado;
+                        grand_saldo += saldo;
+                        grand_pendientes += report.show_paid_balance_summary ? pendientes : valid.Count;
+
+                        void cell(string text, bool left = false, string? color = null, bool bold = false)
+                        {
+                            var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
+                                .PaddingVertical(3).PaddingHorizontal(2);
+                            var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                            t.FontSize(8);
+                            if (color != null) t.FontColor(color);
+                            if (bold) t.Bold();
+                        }
+
+                        cell(g.Key.ToUpperInvariant(), left: true, bold: true);
+                        cell(count.ToString());
+                        cell(Money(facturado));
+                        if (report.show_paid_balance_summary)
+                        {
+                            cell(Money(abonado), color: "#2E7D32");
+                            cell(Money(saldo), color: saldo > 0.005m ? "#C62828" : null, bold: saldo > 0.005m);
+                            cell(pendientes.ToString());
+                        }
+                        else
+                        {
+                            cell(valid.Count.ToString());
+                        }
+
+                        alternateSummary = !alternateSummary;
+                    }
+
+                    void grandCell(string text, bool left = false, string? color = null)
+                    {
+                        var c = table.Cell().Background("#E8F5E9").Border(0.5f).BorderColor(LightBorder)
+                            .PaddingVertical(4).PaddingHorizontal(2);
+                        var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                        t.FontSize(8.5f).Bold().FontColor(color ?? PrimaryColor);
+                    }
+
+                    grandCell("TOTAL GENERAL", left: true);
+                    grandCell(grand_notas.ToString());
+                    grandCell(Money(grand_facturado));
+                    if (report.show_paid_balance_summary)
+                    {
+                        grandCell(Money(grand_abonado), color: "#2E7D32");
+                        grandCell(Money(grand_saldo), color: "#C62828");
+                        grandCell(grand_pendientes.ToString());
+                    }
+                    else
+                    {
+                        grandCell(grand_pendientes.ToString());
+                    }
+                });
+            });
+        }
+
+        private static void SetupPage(PageDescriptor page, monthly_report_dto report, string month_cap)
+        {
+            page.Size(PageSizes.Letter);
+            page.MarginLeft(1, Unit.Centimetre);
+            page.MarginTop(1, Unit.Centimetre);
+            page.MarginRight(1, Unit.Centimetre);
+            page.MarginBottom(1, Unit.Centimetre);
+            page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(8));
+
+            page.Header().Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    float title_size = Math.Max(8.5f, Math.Min(12f, 380f / (report.title.Length * 0.7f)));
+                    row.RelativeItem(3f).Text(report.title).FontSize(title_size).Bold().FontColor(PrimaryColor);
+                    row.RelativeItem().AlignRight().Text(month_cap).FontSize(9.5f).Bold().FontColor("#000000");
+                });
+                col.Item().PaddingTop(3).LineHorizontal(1.5f).LineColor(PrimaryColor);
             });
 
             page.Footer().Column(col =>
@@ -438,10 +544,6 @@ namespace NinOS.UI.Common
             return char.ToUpper(text[0]) + text.Substring(1);
         }
 
-        /// <summary>
-        /// Una nota Anulada o Devuelta no suma en ningun total del reporte. Se muestran en su
-        /// propio bloque al pie para que se vean sin falsear la cifra.
-        /// </summary>
         private static bool es_anulada(monthly_report_row_dto r)
             => string.Equals(r.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
 

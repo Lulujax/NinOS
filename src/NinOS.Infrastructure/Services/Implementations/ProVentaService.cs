@@ -123,7 +123,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 customers.TryGetValue(n.id_customer, out string? customer_name);
                 sellers.TryGetValue(n.id_seller, out var seller);
-                decimal amount = n.adjusted_total_usd;
+                // En el reporte semanal las notas van sin descuento como tal (total_amount_usd)
+                decimal amount = n.total_amount_usd;
                 return new pro_venta_weekly_row
                 {
                     id_delivery_note = n.id_delivery_note,
@@ -131,6 +132,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_name = customer_name ?? string.Empty,
                     seller_name = seller?.full_name ?? string.Empty,
                     seller_code = seller?.seller_code ?? string.Empty,
+                    gross_total_usd = n.total_amount_usd,
+                    discount_percentage = n.discount_percentage,
+                    discount_percentage_text = (n.discount_percentage.HasValue && n.discount_percentage.Value > 0)
+                        ? $"{n.discount_percentage.Value:0.##}%"
+                        : "0%",
                     amount = amount,
                     commission_luis = Money.round(amount * 0.10m),
                     gastos_25 = Money.round(amount * 0.25m),
@@ -213,7 +219,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 customers.TryGetValue(n.id_customer, out string? customer_name);
                 sellers.TryGetValue(n.id_seller, out var seller);
-                decimal amount = n.adjusted_total_usd;
+                // En el reporte semanal las notas van sin descuento como tal (total_amount_usd)
+                decimal amount = n.total_amount_usd;
                 return new pro_venta_weekly_row
                 {
                     id_delivery_note = n.id_delivery_note,
@@ -221,6 +228,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_name = customer_name ?? string.Empty,
                     seller_name = seller?.full_name ?? string.Empty,
                     seller_code = seller?.seller_code ?? string.Empty,
+                    gross_total_usd = n.total_amount_usd,
+                    discount_percentage = n.discount_percentage,
+                    discount_percentage_text = (n.discount_percentage.HasValue && n.discount_percentage.Value > 0)
+                        ? $"{n.discount_percentage.Value:0.##}%"
+                        : "0%",
                     amount = amount,
                     commission_luis = Money.round(amount * 0.10m),
                     gastos_25 = Money.round(amount * 0.25m),
@@ -386,6 +398,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     customer_name = customer_name ?? string.Empty,
                     seller_name = seller?.full_name ?? string.Empty,
                     seller_code = seller?.seller_code ?? string.Empty,
+                    gross_total_usd = n.total_amount_usd,
+                    discount_percentage = n.discount_percentage,
+                    discount_percentage_text = (n.discount_percentage.HasValue && n.discount_percentage.Value > 0)
+                        ? $"{n.discount_percentage.Value:0.##}%"
+                        : "0%",
                     amount = amount,
                     commission_luis = Money.round(amount * 0.10m),
                     gastos_25 = Money.round(amount * 0.25m),
