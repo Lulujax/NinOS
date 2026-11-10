@@ -151,6 +151,7 @@ namespace NinOS.UI.Views
         public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null, string? initial_category = null, string? initial_zona_name = null)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _vm = vm;
             _initial_seller_name = initial_seller_name;
             _initial_category = initial_category;

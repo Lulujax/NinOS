@@ -1,9 +1,11 @@
 <Window x:Class="NinOS.UI.Views.AddPromotionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Promocion" Height="640" Width="980"
+        Title="Promocion" Height="580" Width="980"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
         WindowStartupLocation="CenterOwner" Background="#F5F5F5"
-        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="560" MinWidth="900">
+        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="480" MinWidth="850">
     <Window.Resources>
         <!-- Mismo lenguaje visual que el boton Editar de las filas del inventario -->
         <Style x:Key="AddProductButton" TargetType="Button">
@@ -268,7 +270,7 @@
             <Button Content="Guardar" Height="30" Padding="18,0" Margin="0,0,8,0"
                     Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand"
                     FontWeight="SemiBold" Command="{Binding save_promotion_command}"/>
-            <Button Content="Cancelar" Height="30" Padding="18,0" Click="OnCancelClick"
+            <Button Content="Cancelar" IsCancel="True" Height="30" Padding="18,0" Click="OnCancelClick"
                     Background="#E0E0E0" Foreground="#424242" BorderThickness="1" BorderBrush="#BDBDBD"
                     Cursor="Hand"/>
         </StackPanel>

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using ClosedXML.Excel;
@@ -8,63 +9,343 @@ namespace NinOS.UI.Common
 {
     public static class CommissionExcelExporter
     {
+        private static readonly CultureInfo Ve = new CultureInfo("es-VE");
+
         public static void export(commission_receipt_dto receipt)
         {
             if (receipt == null || receipt.rows.Count == 0) return;
 
             using var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("Comisiones");
+            var ws = wb.Worksheets.Add("Comprobante Comisión");
 
+            // 1. ENCABEZADO INSTITUCIONAL ("de quién es", sin ningún símbolo $)
+            // Fila 1: Título principal
+            var titleRange = ws.Range(1, 1, 1, 9);
+            titleRange.Merge();
+            titleRange.Value = "COMPROBANTE DE PAGO DE COMISIÓN";
+            titleRange.Style.Font.Bold = true;
+            titleRange.Style.Font.FontSize = 13;
+            titleRange.Style.Font.FontColor = XLColor.White;
+            titleRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#1B3A2D");
+            titleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            titleRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            ws.Row(1).Height = 28;
+
+            // Fila 2: Espacio
+            ws.Row(2).Height = 6;
+
+            // Fila 3: Bloque de metadatos (Vendedora, Referencia, Fecha)
+            string seller = (receipt.seller_name ?? string.Empty).Trim().ToUpperInvariant();
+
+            ws.Cell(3, 1).Value = "VENDEDORA:";
+            ws.Cell(3, 1).Style.Font.Bold = true;
+            ws.Cell(3, 1).Style.Font.FontSize = 9.5;
+            ws.Cell(3, 1).Style.Font.FontColor = XLColor.FromHtml("#555555");
+            ws.Cell(3, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var sellerRange = ws.Range(3, 2, 3, 4);
+            sellerRange.Merge();
+            sellerRange.Value = seller;
+            sellerRange.Style.Font.Bold = true;
+            sellerRange.Style.Font.FontSize = 11;
+            sellerRange.Style.Font.FontColor = XLColor.FromHtml("#1B3A2D");
+            sellerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Cell(3, 5).Value = "REFERENCIA:";
+            ws.Cell(3, 5).Style.Font.Bold = true;
+            ws.Cell(3, 5).Style.Font.FontSize = 9.5;
+            ws.Cell(3, 5).Style.Font.FontColor = XLColor.FromHtml("#555555");
+            ws.Cell(3, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            ws.Cell(3, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Cell(3, 6).Value = string.IsNullOrWhiteSpace(receipt.reference_number) ? "-" : receipt.reference_number;
+            ws.Cell(3, 6).Style.Font.Bold = true;
+            ws.Cell(3, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(3, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Cell(3, 8).Value = "FECHA:";
+            ws.Cell(3, 8).Style.Font.Bold = true;
+            ws.Cell(3, 8).Style.Font.FontSize = 9.5;
+            ws.Cell(3, 8).Style.Font.FontColor = XLColor.FromHtml("#555555");
+            ws.Cell(3, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            ws.Cell(3, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Cell(3, 9).Value = receipt.payment_date.ToString("dd/MM/yyyy");
+            ws.Cell(3, 9).Style.Font.Bold = true;
+            ws.Cell(3, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(3, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Range(3, 1, 3, 9).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(3, 1, 3, 9).Style.Border.BottomBorderColor = XLColor.FromHtml("#B0BEC5");
+            ws.Row(3).Height = 22;
+
+            // Fila 4: Espacio
+            ws.Row(4).Height = 8;
+
+            // 2. ENCABEZADOS DE LA TABLA (Sin ningún signo $)
+            int headerRow = 5;
             string[] headers = new[]
             {
-                "NRO NOTA", "CLIENTE", "MONTO FACTURADO ($)", "FECHA DE PAGO",
-                "MONTO PAGADO ($)", "PRONTO PAGO", "COMISION 10% ($)", "TOTAL COMISION ($)", "FECHA PAGO COMISION"
+                "NRO", "CLIENTE", "MONTO FACTURADO", "FECHA DE PAGO",
+                "MONTO PAGADO", "PRONTO PAGO", "COMISION 10%", "TOTAL COMISION", "PAGO COMISION"
             };
 
             for (int i = 0; i < headers.Length; i++)
             {
-                ws.Cell(1, i + 1).Value = headers[i];
-                ExcelFlatExporter.StyleHeaderCell(ws.Cell(1, i + 1));
+                var cell = ws.Cell(headerRow, i + 1);
+                cell.Value = headers[i];
+                ExcelFlatExporter.StyleHeaderCell(cell, "#1B3A2D");
             }
+            ws.Row(headerRow).Height = 24;
 
-            int rowIdx = 2;
+            // 3. DETALLE DE NOTAS
+            int rowIdx = headerRow + 1;
+            bool alt = false;
             foreach (var r in receipt.rows)
             {
-                int c = 1;
-                ws.Cell(rowIdx, c++).SetValue(r.note_number);
-                ws.Cell(rowIdx, c++).SetValue(r.customer_name);
+                var rowRange = ws.Range(rowIdx, 1, rowIdx, 9);
+                if (alt)
+                {
+                    rowRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAF9");
+                }
+                rowRange.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                rowRange.Style.Border.BottomBorderColor = XLColor.FromHtml("#E0E0E0");
 
-                var factCell = ws.Cell(rowIdx, c++);
+                // Col 1: NRO (Centrado)
+                var nroCell = ws.Cell(rowIdx, 1);
+                nroCell.SetValue(r.note_number);
+                nroCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                nroCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                // Col 2: CLIENTE (Alineado a la izquierda)
+                var cliCell = ws.Cell(rowIdx, 2);
+                cliCell.SetValue(r.customer_name);
+                cliCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                cliCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                // Col 3: MONTO FACTURADO (Centrado, número sin $)
+                var factCell = ws.Cell(rowIdx, 3);
                 factCell.SetValue(r.invoiced_amount);
                 factCell.Style.NumberFormat.Format = "#,##0.00";
+                factCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                factCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                ws.Cell(rowIdx, c++).SetValue(r.payment_date?.ToString("dd/MM/yyyy") ?? "-");
+                // Col 4: FECHA DE PAGO (Centrado)
+                var fpCell = ws.Cell(rowIdx, 4);
+                string pDateText = !string.IsNullOrWhiteSpace(r.note_payments_text)
+                    ? r.note_payments_text
+                    : (r.payment_date?.ToString("dd/MM/yyyy") ?? "-");
+                fpCell.SetValue(pDateText);
+                fpCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                fpCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                var paidCell = ws.Cell(rowIdx, c++);
-                paidCell.SetValue(r.paid_amount);
-                paidCell.Style.NumberFormat.Format = "#,##0.00";
+                // Col 5: MONTO PAGADO (Centrado, número sin $)
+                var pagCell = ws.Cell(rowIdx, 5);
+                pagCell.SetValue(r.paid_amount);
+                pagCell.Style.NumberFormat.Format = "#,##0.00";
+                pagCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                pagCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                ws.Cell(rowIdx, c++).SetValue(r.early_payment_discount_pct > 0 ? $"SI ({r.early_payment_discount_pct:0.##}%)" : (r.early_payment_discount > 0 ? "SI" : "NO"));
+                // Col 6: PRONTO PAGO (Centrado)
+                var ppCell = ws.Cell(rowIdx, 6);
+                string ppText = r.early_payment_discount_pct > 0
+                    ? $"SI ({r.early_payment_discount_pct:0.##}%)"
+                    : (r.early_payment_discount > 0 ? "SI" : "NO");
+                ppCell.SetValue(ppText);
+                ppCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ppCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                var comm10Cell = ws.Cell(rowIdx, c++);
-                comm10Cell.SetValue(r.commission_10);
-                comm10Cell.Style.NumberFormat.Format = "#,##0.00";
+                // Col 7: COMISION 10% (Centrado, número sin $)
+                var com10Cell = ws.Cell(rowIdx, 7);
+                com10Cell.SetValue(r.commission_10);
+                com10Cell.Style.NumberFormat.Format = "#,##0.00";
+                com10Cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                com10Cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                var totCommCell = ws.Cell(rowIdx, c++);
-                totCommCell.SetValue(r.commission_10);
-                totCommCell.Style.NumberFormat.Format = "#,##0.00";
+                // Col 8: TOTAL COMISION (Centrado, número sin $)
+                var totCell = ws.Cell(rowIdx, 8);
+                totCell.SetValue(r.commission_10);
+                totCell.Style.NumberFormat.Format = "#,##0.00";
+                totCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                totCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                ws.Cell(rowIdx, c++).SetValue(r.commission_paid_date?.ToString("dd/MM/yyyy") ?? "-");
+                // Col 9: PAGO COMISION (Centrado)
+                var pagComCell = ws.Cell(rowIdx, 9);
+                string commPaidDateText = !string.IsNullOrWhiteSpace(r.commission_paid_date_dmon)
+                    ? r.commission_paid_date_dmon
+                    : (r.commission_paid_date?.ToString("dd/MM/yyyy") ?? "-");
+                pagComCell.SetValue(commPaidDateText);
+                pagComCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                pagComCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
+                ws.Row(rowIdx).Height = 20;
                 rowIdx++;
+                alt = !alt;
             }
 
-            ws.Cell(rowIdx, 1).SetValue("TOTAL COMISION");
-            ws.Cell(rowIdx, 8).SetValue(receipt.rows.Sum(x => x.commission_10));
-            ws.Cell(rowIdx, 8).Style.NumberFormat.Format = "#,##0.00";
-            ExcelFlatExporter.StyleTotalRow(ws.Range(rowIdx, 1, rowIdx, headers.Length));
+            int lastDataRow = rowIdx - 1;
 
-            ExcelFlatExporter.FormatTable(ws, headerRow: 1);
+            // 4. TABLA DE TOTALES Y LIQUIDACIÓN BANCARIA (Sin ningún signo $)
+            decimal sub_total = receipt.rows.Sum(x => x.commission_10);
+
+            rowIdx++; // Fila vacía de separación
+            ws.Row(rowIdx).Height = 10;
+            rowIdx++;
+
+            // Fila: SUB TOTAL
+            var subTotalLabel = ws.Range(rowIdx, 5, rowIdx, 7);
+            subTotalLabel.Merge();
+            subTotalLabel.Value = "SUB TOTAL";
+            subTotalLabel.Style.Font.Bold = true;
+            subTotalLabel.Style.Font.FontSize = 9.5;
+            subTotalLabel.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            subTotalLabel.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var subTotalVal = ws.Cell(rowIdx, 8);
+            subTotalVal.SetValue(sub_total);
+            subTotalVal.Style.Font.Bold = true;
+            subTotalVal.Style.Font.FontSize = 10;
+            subTotalVal.Style.NumberFormat.Format = "#,##0.00";
+            subTotalVal.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            subTotalVal.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Range(rowIdx, 5, rowIdx, 8).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(rowIdx, 5, rowIdx, 8).Style.Border.OutsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            ws.Row(rowIdx).Height = 20;
+            rowIdx++;
+
+            // Fila: COMISION PAGADA
+            var comPagLabel = ws.Range(rowIdx, 5, rowIdx, 7);
+            comPagLabel.Merge();
+            comPagLabel.Value = "COMISION PAGADA";
+            comPagLabel.Style.Font.Bold = true;
+            comPagLabel.Style.Font.FontSize = 10;
+            comPagLabel.Style.Font.FontColor = XLColor.FromHtml("#1B3A2D");
+            comPagLabel.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
+            comPagLabel.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            comPagLabel.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var comPagVal = ws.Cell(rowIdx, 8);
+            comPagVal.SetValue(sub_total);
+            comPagVal.Style.Font.Bold = true;
+            comPagVal.Style.Font.FontSize = 11;
+            comPagVal.Style.Font.FontColor = XLColor.FromHtml("#1B3A2D");
+            comPagVal.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
+            comPagVal.Style.NumberFormat.Format = "#,##0.00";
+            comPagVal.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            comPagVal.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Range(rowIdx, 5, rowIdx, 8).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            ws.Range(rowIdx, 5, rowIdx, 8).Style.Border.OutsideBorderColor = XLColor.FromHtml("#1B3A2D");
+            ws.Row(rowIdx).Height = 22;
+            rowIdx++;
+
+            // Fila de separación
+            ws.Row(rowIdx).Height = 6;
+            rowIdx++;
+
+            // TABLA BANCARIA (Sin signos $)
+            // Columnas: E: BANCO | F: NRO REF | G: MONTO BS | H: MONTO | I: FECHA
+            int bankHeaderRow = rowIdx;
+            string[] bankHeaders = new[] { "BANCO", "NRO REF", "MONTO BS", "MONTO", "FECHA" };
+            for (int k = 0; k < bankHeaders.Length; k++)
+            {
+                var bCell = ws.Cell(bankHeaderRow, 5 + k);
+                bCell.Value = bankHeaders[k];
+                ExcelFlatExporter.StyleHeaderCell(bCell, "#1B3A2D");
+                bCell.Style.Font.FontSize = 9;
+            }
+            ws.Row(bankHeaderRow).Height = 20;
+            rowIdx++;
+
+            // Fila de datos bancarios
+            int bankDataRow = rowIdx;
+            ws.Cell(bankDataRow, 5).SetValue(string.IsNullOrWhiteSpace(receipt.bank_name) ? "-" : receipt.bank_name);
+            ws.Cell(bankDataRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(bankDataRow, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Cell(bankDataRow, 6).SetValue(string.IsNullOrWhiteSpace(receipt.reference_number) ? "-" : receipt.reference_number);
+            ws.Cell(bankDataRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(bankDataRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var bsCell = ws.Cell(bankDataRow, 7);
+            bsCell.SetValue(receipt.total_bs);
+            bsCell.Style.NumberFormat.Format = "#,##0.00";
+            bsCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            bsCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var usdCell = ws.Cell(bankDataRow, 8);
+            usdCell.SetValue(receipt.total_usd);
+            usdCell.Style.NumberFormat.Format = "#,##0.00";
+            usdCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            usdCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            string payDateDMon = receipt.payment_date.ToString("dd-MMM", Ve).Replace(".", "").ToLowerInvariant();
+            ws.Cell(bankDataRow, 9).SetValue(payDateDMon);
+            ws.Cell(bankDataRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(bankDataRow, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var bankDataRange = ws.Range(bankDataRow, 5, bankDataRow, 9);
+            bankDataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            bankDataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            bankDataRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            bankDataRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            ws.Row(bankDataRow).Height = 20;
+            rowIdx++;
+
+            // Fila: TOTAL COMISION (BANCO y NRO REF combinados) | MONTO BS | MONTO
+            int bankTotalRow = rowIdx;
+            var totComBankLabel = ws.Range(bankTotalRow, 5, bankTotalRow, 6);
+            totComBankLabel.Merge();
+            totComBankLabel.Value = "TOTAL COMISION";
+            totComBankLabel.Style.Font.Bold = true;
+            totComBankLabel.Style.Font.FontSize = 9.5;
+            totComBankLabel.Style.Font.FontColor = XLColor.White;
+            totComBankLabel.Style.Fill.BackgroundColor = XLColor.FromHtml("#1B3A2D");
+            totComBankLabel.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            totComBankLabel.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var totBsCell = ws.Cell(bankTotalRow, 7);
+            totBsCell.SetValue(receipt.total_bs);
+            totBsCell.Style.Font.Bold = true;
+            totBsCell.Style.NumberFormat.Format = "#,##0.00";
+            totBsCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            totBsCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            totBsCell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
+
+            var totUsdCell = ws.Cell(bankTotalRow, 8);
+            totUsdCell.SetValue(receipt.total_usd);
+            totUsdCell.Style.Font.Bold = true;
+            totUsdCell.Style.NumberFormat.Format = "#,##0.00";
+            totUsdCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            totUsdCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            totUsdCell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
+
+            var emptyDateCell = ws.Cell(bankTotalRow, 9);
+            emptyDateCell.Value = "";
+            emptyDateCell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
+
+            var bankTotalRange = ws.Range(bankTotalRow, 5, bankTotalRow, 9);
+            bankTotalRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            bankTotalRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            bankTotalRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            bankTotalRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            ws.Row(bankTotalRow).Height = 22;
+
+            // 5. AJUSTE Y EXPANSIÓN GENEROSA DEL ANCHO DE CELDAS
+            ws.Columns().AdjustToContents();
+            ws.Column(1).Width = Math.Max(ws.Column(1).Width + 5, 12);  // NRO
+            ws.Column(2).Width = Math.Max(ws.Column(2).Width + 8, 34);  // CLIENTE
+            ws.Column(3).Width = Math.Max(ws.Column(3).Width + 6, 20);  // MONTO FACTURADO
+            ws.Column(4).Width = Math.Max(ws.Column(4).Width + 6, 18);  // FECHA DE PAGO
+            ws.Column(5).Width = Math.Max(ws.Column(5).Width + 6, 18);  // MONTO PAGADO / BANCO
+            ws.Column(6).Width = Math.Max(ws.Column(6).Width + 6, 17);  // PRONTO PAGO / NRO REF
+            ws.Column(7).Width = Math.Max(ws.Column(7).Width + 6, 18);  // COMISION 10% / MONTO BS
+            ws.Column(8).Width = Math.Max(ws.Column(8).Width + 6, 18);  // TOTAL COMISION / MONTO
+            ws.Column(9).Width = Math.Max(ws.Column(9).Width + 6, 17);  // PAGO COMISION / FECHA
+
+            // Autofilter solo sobre la tabla de detalle
+            ws.Range(headerRow, 1, lastDataRow, 9).SetAutoFilter();
 
             string defaultName = Path.GetFileNameWithoutExtension(CommissionPdfGenerator.get_default_file_name(receipt)) + ".xlsx";
             ExcelFlatExporter.SaveWithDialog(wb, defaultName, "Guardar comprobante de comisión en Excel");

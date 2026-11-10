@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -90,6 +90,7 @@ namespace NinOS.UI.Views
         public AdminPanelWindow()
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             CustomersGrid.ItemsSource = DeletedCustomers;
             ProductsGrid.ItemsSource = DeletedProducts;
             PromotionsGrid.ItemsSource = DeletedPromotions;

@@ -14,6 +14,7 @@ namespace NinOS.UI.Views
         public AddPromotionWindow()
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
 
             this.DataContextChanged += OnViewModelChanged;
             this.Loaded += (s, e) =>

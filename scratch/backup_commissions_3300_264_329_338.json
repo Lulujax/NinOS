@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-11-04T09:32:37.568535",
+  "commission_columns": [
+    "id_commission",
+    "id_seller",
+    "id_delivery_note",
+    "commission_percentage",
+    "amount_usd",
+    "is_paid",
+    "payout_date",
+    "amount_bs",
+    "exchange_rate",
+    "reference_number"
+  ],
+  "commission_rows": [
+    {
+      "id_commission": 17,
+      "id_seller": 2,
+      "id_delivery_note": 79,
+      "commission_percentage": 0.1,
+      "amount_usd": 9.16,
+      "is_paid": true,
+      "payout_date": "2026-11-01T23:19:31.849579+00:00",
+      "amount_bs": 0.0,
+      "exchange_rate": 0.0,
+      "reference_number": ""
+    },
+    {
+      "id_commission": 18,
+      "id_seller": 2,
+      "id_delivery_note": 88,
+      "commission_percentage": 0.1,
+      "amount_usd": 18.46,
+      "is_paid": true,
+      "payout_date": "2026-11-01T23:19:31.849579+00:00",
+      "amount_bs": 0.0,
+      "exchange_rate": 0.0,
+      "reference_number": ""
+    },
+    {
+      "id_commission": 19,
+      "id_seller": 2,
+      "id_delivery_note": 94,
+      "commission_percentage": 0.1,
+      "amount_usd": 30.72,
+      "is_paid": true,
+      "payout_date": "2026-11-01T23:19:31.849579+00:00",
+      "amount_bs": 0.0,
+      "exchange_rate": 0.0,
+      "reference_number": ""
+    }
+  ],
+  "commission_payment_columns": [
+    "id_commission_payment",
+    "id_commission",
+    "amount_usd",
+    "amount_bs",
+    "exchange_rate",
+    "payment_type",
+    "reference_number",
+    "payment_date",
+    "bank_name",
+    "observations"
+  ],
+  "commission_payment_rows": [
+    {
+      "id_commission_payment": 9,
+      "id_commission": 17,
+      "amount_usd": 9.16,
+      "amount_bs": 8152.4,
+      "exchange_rate": 890.0,
+      "payment_type": "Pago Movil",
+      "reference_number": "598987",
+      "payment_date": "2026-11-01T04:00:00+00:00",
+      "bank_name": "",
+      "observations": ""
+    },
+    {
+      "id_commission_payment": 10,
+      "id_commission": 18,
+      "amount_usd": 18.46,
+      "amount_bs": 16429.4,
+      "exchange_rate": 890.0,
+      "payment_type": "Pago Movil",
+      "reference_number": "598987",
+      "payment_date": "2026-11-01T04:00:00+00:00",
+      "bank_name": "",
+      "observations": ""
+    },
+    {
+      "id_commission_payment": 11,
+      "id_commission": 19,
+      "amount_usd": 30.72,
+      "amount_bs": 27340.8,
+      "exchange_rate": 890.0,
+      "payment_type": "Pago Movil",
+      "reference_number": "598987",
+      "payment_date": "2026-11-01T04:00:00+00:00",
+      "bank_name": "",
+      "observations": ""
+    }
+  ]
+}

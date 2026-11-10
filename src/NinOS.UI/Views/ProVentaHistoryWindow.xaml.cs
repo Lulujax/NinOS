@@ -20,6 +20,7 @@ namespace NinOS.UI.Views
         public ProVentaHistoryWindow(ProVentaViewModel vm, pro_venta_relation_row row)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             _row = row ?? throw new ArgumentNullException(nameof(row));
 

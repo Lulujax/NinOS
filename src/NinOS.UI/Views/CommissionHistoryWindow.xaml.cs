@@ -20,6 +20,7 @@ namespace NinOS.UI.Views
         public CommissionHistoryWindow(CommissionsViewModel commissions_vm, PaymentsViewModel? payments_vm, commission_row_dto commission)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _commissions_vm = commissions_vm;
             _payments_vm = payments_vm;
             _commission = commission;

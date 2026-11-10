@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -42,6 +42,7 @@ namespace NinOS.UI.Views
         public AddCommissionPaymentWindow(CommissionsViewModel vm, List<commission_row_dto> available)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _vm = vm;
             _available = available ?? new List<commission_row_dto>();
 
@@ -452,12 +453,18 @@ namespace NinOS.UI.Views
                         var receipt = await _vm.get_commission_receipt_async(ids, reference);
                         if (receipt == null || receipt.rows.Count == 0)
                         {
-                            AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
+                            AppDialog.Show("No se encontró información del comprobante.", "Comprobante",
                                 MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
-                            CommissionPdfGenerator.generate(receipt);
+                            var doc = CommissionPdfGenerator.build_document(receipt);
+                            string defaultName = CommissionPdfGenerator.get_default_file_name(receipt);
+                            var preview = new PdfPreviewWindow(doc, $"Comprobante de Comisión - Ref: {receipt.reference_number}", defaultName, () =>
+                            {
+                                CommissionExcelExporter.export(receipt);
+                            });
+                            preview.ShowDialog();
                         }
                     }
                 }

@@ -1,3 +1,4 @@
+using NinOS.UI.Common;
 using System.Collections.Generic;
 using System.Windows;
 using NinOS.Domain.ViewModels;
@@ -9,6 +10,7 @@ namespace NinOS.UI.Views
         public PaymentHistoryWindow(IEnumerable<payment_dto> payments)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             foreach (var p in payments)
                 HistoryGrid.Items.Add(p);
         }

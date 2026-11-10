@@ -1,9 +1,11 @@
 <Window x:Class="NinOS.UI.Views.AddCreditNoteWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Nota de Credito" Height="640" Width="960"
+        Title="Nota de Credito" Height="580" Width="960"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
         WindowStartupLocation="CenterOwner" Background="#F5F5F5"
-        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="620" MinWidth="840">
+        ResizeMode="CanResizeWithGrip" FontSize="12" MinHeight="480" MinWidth="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

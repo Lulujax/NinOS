@@ -68,6 +68,10 @@
 
         </Style>
 
+        <Style x:Key="CellTextCenterWrap" TargetType="TextBlock" BasedOn="{StaticResource CellTextCenter}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
         <Style x:Key="CellTextWrap" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
 
             <Setter Property="TextWrapping" Value="Wrap"/>
@@ -328,38 +332,76 @@
 
 
 
-                <Button Content="Reporte" Background="#1B3A2D" Foreground="White"
-
-                        FontWeight="SemiBold" Padding="12,4" BorderThickness="0" Cursor="Hand"
-
-                        Command="{Binding print_report_command}" FontSize="12.5" Margin="0,0,8,0"
-
-                        ToolTip="Descargar reporte completo de comisiones en PDF">
-
+                <Button Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding preview_report_command}" FontSize="12" Margin="0,0,6,0"
+                        ToolTip="Vista previa en pantalla del reporte de comisiones">
                     <Button.Template>
-
                         <ControlTemplate TargetType="Button">
-
                             <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
                             </Border>
-
                             <ControlTemplate.Triggers>
-
                                 <Trigger Property="IsMouseOver" Value="True">
-
                                     <Setter TargetName="bd" Property="Background" Value="#2A5945"/>
-
                                 </Trigger>
-
                             </ControlTemplate.Triggers>
-
                         </ControlTemplate>
-
                     </Button.Template>
+                </Button>
 
+                <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding direct_print_report_command}" FontSize="12" Margin="0,0,6,0"
+                        ToolTip="Imprimir directamente el reporte de comisiones">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#0369A1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button Content="📄 PDF" Background="#16A34A" Foreground="White"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding print_report_command}" FontSize="12" Margin="0,0,6,0"
+                        ToolTip="Descargar reporte completo de comisiones en PDF">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#15803D"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button Content="📊 Excel" Background="#10B981" Foreground="White"
+                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
+                        Command="{Binding export_report_excel_command}" FontSize="12" Margin="0,0,8,0"
+                        ToolTip="Exportar reporte de comisiones a Excel">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#059669"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
 
 
@@ -438,9 +480,8 @@
 
                               ElementStyle="{StaticResource CellTextCenter}"/>
 
-                            <DataGridTextColumn Header="FECHA DE PAGO" Binding="{Binding note_last_payment_date_text}" Width="105"
-
-                              ElementStyle="{StaticResource CellTextCenter}"/>
+                            <DataGridTextColumn Header="FECHA DE PAGO" Binding="{Binding note_payments_text}" Width="135"
+                              ElementStyle="{StaticResource CellTextCenterWrap}"/>
 
                             <DataGridTextColumn Header="MONTO PAGADO" Binding="{Binding paid_amount, StringFormat=N2}" Width="110"
 
@@ -482,46 +523,43 @@
 
                               ElementStyle="{StaticResource CellTextCenter}"/>
 
-                            <DataGridTemplateColumn Header="PDF" Width="55" CanUserResize="False">
-
+                            <DataGridTemplateColumn Header="Comprobante" Width="185" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
-
-                                        <Button Content="PDF" Padding="6,2" Margin="2" FontSize="10" Cursor="Hand"
-
-                                                Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" Foreground="#0D47A1"
-
-                                                Command="{Binding DataContext.print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-
-                                                CommandParameter="{Binding}">
-
-                                            <Button.Style>
-
-                                                <Style TargetType="Button">
-
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
-
                                                     <Style.Triggers>
-
                                                         <DataTrigger Binding="{Binding status}" Value="Pagada">
-
                                                             <Setter Property="Visibility" Value="Visible"/>
-
                                                         </DataTrigger>
-
                                                     </Style.Triggers>
-
                                                 </Style>
-
-                                            </Button.Style>
-
-                                        </Button>
-
+                                            </StackPanel.Style>
+                                            <Button Content="👁️" Padding="5,2" Margin="1" FontSize="11" Cursor="Hand"
+                                                    ToolTip="Vista previa del comprobante"
+                                                    Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" Foreground="#0F172A"
+                                                    Command="{Binding DataContext.preview_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="🖨️" Padding="5,2" Margin="1" FontSize="11" Cursor="Hand"
+                                                    ToolTip="Imprimir comprobante directamente"
+                                                    Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" Foreground="#0369A1"
+                                                    Command="{Binding DataContext.direct_print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="PDF" Padding="6,2" Margin="1" FontSize="10.5" Cursor="Hand"
+                                                    ToolTip="Descargar comprobante en PDF"
+                                                    Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" Foreground="#0D47A1"
+                                                    Command="{Binding DataContext.print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="Excel" Padding="6,2" Margin="1" FontSize="10.5" Cursor="Hand"
+                                                    ToolTip="Exportar comprobante a Excel"
+                                                    Background="#ECFDF5" BorderBrush="#A7F3D0" BorderThickness="1" Foreground="#047857"
+                                                    Command="{Binding DataContext.export_commission_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
                                     </DataTemplate>
-
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
 
                         </DataGrid.Columns>

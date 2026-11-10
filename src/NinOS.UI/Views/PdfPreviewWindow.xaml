@@ -2,7 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="Vista Previa de Documento" Height="820" Width="1050"
+        Title="Vista Previa de Documento" Height="600" Width="980"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Background="#F1F5F9"
         FontFamily="Segoe UI">
@@ -91,7 +94,7 @@
                     </Button>
 
                     <!-- Botón Cerrar -->
-                    <Button Click="BtnClose_Click" Padding="12,6" Cursor="Hand"
+                    <Button Click="BtnClose_Click" IsCancel="True" Padding="12,6" Cursor="Hand"
                             Background="#475569" Foreground="White" FontWeight="SemiBold"
                             FontSize="12.5" BorderThickness="0">
                         <Button.Template>

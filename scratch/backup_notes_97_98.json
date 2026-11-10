@@ -1,0 +1,78 @@
+{
+  "delivery_note": [
+    {
+      "id_delivery_note": 97,
+      "note_number": "3300-335",
+      "creation_date": "2026-09-15T16:00:00+01:00",
+      "id_seller": 2,
+      "id_customer": 106,
+      "total_amount_usd": 353.6,
+      "status": "Pendiente",
+      "adjusted_total_usd": 353.6,
+      "cxc_observations": "Saldo anterior en el Excel | 3300-335",
+      "sales_observations": null,
+      "discount_percentage": 0.0,
+      "note_type_id": null,
+      "promo_discount_percentage": 0.0,
+      "volume_discount_percentage": 0.0,
+      "original_discount_percentage": 0.0,
+      "original_volume_discount_percentage": 0.0,
+      "id_relacion": null,
+      "dispatch_date": "2026-09-15T16:00:00+01:00",
+      "promo_banner": null,
+      "conditions_text": null,
+      "credit_days": null,
+      "discount_conditions_text": null,
+      "due_date": null
+    },
+    {
+      "id_delivery_note": 98,
+      "note_number": "3300-334",
+      "creation_date": "2026-09-15T16:00:00+01:00",
+      "id_seller": 2,
+      "id_customer": 106,
+      "total_amount_usd": 345.6,
+      "status": "Pendiente",
+      "adjusted_total_usd": 345.6,
+      "cxc_observations": "Saldo anterior en el Excel | 3300-334",
+      "sales_observations": null,
+      "discount_percentage": 0.0,
+      "note_type_id": null,
+      "promo_discount_percentage": 0.0,
+      "volume_discount_percentage": null,
+      "original_discount_percentage": 0.0,
+      "original_volume_discount_percentage": 0.0,
+      "id_relacion": null,
+      "dispatch_date": "2026-09-15T16:00:00+01:00",
+      "promo_banner": null,
+      "conditions_text": null,
+      "credit_days": null,
+      "discount_conditions_text": null,
+      "due_date": null
+    }
+  ],
+  "note_detail": [
+    {
+      "id_note_detail": 59,
+      "id_delivery_note": 98,
+      "id_product": 112,
+      "quantity": 1,
+      "unit_price_usd": 345.6,
+      "subtotal_usd": 345.6,
+      "id_promotion": null,
+      "product_code_snapshot": "Z-9999-INT",
+      "id_price_list": null
+    },
+    {
+      "id_note_detail": 60,
+      "id_delivery_note": 97,
+      "id_product": 112,
+      "quantity": 1,
+      "unit_price_usd": 353.6,
+      "subtotal_usd": 353.6,
+      "id_promotion": null,
+      "product_code_snapshot": "Z-9999-INT",
+      "id_price_list": null
+    }
+  ]
+}

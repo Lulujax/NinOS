@@ -18,6 +18,7 @@ namespace NinOS.UI.Views
         public ProductSalesHistoryWindow(product product, IEnumerable<product_sales_history_dto> history)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
 
             _product = product;
             _history = history?.ToList() ?? new List<product_sales_history_dto>();

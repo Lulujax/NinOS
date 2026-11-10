@@ -21,6 +21,7 @@ namespace NinOS.UI.Views
         public PaymentNoteHistoryWindow(PaymentsViewModel vm, accounts_receivable_dto note, IEnumerable<payment_dto> payments)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _vm = vm;
             _note = note;
             _total_note_usd = note.total_amount_usd;

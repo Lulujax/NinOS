@@ -28,6 +28,7 @@ namespace NinOS.UI.Views
             bool autoPrint = false)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this, startMaximizedIfScreenSmall: true);
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _defaultPdfFileName = string.IsNullOrWhiteSpace(defaultPdfFileName) ? "documento.pdf" : defaultPdfFileName;
             _onExportExcel = onExportExcel;
@@ -53,6 +54,7 @@ namespace NinOS.UI.Views
             bool autoPrint = false)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this, startMaximizedIfScreenSmall: true);
             _tempPdfPath = pdfFilePath;
             _defaultPdfFileName = string.IsNullOrWhiteSpace(defaultPdfFileName) ? "documento.pdf" : defaultPdfFileName;
             _onExportExcel = onExportExcel;

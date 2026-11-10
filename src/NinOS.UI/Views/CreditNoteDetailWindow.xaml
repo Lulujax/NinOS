@@ -1,4 +1,4 @@
-<Window x:Class="NinOS.UI.Views.CreditNoteDetailWindow"
+<Window MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}" MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}" x:Class="NinOS.UI.Views.CreditNoteDetailWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Nota de Credito"

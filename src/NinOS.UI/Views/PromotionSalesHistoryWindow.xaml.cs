@@ -19,6 +19,7 @@ namespace NinOS.UI.Views
         public PromotionSalesHistoryWindow(promotion promotion, IEnumerable<promotion_sales_history_dto> history)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
 
             _promotion = promotion;
 

@@ -169,18 +169,16 @@ namespace NinOS.UI.Common.ViewModels
         private void ApplyPriceForCurrentList()
         {
             if (_selected_item == null) return;
-            if (is_promotion_row) return;
-
-            if (_selected_price_list_id.HasValue && _selected_item.price_by_list != null)
+            if (is_promotion_row)
             {
-                if (_selected_item.price_by_list.TryGetValue(_selected_price_list_id.Value, out decimal precio_lista))
-                {
-                    unit_price_usd = precio_lista;
-                    return;
-                }
+                unit_price_usd = _selected_item.unit_price_usd;
+                return;
             }
 
-            unit_price_usd = _selected_item.unit_price_usd;
+            unit_price_usd = price_resolver.resolve(
+                _selected_item.unit_price_usd,
+                _selected_item.price_by_list,
+                _selected_price_list_id);
         }
 
         public billable_item? selected_item

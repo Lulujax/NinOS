@@ -1548,7 +1548,7 @@ namespace NinOS.UI.Common.ViewModels
                     int max_combos = item.product!.stock_quantity / item.quantity_required;
                     if (max_combos < calculated_available) calculated_available = max_combos;
                 }
-                if (calculated_available <= 0) continue;
+                if (calculated_available == int.MaxValue) calculated_available = 0;
 
                 string display_code = p.promotion_code ?? string.Empty;
 

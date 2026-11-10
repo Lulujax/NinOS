@@ -35,6 +35,7 @@ namespace NinOS.UI.Views
         public NotePreviewWindow(note_print_dto note, note_print_dto? pair_original, bool view_only = false)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this, startMaximizedIfScreenSmall: true);
             _note = note;
             _pair_original = pair_original;
             _view_only = view_only;

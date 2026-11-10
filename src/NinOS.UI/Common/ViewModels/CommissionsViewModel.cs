@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 
 
@@ -177,7 +177,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string reference_number { get; set; } = string.Empty;
 
-
+        public string bank_name { get; set; } = string.Empty;
 
         public DateTime? payout_date { get; set; }
 
@@ -195,7 +195,8 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public string commission_paid_date_text => commission_paid_date?.ToString("dd/MM/yyyy") ?? string.Empty;
+        public string note_payments_text { get; set; } = string.Empty;
+        public string commission_paid_date_text => commission_paid_date?.ToString("dd-MMM", new CultureInfo("es-VE")).Replace(".", "").ToLowerInvariant() ?? string.Empty;
 
 
 
@@ -724,11 +725,14 @@ namespace NinOS.UI.Common.ViewModels
 
 
         public ICommand add_commission_payment_command { get; }
-
-
-
-                public ICommand print_commission_pdf_command { get; }
+        public ICommand print_commission_pdf_command { get; }
+        public ICommand preview_commission_pdf_command { get; }
+        public ICommand direct_print_commission_pdf_command { get; }
+        public ICommand export_commission_excel_command { get; }
         public ICommand print_report_command { get; }
+        public ICommand preview_report_command { get; }
+        public ICommand direct_print_report_command { get; }
+        public ICommand export_report_excel_command { get; }
 
 
 
@@ -813,11 +817,14 @@ namespace NinOS.UI.Common.ViewModels
 
 
             add_commission_payment_command = new RelayCommand(execute_add_commission_payment);
-
-
-
             print_commission_pdf_command = new RelayCommand(execute_print_commission_pdf);
+            preview_commission_pdf_command = new RelayCommand(execute_preview_commission_pdf);
+            direct_print_commission_pdf_command = new RelayCommand(execute_direct_print_commission_pdf);
+            export_commission_excel_command = new RelayCommand(execute_export_commission_excel);
             print_report_command = new RelayCommand(execute_print_report);
+            preview_report_command = new RelayCommand(execute_preview_report);
+            direct_print_report_command = new RelayCommand(execute_direct_print_report);
+            export_report_excel_command = new RelayCommand(execute_export_report_excel);
 
 
 
@@ -1764,6 +1771,7 @@ _all_rows_source = all_rows;
 
 
                 note_last_payment_date = c.note_last_payment_date,
+                note_payments_text = c.note_payments_text,
 
 
 
@@ -1780,9 +1788,7 @@ _all_rows_source = all_rows;
 
 
                 reference_number = c.reference_number,
-
-
-
+                bank_name = c.bank_name,
                 payout_date = c.note_last_payment_date ?? c.payout_date,
 
 
@@ -1931,490 +1937,254 @@ _all_rows_source = all_rows;
 
 
 
-        private async void execute_print_commission_pdf(object? parameter)
-
-
-
+        private async Task<commission_receipt_dto?> get_receipt_for_row_async(commission_row_dto row)
         {
-
-
-
-            if (parameter is not commission_row_dto row) return;
-
-
-
-
-
-
-
             try
-
-
-
             {
-
-
-
                 var payments = (await _commission_service.get_commission_payments_async(row.id_commission)).ToList();
-
-
-
                 if (payments.Count == 0)
-
-
-
                 {
-
-
-
-                    AppDialog.Show("No hay pagos de comision para imprimir.", "Imprimir",
-
-
-
+                    AppDialog.Show("No hay pagos de comisión para este registro.", "Comprobante",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-
-
-                    return;
-
-
-
+                    return null;
                 }
-
-
-
-
-
-
 
                 string reference = payments[0].reference_number;
-
-
-
                 bool only_this_note = false;
-
-
-
-
-
-
-
                 if (!string.IsNullOrWhiteSpace(reference))
-
-
-
                 {
-
-
-
-                    // Consultar si este pago en lote contiene mas de una nota
-
-
-
                     var batch_receipt = await _commission_service.get_commission_receipt_async(new[] { row.id_commission }, reference, only_specified_commissions: false);
-
-
-
                     if (batch_receipt != null && batch_receipt.rows.Count > 1)
-
-
-
                     {
-
-
-
                         var dialog_result = AppDialog.Show(
-
-
-
-                            $"Esta comision fue liquidada en un lote de {batch_receipt.rows.Count} notas (Ref: {reference}).\n\n¿Desea imprimir el comprobante unicamente de esta nota o del lote completo?",
-
-
-
+                            $"Esta comisión fue liquidada en un lote de {batch_receipt.rows.Count} notas (Ref: {reference}).\n\n¿Desea generar el comprobante únicamente de esta nota o del lote completo?",
                             "Tipo de comprobante",
-
-
-
                             System.Windows.MessageBoxButton.YesNoCancel,
-
-
-
                             System.Windows.MessageBoxImage.Question,
-
-
-
                             System.Windows.MessageBoxResult.Yes,
-
-
-
                             "Solo esta nota",
-
-
-
                             "Lote completo");
-
-
-
-
-
-
-
                         if (dialog_result == System.Windows.MessageBoxResult.Cancel)
-
-
-
-                            return;
-
-
-
-
-
-
-
+                            return null;
                         only_this_note = (dialog_result == System.Windows.MessageBoxResult.Yes);
-
-
-
                     }
-
-
-
                 }
-
-
-
-
-
-
 
                 var receipt = await _commission_service.get_commission_receipt_async(
-
-
-
                     new[] { row.id_commission },
-
-
-
                     reference,
-
-
-
                     only_specified_commissions: only_this_note);
 
-
-
-
-
-
-
                 if (receipt == null || receipt.rows.Count == 0)
-
-
-
                 {
-
-
-
-                    AppDialog.Show("No se encontro informacion del comprobante.", "Comprobante",
-
-
-
+                    AppDialog.Show("No se encontró información del comprobante.", "Comprobante",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-
-
-                    return;
-
-
-
+                    return null;
                 }
 
-
-
-
-
-
-
-                CommissionPdfGenerator.generate(receipt);
-
-
-
+                return receipt;
             }
-
-
-
             catch (Exception ex)
-
-
-
             {
-
-
-
-                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-
-
-
+                AppDialog.Show($"Error al obtener el comprobante: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                return null;
             }
-
-
-
         }
 
+        private async void execute_print_commission_pdf(object? parameter)
+        {
+            if (parameter is not commission_row_dto row) return;
+            var receipt = await get_receipt_for_row_async(row);
+            if (receipt == null) return;
+            try
+            {
+                CommissionPdfGenerator.generate(receipt);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
+        private async void execute_preview_commission_pdf(object? parameter)
+        {
+            if (parameter is not commission_row_dto row) return;
+            var receipt = await get_receipt_for_row_async(row);
+            if (receipt == null) return;
+            try
+            {
+                var doc = CommissionPdfGenerator.build_document(receipt);
+                string defaultName = CommissionPdfGenerator.get_default_file_name(receipt);
+                var preview = new PdfPreviewWindow(doc, $"Comprobante de Comisión - Ref: {receipt.reference_number}", defaultName, () =>
+                {
+                    CommissionExcelExporter.export(receipt);
+                });
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al abrir la vista previa: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
+        private async void execute_direct_print_commission_pdf(object? parameter)
+        {
+            if (parameter is not commission_row_dto row) return;
+            var receipt = await get_receipt_for_row_async(row);
+            if (receipt == null) return;
+            try
+            {
+                var doc = CommissionPdfGenerator.build_document(receipt);
+                string defaultName = CommissionPdfGenerator.get_default_file_name(receipt);
+                ReportPrintService.DirectPrint(doc, null, $"Comprobante de Comisión - Ref: {receipt.reference_number}", defaultName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir el comprobante: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
+        private async void execute_export_commission_excel(object? parameter)
+        {
+            if (parameter is not commission_row_dto row) return;
+            var receipt = await get_receipt_for_row_async(row);
+            if (receipt == null) return;
+            try
+            {
+                CommissionExcelExporter.export(receipt);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar a Excel: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
+        private (string period_label, string filter, string? seller_scope, List<commission_row_dto> rows)? get_report_data()
+        {
+            var current_tab_items = selected_tab != null ? selected_tab.Items.ToList() : all_rows.ToList();
+            if (current_tab_items.Count == 0 && all_rows.Count == 0)
+            {
+                AppDialog.Show("No hay comisiones para mostrar en el mes seleccionado.", "Reporte",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
 
+            bool is_single_seller = selected_tab != null && selected_tab.IdSeller != null;
+            List<commission_row_dto> rows_to_print;
+            string? seller_scope = null;
+
+            if (is_single_seller)
+            {
+                var opt = AppDialog.Show(
+                    $"¿Desea generar el reporte de comisiones únicamente para '{selected_tab!.Header}' o para todas las vendedoras?",
+                    "Alcance del reporte",
+                    System.Windows.MessageBoxButton.YesNoCancel,
+                    System.Windows.MessageBoxImage.Question,
+                    System.Windows.MessageBoxResult.Yes,
+                    $"Solo {selected_tab.Header}",
+                    "Todas las vendedoras");
+                if (opt == System.Windows.MessageBoxResult.Cancel) return null;
+
+                if (opt == System.Windows.MessageBoxResult.Yes)
+                {
+                    rows_to_print = current_tab_items;
+                    seller_scope = selected_tab.Header;
+                }
+                else
+                {
+                    rows_to_print = all_rows.ToList();
+                    seller_scope = "Todas";
+                }
+            }
+            else
+            {
+                rows_to_print = all_rows.ToList();
+                seller_scope = "Todas";
+            }
+
+            if (rows_to_print.Count == 0)
+            {
+                AppDialog.Show("No hay registros que coincidan con los filtros actuales.", "Reporte",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return null;
+            }
+
+            string period_label = _selected_month == "Todos" ? $"AÑO {_selected_year}" : $"{_selected_month} {_selected_year}".ToUpperInvariant();
+            return (period_label, selected_filter, seller_scope, rows_to_print);
+        }
 
         private void execute_print_report(object? parameter)
-
-
-
         {
-
-
-
             try
-
-
-
             {
-
-
-
-                var current_tab_items = selected_tab != null ? selected_tab.Items.ToList() : all_rows.ToList();
-
-
-
-                if (current_tab_items.Count == 0 && all_rows.Count == 0)
-
-
-
-                {
-
-
-
-                    AppDialog.Show("No hay comisiones para mostrar en el mes seleccionado.", "Reporte",
-
-
-
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-
-
-                    return;
-
-
-
-                }
-
-
-
-
-
-
-
-                bool is_single_seller = selected_tab != null && selected_tab.IdSeller != null;
-
-
-
-                List<commission_row_dto> rows_to_print;
-
-
-
-                string? seller_scope = null;
-
-
-
-
-
-
-
-                if (is_single_seller)
-
-
-
-                {
-
-
-
-                    var opt = AppDialog.Show(
-
-
-
-                        $"¿Desea generar el reporte de comisiones unicamente para '{selected_tab!.Header}' o para todas las vendedoras?",
-
-
-
-                        "Alcance del reporte",
-
-
-
-                        System.Windows.MessageBoxButton.YesNoCancel,
-
-
-
-                        System.Windows.MessageBoxImage.Question,
-
-
-
-                        System.Windows.MessageBoxResult.Yes,
-
-
-
-                        $"Solo {selected_tab.Header}",
-
-
-
-                        "Todas las vendedoras");
-
-
-
-
-
-
-
-                    if (opt == System.Windows.MessageBoxResult.Cancel) return;
-
-
-
-
-
-
-
-                    if (opt == System.Windows.MessageBoxResult.Yes)
-
-
-
-                    {
-
-
-
-                        rows_to_print = current_tab_items;
-
-
-
-                        seller_scope = selected_tab.Header;
-
-
-
-                    }
-
-
-
-                    else
-
-
-
-                    {
-
-
-
-                        rows_to_print = all_rows.ToList();
-
-
-
-                        seller_scope = "Todas";
-
-
-
-                    }
-
-
-
-                }
-
-
-
-                else
-
-
-
-                {
-
-
-
-                    rows_to_print = all_rows.ToList();
-
-
-
-                    seller_scope = "Todas";
-
-
-
-                }
-
-
-
-
-
-
-
-                if (rows_to_print.Count == 0)
-
-
-
-                {
-
-
-
-                    AppDialog.Show("No hay registros que coincidan con los filtros actuales.", "Reporte",
-
-
-
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-
-
-                    return;
-
-
-
-                }
-
-
-
-
-
-
-
-                string period_label = _selected_month == "Todos" ? $"AÑO {_selected_year}" : $"{_selected_month} {_selected_year}".ToUpperInvariant();
-
-                CommissionsReportPdfGenerator.generate(period_label, selected_filter, seller_scope, rows_to_print);
-
-
-
+                var data = get_report_data();
+                if (data == null) return;
+                CommissionsReportPdfGenerator.generate(data.Value.period_label, data.Value.filter, data.Value.seller_scope, data.Value.rows);
             }
-
-
-
             catch (Exception ex)
-
-
-
             {
-
-
-
                 AppDialog.Show($"Error al generar el reporte: {ErrorText.Get(ex)}", "Error",
-
-
-
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-
-
-
             }
-
-
-
         }
 
+        private void execute_preview_report(object? parameter)
+        {
+            try
+            {
+                var data = get_report_data();
+                if (data == null) return;
+                var doc = CommissionsReportPdfGenerator.build_document(data.Value.period_label, data.Value.filter, data.Value.seller_scope, data.Value.rows);
+                string defaultName = CommissionsReportPdfGenerator.get_default_file_name(data.Value.period_label, data.Value.filter, data.Value.seller_scope);
+                var preview = new PdfPreviewWindow(doc, $"Reporte de Comisiones - {data.Value.period_label}", defaultName, () =>
+                {
+                    CommissionsReportExcelExporter.export(data.Value.period_label, data.Value.filter, data.Value.seller_scope, data.Value.rows);
+                });
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al abrir la vista previa del reporte: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
+        private void execute_direct_print_report(object? parameter)
+        {
+            try
+            {
+                var data = get_report_data();
+                if (data == null) return;
+                var doc = CommissionsReportPdfGenerator.build_document(data.Value.period_label, data.Value.filter, data.Value.seller_scope, data.Value.rows);
+                string defaultName = CommissionsReportPdfGenerator.get_default_file_name(data.Value.period_label, data.Value.filter, data.Value.seller_scope);
+                ReportPrintService.DirectPrint(doc, null, $"Reporte de Comisiones - {data.Value.period_label}", defaultName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir el reporte: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
-
-
+        private void execute_export_report_excel(object? parameter)
+        {
+            try
+            {
+                var data = get_report_data();
+                if (data == null) return;
+                CommissionsReportExcelExporter.export(data.Value.period_label, data.Value.filter, data.Value.seller_scope, data.Value.rows);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar el reporte a Excel: {ErrorText.Get(ex)}", "Error",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
 
 
         public async Task<bool> pay_commissions_async(int[] id_commissions, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations)

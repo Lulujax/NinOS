@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using NinOS.Domain.ViewModels;
+using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
 
 namespace NinOS.UI.Views
@@ -14,6 +15,7 @@ namespace NinOS.UI.Views
         public CustomerHistoryWindow(CustomerHistoryViewModel vm, IServiceProvider serviceProvider)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this, startMaximizedIfScreenSmall: true);
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             DataContext = _vm;

@@ -16,6 +16,7 @@ namespace NinOS.UI.Views
         public CreditNoteDetailWindow(CreditNotesViewModel vm, credit_note_dto note)
         {
             InitializeComponent();
+            WindowSizingHelper.FitToScreen(this);
             _vm = vm;
             _note = note;
 
