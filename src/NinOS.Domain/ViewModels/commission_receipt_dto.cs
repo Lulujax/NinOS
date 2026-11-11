@@ -17,7 +17,8 @@ namespace NinOS.Domain.ViewModels
         public decimal early_payment_discount { get; set; }
         public decimal early_payment_discount_pct { get; set; }
         public decimal commission_percentage { get; set; } = 0.10m;
-        public decimal commission_10 { get; set; }
+        public decimal commission_amount { get; set; }
+        public decimal commission_10 { get => commission_amount; set => commission_amount = value; }
         public DateTime? commission_paid_date { get; set; }
         public string commission_paid_date_dmon => commission_paid_date?.ToString("dd-MMM", new CultureInfo("es-VE")).Replace(".", "").ToLowerInvariant() ?? string.Empty;
     }

@@ -1358,6 +1358,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                             ? "NOTA DE CREDITO POR DEVOLUCION DE PRODUCTOS."
                             : $"DEVOLUCION DE PRODUCTOS DE LA NOTA {source_text}. ESTA NOTA RESTA DEL MONTO A COBRAR.",
                     discount_conditions_text = string.Empty,
+                    payment_header_text = original?.payment_header_text,
+                    payment_transfer_text = original?.payment_transfer_text,
+                    payment_account_text = original?.payment_account_text,
+                    payment_movil_text = original?.payment_movil_text,
                     details = print_details
                 };
             }

@@ -194,9 +194,9 @@ namespace NinOS.UI.Common
                     cHeaderRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8ECE9");
                     cHeaderRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                     cHeaderRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                    cHeaderRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                    cHeaderRange.Style.Border.InsideBorderColor = XLColor.Black;
                     cHeaderRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                    cHeaderRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                    cHeaderRange.Style.Border.OutsideBorderColor = XLColor.Black;
                     wsComp.Cell(cRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     wsComp.Cell(cRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     wsComp.Cell(cRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
@@ -240,9 +240,9 @@ namespace NinOS.UI.Common
                         rowRange.Style.Font.FontSize = 10;
                         rowRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                         rowRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                        rowRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                        rowRange.Style.Border.InsideBorderColor = XLColor.Black;
                         rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                        rowRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                        rowRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
                         int lines = Math.Max(1, (int)Math.Ceiling((double)(item.name?.Length ?? 0) / 44));
                         wsComp.Row(cRow).Height = Math.Max(20, lines * 14.5);
@@ -265,7 +265,7 @@ namespace NinOS.UI.Common
                 {
                     wsComp.Column(4 + cIdx).Width = 15;
                 }
-                wsComp.SheetView.FreezeRows(2);
+                // Sin inmovilizar filas (NO freeze)
                 wsComp.ShowGridLines = true;
             }
 
@@ -343,9 +343,9 @@ namespace NinOS.UI.Common
                     tableHeaderRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8ECE9");
                     tableHeaderRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                     tableHeaderRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                    tableHeaderRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                    tableHeaderRange.Style.Border.InsideBorderColor = XLColor.Black;
                     tableHeaderRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                    tableHeaderRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                    tableHeaderRange.Style.Border.OutsideBorderColor = XLColor.Black;
                     ws.Cell(rowIdx, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     ws.Cell(rowIdx, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
                     ws.Cell(rowIdx, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
@@ -387,9 +387,9 @@ namespace NinOS.UI.Common
 
                         if (alt) rowRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
                         rowRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                        rowRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                        rowRange.Style.Border.InsideBorderColor = XLColor.Black;
                         rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                        rowRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                        rowRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
                         // Altura dinámica: se ajusta para que todo el texto sea visible
                         int lines = Math.Max(1, (int)Math.Ceiling((double)(item.name?.Length ?? 0) / 50));
@@ -412,7 +412,7 @@ namespace NinOS.UI.Common
                 ws.Column(2).Width = 52;  // DESCRIPCIÓN (Espacio amplio para nombre completo)
                 ws.Column(3).Width = 16;  // PRECIO ($)
 
-                ws.SheetView.FreezeRows(2);
+                // Sin inmovilizar filas (NO freeze)
                 ws.ShowGridLines = true;
             }
 

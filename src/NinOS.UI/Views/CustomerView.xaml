@@ -180,9 +180,9 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="btn_reporte" Content="📄 Imprimir / Reporte ▾" Style="{StaticResource HeaderActionButton}"
+                    <Button x:Name="btn_reporte" Content="📄 Maestro de Clientes ▾" Style="{StaticResource HeaderActionButton}"
                             Background="#1B3A2D" Margin="0,0,8,0" Click="on_reporte_click"
-                            ToolTip="Seleccionar zonas e imprimir o exportar clientes a PDF y Excel"/>
+                            ToolTip="Seleccionar zonas e imprimir o exportar maestro de clientes a PDF y Excel"/>
 
                     <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
                             Command="{Binding EditZonasCommand}" Content="Editar Zonas" Margin="0,0,8,0"/>
@@ -206,8 +206,8 @@
                     <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#000000"/>
                 </Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="REPORTE DE CLIENTES" FontSize="11.5" FontWeight="Bold" Foreground="#1B3A2D"/>
-                    <TextBlock Text="Seleccione las zonas que desea incluir en el listado y el formato de emisión."
+                    <TextBlock Text="MAESTRO DE CLIENTES" FontSize="11.5" FontWeight="Bold" Foreground="#1B3A2D"/>
+                    <TextBlock Text="Seleccione las zonas que desea incluir en el maestro de clientes y el formato de emisión."
                                FontSize="9.5" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
                     <!-- SELECCIÓN DE ZONAS -->

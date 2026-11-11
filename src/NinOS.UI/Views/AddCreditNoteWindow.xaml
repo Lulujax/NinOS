@@ -311,8 +311,11 @@
                                             <ColumnDefinition Width="80"/>
                                             <ColumnDefinition Width="80"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding product_code}" FontWeight="Bold" FontSize="11" Foreground="#1565C0"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="0" Text="{Binding product_code}" FontWeight="Bold" FontSize="11" Foreground="#1565C0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding category}" FontSize="9" Foreground="#1B5E20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
                                             <TextBlock Text="Stock: " FontSize="10" Foreground="#757575"/>
                                             <TextBlock Text="{Binding stock_quantity}" FontWeight="Bold" FontSize="10.5" Foreground="#2E7D32"/>

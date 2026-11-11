@@ -405,7 +405,7 @@
 
                               ElementStyle="{StaticResource CellTextCenter}"/>
 
-                            <DataGridTextColumn Header="COMISION 10%" Binding="{Binding amount_usd, StringFormat=N2}" Width="100">
+                            <DataGridTextColumn Header="COMISION" Binding="{Binding amount_usd, StringFormat=N2}" Width="100">
 
                                 <DataGridTextColumn.ElementStyle>
 

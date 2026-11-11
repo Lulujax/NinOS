@@ -36,6 +36,14 @@ namespace NinOS.UI.Views
                     e.Handled = true;
                 }
             };
+
+            this.Closed += (s, e) =>
+            {
+                if (_view_model != null)
+                {
+                    _view_model.ErrorMessage = string.Empty;
+                }
+            };
         }
 
         private void OnCancelClick(object sender, RoutedEventArgs e)

@@ -19,7 +19,7 @@ namespace NinOS.UI.Common
             // 1. Hoja Principal con todos los clientes seleccionados
             string mainSheetName = model.TotalZones <= 1 && !string.IsNullOrWhiteSpace(model.Scope) && model.Scope.StartsWith("Zona", StringComparison.OrdinalIgnoreCase)
                 ? MakeSafeSheetName(model.Scope)
-                : "Clientes";
+                : "Maestro de Clientes";
 
             var wsMain = wb.Worksheets.Add(mainSheetName);
             BuildWorksheet(wsMain, model.Scope, model.SearchFilter, model.EmissionDate, customers);
@@ -49,8 +49,8 @@ namespace NinOS.UI.Common
             }
 
             string safeScope = SanitizeFileName(string.IsNullOrWhiteSpace(model.Scope) ? "GENERAL" : model.Scope);
-            string defaultName = $"LISTADO_CLIENTES_{safeScope}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
-            ExcelFlatExporter.SaveWithDialog(wb, defaultName, "Guardar listado de clientes en Excel");
+            string defaultName = $"MAESTRO_CLIENTES_{safeScope}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            ExcelFlatExporter.SaveWithDialog(wb, defaultName, "Guardar maestro de clientes en Excel");
         }
 
         private static void BuildWorksheet(
@@ -60,12 +60,12 @@ namespace NinOS.UI.Common
             DateTime emissionDate,
             List<CustomerRowDto> items)
         {
-            const int totalCols = 10;
+            const int totalCols = 9;
 
-            // Fila 1: Banner de Encabezado Superior (Fondo Verde NinOS #1B3A2D)
-            var titleLeft = ws.Range(1, 1, 1, 7);
+            // Fila 1: Banner de Encabezado Superior (Fondo Verde NinOS #1B3A2D, bordes en negro)
+            var titleLeft = ws.Range(1, 1, 1, 6);
             titleLeft.Merge();
-            titleLeft.Value = $"LISTADO DE CLIENTES - {scope.ToUpperInvariant()}";
+            titleLeft.Value = $"MAESTRO DE CLIENTES - {scope.ToUpperInvariant()}";
             titleLeft.Style.Font.Bold = true;
             titleLeft.Style.Font.FontSize = 11.5;
             titleLeft.Style.Font.FontColor = XLColor.White;
@@ -73,7 +73,7 @@ namespace NinOS.UI.Common
             titleLeft.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
             titleLeft.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-            var titleRight = ws.Range(1, 8, 1, totalCols);
+            var titleRight = ws.Range(1, 7, 1, totalCols);
             titleRight.Merge();
             titleRight.Value = $"EMISIÓN: {emissionDate:dd/MM/yyyy HH:mm}";
             titleRight.Style.Font.Bold = true;
@@ -82,6 +82,10 @@ namespace NinOS.UI.Common
             titleRight.Style.Fill.BackgroundColor = XLColor.FromHtml(ExcelFlatExporter.DarkGreenHeader);
             titleRight.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
             titleRight.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            var titleFull = ws.Range(1, 1, 1, totalCols);
+            titleFull.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            titleFull.Style.Border.OutsideBorderColor = XLColor.Black;
             ws.Row(1).Height = 25;
 
             int currentRow = 2;
@@ -92,7 +96,9 @@ namespace NinOS.UI.Common
                 filterRange.Value = $"Filtro de búsqueda aplicado: \"{searchFilter.Trim()}\"";
                 filterRange.Style.Font.Italic = true;
                 filterRange.Style.Font.FontSize = 8.5;
-                filterRange.Style.Font.FontColor = XLColor.FromHtml("#555555");
+                filterRange.Style.Font.FontColor = XLColor.FromHtml("#333333");
+                filterRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                filterRange.Style.Border.OutsideBorderColor = XLColor.Black;
                 ws.Row(currentRow).Height = 16;
                 currentRow++;
             }
@@ -101,19 +107,28 @@ namespace NinOS.UI.Common
             ws.Row(currentRow).Height = 5;
             currentRow++;
 
-            // Fila de Encabezados de Columna
+            // Fila de Encabezados de Columna (9 columnas, sin Vendedor)
             int headerRow = currentRow;
             string[] headers = new[]
             {
                 "N°", "CÓDIGO", "RAZÓN SOCIAL / CLIENTE", "RIF", "CONTACTO",
-                "TELÉFONO", "DIRECCIÓN FISCAL", "DIRECCIÓN ENTREGA", "ZONA", "VENDEDOR"
+                "TELÉFONO", "DIRECCIÓN FISCAL", "DIRECCIÓN ENTREGA", "ZONA"
             };
 
             for (int i = 0; i < headers.Length; i++)
             {
                 var cell = ws.Cell(headerRow, i + 1);
                 cell.Value = headers[i];
-                ExcelFlatExporter.StyleHeaderCell(cell, ExcelFlatExporter.DarkGreenHeader);
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Font.FontSize = 9.5;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml(ExcelFlatExporter.DarkGreenHeader);
+                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Border.OutsideBorderColor = XLColor.Black;
+                cell.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorderColor = XLColor.Black;
             }
             ws.Row(headerRow).Height = 23;
             currentRow++;
@@ -179,7 +194,7 @@ namespace NinOS.UI.Common
                 fiscalCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
                 fiscalCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 fiscalCell.Style.Font.FontSize = 8.5;
-                fiscalCell.Style.Font.FontColor = XLColor.FromHtml("#333333");
+                fiscalCell.Style.Font.FontColor = XLColor.FromHtml("#222222");
 
                 // 8. DIRECCIÓN ENTREGA (Con Enter/WrapText)
                 var delivCell = ws.Cell(currentRow, c++);
@@ -188,7 +203,7 @@ namespace NinOS.UI.Common
                 delivCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
                 delivCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 delivCell.Style.Font.FontSize = 8.5;
-                delivCell.Style.Font.FontColor = XLColor.FromHtml("#333333");
+                delivCell.Style.Font.FontColor = XLColor.FromHtml("#222222");
 
                 // 9. ZONA (Con Enter/WrapText)
                 var zoneCell = ws.Cell(currentRow, c++);
@@ -198,23 +213,16 @@ namespace NinOS.UI.Common
                 zoneCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 zoneCell.Style.Font.FontSize = 9.0;
 
-                // 10. VENDEDOR
-                var sellerCell = ws.Cell(currentRow, c++);
-                sellerCell.SetValue(cust.SellerName ?? string.Empty);
-                sellerCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                sellerCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                sellerCell.Style.Font.FontSize = 9.0;
-
-                // Fondo cebra y bordes sutiles
+                // Fondo cebra y TODOS LOS BORDES EN NEGRO
                 var dataRowRange = ws.Range(currentRow, 1, currentRow, totalCols);
                 if (alt)
                 {
                     dataRowRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
                 }
                 dataRowRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                dataRowRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#E0E0E0");
+                dataRowRange.Style.Border.InsideBorderColor = XLColor.Black;
                 dataRowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                dataRowRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#E0E0E0");
+                dataRowRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
                 // Altura dinámica de fila según texto para que el Enter / WrapText se aprecie con claridad
                 int maxLines = 1;
@@ -223,9 +231,9 @@ namespace NinOS.UI.Common
                 string deliv = cust.EffectiveDeliveryAddress ?? string.Empty;
                 string contact = cust.ContactName ?? string.Empty;
 
-                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)name.Length / 23));
-                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)fiscal.Length / 21));
-                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)deliv.Length / 21));
+                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)name.Length / 25));
+                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)fiscal.Length / 24));
+                maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)deliv.Length / 24));
                 maxLines = Math.Max(maxLines, (int)Math.Ceiling((double)contact.Length / 16));
 
                 ws.Row(currentRow).Height = Math.Max(20, Math.Min(70, maxLines * 15.0));
@@ -235,7 +243,7 @@ namespace NinOS.UI.Common
                 alt = !alt;
             }
 
-            // Fila de Totales
+            // Fila de Totales con bordes en negro
             if (items.Count > 0)
             {
                 ws.Cell(currentRow, 1).SetValue("TOTAL CLIENTES");
@@ -244,25 +252,33 @@ namespace NinOS.UI.Common
                 ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 ws.Cell(currentRow, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                ExcelFlatExporter.StyleTotalRow(ws.Range(currentRow, 1, currentRow, totalCols), ExcelFlatExporter.AccentSoftBg);
+                var totalRange = ws.Range(currentRow, 1, currentRow, totalCols);
+                totalRange.Style.Font.Bold = true;
+                totalRange.Style.Fill.BackgroundColor = XLColor.FromHtml(ExcelFlatExporter.AccentSoftBg);
+                totalRange.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.TopBorderColor = XLColor.Black;
+                totalRange.Style.Border.BottomBorder = XLBorderStyleValues.Double;
+                totalRange.Style.Border.BottomBorderColor = XLColor.Black;
+                totalRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.InsideBorderColor = XLColor.Black;
+                totalRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.OutsideBorderColor = XLColor.Black;
                 ws.Row(currentRow).Height = 22;
             }
 
-            // ANCHOS FIJOS ESTANDARIZADOS PARA QUE QUEPA 100% EN PANTALLA (TOTAL = 147)
+            // ANCHOS FIJOS ESTANDARIZADOS PARA QUE QUEPA 100% EN PANTALLA (TOTAL = 150)
             ws.Column(1).Width = 5;      // N°
-            ws.Column(2).Width = 9;      // CÓDIGO
-            ws.Column(3).Width = 24;     // RAZÓN SOCIAL / CLIENTE (WrapText)
-            ws.Column(4).Width = 12.5;   // RIF
-            ws.Column(5).Width = 16;     // CONTACTO (WrapText)
-            ws.Column(6).Width = 12.5;   // TELÉFONO
-            ws.Column(7).Width = 22;     // DIRECCIÓN FISCAL (WrapText)
-            ws.Column(8).Width = 22;     // DIRECCIÓN ENTREGA (WrapText)
-            ws.Column(9).Width = 13;     // ZONA (WrapText)
-            ws.Column(10).Width = 11;    // VENDEDOR
+            ws.Column(2).Width = 10;     // CÓDIGO
+            ws.Column(3).Width = 26;     // RAZÓN SOCIAL / CLIENTE (WrapText)
+            ws.Column(4).Width = 13;     // RIF
+            ws.Column(5).Width = 17;     // CONTACTO (WrapText)
+            ws.Column(6).Width = 13;     // TELÉFONO
+            ws.Column(7).Width = 26;     // DIRECCIÓN FISCAL (WrapText)
+            ws.Column(8).Width = 26;     // DIRECCIÓN ENTREGA (WrapText)
+            ws.Column(9).Width = 14;     // ZONA (WrapText)
 
-            // Configuración de visualización e impresión para caber al 100% sin scroll horizontal
+            // Configuración de visualización e impresión para caber al 100% sin scroll horizontal (NO freeze)
             ws.SheetView.ZoomScale = 100;
-            ws.SheetView.FreezeRows(headerRow);
             if (currentRow > headerRow)
             {
                 ws.Range(headerRow, 1, currentRow - 1, totalCols).SetAutoFilter();
@@ -275,11 +291,11 @@ namespace NinOS.UI.Common
 
         private static string MakeSafeSheetName(string name)
         {
-            if (string.IsNullOrWhiteSpace(name)) return "Clientes";
+            if (string.IsNullOrWhiteSpace(name)) return "Maestro";
             string clean = name.Replace("\\", "").Replace("/", "").Replace("?", "").Replace("*", "")
                                .Replace("[", "").Replace("]", "").Replace(":", "").Trim();
             if (clean.Length > 28) clean = clean.Substring(0, 28);
-            return string.IsNullOrWhiteSpace(clean) ? "Clientes" : clean;
+            return string.IsNullOrWhiteSpace(clean) ? "Maestro" : clean;
         }
 
         private static string SanitizeFileName(string name)

@@ -23,6 +23,7 @@ namespace NinOS.UI.Common.ViewModels
         public int id_promotion { get; set; }
         public string code { get; set; } = string.Empty;
         public string name { get; set; } = string.Empty;
+        public string category { get; set; } = string.Empty;
         public decimal unit_price_usd { get; set; }
         public int available_stock { get; set; }
         public bool is_out_of_stock => available_stock <= 0;
@@ -37,7 +38,7 @@ namespace NinOS.UI.Common.ViewModels
 
     public class note_detail_row : ViewModelBase
     {
-        private readonly List<billable_item> _all_items_ref;
+        private readonly IEnumerable<billable_item> _all_items_ref;
         private readonly ObservableCollection<note_detail_row>? _owner;
         private readonly DispatcherTimer _filter_debounce;
         private billable_item? _selected_item;
@@ -279,7 +280,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public note_detail_row(IEnumerable<billable_item> items, ObservableCollection<note_detail_row>? owner = null, IEnumerable<price_list>? priceLists = null, string principalName = "Principal")
         {
-            _all_items_ref = items.ToList();
+            _all_items_ref = items;
             _owner = owner;
             available_items = new ObservableCollection<billable_item>();
             _quantity = 1;
@@ -428,6 +429,21 @@ namespace NinOS.UI.Common.ViewModels
             return remaining < 0 ? 0 : remaining;
         }
 
+        public void refresh_available_items()
+        {
+            populate_available(null);
+        }
+
+        private static bool MatchesSearch(string? target, string query)
+        {
+            if (string.IsNullOrWhiteSpace(target)) return false;
+            if (target.Contains(query, StringComparison.OrdinalIgnoreCase)) return true;
+            // Tolerancia de ortografía común: shampoo / champú / shampo
+            if (query.Contains("shampoo", StringComparison.OrdinalIgnoreCase) && target.Contains("shampo", StringComparison.OrdinalIgnoreCase)) return true;
+            if (query.Contains("champu", StringComparison.OrdinalIgnoreCase) && (target.Contains("shampo", StringComparison.OrdinalIgnoreCase) || target.Contains("shampoo", StringComparison.OrdinalIgnoreCase))) return true;
+            return false;
+        }
+
         private void populate_available(string? search_term)
         {
             available_items.Clear();
@@ -438,9 +454,11 @@ namespace NinOS.UI.Common.ViewModels
                 bool matches = true;
                 if (!string.IsNullOrWhiteSpace(search_term))
                 {
-                    bool name_match = p.name != null && p.name.Contains(search_term, StringComparison.OrdinalIgnoreCase);
-                    bool code_match = p.code != null && p.code.Contains(search_term, StringComparison.OrdinalIgnoreCase);
-                    matches = name_match || code_match;
+                    string term = search_term.Trim();
+                    bool name_match = MatchesSearch(p.name, term);
+                    bool code_match = p.code != null && p.code.Contains(term, StringComparison.OrdinalIgnoreCase);
+                    bool category_match = MatchesSearch(p.category, term);
+                    matches = name_match || code_match || category_match;
                 }
                 if (!matches) continue;
 
@@ -555,6 +573,10 @@ namespace NinOS.UI.Common.ViewModels
         
         private string _conditions_text = "DESCUENTO 10% . CONTADO\nSOLO CONTRA DESPACHO";
         private string _discount_conditions_text = "Descuento 10% SOLO\nCONTADO";
+        private string _payment_header_label = string.Empty;
+        private string _payment_transfer_label = string.Empty;
+        private string _payment_account_label = string.Empty;
+        private string _payment_movil_phone_label = string.Empty;
 
         private string _credit_days_text = "21";
         private int _credit_days = 21;
@@ -612,6 +634,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand add_item_command { get; }
         public ICommand remove_item_command { get; }
         public ICommand save_note_command { get; }
+        public ICommand reset_payment_details_command { get; }
         public ICommand select_customer_command { get; }
         public ICommand toggle_customer_popup_command { get; }
 
@@ -761,6 +784,8 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(es_nota_volumen));
             on_property_changed(nameof(volume_visibility));
 
+            ResetPaymentDetailsToDefaults();
+
             if (nt == null)
             {
                 header_title = BrandHeader.Title;
@@ -835,17 +860,38 @@ namespace NinOS.UI.Common.ViewModels
 
         public string payment_header_label
         {
-            get { return is_pro_venta ? $"DATOS PARA PAGOS NOTAS DE DESPACHO {BrandHeader.Title}" : $"DATOS PARA PAGOS NOTAS DE ENTREGA {BrandHeader.Title}"; }
+            get => _payment_header_label;
+            set
+            {
+                if (_payment_header_label == value) return;
+                _payment_header_label = value;
+                on_property_changed();
+                on_property_changed(nameof(has_pending_data));
+            }
         }
 
         public string payment_transfer_label
         {
-            get { return is_pro_venta ? "TRANSFERENCIA _ BANCO VENEZUELA  CUENTA CORRIENTE" : "TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE"; }
+            get => _payment_transfer_label;
+            set
+            {
+                if (_payment_transfer_label == value) return;
+                _payment_transfer_label = value;
+                on_property_changed();
+                on_property_changed(nameof(has_pending_data));
+            }
         }
 
         public string payment_account_label
         {
-            get { return is_pro_venta ? "NRO DE CUENTA _ 0102-0868-84-00000-27-407  /  CEDULA – 6.266.986" : "NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA – 13.046.042"; }
+            get => _payment_account_label;
+            set
+            {
+                if (_payment_account_label == value) return;
+                _payment_account_label = value;
+                on_property_changed();
+                on_property_changed(nameof(has_pending_data));
+            }
         }
 
         public string payment_movil_bank_label
@@ -855,7 +901,60 @@ namespace NinOS.UI.Common.ViewModels
 
         public string payment_movil_phone_label
         {
-            get { return is_pro_venta ? "BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986" : "BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042"; }
+            get => _payment_movil_phone_label;
+            set
+            {
+                if (_payment_movil_phone_label == value) return;
+                _payment_movil_phone_label = value;
+                on_property_changed();
+                on_property_changed(nameof(has_pending_data));
+            }
+        }
+
+        private string _default_payment_header = string.Empty;
+        private string _default_payment_transfer = string.Empty;
+        private string _default_payment_account = string.Empty;
+        private string _default_payment_movil = string.Empty;
+
+        public void ResetPaymentDetailsToDefaults()
+        {
+            if (is_pro_venta)
+            {
+                _default_payment_header = $"DATOS PARA PAGOS NOTAS DE DESPACHO {BrandHeader.Title}";
+                _default_payment_transfer = "TRANSFERENCIA _ BANCO VENEZUELA  CUENTA CORRIENTE";
+                _default_payment_account = "NRO DE CUENTA _ 0102-0868-84-00000-27-407  /  CEDULA – 6.266.986";
+                _default_payment_movil = "BANCO VENEZUELA / NRO TELEFONO _ 0414.598.68.65  /  CEDULA – 6.266.986";
+            }
+            else
+            {
+                _default_payment_header = $"DATOS PARA PAGOS NOTAS DE ENTREGA {BrandHeader.Title}";
+                _default_payment_transfer = "TRANSFERENCIA _ BANCO MERCANTIL  CUENTA CORRIENTE";
+                _default_payment_account = "NRO DE CUENTA _ 0105-0120-23-11200-92426  /  CEDULA – 13.046.042";
+                _default_payment_movil = "BANCO MERCANTIL / NRO TELEFONO _ 0424.496.01.02  /  CEDULA – 13.046.042";
+            }
+
+            _payment_header_label = _default_payment_header;
+            _payment_transfer_label = _default_payment_transfer;
+            _payment_account_label = _default_payment_account;
+            _payment_movil_phone_label = _default_payment_movil;
+
+            on_property_changed(nameof(payment_header_label));
+            on_property_changed(nameof(payment_transfer_label));
+            on_property_changed(nameof(payment_account_label));
+            on_property_changed(nameof(payment_movil_phone_label));
+            on_property_changed(nameof(has_pending_data));
+        }
+
+        public bool has_payment_details_changed
+        {
+            get
+            {
+                if (!string.Equals(_payment_header_label, _default_payment_header, StringComparison.Ordinal)) return true;
+                if (!string.Equals(_payment_transfer_label, _default_payment_transfer, StringComparison.Ordinal)) return true;
+                if (!string.Equals(_payment_account_label, _default_payment_account, StringComparison.Ordinal)) return true;
+                if (!string.Equals(_payment_movil_phone_label, _default_payment_movil, StringComparison.Ordinal)) return true;
+                return false;
+            }
         }
 
         private static bool IsProVentaZona(zona? z)
@@ -1450,6 +1549,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_contact_name_text == value) return;
                 _contact_name_text = value;
                 on_property_changed();
+                on_property_changed(nameof(has_pending_data));
             }
         }
 
@@ -1461,6 +1561,7 @@ namespace NinOS.UI.Common.ViewModels
                 if (_observations_text == value) return;
                 _observations_text = value;
                 on_property_changed();
+                on_property_changed(nameof(has_pending_data));
             }
         }
 
@@ -1506,8 +1607,11 @@ namespace NinOS.UI.Common.ViewModels
             add_item_command = new RelayCommand(execute_add_item);
             remove_item_command = new RelayCommand(execute_remove_item);
             save_note_command = new RelayCommand(execute_save_note);
+            reset_payment_details_command = new RelayCommand(_ => ResetPaymentDetailsToDefaults());
             select_customer_command = new RelayCommand(execute_select_customer);
             toggle_customer_popup_command = new RelayCommand(execute_toggle_customer_popup);
+
+            ResetPaymentDetailsToDefaults();
 
             _customer_filter_debounce = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _customer_filter_debounce.Tick += (s, e) =>
@@ -1610,6 +1714,7 @@ namespace NinOS.UI.Common.ViewModels
                         id_promotion = pr.id_promotion,
                         code = pr.promotion_code,
                         name = pr.name,
+                        category = string.IsNullOrWhiteSpace(pr.category) ? "PROMOCION" : pr.category,
                         unit_price_usd = pr.unit_price_usd,
                         available_stock = promo_stock == int.MaxValue ? 0 : promo_stock,
                         price_by_list = new Dictionary<int, decimal>()
@@ -1630,10 +1735,16 @@ namespace NinOS.UI.Common.ViewModels
                         id_product = p.id_product,
                         code = p.product_code,
                         name = p.name,
+                        category = p.category ?? string.Empty,
                         unit_price_usd = p.unit_price_usd,
                         available_stock = p.stock_quantity,
                         price_by_list = priceByList
                     });
+                }
+
+                foreach (note_detail_row row in note_details)
+                {
+                    row.refresh_available_items();
                 }
             }
             catch (Exception ex)
@@ -1862,6 +1973,10 @@ namespace NinOS.UI.Common.ViewModels
                 fiscal_address = _selected_customer?.fiscal_address ?? string.Empty,
                 conditions_text = _conditions_text,
                 discount_conditions_text = _discount_conditions_text,
+                payment_header_text = _payment_header_label,
+                payment_transfer_text = _payment_transfer_label,
+                payment_account_text = _payment_account_label,
+                payment_movil_text = _payment_movil_phone_label,
                 promo_banner_text = has_promo_discount ? "PROMOCION" : string.Empty,
                 company_name = BrandHeader.Title,
                 header_title = string.IsNullOrWhiteSpace(_header_title) ? BrandHeader.Title : _header_title,
@@ -1996,6 +2111,10 @@ namespace NinOS.UI.Common.ViewModels
                 new_note.due_date = _due_date;
                 new_note.conditions_text = _conditions_text;
                 new_note.discount_conditions_text = _discount_conditions_text;
+                new_note.payment_header_text = _payment_header_label;
+                new_note.payment_transfer_text = _payment_transfer_label;
+                new_note.payment_account_text = _payment_account_label;
+                new_note.payment_movil_text = _payment_movil_phone_label;
                 if (!string.IsNullOrWhiteSpace(_observations_text))
                 {
                     new_note.cxc_observations = _observations_text.Trim();
@@ -2068,6 +2187,7 @@ namespace NinOS.UI.Common.ViewModels
                 creation_date = DateTime.Now;
                 credit_days_text = "21";
                 selected_note_price_list = note_price_lists.FirstOrDefault();
+                ResetPaymentDetailsToDefaults();
                 recalculate_total();
                 update_correlative_async();
                 OnNoteSaved?.Invoke();
@@ -2091,7 +2211,9 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (note_details.Count > 0) return true;
                 if (!string.IsNullOrWhiteSpace(customer_code_text)) return true;
+                if (!string.IsNullOrWhiteSpace(contact_name_text)) return true;
                 if (!string.IsNullOrWhiteSpace(observations_text)) return true;
+                if (has_payment_details_changed) return true;
                 return false;
             }
         }
@@ -2119,6 +2241,7 @@ namespace NinOS.UI.Common.ViewModels
             credit_days_text = "21";
             _promo_title_text = "PROMOCIÓN";
             on_property_changed(nameof(promo_title_text));
+            ResetPaymentDetailsToDefaults();
             recalculate_total();
             on_property_changed(nameof(display_total_general));
             update_correlative_async();

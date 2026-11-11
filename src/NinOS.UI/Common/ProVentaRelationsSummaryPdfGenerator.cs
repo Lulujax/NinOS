@@ -88,7 +88,7 @@ namespace NinOS.UI.Common
                         // SECCIÓN 1: PENDIENTES
                         if (pending.Count > 0)
                         {
-                            BuildRelationsTable(col, "RELACIONES POR COBRAR - PENDIENTES", pending, isPending: true);
+                            BuildRelationsTable(col, "RELACIONES PENDIENTES", pending, isPending: true);
                         }
 
                         // SECCIÓN 2: PAGADAS
@@ -98,7 +98,7 @@ namespace NinOS.UI.Common
                             {
                                 col.Item().PaddingTop(14);
                             }
-                            BuildRelationsTable(col, "RELACIONES POR COBRAR - PAGADAS", paid, isPending: false);
+                            BuildRelationsTable(col, "RELACIONES PAGADAS", paid, isPending: false);
                         }
 
                         // RESUMEN / GRAN TOTAL

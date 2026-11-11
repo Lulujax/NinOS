@@ -57,13 +57,12 @@ namespace NinOS.UI.Common
                 range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                range.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                range.Style.Border.OutsideBorderColor = XLColor.Black;
             }
 
             StyleCard(ws.Range(3, 1, 3, 2), "TOTAL PRODUCTOS", model.TotalProducts.ToString("N0"));
-            StyleCard(ws.Range(3, 3, 3, 3), "TOTAL UNIDADES", model.TotalUnits.ToString("N0"));
-            StyleCard(ws.Range(3, 4, 3, 5), "VALORIZACIÓN TOTAL", $"$ {model.TotalValuationUsd:N2}", "#2E7D32");
-            StyleCard(ws.Range(3, 6, 3, 6), "EN CERO O DEUDA", model.ZeroOrNegativeStockCount.ToString("N0"), model.ZeroOrNegativeStockCount > 0 ? "#C62828" : "#2E7D32");
+            StyleCard(ws.Range(3, 3, 3, 4), "TOTAL UNIDADES", model.TotalUnits.ToString("N0"));
+            StyleCard(ws.Range(3, 5, 3, 6), "VALORIZACIÓN TOTAL", $"$ {model.TotalValuationUsd:N2}", "#2E7D32");
             ws.Row(3).Height = 24;
 
             // Fila 4: Separador
@@ -87,7 +86,7 @@ namespace NinOS.UI.Common
                 cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#90CAF9");
+                cell.Style.Border.OutsideBorderColor = XLColor.Black;
             }
             ws.Row(headerRow).Height = 25;
 
@@ -165,11 +164,11 @@ namespace NinOS.UI.Common
                     rowRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
                 }
 
-                // Bordes finos en cada celda
+                // Bordes finos negros en cada celda
                 rowRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                rowRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                rowRange.Style.Border.InsideBorderColor = XLColor.Black;
                 rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                rowRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                rowRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
                 // Altura dinámica según longitud del nombre del producto
                 string pName = item.Name ?? string.Empty;
@@ -213,10 +212,14 @@ namespace NinOS.UI.Common
 
                 var totalRange = ws.Range(rowIdx, 1, rowIdx, headers.Length);
                 totalRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E3F2FD");
+                totalRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.InsideBorderColor = XLColor.Black;
+                totalRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.OutsideBorderColor = XLColor.Black;
                 totalRange.Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                totalRange.Style.Border.TopBorderColor = XLColor.FromHtml("#0D62B5");
+                totalRange.Style.Border.TopBorderColor = XLColor.Black;
                 totalRange.Style.Border.BottomBorder = XLBorderStyleValues.Double;
-                totalRange.Style.Border.BottomBorderColor = XLColor.FromHtml("#0D62B5");
+                totalRange.Style.Border.BottomBorderColor = XLColor.Black;
                 ws.Row(rowIdx).Height = 25;
             }
 
@@ -228,12 +231,11 @@ namespace NinOS.UI.Common
             ws.Column(5).Width = 14;  // PRECIO ($) (Espacio para precio y botón de filtro)
             ws.Column(6).Width = 16;  // VALOR TOTAL ($) (Espacio para total y botón de filtro)
 
-            // Autofilter en encabezados y paneles inmovilizados
+            // Autofilter en encabezados (SIN inmovilizar filas / NO freeze)
             if (lastDataRow >= headerRow)
             {
                 ws.Range(headerRow, 1, lastDataRow, headers.Length).SetAutoFilter();
             }
-            ws.SheetView.FreezeRows(headerRow);
             ws.ShowGridLines = true;
 
             string defaultName = $"INVENTARIO_ACTUAL_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";

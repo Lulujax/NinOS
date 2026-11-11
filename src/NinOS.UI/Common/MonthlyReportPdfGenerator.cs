@@ -66,11 +66,9 @@ namespace NinOS.UI.Common
                     for (int i = 0; i < grouped.Count; i++)
                     {
                         var g = grouped[i];
-                        container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList()));
+                        bool is_last = (i == grouped.Count - 1);
+                        container.Page(page => BuildPage(page, report, month_cap, "ZONA", g.Key, g.ToList(), is_last, rows, grouped));
                     }
-
-                    // Última página: RESUMEN GENERAL (réplica exacta de la última hoja de Excel)
-                    container.Page(page => BuildSummaryPage(page, report, month_cap, "ZONA", rows, grouped));
                 }
                 else // Por Vendedor
                 {
@@ -82,11 +80,9 @@ namespace NinOS.UI.Common
                     for (int i = 0; i < grouped.Count; i++)
                     {
                         var g = grouped[i];
-                        container.Page(page => BuildPage(page, report, month_cap, "VENDEDOR", g.Key, g.ToList()));
+                        bool is_last = (i == grouped.Count - 1);
+                        container.Page(page => BuildPage(page, report, month_cap, "VENDEDOR", g.Key, g.ToList(), is_last, rows, grouped));
                     }
-
-                    // Última página: RESUMEN GENERAL (réplica exacta de la última hoja de Excel)
-                    container.Page(page => BuildSummaryPage(page, report, month_cap, "VENDEDOR", rows, grouped));
                 }
             });
         }
@@ -123,7 +119,10 @@ namespace NinOS.UI.Common
             string month_cap,
             string group_type,
             string group_title,
-            List<monthly_report_row_dto> group_rows)
+            List<monthly_report_row_dto> group_rows,
+            bool is_last = false,
+            List<monthly_report_row_dto>? all_rows = null,
+            List<IGrouping<string, monthly_report_row_dto>>? all_groups = null)
         {
             SetupPage(page, report, month_cap);
 
@@ -360,144 +359,186 @@ namespace NinOS.UI.Common
                         }
                     });
                 }
+
+                if (is_last && all_rows != null && all_rows.Count > 0)
+                {
+                    BuildGrandTotalBlock(col, report, group_type, all_rows, all_groups);
+                }
             });
         }
 
-        private static void BuildSummaryPage(
-            PageDescriptor page,
+        private static void BuildGrandTotalBlock(
+            ColumnDescriptor sumCol,
             monthly_report_dto report,
-            string month_cap,
             string group_type,
             List<monthly_report_row_dto> all_rows,
-            List<IGrouping<string, monthly_report_row_dto>> all_groups)
+            List<IGrouping<string, monthly_report_row_dto>>? all_groups)
         {
-            SetupPage(page, report, month_cap);
+            string title = report.show_paid_balance_summary
+                ? "RESUMEN GENERAL DE CUENTAS POR COBRAR"
+                : "RESUMEN GENERAL DE VENTAS";
+            string groupHeader = group_type == "ZONA" ? "ZONA" : "VENDEDOR";
 
-            page.Content().PaddingVertical(6).Column(sumCol =>
+            if (all_groups != null && all_groups.Count > 1)
             {
-                string title = report.show_paid_balance_summary
-                    ? "RESUMEN GENERAL DE CUENTAS POR COBRAR"
-                    : "RESUMEN GENERAL DE VENTAS";
-                string groupHeader = group_type == "ZONA" ? "ZONA" : "VENDEDOR";
-
-                sumCol.Item().Text(title).FontSize(13).Bold().FontColor(PrimaryColor);
-                sumCol.Item().PaddingTop(2).Text($"Consolidado de todas las {groupHeader.ToLowerInvariant()}s del período.")
-                    .FontSize(8.5f).FontColor("#555555");
-
-                sumCol.Item().PaddingTop(8).Table(table =>
+                sumCol.Item().PaddingTop(10).Border(1.2f).BorderColor(PrimaryColor).Column(b =>
                 {
-                    table.ColumnsDefinition(columns =>
+                    b.Item().Background(PrimaryColor).PaddingVertical(3).PaddingHorizontal(6).Row(r =>
                     {
-                        columns.RelativeColumn(2.0f);   // GRUPO
-                        columns.RelativeColumn(0.8f);   // NOTAS
-                        columns.RelativeColumn(1.4f);   // FACTURADO
-                        if (report.show_paid_balance_summary)
-                        {
-                            columns.RelativeColumn(1.4f); // ABONADO
-                            columns.RelativeColumn(1.4f); // SALDO
-                        }
-                        columns.RelativeColumn(1.0f);   // PENDIENTES / VALIDAS
+                        r.RelativeItem().Text(title).FontSize(8.5f).Bold().FontColor(Colors.White);
+                        r.ConstantItem(180).AlignRight().Text($"Consolidado ({all_groups.Count} {groupHeader.ToLowerInvariant()}s)").FontSize(7.5f).FontColor(Colors.White);
                     });
 
-                    table.Header(header =>
+                    b.Item().Padding(4).Table(table =>
                     {
-                        void h(string text, bool left = false)
+                        table.ColumnsDefinition(columns =>
                         {
-                            var c = header.Cell().Background(PrimaryColor).Border(0.4f).BorderColor(LightBorder).PaddingVertical(3).PaddingHorizontal(2);
-                            var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontColor(Colors.White).Bold().FontSize(7);
+                            columns.RelativeColumn(2.0f);   // GRUPO
+                            columns.RelativeColumn(0.8f);   // NOTAS
+                            columns.RelativeColumn(1.4f);   // FACTURADO
+                            if (report.show_paid_balance_summary)
+                            {
+                                columns.RelativeColumn(1.4f); // ABONADO
+                                columns.RelativeColumn(1.4f); // SALDO
+                            }
+                            columns.RelativeColumn(1.0f);   // PENDIENTES / VALIDAS
+                        });
+
+                        table.Header(header =>
+                        {
+                            void h(string text, bool left = false)
+                            {
+                                var c = header.Cell().Background(AccentBg).Border(0.4f).BorderColor(LightBorder).PaddingVertical(2).PaddingHorizontal(2);
+                                var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                                t.FontColor(PrimaryColor).Bold().FontSize(6.5f);
+                            }
+
+                            h(groupHeader, left: true);
+                            h("NOTAS");
+                            h("FACTURADO");
+                            if (report.show_paid_balance_summary)
+                            {
+                                h("ABONADO");
+                                h("SALDO");
+                                h("PENDIENTES");
+                            }
+                            else
+                            {
+                                h("VALIDAS");
+                            }
+                        });
+
+                        bool alternateSummary = false;
+                        int grand_notas = 0;
+                        decimal grand_facturado = 0;
+                        decimal grand_abonado = 0;
+                        decimal grand_saldo = 0;
+                        int grand_pendientes = 0;
+
+                        foreach (var g in all_groups)
+                        {
+                            string bg = alternateSummary ? AccentBg : Colors.White;
+                            var gRows = g.ToList();
+
+                            int count = gRows.Count;
+                            var valid = gRows.Where(r => !es_anulada(r) && !es_devuelta(r)).ToList();
+                            decimal facturado = valid.Sum(r => r.amount_usd);
+                            decimal abonado = valid.Sum(r => r.paid_amount_usd);
+                            decimal saldo = valid.Sum(r => r.balance_due_usd);
+                            int pendientes = valid.Count(r => string.Equals(r.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase));
+
+                            grand_notas += count;
+                            grand_facturado += facturado;
+                            grand_abonado += abonado;
+                            grand_saldo += saldo;
+                            grand_pendientes += report.show_paid_balance_summary ? pendientes : valid.Count;
+
+                            void cell(string text, bool left = false, string? color = null, bool bold = false)
+                            {
+                                var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
+                                    .PaddingVertical(2).PaddingHorizontal(2);
+                                var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                                t.FontSize(7.5f);
+                                if (color != null) t.FontColor(color);
+                                if (bold) t.Bold();
+                            }
+
+                            cell(g.Key.ToUpperInvariant(), left: true, bold: true);
+                            cell(count.ToString());
+                            cell(Money(facturado));
+                            if (report.show_paid_balance_summary)
+                            {
+                                cell(Money(abonado), color: "#2E7D32");
+                                cell(Money(saldo), color: saldo > 0.005m ? "#C62828" : null, bold: saldo > 0.005m);
+                                cell(pendientes.ToString());
+                            }
+                            else
+                            {
+                                cell(valid.Count.ToString());
+                            }
+
+                            alternateSummary = !alternateSummary;
                         }
 
-                        h(groupHeader, left: true);
-                        h("NOTAS");
-                        h("FACTURADO");
-                        if (report.show_paid_balance_summary)
+                        void grandCell(string text, bool left = false, string? color = null)
                         {
-                            h("ABONADO");
-                            h("SALDO");
-                            h("PENDIENTES");
-                        }
-                        else
-                        {
-                            h("VALIDAS");
-                        }
-                    });
-
-                    bool alternateSummary = false;
-                    int grand_notas = 0;
-                    decimal grand_facturado = 0;
-                    decimal grand_abonado = 0;
-                    decimal grand_saldo = 0;
-                    int grand_pendientes = 0;
-
-                    foreach (var g in all_groups)
-                    {
-                        string bg = alternateSummary ? AccentBg : Colors.White;
-                        var gRows = g.ToList();
-
-                        int count = gRows.Count;
-                        var valid = gRows.Where(r => !es_anulada(r) && !es_devuelta(r)).ToList();
-                        decimal facturado = valid.Sum(r => r.amount_usd);
-                        decimal abonado = valid.Sum(r => r.paid_amount_usd);
-                        decimal saldo = valid.Sum(r => r.balance_due_usd);
-                        int pendientes = valid.Count(r => string.Equals(r.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase));
-
-                        grand_notas += count;
-                        grand_facturado += facturado;
-                        grand_abonado += abonado;
-                        grand_saldo += saldo;
-                        grand_pendientes += report.show_paid_balance_summary ? pendientes : valid.Count;
-
-                        void cell(string text, bool left = false, string? color = null, bool bold = false)
-                        {
-                            var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
+                            var c = table.Cell().Background("#E8F5E9").Border(0.5f).BorderColor(LightBorder)
                                 .PaddingVertical(3).PaddingHorizontal(2);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontSize(8);
-                            if (color != null) t.FontColor(color);
-                            if (bold) t.Bold();
+                            t.FontSize(8f).Bold().FontColor(color ?? PrimaryColor);
                         }
 
-                        cell(g.Key.ToUpperInvariant(), left: true, bold: true);
-                        cell(count.ToString());
-                        cell(Money(facturado));
+                        grandCell("TOTAL GENERAL", left: true);
+                        grandCell(grand_notas.ToString());
+                        grandCell(Money(grand_facturado));
                         if (report.show_paid_balance_summary)
                         {
-                            cell(Money(abonado), color: "#2E7D32");
-                            cell(Money(saldo), color: saldo > 0.005m ? "#C62828" : null, bold: saldo > 0.005m);
-                            cell(pendientes.ToString());
+                            grandCell(Money(grand_abonado), color: "#2E7D32");
+                            grandCell(Money(grand_saldo), color: "#C62828");
+                            grandCell(grand_pendientes.ToString());
                         }
                         else
                         {
-                            cell(valid.Count.ToString());
+                            grandCell(grand_pendientes.ToString());
                         }
+                    });
+                });
+            }
+            else
+            {
+                var valid_all = all_rows.Where(x => !es_anulada(x) && !es_devuelta(x)).ToList();
+                decimal total_facturado = valid_all.Sum(x => x.amount_usd);
+                decimal total_abonado = valid_all.Sum(x => x.paid_amount_usd);
+                decimal total_saldo = valid_all.Sum(x => x.balance_due_usd);
+                int total_pendientes = valid_all.Count(x => string.Equals(x.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase));
 
-                        alternateSummary = !alternateSummary;
-                    }
+                sumCol.Item().PaddingTop(10).Border(1.2f).BorderColor(PrimaryColor).Column(grand =>
+                {
+                    grand.Item().Background(PrimaryColor).Padding(3).AlignCenter()
+                        .Text("TOTAL GENERAL").FontSize(9.5f).Bold().FontColor(Colors.White);
 
-                    void grandCell(string text, bool left = false, string? color = null)
+                    grand.Item().Padding(4).Row(r =>
                     {
-                        var c = table.Cell().Background("#E8F5E9").Border(0.5f).BorderColor(LightBorder)
-                            .PaddingVertical(4).PaddingHorizontal(2);
-                        var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                        t.FontSize(8.5f).Bold().FontColor(color ?? PrimaryColor);
-                    }
+                        r.RelativeItem().Text(report.show_paid_balance_summary ? "TOTAL GENERAL FACTURADO $" : "TOTAL GENERAL VENTAS $").FontSize(9).Bold().FontColor(PrimaryColor);
+                        r.ConstantItem(120).AlignRight().Text(Money(total_facturado)).FontSize(11.5f).Bold().FontColor(PrimaryColor);
+                    });
 
-                    grandCell("TOTAL GENERAL", left: true);
-                    grandCell(grand_notas.ToString());
-                    grandCell(Money(grand_facturado));
                     if (report.show_paid_balance_summary)
                     {
-                        grandCell(Money(grand_abonado), color: "#2E7D32");
-                        grandCell(Money(grand_saldo), color: "#C62828");
-                        grandCell(grand_pendientes.ToString());
-                    }
-                    else
-                    {
-                        grandCell(grand_pendientes.ToString());
+                        grand.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                        grand.Item().Padding(4).Row(r =>
+                        {
+                            r.RelativeItem().Text("TOTAL GENERAL YA COBRADO $").FontSize(8.5f).Bold().FontColor("#2E7D32");
+                            r.ConstantItem(120).AlignRight().Text(Money(total_abonado)).FontSize(10f).Bold().FontColor("#2E7D32");
+                        });
+                        grand.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
+                        {
+                            r.RelativeItem().Text($"TOTAL GENERAL POR COBRAR $ ({total_pendientes} pendientes)").FontSize(8.5f).Bold().FontColor("#C62828");
+                            r.ConstantItem(120).AlignRight().Text(Money(total_saldo)).FontSize(10.5f).Bold().FontColor("#C62828");
+                        });
                     }
                 });
-            });
+            }
         }
 
         private static void SetupPage(PageDescriptor page, monthly_report_dto report, string month_cap)

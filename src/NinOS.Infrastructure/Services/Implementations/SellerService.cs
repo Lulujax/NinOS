@@ -101,9 +101,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
             newSeller.is_active = true;
-            if (newSeller.commission_percentage <= 0)
+            if (newSeller.commission_percentage < 0)
             {
-                newSeller.commission_percentage = 0.10m;
+                newSeller.commission_percentage = 0m;
             }
             newSeller.deleted_at = null;
             newSeller.deleted_reason = null;
@@ -147,7 +147,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             existing.full_name = updatedSeller.full_name;
             existing.can_receive_commissions = updatedSeller.can_receive_commissions;
-            existing.commission_percentage = updatedSeller.commission_percentage > 0 ? updatedSeller.commission_percentage : 0.10m;
+            existing.commission_percentage = Math.Max(0m, updatedSeller.commission_percentage);
             if (!string.IsNullOrWhiteSpace(updatedSeller.seller_code))
             {
                 existing.seller_code = updatedSeller.seller_code;

@@ -21,7 +21,7 @@ namespace NinOS.UI.Common
             cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#B0BEC5");
+            cell.Style.Border.OutsideBorderColor = XLColor.Black;
         }
 
         public static void StyleTotalRow(IXLRange range, string hexBg = "#E3F2FD")
@@ -29,7 +29,9 @@ namespace NinOS.UI.Common
             range.Style.Font.Bold = true;
             range.Style.Fill.BackgroundColor = XLColor.FromHtml(hexBg);
             range.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+            range.Style.Border.TopBorderColor = XLColor.Black;
             range.Style.Border.BottomBorder = XLBorderStyleValues.Double;
+            range.Style.Border.BottomBorderColor = XLColor.Black;
         }
 
         public static void FormatTable(IXLWorksheet worksheet, int headerRow = 1, bool enableFilter = true)
@@ -44,7 +46,7 @@ namespace NinOS.UI.Common
                 }
             }
 
-            worksheet.SheetView.FreezeRows(headerRow);
+            // Sin inmovilizar filas (NO freeze)
             worksheet.Columns().AdjustToContents(10, 50);
         }
 

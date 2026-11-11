@@ -57,7 +57,7 @@ namespace NinOS.UI.Common
             {
                 Title = "Guardar todos los movimientos de inventario en PDF",
                 Filter = "PDF (*.pdf)|*.pdf",
-                FileName = $"MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant()
+                FileName = $"TODOS_LOS_MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
             };
 
             if (saveDialog.ShowDialog() != true) return;
@@ -101,7 +101,7 @@ namespace NinOS.UI.Common
                         {
                             row.RelativeItem(2).Column(c =>
                             {
-                                c.Item().Text("MOVIMIENTOS").FontSize(13).Bold().FontColor(PrimaryColor);
+                                c.Item().Text("TODOS LOS MOVIMIENTOS DE INVENTARIO").FontSize(12).Bold().FontColor(PrimaryColor);
                                 c.Item().PaddingTop(1).Text("Auditoría completa de entradas, salidas y ajustes de inventario").FontSize(8.5f).FontColor(MutedText);
                             });
 
@@ -142,6 +142,48 @@ namespace NinOS.UI.Common
                         {
                             BuildProductMovementSection(col, group);
                         }
+
+                        BuildGrandTotalSection(col, model);
+                    });
+                });
+            });
+        }
+
+        private static void BuildGrandTotalSection(ColumnDescriptor col, AllMovementsPdfModel model)
+        {
+            int balanceNeto = model.TotalEntradas - model.TotalSalidas;
+            string balanceSign = balanceNeto > 0 ? "+" + balanceNeto.ToString("N0", Ve) : balanceNeto.ToString("N0", Ve);
+            string balanceColor = balanceNeto >= 0 ? GreenColor : RedColor;
+
+            col.Item().PaddingTop(10).Border(1).BorderColor(LightBorder).Background(CardBg).Column(box =>
+            {
+                box.Item().Background(PrimaryColor).PaddingVertical(4).PaddingHorizontal(8).Row(r =>
+                {
+                    r.RelativeItem().Text("RESUMEN GENERAL DE MOVIMIENTOS").FontSize(9.5f).Bold().FontColor(Colors.White);
+                    r.ConstantItem(180).AlignRight().Text($"{model.TotalProducts:N0} productos | {model.TotalMovements:N0} movimientos").FontSize(8f).FontColor(Colors.White);
+                });
+
+                box.Item().Padding(6).Row(row =>
+                {
+                    row.RelativeItem().BorderRight(0.5f).BorderColor(LightBorder).PaddingRight(4).Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("TOTAL ENTRADAS").FontSize(7f).Bold().FontColor(MutedText);
+                        c.Item().AlignCenter().Text($"+{model.TotalEntradas.ToString("N0", Ve)}").FontSize(11f).Bold().FontColor(GreenColor);
+                        c.Item().AlignCenter().Text("unidades").FontSize(6.5f).FontColor(MutedText);
+                    });
+
+                    row.RelativeItem().BorderRight(0.5f).BorderColor(LightBorder).PaddingRight(4).Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("TOTAL SALIDAS").FontSize(7f).Bold().FontColor(MutedText);
+                        c.Item().AlignCenter().Text($"-{model.TotalSalidas.ToString("N0", Ve)}").FontSize(11f).Bold().FontColor(RedColor);
+                        c.Item().AlignCenter().Text("unidades").FontSize(6.5f).FontColor(MutedText);
+                    });
+
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("BALANCE NETO").FontSize(7f).Bold().FontColor(MutedText);
+                        c.Item().AlignCenter().Text(balanceSign).FontSize(11f).Bold().FontColor(balanceColor);
+                        c.Item().AlignCenter().Text("entradas vs salidas").FontSize(6.5f).FontColor(MutedText);
                     });
                 });
             });

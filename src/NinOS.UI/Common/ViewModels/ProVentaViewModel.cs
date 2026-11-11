@@ -679,7 +679,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 string monthLabel = selected_month?.label ?? "Todas las relaciones";
                 var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
-                    "Relaciones Pendientes por Cobrar",
+                    "Relaciones Pendientes",
                     monthLabel,
                     pending_rows.ToList(),
                     null);
@@ -704,7 +704,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 string monthLabel = selected_month?.label ?? "Todas las relaciones";
                 var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
-                    "Relaciones Pendientes por Cobrar",
+                    "Relaciones Pendientes",
                     monthLabel,
                     pending_rows.ToList(),
                     null);
@@ -723,7 +723,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 string monthLabel = selected_month?.label ?? "Todas las relaciones";
                 ProVentaRelationsSummaryPdfGenerator.generate(
-                    "Relaciones Pendientes por Cobrar",
+                    "Relaciones Pendientes",
                     monthLabel,
                     pending_rows.ToList(),
                     null);

@@ -155,7 +155,6 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -203,10 +202,6 @@
                             Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
                 </StackPanel>
             </Grid>
-        </Border>
-
-        <Border Grid.Row="1" Background="#FFE6E6" CornerRadius="4" Padding="10" Margin="0,0,0,10" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="#CC0000" FontWeight="Bold" TextWrapping="Wrap"/>
         </Border>
 
         <!-- POPUP UNIFICADO: REPORTES (Lista de precios e Inventario) -->
@@ -352,7 +347,7 @@
             </Border>
         </Popup>
 
-        <TabControl Grid.Row="2"
+        <TabControl Grid.Row="1"
                     ItemsSource="{Binding inventory_tabs}"
                     SelectedItem="{Binding selected_tab, Mode=TwoWay}">
             <TabControl.ItemTemplate>

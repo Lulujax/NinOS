@@ -361,9 +361,31 @@ namespace NinOS.UI.Common
                                 r.RelativeItem().Column(c =>
                                 {
                                     c.Item().Text("TRANSFERENCIA").FontSize(9f).Bold().FontColor(primary);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE").FontSize(9f);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(9f);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(9f);
+
+                                    string transferBank = !string.IsNullOrWhiteSpace(note.payment_transfer_text)
+                                        ? note.payment_transfer_text.Trim()
+                                        : (note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE");
+
+                                    if (transferBank.StartsWith("TRANSFERENCIA _", StringComparison.OrdinalIgnoreCase))
+                                        transferBank = transferBank.Substring("TRANSFERENCIA _".Length).Trim();
+                                    else if (transferBank.StartsWith("TRANSFERENCIA -", StringComparison.OrdinalIgnoreCase))
+                                        transferBank = transferBank.Substring("TRANSFERENCIA -".Length).Trim();
+
+                                    c.Item().PaddingTop(0.5f).Text(transferBank).FontSize(9f);
+
+                                    if (!string.IsNullOrWhiteSpace(note.payment_account_text))
+                                    {
+                                        var parts = note.payment_account_text.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                        foreach (var p in parts)
+                                        {
+                                            c.Item().PaddingTop(0.5f).Text(p).FontSize(9f);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426").FontSize(9f);
+                                        c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(9f);
+                                    }
                                 });
 
                                 r.ConstantItem(10);
@@ -371,9 +393,21 @@ namespace NinOS.UI.Common
                                 r.RelativeItem().Column(c =>
                                 {
                                     c.Item().Text("PAGO MOVIL").FontSize(9f).Bold().FontColor(primary);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL").FontSize(9f);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02").FontSize(9f);
-                                    c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(9f);
+
+                                    if (!string.IsNullOrWhiteSpace(note.payment_movil_text))
+                                    {
+                                        var parts = note.payment_movil_text.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                        foreach (var p in parts)
+                                        {
+                                            c.Item().PaddingTop(0.5f).Text(p).FontSize(9f);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL").FontSize(9f);
+                                        c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02").FontSize(9f);
+                                        c.Item().PaddingTop(0.5f).Text(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042").FontSize(9f);
+                                    }
                                 });
                             });
 

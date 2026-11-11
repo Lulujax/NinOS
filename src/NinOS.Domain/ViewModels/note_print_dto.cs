@@ -40,6 +40,10 @@ namespace NinOS.Domain.ViewModels
         public string fiscal_address { get; set; } = string.Empty;
         public string conditions_text { get; set; } = string.Empty;
         public string discount_conditions_text { get; set; } = string.Empty;
+        public string? payment_header_text { get; set; }
+        public string? payment_transfer_text { get; set; }
+        public string? payment_account_text { get; set; }
+        public string? payment_movil_text { get; set; }
 
         /// <summary>
         /// Tipo de nota Volumen: la nota muestra dos totales al lado en vez de uno.

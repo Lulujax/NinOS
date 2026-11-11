@@ -59,7 +59,7 @@ namespace NinOS.UI.Common
                 range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                range.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                range.Style.Border.OutsideBorderColor = XLColor.Black;
             }
 
             StyleCard(ws.Range(3, 1, 3, 3), "CATEGORÍA", string.IsNullOrWhiteSpace(model.Category) ? "OTROS" : model.Category);
@@ -95,7 +95,7 @@ namespace NinOS.UI.Common
                 cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#90CAF9");
+                cell.Style.Border.OutsideBorderColor = XLColor.Black;
             }
             ws.Row(headerRow).Height = 25;
 
@@ -116,9 +116,10 @@ namespace NinOS.UI.Common
                 bool isAnulada = string.Equals(r.Estado?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
 
                 int c = 1;
-                // Col 1: FECHA
+                // Col 1: FECHA (DateTime nativo para permitir filtro jerárquico Enero..Diciembre en Excel)
                 var fCell = ws.Cell(rowIdx, c++);
-                fCell.SetValue(r.FechaLocal.ToString("dd/MM/yyyy HH:mm"));
+                fCell.SetValue(r.FechaLocal);
+                fCell.Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
                 fCell.Style.Font.FontSize = 9.5;
                 fCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 fCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
@@ -229,9 +230,9 @@ namespace NinOS.UI.Common
                 }
 
                 rowRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                rowRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                rowRange.Style.Border.InsideBorderColor = XLColor.Black;
                 rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                rowRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D0D7DE");
+                rowRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
                 int cLines = Math.Max(1, (int)Math.Ceiling((double)(r.Cliente?.Length ?? 0) / 18));
                 int mLines = Math.Max(1, (int)Math.Ceiling((double)(r.Motivo?.Length ?? 0) / 16));
@@ -280,15 +281,19 @@ namespace NinOS.UI.Common
 
                 var totalRange = ws.Range(rowIdx, 1, rowIdx, headers.Length);
                 totalRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E3F2FD");
+                totalRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.InsideBorderColor = XLColor.Black;
+                totalRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                totalRange.Style.Border.OutsideBorderColor = XLColor.Black;
                 totalRange.Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                totalRange.Style.Border.TopBorderColor = XLColor.FromHtml("#0D62B5");
+                totalRange.Style.Border.TopBorderColor = XLColor.Black;
                 totalRange.Style.Border.BottomBorder = XLBorderStyleValues.Double;
-                totalRange.Style.Border.BottomBorderColor = XLColor.FromHtml("#0D62B5");
+                totalRange.Style.Border.BottomBorderColor = XLColor.Black;
                 ws.Row(rowIdx).Height = 25;
             }
 
-            // 6. ANCHOS DE COLUMNAS DEFINIDOS PARA AJUSTARSE A PANTALLA (TOTAL = ~140)
-            ws.Column(1).Width = 14;   // FECHA
+            // 6. ANCHOS DE COLUMNAS DEFINIDOS PARA AJUSTARSE A PANTALLA (TOTAL = ~145)
+            ws.Column(1).Width = 20;   // FECHA (20 para fecha nativa sin desborde ###)
             ws.Column(2).Width = 13;   // DOCUMENTO
             ws.Column(3).Width = 17;   // MOTIVO
             ws.Column(4).Width = 19;   // CLIENTE
@@ -313,7 +318,7 @@ namespace NinOS.UI.Common
             {
                 ws.Range(headerRow, 1, lastDataRow, headers.Length).SetAutoFilter();
             }
-            ws.SheetView.FreezeRows(headerRow);
+            // Sin inmovilizar filas (NO freeze)
             ws.ShowGridLines = true;
 
             string safe_code = string.IsNullOrWhiteSpace(model.ItemCode) ? "INVENTARIO" : model.ItemCode.Replace(" ", "_");

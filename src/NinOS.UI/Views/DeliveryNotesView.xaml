@@ -258,7 +258,10 @@
                                                                             <ColumnDefinition Width="45"/>
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock Grid.Column="0" Text="{Binding code}" FontWeight="Bold" FontSize="11" Foreground="Black" VerticalAlignment="Center"/>
-                                                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                                            <TextBlock Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                            <TextBlock Text="{Binding category}" FontSize="9" Foreground="#1B5E20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                                        </StackPanel>
                                                                         <TextBlock Grid.Column="2" Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" TextAlignment="Right" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                                                         <TextBlock Grid.Column="3" Text="{Binding available_stock}" FontSize="11" TextAlignment="Right" FontWeight="Bold" VerticalAlignment="Center">
                                                                             <TextBlock.Style>
@@ -345,7 +348,10 @@
                                                                             <ColumnDefinition Width="45"/>
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock Grid.Column="0" Text="{Binding code}" FontWeight="Bold" FontSize="11" Foreground="Black" VerticalAlignment="Center"/>
-                                                                        <TextBlock Grid.Column="1" Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                                            <TextBlock Text="{Binding name}" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="Black"/>
+                                                                            <TextBlock Text="{Binding category}" FontSize="9" Foreground="#1B5E20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                                        </StackPanel>
                                                                         <TextBlock Grid.Column="2" Text="{Binding unit_price_usd, StringFormat=N2}" FontSize="11" TextAlignment="Right" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                                                         <TextBlock Grid.Column="3" Text="{Binding available_stock}" FontSize="11" TextAlignment="Right" FontWeight="Bold" VerticalAlignment="Center">
                                                                             <TextBlock.Style>
@@ -495,14 +501,40 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Background="{Binding note_payment_bg}" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="5">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding payment_header_label}" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding payment_transfer_label}" TextDecorations="Underline" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding payment_account_label}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="PAGO MOVIL" TextDecorations="Underline" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding payment_movil_phone_label}" HorizontalAlignment="Center"/>
-                                </StackPanel>
+                            <Border Grid.Row="0" Background="{Binding note_payment_bg}" BorderBrush="Black" BorderThickness="0,0,0,1" Padding="5,4">
+                                <Grid>
+                                    <Button Content="↺ Por Defecto" Command="{Binding reset_payment_details_command}" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,4,0"
+                                            Padding="6,2" FontSize="10" Background="Transparent" BorderThickness="1" 
+                                            BorderBrush="#66000000" Cursor="Hand" ToolTip="Restablecer datos de pago por defecto"/>
+
+                                    <StackPanel HorizontalAlignment="Center" MaxWidth="720">
+                                        <TextBox Text="{Binding payment_header_label, UpdateSourceTrigger=PropertyChanged}" 
+                                                 FontWeight="Bold" FontSize="13" TextAlignment="Center" 
+                                                 Background="Transparent" BorderThickness="0" Padding="1" Margin="0,0,0,1"
+                                                 ToolTip="Título de datos de pago (editable)"/>
+
+                                        <TextBox Text="{Binding payment_transfer_label, UpdateSourceTrigger=PropertyChanged}" 
+                                                 TextDecorations="Underline" FontWeight="SemiBold" FontSize="11" TextAlignment="Center" 
+                                                 Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="#88000000" 
+                                                 Padding="1" Margin="0,1,0,2"
+                                                 ToolTip="Banco y tipo de cuenta de transferencia (editable)"/>
+
+                                        <TextBox Text="{Binding payment_account_label, UpdateSourceTrigger=PropertyChanged}" 
+                                                 FontSize="11" TextAlignment="Center" 
+                                                 Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="#88000000" 
+                                                 Padding="1" Margin="0,1,0,3"
+                                                 ToolTip="Número de cuenta y cédula para transferencia (editable)"/>
+
+                                        <TextBlock Text="PAGO MOVIL" TextDecorations="Underline" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" Margin="0,1,0,1"/>
+
+                                        <TextBox Text="{Binding payment_movil_phone_label, UpdateSourceTrigger=PropertyChanged}" 
+                                                 FontSize="11" TextAlignment="Center" 
+                                                 Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="#88000000" 
+                                                 Padding="1" Margin="0,1,0,1"
+                                                 ToolTip="Banco, teléfono y cédula para pago móvil (editable)"/>
+                                    </StackPanel>
+                                </Grid>
                             </Border>
 
                             <Grid Grid.Row="1">

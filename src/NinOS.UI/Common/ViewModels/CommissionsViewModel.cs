@@ -111,7 +111,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public string commission_percentage_text => $"{(commission_percentage > 0 ? commission_percentage * 100 : 10):0.##}%";
+        public string commission_percentage_text => $"{commission_percentage * 100:0.##}%";
 
 
 
@@ -151,7 +151,8 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public decimal commission_10 { get; set; }                     // 10% COMISIÓN
+        public decimal commission_amount { get; set; }                     // MONTO DE COMISIÓN
+        public decimal commission_10 { get => commission_amount; set => commission_amount = value; }
 
 
 
@@ -1598,7 +1599,7 @@ _all_rows_source = all_rows;
 
 
 
-                        SearchText.money(n.commission_10),
+                        SearchText.money(n.commission_amount),
 
 
 

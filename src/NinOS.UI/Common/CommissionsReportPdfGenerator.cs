@@ -52,11 +52,9 @@ namespace NinOS.UI.Common
                 for (int i = 0; i < grouped.Count; i++)
                 {
                     var g = grouped[i];
-                    container.Page(page => BuildSellerPage(page, period_cap, g.Key, g.ToList()));
+                    bool is_last = (i == grouped.Count - 1);
+                    container.Page(page => BuildSellerPage(page, period_cap, g.Key, g.ToList(), is_last, rows, grouped));
                 }
-
-                // Última página: RESUMEN GENERAL (réplica exacta de la última hoja de Excel)
-                container.Page(page => BuildSummaryPage(page, period_cap, rows, grouped));
             });
         }
 
@@ -98,7 +96,10 @@ namespace NinOS.UI.Common
             PageDescriptor page,
             string period_cap,
             string seller_name,
-            List<commission_row_dto> srows)
+            List<commission_row_dto> srows,
+            bool is_last = false,
+            List<commission_row_dto>? all_rows = null,
+            List<IGrouping<string, commission_row_dto>>? all_groups = null)
         {
             SetupPage(page, period_cap);
 
@@ -143,7 +144,7 @@ namespace NinOS.UI.Common
                         h("FECHA DE\nPAGO");
                         h("MONTO\nPAGADO");
                         h("PRONTO\nPAGO");
-                        h("COMISION\n10%");
+                        h("COMISION");
                         h("TOTAL\nCOMISION");
                         h("PAGO\nCOMISION");
                     });
@@ -305,119 +306,161 @@ namespace NinOS.UI.Common
                         });
                     });
                 });
+
+                if (is_last && all_rows != null && all_rows.Count > 0)
+                {
+                    BuildGrandTotalBlock(col, all_rows, all_groups);
+                }
             });
         }
 
-        private static void BuildSummaryPage(
-            PageDescriptor page,
-            string period_cap,
+        private static void BuildGrandTotalBlock(
+            ColumnDescriptor sumCol,
             List<commission_row_dto> all_rows,
-            List<IGrouping<string, commission_row_dto>> all_groups)
+            List<IGrouping<string, commission_row_dto>>? all_groups)
         {
-            SetupPage(page, period_cap);
-
-            page.Content().PaddingVertical(6).Column(sumCol =>
+            if (all_groups != null && all_groups.Count > 1)
             {
-                sumCol.Item().Text("RESUMEN GENERAL DE COMISIONES")
-                    .FontSize(13).Bold().FontColor(PrimaryColor);
-                sumCol.Item().PaddingTop(2).Text("Consolidado de todas las vendedoras del período.")
-                    .FontSize(8.5f).FontColor("#555555");
-
-                // Tabla consolidada por vendedora directamente (sin bloque individual superior)
-                sumCol.Item().PaddingTop(8).Table(table =>
+                sumCol.Item().PaddingTop(10).Border(1.2f).BorderColor(PrimaryColor).Column(b =>
                 {
-                    table.ColumnsDefinition(columns =>
+                    b.Item().Background(PrimaryColor).PaddingVertical(3).PaddingHorizontal(6).Row(r =>
                     {
-                        columns.RelativeColumn(2.0f);   // VENDEDORA
-                        columns.RelativeColumn(0.8f);   // NOTAS
-                        columns.RelativeColumn(1.4f);   // FACTURADO
-                        columns.RelativeColumn(1.4f);   // PAGADO
-                        columns.RelativeColumn(1.4f);   // COMISION
-                        columns.RelativeColumn(1.4f);   // PAGADA
-                        columns.RelativeColumn(1.4f);   // PENDIENTE
+                        r.RelativeItem().Text("RESUMEN GENERAL DE COMISIONES").FontSize(8.5f).Bold().FontColor(Colors.White);
+                        r.ConstantItem(180).AlignRight().Text($"Consolidado ({all_groups.Count} vendedoras)").FontSize(7.5f).FontColor(Colors.White);
                     });
 
-                    table.Header(header =>
+                    b.Item().Padding(4).Table(table =>
                     {
-                        void h(string text, bool left = false)
+                        table.ColumnsDefinition(columns =>
                         {
-                            var c = header.Cell().Background(PrimaryColor).Border(0.4f).BorderColor(LightBorder).PaddingVertical(3).PaddingHorizontal(2);
-                            var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontColor(Colors.White).Bold().FontSize(7);
+                            columns.RelativeColumn(2.0f);   // VENDEDORA
+                            columns.RelativeColumn(0.8f);   // NOTAS
+                            columns.RelativeColumn(1.4f);   // FACTURADO
+                            columns.RelativeColumn(1.4f);   // PAGADO
+                            columns.RelativeColumn(1.4f);   // COMISION
+                            columns.RelativeColumn(1.4f);   // PAGADA
+                            columns.RelativeColumn(1.4f);   // PENDIENTE
+                        });
+
+                        table.Header(header =>
+                        {
+                            void h(string text, bool left = false)
+                            {
+                                var c = header.Cell().Background(AccentBg).Border(0.4f).BorderColor(LightBorder).PaddingVertical(2).PaddingHorizontal(2);
+                                var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                                t.FontColor(PrimaryColor).Bold().FontSize(6.5f);
+                            }
+
+                            h("VENDEDORA", left: true);
+                            h("NOTAS");
+                            h("FACTURADO");
+                            h("PAGADO");
+                            h("COMISION");
+                            h("PAGADA");
+                            h("PENDIENTE");
+                        });
+
+                        bool alternateSummary = false;
+                        decimal grand_facturado = 0;
+                        decimal grand_pagado = 0;
+                        decimal grand_comision = 0;
+                        decimal grand_pagada = 0;
+                        decimal grand_pendiente = 0;
+                        int grand_notas = 0;
+
+                        foreach (var g in all_groups)
+                        {
+                            string bg = alternateSummary ? AccentBg : Colors.White;
+                            var gRows = g.ToList();
+
+                            int count = gRows.Count;
+                            decimal facturado = gRows.Sum(r => r.invoiced_amount);
+                            decimal pagado = gRows.Sum(r => r.paid_amount);
+                            decimal comision = gRows.Sum(r => r.amount_usd);
+                            decimal pagada = gRows.Where(r => r.remaining_amount_usd <= 0.005m).Sum(r => r.amount_usd);
+                            decimal pendiente = gRows.Where(r => r.remaining_amount_usd > 0.005m).Sum(r => r.remaining_amount_usd);
+
+                            grand_notas += count;
+                            grand_facturado += facturado;
+                            grand_pagado += pagado;
+                            grand_comision += comision;
+                            grand_pagada += pagada;
+                            grand_pendiente += pendiente;
+
+                            void cell(string text, bool left = false)
+                            {
+                                var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
+                                    .PaddingVertical(2).PaddingHorizontal(2);
+                                var t = left ? c.Text(text) : c.AlignCenter().Text(text);
+                                t.FontSize(7.5f);
+                            }
+
+                            cell(g.Key.ToUpperInvariant(), left: true);
+                            cell(count.ToString());
+                            cell(Money(facturado));
+                            cell(Money(pagado));
+                            cell(Money(comision));
+                            cell(Money(pagada));
+                            cell(Money(pendiente));
+
+                            alternateSummary = !alternateSummary;
                         }
 
-                        h("VENDEDORA", left: true);
-                        h("NOTAS");
-                        h("FACTURADO");
-                        h("PAGADO");
-                        h("COMISION");
-                        h("PAGADA");
-                        h("PENDIENTE");
-                    });
-
-                    bool alternateSummary = false;
-                    decimal grand_facturado = 0;
-                    decimal grand_pagado = 0;
-                    decimal grand_comision = 0;
-                    decimal grand_pagada = 0;
-                    decimal grand_pendiente = 0;
-                    int grand_notas = 0;
-
-                    foreach (var g in all_groups)
-                    {
-                        string bg = alternateSummary ? AccentBg : Colors.White;
-                        var gRows = g.ToList();
-
-                        int count = gRows.Count;
-                        decimal facturado = gRows.Sum(r => r.invoiced_amount);
-                        decimal pagado = gRows.Sum(r => r.paid_amount);
-                        decimal comision = gRows.Sum(r => r.amount_usd);
-                        decimal pagada = gRows.Where(r => r.remaining_amount_usd <= 0.005m).Sum(r => r.amount_usd);
-                        decimal pendiente = gRows.Where(r => r.remaining_amount_usd > 0.005m).Sum(r => r.remaining_amount_usd);
-
-                        grand_notas += count;
-                        grand_facturado += facturado;
-                        grand_pagado += pagado;
-                        grand_comision += comision;
-                        grand_pagada += pagada;
-                        grand_pendiente += pendiente;
-
-                        void cell(string text, bool left = false)
+                        void grandCell(string text, bool left = false)
                         {
-                            var c = table.Cell().Background(bg).Border(0.4f).BorderColor(LightBorder)
+                            var c = table.Cell().Background("#E8F5E9").Border(0.5f).BorderColor(LightBorder)
                                 .PaddingVertical(3).PaddingHorizontal(2);
                             var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                            t.FontSize(8);
+                            t.FontSize(8f).Bold().FontColor(PrimaryColor);
                         }
 
-                        cell(g.Key.ToUpperInvariant(), left: true);
-                        cell(count.ToString());
-                        cell(Money(facturado));
-                        cell(Money(pagado));
-                        cell(Money(comision));
-                        cell(Money(pagada));
-                        cell(Money(pendiente));
-
-                        alternateSummary = !alternateSummary;
-                    }
-
-                    void grandCell(string text, bool left = false)
-                    {
-                        var c = table.Cell().Background("#E8F5E9").Border(0.5f).BorderColor(LightBorder)
-                            .PaddingVertical(4).PaddingHorizontal(2);
-                        var t = left ? c.Text(text) : c.AlignCenter().Text(text);
-                        t.FontSize(8.5f).Bold().FontColor(PrimaryColor);
-                    }
-
-                    grandCell("TOTAL GENERAL", left: true);
-                    grandCell(grand_notas.ToString());
-                    grandCell(Money(grand_facturado));
-                    grandCell(Money(grand_pagado));
-                    grandCell(Money(grand_comision));
-                    grandCell(Money(grand_pagada));
-                    grandCell(Money(grand_pendiente));
+                        grandCell("TOTAL GENERAL", left: true);
+                        grandCell(grand_notas.ToString());
+                        grandCell(Money(grand_facturado));
+                        grandCell(Money(grand_pagado));
+                        grandCell(Money(grand_comision));
+                        grandCell(Money(grand_pagada));
+                        grandCell(Money(grand_pendiente));
+                    });
                 });
-            });
+            }
+            else
+            {
+                decimal grand_facturado = all_rows.Sum(r => r.invoiced_amount);
+                decimal grand_pagado = all_rows.Sum(r => r.paid_amount);
+                decimal grand_comision = all_rows.Sum(r => r.amount_usd);
+                decimal grand_pagada = all_rows.Where(r => r.remaining_amount_usd <= 0.005m).Sum(r => r.amount_usd);
+                decimal grand_pendiente = all_rows.Where(r => r.remaining_amount_usd > 0.005m).Sum(r => r.remaining_amount_usd);
+
+                sumCol.Item().PaddingTop(10).Border(1.2f).BorderColor(PrimaryColor).Column(grand =>
+                {
+                    grand.Item().Background(PrimaryColor).Padding(3).AlignCenter()
+                        .Text("TOTAL GENERAL DE COMISIONES").FontSize(9.5f).Bold().FontColor(Colors.White);
+
+                    grand.Item().Padding(4).Row(r =>
+                    {
+                        r.RelativeItem().Text("TOTAL FACTURADO $").FontSize(9).Bold().FontColor("#000000");
+                        r.ConstantItem(120).AlignRight().Text(Money(grand_facturado)).FontSize(10f).Bold();
+                    });
+                    grand.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                    grand.Item().Padding(4).Row(r =>
+                    {
+                        r.RelativeItem().Text("TOTAL COMISIÓN GENERADA").FontSize(9).Bold().FontColor(PrimaryColor);
+                        r.ConstantItem(120).AlignRight().Text(Money(grand_comision)).FontSize(11.5f).Bold().FontColor(PrimaryColor);
+                    });
+                    grand.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                    grand.Item().Padding(4).Row(r =>
+                    {
+                        r.RelativeItem().Text("TOTAL COMISIÓN PAGADA").FontSize(8.5f).Bold().FontColor("#2E7D32");
+                        r.ConstantItem(120).AlignRight().Text(Money(grand_pagada)).FontSize(10f).Bold().FontColor("#2E7D32");
+                    });
+                    grand.Item().PaddingHorizontal(4).PaddingBottom(4).Row(r =>
+                    {
+                        r.RelativeItem().Text("TOTAL COMISIÓN PENDIENTE").FontSize(8.5f).Bold().FontColor(grand_pendiente > 0.005m ? "#C62828" : "#000000");
+                        r.ConstantItem(120).AlignRight().Text(Money(grand_pendiente)).FontSize(10.5f).Bold().FontColor(grand_pendiente > 0.005m ? "#C62828" : "#000000");
+                    });
+                });
+            }
         }
 
         private static void SetupPage(PageDescriptor page, string period_cap)

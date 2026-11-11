@@ -11,7 +11,7 @@ namespace NinOS.UI.Common
     {
         private static readonly XLColor Accent = XLColor.FromHtml("#1565C0");
         private static readonly XLColor SoftAccent = XLColor.FromHtml("#E3F2FD");
-        private static readonly XLColor LightBorder = XLColor.FromHtml("#B0BEC5");
+        private static readonly XLColor LightBorder = XLColor.Black;
         private static readonly XLColor GreenColor = XLColor.FromHtml("#2E7D32");
         private static readonly XLColor RedColor = XLColor.FromHtml("#C62828");
         private static readonly XLColor OrangeColor = XLColor.FromHtml("#E65100");
@@ -73,14 +73,14 @@ namespace NinOS.UI.Common
             // 2. SECCIÓN PENDIENTES
             if (pending.Count > 0)
             {
-                currentRow = RenderSection(ws, currentRow, "RELACIONES POR COBRAR - PENDIENTES", pending, isPending: true);
+                currentRow = RenderSection(ws, currentRow, "RELACIONES PENDIENTES", pending, isPending: true);
             }
 
             // 3. SECCIÓN PAGADAS
             if (paid.Count > 0)
             {
                 if (pending.Count > 0) currentRow += 2;
-                currentRow = RenderSection(ws, currentRow, "RELACIONES POR COBRAR - PAGADAS", paid, isPending: false);
+                currentRow = RenderSection(ws, currentRow, "RELACIONES PAGADAS", paid, isPending: false);
             }
 
             // 4. GRAN TOTAL / RESUMEN CONSOLIDADO (Tarjeta idéntica al PDF)

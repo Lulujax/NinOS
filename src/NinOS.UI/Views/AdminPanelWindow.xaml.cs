@@ -616,7 +616,7 @@ namespace NinOS.UI.Views
                 DbStatusText.Text =
                     $"BD: {db_name} | Clientes: {customers} ({customers_inactive} en papelera) | " +
                     $"Productos: {products} ({products_inactive} en papelera)\n" +
-                    $"Notas de entrega: {notes} | Notas de credito: {credit_notes} | Movimientos de kardex: {movements}";
+                    $"Notas de entrega: {notes} | Notas de credito: {credit_notes} | Movimientos de inventario: {movements}";
             }
             catch (Exception ex)
             {

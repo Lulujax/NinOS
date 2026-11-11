@@ -425,6 +425,22 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("numeric(18,3)")
                         .HasColumnName("original_volume_discount_percentage");
 
+                    b.Property<string>("payment_account_text")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_account_text");
+
+                    b.Property<string>("payment_header_text")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_header_text");
+
+                    b.Property<string>("payment_movil_text")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_movil_text");
+
+                    b.Property<string>("payment_transfer_text")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_transfer_text");
+
                     b.Property<string>("promo_banner")
                         .HasColumnType("text");
 

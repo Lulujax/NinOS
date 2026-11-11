@@ -253,6 +253,10 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.due_date).HasColumnName("due_date").IsRequired(false);
                 entity.Property(e => e.conditions_text).HasColumnName("conditions_text");
                 entity.Property(e => e.discount_conditions_text).HasColumnName("discount_conditions_text");
+                entity.Property(e => e.payment_header_text).HasColumnName("payment_header_text");
+                entity.Property(e => e.payment_transfer_text).HasColumnName("payment_transfer_text");
+                entity.Property(e => e.payment_account_text).HasColumnName("payment_account_text");
+                entity.Property(e => e.payment_movil_text).HasColumnName("payment_movil_text");
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);

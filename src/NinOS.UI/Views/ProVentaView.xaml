@@ -71,9 +71,9 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Relacion Pro Venta:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <ComboBox SelectedIndex="{Binding selected_report_index, Mode=TwoWay}" Width="330">
-                    <ComboBoxItem Content="Relacion por cobrar - reporte semanal"/>
-                    <ComboBoxItem Content="Relacion por cobrar - pendientes"/>
-                    <ComboBoxItem Content="Relacion por cobrar - pagadas"/>
+                    <ComboBoxItem Content="Reporte Semanal"/>
+                    <ComboBoxItem Content="Relaciones Pendientes"/>
+                    <ComboBoxItem Content="Relaciones Pagadas"/>
                 </ComboBox>
             </StackPanel>
         </Border>
@@ -311,13 +311,13 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="Relacion por cobrar - pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
+                <TextBlock Text="Relaciones Pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
                 <TextBlock Text="Seleccione un mes para ver las relaciones pendientes." Foreground="#8D6E00"
                            HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
                            Visibility="{Binding pending_show_month_hint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <TextBlock Text="No hay relaciones pendientes por cobrar." Foreground="#888888" HorizontalAlignment="Center"
+                <TextBlock Text="No hay relaciones pendientes." Foreground="#888888" HorizontalAlignment="Center"
                            Margin="0,20,0,0"
                            Visibility="{Binding pending_show_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
@@ -426,7 +426,7 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="Relacion por cobrar - pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
+                <TextBlock Text="Relaciones Pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
                 <TextBlock Text="Seleccione un mes para ver las relaciones pagadas." Foreground="#8D6E00"
                            HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"

@@ -22,8 +22,12 @@ namespace NinOS.UI.Views
             {
                 if (_viewModel?.delivery_notes_vm?.has_pending_data == true)
                 {
+                    string message = _viewModel.delivery_notes_vm.note_details.Count > 0
+                        ? "Hay datos sin guardar en la Nota de Entrega. Si sales de la aplicación se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?"
+                        : "Hay cambios sin guardar en la Nota de Entrega (datos de pago, cliente u observaciones). Si sales de la aplicación se perderán los cambios.\n\n¿Desea salir de todas formas?";
+
                     MessageBoxResult result = AppDialog.Show(
-                        "Hay datos sin guardar en la Nota de Entrega. Si sales de la aplicación se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?",
+                        message,
                         "Datos sin guardar",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Warning);
@@ -120,8 +124,12 @@ namespace NinOS.UI.Views
 
             if (MainTabControl.SelectedIndex == 0 && _viewModel.delivery_notes_vm?.has_pending_data == true)
             {
+                string message = _viewModel.delivery_notes_vm.note_details.Count > 0
+                    ? "Hay datos sin guardar en la Nota de Entrega. Si sales de esta pestaña se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?"
+                    : "Hay cambios sin guardar en la Nota de Entrega (datos de pago, cliente u observaciones). Si sales de esta pestaña se perderán los cambios.\n\n¿Desea salir de todas formas?";
+
                 MessageBoxResult result = AppDialog.Show(
-                    "Hay datos sin guardar en la Nota de Entrega. Si sales de esta pestaña se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?",
+                    message,
                     "Datos sin guardar",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
@@ -135,6 +143,37 @@ namespace NinOS.UI.Views
                 _viewModel.delivery_notes_vm.reset_unsaved_note();
                 MainTabControl.SelectedIndex = target_index;
                 e.Handled = true;
+            }
+        }
+
+        private void MainTabControl_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (_viewModel == null) return;
+            if (MainTabControl.SelectedIndex != 0) return;
+            if (_viewModel.delivery_notes_vm?.has_pending_data != true) return;
+
+            bool isTabKey = e.Key == Key.Tab && Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+            bool isArrowOnTab = (e.Key == Key.Left || e.Key == Key.Right) && (e.OriginalSource is TabItem || Keyboard.FocusedElement is TabItem);
+
+            if (isTabKey || isArrowOnTab)
+            {
+                string message = _viewModel.delivery_notes_vm.note_details.Count > 0
+                    ? "Hay datos sin guardar en la Nota de Entrega. Si sales de esta pestaña se perderán y el stock será liberado.\n\n¿Desea salir de todas formas?"
+                    : "Hay cambios sin guardar en la Nota de Entrega (datos de pago, cliente u observaciones). Si sales de esta pestaña se perderán los cambios.\n\n¿Desea salir de todas formas?";
+
+                MessageBoxResult result = AppDialog.Show(
+                    message,
+                    "Datos sin guardar",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                _viewModel.delivery_notes_vm.reset_unsaved_note();
             }
         }
 

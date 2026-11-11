@@ -141,12 +141,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                                     .ThenInclude(sz => sz.zona)
                                 .FirstOrDefaultAsync(s => s.id_seller == target_note.id_seller);
 
-                            if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only)
+                            if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
                             {
-                                decimal pct = note_seller.commission_percentage > 0
-                                    ? note_seller.commission_percentage
-                                    : 0.10m;
-
+                                decimal pct = note_seller.commission_percentage;
                                 decimal generated_amount_usd = Math.Round(commissionable * pct, 2);
                                 commission new_commission = new commission(
                                     target_note.id_seller,
@@ -293,12 +290,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                                         .ThenInclude(sz => sz.zona)
                                     .FirstOrDefaultAsync(s => s.id_seller == target_note.id_seller);
 
-                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only)
+                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
                                 {
-                                    decimal pct = note_seller.commission_percentage > 0
-                                        ? note_seller.commission_percentage
-                                        : 0.10m;
-
+                                    decimal pct = note_seller.commission_percentage;
                                     decimal generated_amount_usd = Math.Round(commissionable * pct, 2);
                                     commission new_commission = new commission(
                                         target_note.id_seller,

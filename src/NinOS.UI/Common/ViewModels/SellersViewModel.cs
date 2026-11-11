@@ -24,8 +24,8 @@ namespace NinOS.UI.Common.ViewModels
         public bool IsActive { get; set; } = true;
         public bool CanReceiveCommissions { get; set; } = true;
         public decimal CommissionPercentage { get; set; } = 0.10m;
-        public string CommissionPercentageText => CanReceiveCommissions
-            ? $"{(CommissionPercentage > 0 ? CommissionPercentage * 100 : 10):0.##}%"
+        public string CommissionPercentageText => (CanReceiveCommissions && CommissionPercentage > 0)
+            ? $"{CommissionPercentage * 100:0.##}%"
             : "Sin comisión";
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }
@@ -242,7 +242,7 @@ namespace NinOS.UI.Common.ViewModels
                 AssignedZonaIds = assignedZones.Select(z => z.id_zona).ToList(),
                 IsActive = s.is_active,
                 CanReceiveCommissions = s.can_receive_commissions,
-                CommissionPercentage = s.commission_percentage > 0 ? s.commission_percentage : 0.10m,
+                CommissionPercentage = Math.Max(0m, s.commission_percentage),
                 DeletedAt = s.deleted_at,
                 DeletedReason = s.deleted_reason,
                 SellerRef = s
@@ -311,7 +311,7 @@ namespace NinOS.UI.Common.ViewModels
                 NewSellerCode = selected.SellerCode;
                 NewFullName = selected.FullName;
                 CanReceiveCommissions = selected.CanReceiveCommissions;
-                decimal editPct = selected.CommissionPercentage > 0 ? selected.CommissionPercentage : 0.10m;
+                decimal editPct = selected.CanReceiveCommissions ? selected.CommissionPercentage : 0m;
                 NewCommissionPercentageText = (editPct * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                 ErrorMessage = string.Empty;
 
@@ -374,7 +374,11 @@ namespace NinOS.UI.Common.ViewModels
                     .ToList();
 
                 decimal commPct = 0.10m;
-                if (!string.IsNullOrWhiteSpace(_newCommissionPercentageText))
+                if (!_canReceiveCommissions)
+                {
+                    commPct = 0m;
+                }
+                else if (!string.IsNullOrWhiteSpace(_newCommissionPercentageText))
                 {
                     string cleaned = _newCommissionPercentageText.Replace("%", "").Trim().Replace(',', '.');
                     if (decimal.TryParse(cleaned, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedVal))
@@ -384,8 +388,7 @@ namespace NinOS.UI.Common.ViewModels
                             ErrorMessage = "El porcentaje de comisión debe estar entre 0% y 100%.";
                             return;
                         }
-                        commPct = parsedVal > 1 ? Math.Round(parsedVal / 100m, 4) : Math.Round(parsedVal, 4);
-                        if (commPct == 0 && parsedVal > 0) commPct = 0.10m;
+                        commPct = (parsedVal > 0 && parsedVal < 1) ? Math.Round(parsedVal, 4) : Math.Round(parsedVal / 100m, 4);
                     }
                     else
                     {

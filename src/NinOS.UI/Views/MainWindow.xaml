@@ -17,7 +17,9 @@
                        Foreground="White" VerticalAlignment="Center" />
         </Border>
 
-        <TabControl x:Name="MainTabControl" Grid.Row="1" Margin="10" SelectionChanged="TabControl_SelectionChanged" PreviewMouseLeftButtonDown="MainTabControl_PreviewMouseLeftButtonDown">
+        <TabControl x:Name="MainTabControl" Grid.Row="1" Margin="10" SelectionChanged="TabControl_SelectionChanged" 
+                    PreviewMouseLeftButtonDown="MainTabControl_PreviewMouseLeftButtonDown"
+                    PreviewKeyDown="MainTabControl_PreviewKeyDown">
 <TabItem Header="Notas de Entrega">
                 <views:DeliveryNotesView DataContext="{Binding delivery_notes_vm}" />
             </TabItem>

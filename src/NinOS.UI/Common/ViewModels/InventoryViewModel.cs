@@ -1120,7 +1120,8 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = ErrorText.Get(ex);
+                AppLog.Error("Error al cargar inventario: " + ex.Message, ex);
+                AppDialog.Show($"Error al cargar el inventario: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1694,6 +1695,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_open_add_window(object? parameter)
         {
+            ErrorMessage = string.Empty;
             is_stock_addition_mode = false;
             is_stock_removal_mode = false;
             is_stock_edit_mode = false;
@@ -1813,6 +1815,8 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is not inventory_item_dto dto || dto.is_promotion || dto.product_ref == null) return;
 
+            ErrorMessage = string.Empty;
+
             if (is_principal_list_selected)
             {
                 _product_being_edited = dto.product_ref;
@@ -1884,6 +1888,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (parameter is inventory_item_dto dto && dto.is_promotion && dto.promo_ref != null)
             {
+                ErrorMessage = string.Empty;
                 _promotion_being_edited = dto.promo_ref;
                 on_property_changed(nameof(is_editing_promotion));
 
@@ -2328,7 +2333,7 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 var model = await build_all_movements_model_async();
                 var doc = AllMovementsPdfGenerator.build_document(model);
-                string fileName = $"MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                string fileName = $"TODOS_LOS_MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
                 var preview = new PdfPreviewWindow(
                     doc,
                     "Todos los Movimientos de Inventario",
@@ -2355,7 +2360,7 @@ namespace NinOS.UI.Common.ViewModels
                 IsLoading = true;
                 var model = await build_all_movements_model_async();
                 var doc = AllMovementsPdfGenerator.build_document(model);
-                string fileName = $"MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+                string fileName = $"TODOS_LOS_MOVIMIENTOS_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
                 ReportPrintService.DirectPrint(doc, Application.Current?.MainWindow, "Movimientos de Inventario", fileName);
             }
             catch (Exception ex)
@@ -2455,7 +2460,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    ErrorMessage = $"No se pudo eliminar el producto: {ErrorText.Get(ex)}";
+                    AppLog.Error("Error al eliminar el producto: " + ex.Message, ex);
                     AppDialog.Show($"Error al eliminar el producto: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -2513,7 +2518,8 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"No se pudo eliminar la promoción: {ErrorText.Get(ex)}";
+                AppLog.Error("Error al eliminar la promoción: " + ex.Message, ex);
+                AppDialog.Show($"Error al eliminar la promoción: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

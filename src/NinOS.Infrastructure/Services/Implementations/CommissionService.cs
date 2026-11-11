@@ -1777,7 +1777,7 @@ return new commission_dto
 
 
 
-                        : Math.Round(paid * (c.commission_percentage > 0 ? c.commission_percentage : 0.10m), 2);
+                        : Math.Round(paid * c.commission_percentage, 2);
 
 
 
@@ -1821,11 +1821,11 @@ return new commission_dto
 
 
 
-                        commission_percentage = c.commission_percentage > 0 ? c.commission_percentage : 0.10m,
+                        commission_percentage = c.commission_percentage,
 
 
 
-                        commission_10 = comm_amt,
+                        commission_amount = comm_amt,
 
 
 

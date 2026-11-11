@@ -32,7 +32,7 @@ namespace NinOS.UI.Common
             QuestPDF.Settings.License = LicenseType.Community;
 
             string seller = (receipt.seller_name ?? string.Empty).ToUpperInvariant();
-            decimal sub_total = receipt.rows.Sum(r => r.commission_10);
+            decimal sub_total = receipt.rows.Sum(r => r.commission_amount);
 
             return Document.Create(container =>
             {
@@ -73,7 +73,7 @@ namespace NinOS.UI.Common
                                 columns.RelativeColumn(1.6f);   // FECHA DE PAGO
                                 columns.RelativeColumn(1.1f);   // MONTO PAGADO $
                                 columns.RelativeColumn(1.0f);   // PRONTO PAGO
-                                columns.RelativeColumn(1.0f);   // COMISION 10%
+                                columns.RelativeColumn(1.0f);   // COMISION
                                 columns.RelativeColumn(1.1f);   // TOTAL COMISION $
                                 columns.RelativeColumn(1.0f);   // PAGO COMISION
                             });
@@ -93,7 +93,7 @@ namespace NinOS.UI.Common
                                 h("FECHA DE\nPAGO");
                                 h("MONTO\nPAGADO");
                                 h("PRONTO\nPAGO");
-                                h("COMISION\n10%");
+                                h("COMISION");
                                 h("TOTAL\nCOMISION");
                                 h("PAGO\nCOMISION");
                             });
@@ -117,8 +117,8 @@ namespace NinOS.UI.Common
                                 cell(r.note_payments_text?.Replace("$", string.Empty) ?? string.Empty);
                                 cell(Money(r.paid_amount));
                                 cell(r.early_payment_discount_pct > 0 ? $"SI ({r.early_payment_discount_pct:0.##}%)" : (r.early_payment_discount > 0 ? "SI" : "NO"));
-                                cell(Money(r.commission_10));
-                                cell(Money(r.commission_10));
+                                cell(Money(r.commission_amount));
+                                cell(Money(r.commission_amount));
                                 cell(r.commission_paid_date_dmon);
 
                                 alternate = !alternate;

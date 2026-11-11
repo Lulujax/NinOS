@@ -94,7 +94,7 @@ namespace NinOS.UI.Common
                 string[] headers = new[]
                 {
                     "NRO", "CLIENTE", "MONTO FACTURADO", "FECHA DE PAGO",
-                    "MONTO PAGADO", "PRONTO PAGO", "COMISION 10%", "TOTAL COMISION", "PAGO COMISION"
+                    "MONTO PAGADO", "PRONTO PAGO", "COMISION", "TOTAL COMISION", "PAGO COMISION"
                 };
 
                 for (int i = 0; i < headers.Length; i++)
@@ -167,7 +167,7 @@ namespace NinOS.UI.Common
                     ppCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     ppCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                    // Col 7: COMISION 10% (Centrado, número sin $)
+                    // Col 7: COMISION (Centrado, número sin $)
                     var com10Cell = ws.Cell(rowIdx, 7);
                     com10Cell.SetValue(r.amount_usd);
                     com10Cell.Style.Font.FontSize = 11;

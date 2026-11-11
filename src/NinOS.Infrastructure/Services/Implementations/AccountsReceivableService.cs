@@ -672,11 +672,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                                         .ThenInclude(sz => sz.zona)
                                     .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
 
-                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only)
+                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
                                 {
-                                    decimal pct = (note_seller != null && note_seller.commission_percentage > 0)
-                                        ? note_seller.commission_percentage
-                                        : 0.10m;
+                                    decimal pct = note_seller.commission_percentage;
 
                                     existing_commission = new commission(
                                         delivery_note.id_seller,
@@ -1070,6 +1068,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     fiscal_address = customer?.fiscal_address ?? string.Empty,
                     conditions_text = conditions_text,
                     discount_conditions_text = discount_conditions_text,
+                    payment_header_text = note.payment_header_text,
+                    payment_transfer_text = note.payment_transfer_text,
+                    payment_account_text = note.payment_account_text,
+                    payment_movil_text = note.payment_movil_text,
                     details = details
                 };
             }

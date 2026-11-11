@@ -33,7 +33,7 @@ namespace NinOS.UI.Common
         private static readonly string PrimaryColor = "#1B3A2D";
         private static readonly string DarkText = "#1A1A1A";
         private static readonly string MutedText = "#555555";
-        private static readonly string LightBorder = "#D0D7DE";
+        private static readonly string BlackBorder = "#000000";
         private static readonly string ZebraBg = "#F8FAFC";
         private static readonly string CardBg = "#F1F5F9";
         private static readonly CultureInfo Ve = new CultureInfo("es-VE");
@@ -41,7 +41,7 @@ namespace NinOS.UI.Common
         public static string get_default_file_name(CustomersReportPdfModel model)
         {
             string safeScope = SanitizeFileName(string.IsNullOrWhiteSpace(model.Scope) ? "GENERAL" : model.Scope);
-            return $"LISTADO_CLIENTES_{safeScope}_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
+            return $"MAESTRO_CLIENTES_{safeScope}_{DateTime.Now:yyyyMMdd_HHmm}.pdf".ToUpperInvariant();
         }
 
         public static void generate(CustomersReportPdfModel model)
@@ -50,7 +50,7 @@ namespace NinOS.UI.Common
 
             var saveDialog = new SaveFileDialog
             {
-                Title = "Guardar listado de clientes en PDF",
+                Title = "Guardar maestro de clientes en PDF",
                 Filter = "PDF (*.pdf)|*.pdf",
                 FileName = get_default_file_name(model)
             };
@@ -92,7 +92,7 @@ namespace NinOS.UI.Common
                         {
                             row.RelativeItem(2).Column(c =>
                             {
-                                c.Item().Text("LISTADO GENERAL DE CLIENTES").FontSize(13).Bold().FontColor(PrimaryColor);
+                                c.Item().Text("MAESTRO DE CLIENTES").FontSize(13).Bold().FontColor(PrimaryColor);
                                 string subtitle = $"ALCANCE: {model.Scope.ToUpperInvariant()}";
                                 if (!string.IsNullOrWhiteSpace(model.SearchFilter))
                                 {
@@ -108,17 +108,17 @@ namespace NinOS.UI.Common
                             });
                         });
 
-                        col.Item().PaddingTop(4).LineHorizontal(1.5f).LineColor(PrimaryColor);
+                        col.Item().PaddingTop(4).LineHorizontal(1.5f).LineColor(BlackBorder);
                     });
 
                     // Pie de página
                     page.Footer().Column(col =>
                     {
-                        col.Item().LineHorizontal(0.5f).LineColor(LightBorder);
+                        col.Item().LineHorizontal(0.5f).LineColor(BlackBorder);
                         col.Item().PaddingTop(2).Row(row =>
                         {
                             row.RelativeItem().Text("NinOS - Sistema Administrativo").FontSize(7).FontColor(MutedText);
-                            row.RelativeItem().AlignCenter().Text("Listado de Clientes").FontSize(7).FontColor(MutedText);
+                            row.RelativeItem().AlignCenter().Text("Maestro de Clientes").FontSize(7).FontColor(MutedText);
                             row.RelativeItem().AlignRight().Text(t =>
                             {
                                 t.Span("Página ").FontSize(7).FontColor(MutedText);
@@ -132,12 +132,12 @@ namespace NinOS.UI.Common
                     // Contenido
                     page.Content().PaddingVertical(6).Column(col =>
                     {
-                        // Tarjetas de Resumen KPI
+                        // Tarjetas de Resumen KPI con bordes en negro
                         BuildKpiSummary(col, model);
 
                         if (customers.Count == 0)
                         {
-                            col.Item().PaddingTop(15).Border(1).BorderColor(LightBorder).Background(CardBg).Padding(12)
+                            col.Item().PaddingTop(15).Border(1).BorderColor(BlackBorder).Background(CardBg).Padding(12)
                                 .AlignCenter().Text("No se encontraron clientes registrados con los criterios seleccionados.").Italic().FontColor(MutedText);
                             return;
                         }
@@ -153,7 +153,33 @@ namespace NinOS.UI.Common
                         {
                             BuildTableSection(col, customers, showZoneColumn: false);
                         }
+
+                        BuildGrandTotalSection(col, model);
                     });
+                });
+            });
+        }
+
+        private static void BuildGrandTotalSection(ColumnDescriptor col, CustomersReportPdfModel model)
+        {
+            col.Item().PaddingTop(8).Border(1).BorderColor(BlackBorder).Background(CardBg).Padding(6).Row(row =>
+            {
+                row.RelativeItem(2).AlignMiddle().Text("TOTAL GENERAL DE CLIENTES").FontSize(9.5f).Bold().FontColor(PrimaryColor);
+                row.RelativeItem(3).AlignRight().Column(c =>
+                {
+                    c.Item().Text(t =>
+                    {
+                        t.Span("TOTAL CLIENTES: ").Bold().FontSize(8).FontColor(DarkText);
+                        t.Span($"{model.TotalCustomers.ToString("N0", Ve)} registrados").Bold().FontSize(8.5f).FontColor(PrimaryColor);
+                    });
+                    if (model.TotalZones > 1)
+                    {
+                        c.Item().PaddingTop(1).Text(t =>
+                        {
+                            t.Span("ZONAS ATENDIDAS: ").Bold().FontSize(8).FontColor(DarkText);
+                            t.Span($"{model.TotalZones.ToString("N0", Ve)} zonas").Bold().FontSize(8.5f).FontColor(PrimaryColor);
+                        });
+                    }
                 });
             });
         }
@@ -162,7 +188,7 @@ namespace NinOS.UI.Common
         {
             col.Item().PaddingBottom(8).Row(row =>
             {
-                row.RelativeItem().Border(1).BorderColor(LightBorder).Background("#FFFFFF").Padding(4).Column(c =>
+                row.RelativeItem().Border(1).BorderColor(BlackBorder).Background("#FFFFFF").Padding(4).Column(c =>
                 {
                     c.Item().AlignCenter().Text("TOTAL CLIENTES").FontSize(7).Bold().FontColor(MutedText);
                     c.Item().AlignCenter().Text(model.TotalCustomers.ToString("N0", Ve)).FontSize(11).Bold().FontColor(PrimaryColor);
@@ -171,7 +197,7 @@ namespace NinOS.UI.Common
 
                 row.Spacing(4);
 
-                row.RelativeItem().Border(1).BorderColor(LightBorder).Background("#FFFFFF").Padding(4).Column(c =>
+                row.RelativeItem().Border(1).BorderColor(BlackBorder).Background("#FFFFFF").Padding(4).Column(c =>
                 {
                     c.Item().AlignCenter().Text("ZONAS ATENDIDAS").FontSize(7).Bold().FontColor(MutedText);
                     c.Item().AlignCenter().Text(model.TotalZones.ToString("N0", Ve)).FontSize(11).Bold().FontColor(PrimaryColor);
@@ -180,7 +206,7 @@ namespace NinOS.UI.Common
 
                 row.Spacing(4);
 
-                row.RelativeItem().Border(1).BorderColor(LightBorder).Background("#FFFFFF").Padding(4).Column(c =>
+                row.RelativeItem().Border(1).BorderColor(BlackBorder).Background("#FFFFFF").Padding(4).Column(c =>
                 {
                     c.Item().AlignCenter().Text("CON IDENTIFICACIÓN").FontSize(7).Bold().FontColor(MutedText);
                     c.Item().AlignCenter().Text(model.WithRifCount.ToString("N0", Ve)).FontSize(11).Bold().FontColor("#2E7D32");
@@ -189,7 +215,7 @@ namespace NinOS.UI.Common
 
                 row.Spacing(4);
 
-                row.RelativeItem().Border(1).BorderColor(LightBorder).Background("#FFFFFF").Padding(4).Column(c =>
+                row.RelativeItem().Border(1).BorderColor(BlackBorder).Background("#FFFFFF").Padding(4).Column(c =>
                 {
                     c.Item().AlignCenter().Text("CON TELÉFONO").FontSize(7).Bold().FontColor(MutedText);
                     c.Item().AlignCenter().Text(model.WithPhoneCount.ToString("N0", Ve)).FontSize(11).Bold().FontColor("#1565C0");
@@ -202,7 +228,7 @@ namespace NinOS.UI.Common
         {
             col.Item().PaddingTop(6).PaddingBottom(2).Row(r =>
             {
-                r.RelativeItem().Border(1).BorderColor(PrimaryColor).Background(PrimaryColor).PaddingVertical(3).PaddingHorizontal(6).Row(row =>
+                r.RelativeItem().Border(1).BorderColor(BlackBorder).Background(PrimaryColor).PaddingVertical(3).PaddingHorizontal(6).Row(row =>
                 {
                     row.RelativeItem().Text($"ZONA: {zoneName.ToUpperInvariant()}").FontSize(8).Bold().FontColor(Colors.White);
                     row.ConstantItem(100).AlignRight().Text($"{items.Count} clientes").FontSize(7.5f).Bold().FontColor(Colors.White);
@@ -220,25 +246,24 @@ namespace NinOS.UI.Common
                 {
                     columns.RelativeColumn(0.45f); // #
                     columns.RelativeColumn(0.85f); // Código
-                    columns.RelativeColumn(2.6f);  // Razón Social
-                    columns.RelativeColumn(1.2f);  // RIF
-                    columns.RelativeColumn(1.7f);  // Contacto
-                    columns.RelativeColumn(1.3f);  // Teléfono
-                    columns.RelativeColumn(2.4f);  // Dir. Fiscal
-                    columns.RelativeColumn(2.4f);  // Dir. Entrega
+                    columns.RelativeColumn(showZoneColumn ? 2.6f : 2.8f);  // Razón Social
+                    columns.RelativeColumn(showZoneColumn ? 1.1f : 1.2f);  // RIF
+                    columns.RelativeColumn(showZoneColumn ? 1.6f : 1.8f);  // Contacto
+                    columns.RelativeColumn(showZoneColumn ? 1.2f : 1.3f);  // Teléfono
+                    columns.RelativeColumn(showZoneColumn ? 2.4f : 2.7f);  // Dir. Fiscal
+                    columns.RelativeColumn(showZoneColumn ? 2.4f : 2.7f);  // Dir. Entrega
                     if (showZoneColumn)
                     {
-                        columns.RelativeColumn(1.3f); // Zona
+                        columns.RelativeColumn(1.4f); // Zona
                     }
-                    columns.RelativeColumn(1.1f);  // Vendedor
                 });
 
-                // Encabezado de la tabla
+                // Encabezado de la tabla con bordes en negro
                 table.Header(header =>
                 {
                     void h(string text, bool left = false)
                     {
-                        var c = header.Cell().Background(PrimaryColor).PaddingVertical(2.5f).PaddingHorizontal(2);
+                        var c = header.Cell().Background(PrimaryColor).Border(0.5f).BorderColor(BlackBorder).PaddingVertical(2.5f).PaddingHorizontal(2);
                         var t = left ? c.Text(text) : c.AlignCenter().Text(text);
                         t.FontColor(Colors.White).Bold().FontSize(6.5f);
                     }
@@ -255,7 +280,6 @@ namespace NinOS.UI.Common
                     {
                         h("ZONA");
                     }
-                    h("VENDEDOR");
                 });
 
                 int index = 1;
@@ -265,7 +289,7 @@ namespace NinOS.UI.Common
 
                     void c(Action<IContainer> content)
                     {
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor("#E0E0E0")
+                        table.Cell().Background(bg).Border(0.5f).BorderColor(BlackBorder)
                             .PaddingVertical(2.5f).PaddingHorizontal(2).Element(content);
                     }
 
@@ -288,19 +312,16 @@ namespace NinOS.UI.Common
                     c(cell => cell.AlignCenter().Text(cust.PhoneNumber ?? "-").FontSize(6.5f));
 
                     // Dirección Fiscal
-                    c(cell => cell.Text(string.IsNullOrWhiteSpace(cust.FiscalAddress) ? "-" : cust.FiscalAddress).FontSize(6.2f).FontColor("#444444"));
+                    c(cell => cell.Text(string.IsNullOrWhiteSpace(cust.FiscalAddress) ? "-" : cust.FiscalAddress).FontSize(6.2f).FontColor("#222222"));
 
                     // Dirección Entrega
-                    c(cell => cell.Text(string.IsNullOrWhiteSpace(cust.EffectiveDeliveryAddress) ? "-" : cust.EffectiveDeliveryAddress).FontSize(6.2f).FontColor("#444444"));
+                    c(cell => cell.Text(string.IsNullOrWhiteSpace(cust.EffectiveDeliveryAddress) ? "-" : cust.EffectiveDeliveryAddress).FontSize(6.2f).FontColor("#222222"));
 
-                    // Zona (opcional si es tabla plana)
+                    // Zona (si aplica)
                     if (showZoneColumn)
                     {
                         c(cell => cell.AlignCenter().Text(cust.ZonaName ?? "-").FontSize(6.5f));
                     }
-
-                    // Vendedor
-                    c(cell => cell.AlignCenter().Text(cust.SellerName ?? "-").FontSize(6.5f));
 
                     index++;
                 }

@@ -109,11 +109,16 @@ namespace NinOS.Domain
         public decimal? original_volume_discount_percentage { get; set; }
         // Datos que salen impresos y que se congelan al emitir la nota para que la
         // reimpresion salga identica: dias de credito, fecha de vencimiento y los dos
-        // textos de condiciones (el editable de la nota y el del cuadro de descuento).
+        // textos de condiciones (el editable de la nota y el del cuadro de descuento),
+        // asi como los datos de cuenta y pago editables.
         public int? credit_days { get; set; }
         public DateTime? due_date { get; set; }
         public string? conditions_text { get; set; }
         public string? discount_conditions_text { get; set; }
+        public string? payment_header_text { get; set; }
+        public string? payment_transfer_text { get; set; }
+        public string? payment_account_text { get; set; }
+        public string? payment_movil_text { get; set; }
 
         protected delivery_note()
         {

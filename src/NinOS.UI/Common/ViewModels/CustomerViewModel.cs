@@ -993,7 +993,7 @@ namespace NinOS.UI.Common.ViewModels
         {
             if (_allCustomersSource == null || _allCustomersSource.Count == 0)
             {
-                AppDialog.Show("No hay clientes registrados en el sistema.", "Listado de Clientes",
+                AppDialog.Show("No hay clientes registrados en el sistema.", "Maestro de Clientes",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return null;
             }
@@ -1001,7 +1001,7 @@ namespace NinOS.UI.Common.ViewModels
             var selectedOptions = report_zone_options.Where(o => o.is_checked).ToList();
             if (selectedOptions.Count == 0)
             {
-                AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Listado de Clientes",
+                AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Maestro de Clientes",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return null;
             }
@@ -1056,7 +1056,7 @@ namespace NinOS.UI.Common.ViewModels
 
             if (filtered.Count == 0)
             {
-                AppDialog.Show("No se encontraron clientes para las zonas y criterios seleccionados.", "Listado de Clientes",
+                AppDialog.Show("No se encontraron clientes para las zonas y criterios seleccionados.", "Maestro de Clientes",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return null;
             }
@@ -1081,7 +1081,7 @@ namespace NinOS.UI.Common.ViewModels
                 string defaultName = CustomersPdfGenerator.get_default_file_name(model);
                 var preview = new Views.PdfPreviewWindow(
                     doc,
-                    $"Listado de Clientes - {model.Scope}",
+                    $"Maestro de Clientes - {model.Scope}",
                     defaultName,
                     () => CustomersExcelExporter.export(model));
 
@@ -1094,7 +1094,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             catch (Exception ex)
             {
-                AppDialog.Show($"Error al generar vista previa del listado: {ErrorText.Get(ex)}", "Error",
+                AppDialog.Show($"Error al generar vista previa del maestro de clientes: {ErrorText.Get(ex)}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1112,12 +1112,12 @@ namespace NinOS.UI.Common.ViewModels
                 ReportPrintService.DirectPrint(
                     doc,
                     Application.Current?.MainWindow,
-                    $"Listado de Clientes - {model.Scope}",
+                    $"Maestro de Clientes - {model.Scope}",
                     defaultName);
             }
             catch (Exception ex)
             {
-                AppDialog.Show($"Error al imprimir el listado de clientes: {ErrorText.Get(ex)}", "Error",
+                AppDialog.Show($"Error al imprimir el maestro de clientes: {ErrorText.Get(ex)}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

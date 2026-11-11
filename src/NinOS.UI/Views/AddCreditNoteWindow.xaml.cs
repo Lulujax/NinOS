@@ -709,18 +709,29 @@ namespace NinOS.UI.Views
             }
         }
 
+        private static bool MatchesProductQuery(string? target, string query)
+        {
+            if (string.IsNullOrWhiteSpace(target)) return false;
+            if (target.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (query.IndexOf("shampoo", StringComparison.OrdinalIgnoreCase) >= 0 && target.IndexOf("shampo", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (query.IndexOf("champu", StringComparison.OrdinalIgnoreCase) >= 0 && (target.IndexOf("shampo", StringComparison.OrdinalIgnoreCase) >= 0 || target.IndexOf("shampoo", StringComparison.OrdinalIgnoreCase) >= 0)) return true;
+            return false;
+        }
+
         private void FilterProducts(string query)
         {
             if (ProductListBox == null) return;
-            if (string.IsNullOrEmpty(query))
+            if (string.IsNullOrWhiteSpace(query))
             {
                 ProductListBox.ItemsSource = _available_products;
             }
             else
             {
+                string q = query.Trim();
                 ProductListBox.ItemsSource = _available_products
-                    .Where(p => (p.name?.ToLower().Contains(query) ?? false) ||
-                                (p.product_code?.ToLower().Contains(query) ?? false))
+                    .Where(p => MatchesProductQuery(p.name, q) ||
+                                MatchesProductQuery(p.product_code, q) ||
+                                MatchesProductQuery(p.category, q))
                     .ToList();
             }
         }

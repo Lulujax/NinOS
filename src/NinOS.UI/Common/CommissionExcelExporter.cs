@@ -89,7 +89,7 @@ namespace NinOS.UI.Common
             string[] headers = new[]
             {
                 "NRO", "CLIENTE", "MONTO FACTURADO", "FECHA DE PAGO",
-                "MONTO PAGADO", "PRONTO PAGO", "COMISION 10%", "TOTAL COMISION", "PAGO COMISION"
+                "MONTO PAGADO", "PRONTO PAGO", "COMISION", "TOTAL COMISION", "PAGO COMISION"
             };
 
             for (int i = 0; i < headers.Length; i++)
@@ -165,9 +165,9 @@ namespace NinOS.UI.Common
                 ppCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 ppCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                // Col 7: COMISION 10% (Centrado, número sin $)
+                // Col 7: COMISION (Centrado, número sin $)
                 var com10Cell = ws.Cell(rowIdx, 7);
-                com10Cell.SetValue(r.commission_10);
+                com10Cell.SetValue(r.commission_amount);
                 com10Cell.Style.Font.FontSize = 11;
                 com10Cell.Style.NumberFormat.Format = "#,##0.00";
                 com10Cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -175,7 +175,7 @@ namespace NinOS.UI.Common
 
                 // Col 8: TOTAL COMISION (Centrado, número sin $)
                 var totCell = ws.Cell(rowIdx, 8);
-                totCell.SetValue(r.commission_10);
+                totCell.SetValue(r.commission_amount);
                 totCell.Style.Font.FontSize = 11;
                 totCell.Style.NumberFormat.Format = "#,##0.00";
                 totCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -212,7 +212,7 @@ namespace NinOS.UI.Common
             mainTableRange.Style.Border.OutsideBorderColor = XLColor.Black;
 
             // 4. TABLA DE TOTALES Y LIQUIDACIÓN BANCARIA
-            decimal sub_total = receipt.rows.Sum(x => x.commission_10);
+            decimal sub_total = receipt.rows.Sum(x => x.commission_amount);
 
             rowIdx++; // Fila vacía de separación
             ws.Row(rowIdx).Height = 8;

@@ -64,6 +64,7 @@ namespace NinOS.UI.Views
             {
                 if (_view_model != null)
                 {
+                    _view_model.ErrorMessage = string.Empty;
                     _view_model.PropertyChanged -= OnViewModelPropertyChanged;
                     _view_model = null;
                 }
