@@ -27,7 +27,13 @@ namespace NinOS.UI.Views
         {
             _vm.OnRequestPreviewNote = (notePrint) =>
             {
-                var preview = new NotePreviewWindow(notePrint, view_only: true)
+                var doc = NotePdfGenerator.build_document(notePrint);
+                var fileName = NotePdfGenerator.get_default_file_name(notePrint);
+                var preview = new PdfPreviewWindow(
+                    doc,
+                    $"Nota de Entrega {notePrint.note_number}",
+                    fileName,
+                    () => NoteExcelExporter.export(notePrint))
                 {
                     Owner = this
                 };

@@ -123,10 +123,50 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     _searchQuery = value;
                     on_property_changed();
+                    on_property_changed(nameof(HasActiveSearch));
+                    on_property_changed(nameof(ActiveSearchLabel));
                     FilterCustomers();
                 }
             }
         }
+
+        private bool _all_report_zones_selected = true;
+        private bool _suppress_zone_sync;
+        private bool _apply_search_filter_in_report = true;
+
+        public ObservableCollection<filter_selection_option> report_zone_options { get; } = new ObservableCollection<filter_selection_option>();
+
+        public bool all_report_zones_selected
+        {
+            get => _all_report_zones_selected;
+            set
+            {
+                if (_all_report_zones_selected == value) return;
+                _all_report_zones_selected = value;
+                on_property_changed();
+                _suppress_zone_sync = true;
+                foreach (var opt in report_zone_options) opt.is_checked = value;
+                _suppress_zone_sync = false;
+            }
+        }
+
+        public bool apply_search_filter_in_report
+        {
+            get => _apply_search_filter_in_report;
+            set
+            {
+                if (_apply_search_filter_in_report != value)
+                {
+                    _apply_search_filter_in_report = value;
+                    on_property_changed();
+                }
+            }
+        }
+
+        public bool HasActiveSearch => !string.IsNullOrWhiteSpace(_searchQuery);
+        public string ActiveSearchLabel => $"Aplicar búsqueda actual: \"{_searchQuery?.Trim()}\"";
+
+        public ICommand clear_report_zones_command { get; }
 
         public CustomerTabItem? SelectedTab
         {
@@ -296,6 +336,10 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand EditZonasCommand { get; }
         public ICommand LoadCustomersCommand { get; }
         public ICommand OpenCustomerHistoryCommand { get; }
+        public ICommand PreviewCustomersCommand { get; }
+        public ICommand DirectPrintCustomersCommand { get; }
+        public ICommand ExportCustomersPdfCommand { get; }
+        public ICommand ExportCustomersExcelCommand { get; }
 
         public CustomerViewModel(
             ICustomerService customerService,
@@ -344,6 +388,11 @@ namespace NinOS.UI.Common.ViewModels
             EditZonasCommand = new RelayCommand(ExecuteEditZonas);
             LoadCustomersCommand = new RelayCommand(ExecuteLoadCustomers);
             OpenCustomerHistoryCommand = new RelayCommand(ExecuteOpenCustomerHistory);
+            clear_report_zones_command = new RelayCommand(_ => execute_clear_report_zones());
+            PreviewCustomersCommand = new RelayCommand(_ => ExecutePreviewCustomers());
+            DirectPrintCustomersCommand = new RelayCommand(_ => ExecuteDirectPrintCustomers());
+            ExportCustomersPdfCommand = new RelayCommand(_ => ExecuteExportCustomersPdf());
+            ExportCustomersExcelCommand = new RelayCommand(_ => ExecuteExportCustomersExcel());
 
             AppDataEvents.CatalogsChanged += OnCatalogsChanged;
 
@@ -486,6 +535,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 SyncZonaTabs(activeList);
+                RefreshReportZoneOptions(activeList);
                 FilterCustomers();
             }
             catch (Exception ex)
@@ -551,6 +601,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 FilterCustomers();
+                RefreshReportZoneOptions(ZonasOptions.ToList());
                 await GenerateNextCustomerCodeAsync();
             }
             catch (Exception ex)
@@ -848,6 +899,258 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     IsLoading = false;
                 }
+            }
+        }
+
+        public void RefreshReportZoneOptions(List<zona> activeZonas)
+        {
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => RefreshReportZoneOptions(activeZonas));
+                return;
+            }
+
+            var previousChecked = report_zone_options.Where(o => o.is_checked).Select(o => o.id).ToHashSet();
+            bool wasAnyInitialized = report_zone_options.Count > 0;
+
+            _suppress_zone_sync = true;
+            report_zone_options.Clear();
+
+            foreach (var z in activeZonas.OrderBy(x => x.code))
+            {
+                string cleanName = FormatTabHeader(z.name);
+                bool isChecked = !wasAnyInitialized || previousChecked.Contains(z.id_zona);
+                report_zone_options.Add(new filter_selection_option(
+                    z.name,
+                    on_report_zone_option_changed,
+                    isChecked,
+                    z.id_zona,
+                    cleanName));
+            }
+
+            // Opción para clientes sin zona asignada si existen en la base de datos
+            bool hasSinZona = _allCustomersSource != null && _allCustomersSource.Any(c => !c.IdZona.HasValue);
+            if (hasSinZona)
+            {
+                bool isChecked = !wasAnyInitialized || previousChecked.Contains(null);
+                report_zone_options.Add(new filter_selection_option(
+                    "Sin Zona",
+                    on_report_zone_option_changed,
+                    isChecked,
+                    null,
+                    "Sin Zona Asignada"));
+            }
+
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
+        private void on_report_zone_option_changed()
+        {
+            if (_suppress_zone_sync) return;
+            _all_report_zones_selected = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
+        private void execute_clear_report_zones()
+        {
+            _suppress_zone_sync = true;
+            foreach (var opt in report_zone_options) opt.is_checked = false;
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = false;
+            on_property_changed(nameof(all_report_zones_selected));
+        }
+
+        public void sync_report_scope_from_screen()
+        {
+            _suppress_zone_sync = true;
+            if (SelectedTab != null && SelectedTab.IdZona.HasValue)
+            {
+                // Si el usuario está ubicado en una pestaña de zona específica, preseleccionar esa zona
+                foreach (var opt in report_zone_options)
+                {
+                    opt.is_checked = (opt.id == SelectedTab.IdZona.Value);
+                }
+            }
+            else
+            {
+                // Si está en la pestaña "Todos", preseleccionar todas las zonas
+                foreach (var opt in report_zone_options)
+                {
+                    opt.is_checked = true;
+                }
+            }
+            _suppress_zone_sync = false;
+            _all_report_zones_selected = report_zone_options.Count > 0 && report_zone_options.All(o => o.is_checked);
+            on_property_changed(nameof(all_report_zones_selected));
+
+            on_property_changed(nameof(HasActiveSearch));
+            on_property_changed(nameof(ActiveSearchLabel));
+        }
+
+        private CustomersReportPdfModel? GetCustomersReportModel()
+        {
+            if (_allCustomersSource == null || _allCustomersSource.Count == 0)
+            {
+                AppDialog.Show("No hay clientes registrados en el sistema.", "Listado de Clientes",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return null;
+            }
+
+            var selectedOptions = report_zone_options.Where(o => o.is_checked).ToList();
+            if (selectedOptions.Count == 0)
+            {
+                AppDialog.Show("Seleccione al menos una zona para incluir en el reporte.", "Listado de Clientes",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return null;
+            }
+
+            var selectedZoneIds = selectedOptions.Where(o => o.id.HasValue).Select(o => o.id!.Value).ToHashSet();
+            bool includeNoZone = selectedOptions.Any(o => !o.id.HasValue);
+
+            List<CustomerRowDto> filtered;
+            string scope;
+
+            if (selectedOptions.Count == report_zone_options.Count)
+            {
+                filtered = _allCustomersSource.ToList();
+                scope = "Todas las Zonas";
+            }
+            else if (selectedOptions.Count == 1)
+            {
+                var single = selectedOptions[0];
+                filtered = _allCustomersSource.Where(c =>
+                    (single.id.HasValue && c.IdZona == single.id.Value) ||
+                    (!single.id.HasValue && !c.IdZona.HasValue)
+                ).ToList();
+                scope = $"Zona {single.display_name}";
+            }
+            else
+            {
+                filtered = _allCustomersSource.Where(c =>
+                    (c.IdZona.HasValue && selectedZoneIds.Contains(c.IdZona.Value)) ||
+                    (!c.IdZona.HasValue && includeNoZone)
+                ).ToList();
+                scope = $"{selectedOptions.Count} Zonas Seleccionadas";
+            }
+
+            // Aplicar filtro de búsqueda si está activo
+            string? searchFilter = null;
+            if (_apply_search_filter_in_report && !string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                searchFilter = _searchQuery.Trim();
+                string q = searchFilter.ToLower();
+                filtered = filtered.Where(c =>
+                    (c.CustomerCode?.ToLower().Contains(q) ?? false) ||
+                    (c.BusinessName?.ToLower().Contains(q) ?? false) ||
+                    (c.Rif?.ToLower().Contains(q) ?? false) ||
+                    (c.ContactName?.ToLower().Contains(q) ?? false) ||
+                    (c.PhoneNumber?.ToLower().Contains(q) ?? false) ||
+                    (c.FiscalAddress?.ToLower().Contains(q) ?? false) ||
+                    (c.EffectiveDeliveryAddress?.ToLower().Contains(q) ?? false) ||
+                    (c.SellerName?.ToLower().Contains(q) ?? false) ||
+                    (c.ZonaName?.ToLower().Contains(q) ?? false)
+                ).ToList();
+            }
+
+            if (filtered.Count == 0)
+            {
+                AppDialog.Show("No se encontraron clientes para las zonas y criterios seleccionados.", "Listado de Clientes",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return null;
+            }
+
+            return new CustomersReportPdfModel
+            {
+                EmissionDate = DateTime.Now,
+                Scope = scope,
+                SearchFilter = searchFilter,
+                Customers = filtered
+            };
+        }
+
+        private void ExecutePreviewCustomers()
+        {
+            try
+            {
+                var model = GetCustomersReportModel();
+                if (model == null) return;
+
+                var doc = CustomersPdfGenerator.build_document(model);
+                string defaultName = CustomersPdfGenerator.get_default_file_name(model);
+                var preview = new Views.PdfPreviewWindow(
+                    doc,
+                    $"Listado de Clientes - {model.Scope}",
+                    defaultName,
+                    () => CustomersExcelExporter.export(model));
+
+                if (Application.Current?.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    preview.Owner = Application.Current.MainWindow;
+                }
+
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar vista previa del listado: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExecuteDirectPrintCustomers()
+        {
+            try
+            {
+                var model = GetCustomersReportModel();
+                if (model == null) return;
+
+                var doc = CustomersPdfGenerator.build_document(model);
+                string defaultName = CustomersPdfGenerator.get_default_file_name(model);
+
+                ReportPrintService.DirectPrint(
+                    doc,
+                    Application.Current?.MainWindow,
+                    $"Listado de Clientes - {model.Scope}",
+                    defaultName);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al imprimir el listado de clientes: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExecuteExportCustomersPdf()
+        {
+            try
+            {
+                var model = GetCustomersReportModel();
+                if (model == null) return;
+
+                CustomersPdfGenerator.generate(model);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar clientes a PDF: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExecuteExportCustomersExcel()
+        {
+            try
+            {
+                var model = GetCustomersReportModel();
+                if (model == null) return;
+
+                CustomersExcelExporter.export(model);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al exportar clientes a Excel: {ErrorText.Get(ex)}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

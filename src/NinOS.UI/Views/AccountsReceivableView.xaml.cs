@@ -34,7 +34,13 @@ namespace NinOS.UI.Views
                     try
                     {
                         note_print_dto printable = await viewModel.get_printable_note_async(note.id_delivery_note);
-                        NotePreviewWindow preview = new NotePreviewWindow(printable, view_only: true);
+                        var doc = NotePdfGenerator.build_document(printable);
+                        var fileName = NotePdfGenerator.get_default_file_name(printable);
+                        var preview = new PdfPreviewWindow(
+                            doc,
+                            $"Nota de Entrega {printable.note_number}",
+                            fileName,
+                            () => NoteExcelExporter.export(printable));
                         preview.Owner = Window.GetWindow(this);
                         preview.ShowDialog();
                     }
@@ -124,6 +130,10 @@ namespace NinOS.UI.Views
             // que el usuario desmarque lo que quiera dejar fuera.
             if (popup_reporte.IsOpen && DataContext is AccountsReceivableViewModel vm)
             {
+                if (vm.is_report_zone_mode) rbtn_periodo_zona.IsChecked = true;
+                else if (vm.is_report_year_mode) rbtn_periodo_anio.IsChecked = true;
+                else rbtn_periodo_mes.IsChecked = true;
+
                 vm.sync_report_scope_from_screen();
                 ApplyReportPeriodVisibility();
             }
@@ -131,23 +141,67 @@ namespace NinOS.UI.Views
 
         private void on_periodo_mes_checked(object sender, RoutedEventArgs e)
         {
-            if (DataContext is AccountsReceivableViewModel vm) vm.is_report_year_mode = false;
+            if (DataContext is AccountsReceivableViewModel vm)
+            {
+                vm.report_primary_mode = "Mes";
+                vm.sync_report_scope_from_screen();
+            }
             ApplyReportPeriodVisibility();
         }
 
         private void on_periodo_anio_checked(object sender, RoutedEventArgs e)
         {
-            if (DataContext is AccountsReceivableViewModel vm) vm.is_report_year_mode = true;
+            if (DataContext is AccountsReceivableViewModel vm)
+            {
+                vm.report_primary_mode = "Año";
+                vm.sync_report_scope_from_screen();
+            }
             ApplyReportPeriodVisibility();
         }
 
-        // El combo de mes o de anio se muestra segun el radiobutton marcado en el popup.
+        private void on_periodo_zona_checked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is AccountsReceivableViewModel vm)
+            {
+                vm.report_primary_mode = "Por Zona";
+                vm.sync_report_scope_from_screen();
+            }
+            ApplyReportPeriodVisibility();
+        }
+
+        private void on_zona_subperiodo_changed(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is AccountsReceivableViewModel vm)
+            {
+                if (rbtn_zona_sub_todas.IsChecked == true) vm.report_zone_subperiod = "Todas";
+                else if (rbtn_zona_sub_mes.IsChecked == true) vm.report_zone_subperiod = "Mes";
+                else if (rbtn_zona_sub_anio.IsChecked == true) vm.report_zone_subperiod = "Año";
+            }
+            ApplyReportPeriodVisibility();
+        }
+
+        // El combo de mes, año o cascada de zona se muestra segun el radiobutton marcado en el popup.
         private void ApplyReportPeriodVisibility()
         {
             if (DataContext is not AccountsReceivableViewModel vm) return;
 
-            panel_periodo_mes.Visibility = vm.is_report_year_mode ? Visibility.Collapsed : Visibility.Visible;
-            panel_periodo_anio.Visibility = vm.is_report_year_mode ? Visibility.Visible : Visibility.Collapsed;
+            bool isZona = vm.is_report_zone_mode;
+            bool isAnio = vm.is_report_year_mode;
+            bool isMes = vm.is_report_month_mode;
+
+            panel_periodo_mes.Visibility = (!isZona && isMes) ? Visibility.Visible : Visibility.Collapsed;
+            panel_periodo_anio.Visibility = (!isZona && isAnio) ? Visibility.Visible : Visibility.Collapsed;
+            panel_periodo_zona.Visibility = isZona ? Visibility.Visible : Visibility.Collapsed;
+
+            panel_agrupar_en.Visibility = isZona ? Visibility.Collapsed : Visibility.Visible;
+            panel_filtro_vendedores.Visibility = isZona ? Visibility.Collapsed : Visibility.Visible;
+
+            if (isZona)
+            {
+                string sub = vm.report_zone_subperiod;
+                panel_zona_selectores_mes.Visibility = sub == "Mes" ? Visibility.Visible : Visibility.Collapsed;
+                panel_zona_selectores_anio.Visibility = sub == "Año" ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void on_preview_reporte_click(object sender, RoutedEventArgs e)

@@ -23,7 +23,13 @@ namespace NinOS.UI.Views
                     try
                     {
                         note_print_dto printable = await vm.get_printable_note_async(note.id_delivery_note);
-                        NotePreviewWindow preview = new NotePreviewWindow(printable, view_only: true);
+                        var doc = NotePdfGenerator.build_document(printable);
+                        var fileName = NotePdfGenerator.get_default_file_name(printable);
+                        var preview = new PdfPreviewWindow(
+                            doc,
+                            $"Nota de Entrega {printable.note_number}",
+                            fileName,
+                            () => NoteExcelExporter.export(printable));
                         preview.Owner = Window.GetWindow(this);
                         preview.ShowDialog();
                     }

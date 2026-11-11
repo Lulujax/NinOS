@@ -1,8 +1,8 @@
 ; Script de Inno Setup para NinOS - Sistema Administrativo
-; Versión: 1.0.9
+; Versión: 1.0.10
 ;
 ; Actualización sobre una instalación existente:
-;   El AppId es fijo, así que al ejecutar este setup sobre una 1.0.9 ya instalada
+;   El AppId es fijo, así que al ejecutar este setup sobre una 1.0.10 ya instalada
 ;   se reemplazan los archivos en la misma carpeta, se conservan los accesos
 ;   directos y el desinstalador, y no se toca ningún dato del usuario.
 ;   [Files] usa "ignoreversion", por lo que los binarios se sobrescriben aunque
@@ -10,7 +10,7 @@
 
 #define MyAppName "NinOS"
 #define MyAppFullName "NinOS - Sistema Administrativo"
-#define MyAppVersion "1.0.9"
+#define MyAppVersion "1.0.10"
 #define MyAppPublisher "NinOS"
 #define MyAppExeName "NinOS.UI.exe"
 
@@ -25,7 +25,7 @@ AllowNoIcons=yes
 PrivilegesRequiredOverridesAllowed=commandline
 PrivilegesRequired=admin
 OutputDir=C:\Users\Lulujax\Desktop
-OutputBaseFilename=NinOS_Setup_v1.0.9
+OutputBaseFilename=NinOS_Setup_v1.0.10
 SetupIconFile=C:\Users\Lulujax\Desktop\Programacion Trabajo\NinOS\NinOS\src\NinOS.UI\Assets\ninOS_logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64

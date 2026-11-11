@@ -23,7 +23,9 @@ namespace NinOS.UI.Common
             string file_name = string.IsNullOrWhiteSpace(report.report_name)
                 ? $"reporte {report.month}.pdf"
                 : $"reporte {report.report_name} {report.month}.pdf";
-            return file_name.ToUpperInvariant();
+            var invalid = System.IO.Path.GetInvalidFileNameChars();
+            var clean = new string(file_name.Select(c => invalid.Contains(c) ? '-' : c).ToArray());
+            return clean.ToUpperInvariant();
         }
 
         public static IDocument build_document(monthly_report_dto report)

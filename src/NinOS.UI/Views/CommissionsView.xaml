@@ -8,6 +8,7 @@
 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 
+             xmlns:common="clr-namespace:NinOS.UI.Common"
              mc:Ignorable="d" Background="White">
 
     <UserControl.Resources>
@@ -332,111 +333,24 @@
 
 
 
-                <Button Content="👁️ Vista Previa" Background="#1B3A2D" Foreground="White"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding preview_report_command}" FontSize="12" Margin="0,0,6,0"
-                        ToolTip="Vista previa en pantalla del reporte de comisiones">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#2A5945"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <Button Content="👁️ Vista Previa" Style="{StaticResource ToolbarReportPreviewButton}"
+                        Margin="0,0,6,0" Command="{Binding preview_report_command}"
+                        ToolTip="Vista previa en pantalla del reporte de comisiones"/>
 
-                <Button Content="🖨️ Imprimir" Background="#0284C7" Foreground="White"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding direct_print_report_command}" FontSize="12" Margin="0,0,6,0"
-                        ToolTip="Imprimir directamente el reporte de comisiones">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#0369A1"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <Button Content="🖨️ Imprimir" Style="{StaticResource ToolbarPrintButton}"
+                        Margin="0,0,6,0" Command="{Binding direct_print_report_command}"
+                        ToolTip="Imprimir directamente el reporte de comisiones"/>
 
-                <Button Content="📄 PDF" Background="#16A34A" Foreground="White"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding print_report_command}" FontSize="12" Margin="0,0,6,0"
-                        ToolTip="Descargar reporte completo de comisiones en PDF">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#15803D"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <Button Content="📄 PDF" Style="{StaticResource ToolbarPdfButton}"
+                        Margin="0,0,6,0" Command="{Binding print_report_command}"
+                        ToolTip="Descargar reporte completo de comisiones en PDF"/>
 
-                <Button Content="📊 Excel" Background="#10B981" Foreground="White"
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-                        Command="{Binding export_report_excel_command}" FontSize="12" Margin="0,0,8,0"
-                        ToolTip="Exportar reporte de comisiones a Excel">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#059669"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <Button Content="📊 Excel" Style="{StaticResource ToolbarExcelButton}"
+                        Margin="0,0,8,0" Command="{Binding export_report_excel_command}"
+                        ToolTip="Exportar reporte de comisiones a Excel"/>
 
-
-
-                <Button Content="Pago de comision" Background="#2E7D32" Foreground="White"
-
-                        FontWeight="SemiBold" Padding="10,4" BorderThickness="0" Cursor="Hand"
-
-                        Command="{Binding add_commission_payment_command}" FontSize="12.5">
-
-                    <Button.Template>
-
-                        <ControlTemplate TargetType="Button">
-
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                            </Border>
-
-                            <ControlTemplate.Triggers>
-
-                                <Trigger Property="IsMouseOver" Value="True">
-
-                                    <Setter TargetName="bd" Property="Background" Value="#43A047"/>
-
-                                </Trigger>
-
-                            </ControlTemplate.Triggers>
-
-                        </ControlTemplate>
-
-                    </Button.Template>
-
-                </Button>
+                <Button Content="Pago de comision" Style="{StaticResource ToolbarPrimarySuccessButton}"
+                        Command="{Binding add_commission_payment_command}"/>
 
             </StackPanel>
 
@@ -523,7 +437,7 @@
 
                               ElementStyle="{StaticResource CellTextCenter}"/>
 
-                            <DataGridTemplateColumn Header="Comprobante" Width="185" CanUserResize="False">
+                            <DataGridTemplateColumn Header="Comprobante" Width="110" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -537,26 +451,31 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
-                                            <Button Content="👁️" Padding="5,2" Margin="1" FontSize="11" Cursor="Hand"
+                                            <Button Content="👁️" Style="{StaticResource GridRowBadgePreview}"
                                                     ToolTip="Vista previa del comprobante"
-                                                    Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" Foreground="#0F172A"
                                                     Command="{Binding DataContext.preview_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="🖨️" Padding="5,2" Margin="1" FontSize="11" Cursor="Hand"
+                                            <Button Content="🖨️" Style="{StaticResource GridRowBadgePrint}"
                                                     ToolTip="Imprimir comprobante directamente"
-                                                    Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" Foreground="#0369A1"
                                                     Command="{Binding DataContext.direct_print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="PDF" Padding="6,2" Margin="1" FontSize="10.5" Cursor="Hand"
-                                                    ToolTip="Descargar comprobante en PDF"
-                                                    Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" Foreground="#0D47A1"
-                                                    Command="{Binding DataContext.print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"/>
-                                            <Button Content="Excel" Padding="6,2" Margin="1" FontSize="10.5" Cursor="Hand"
-                                                    ToolTip="Exportar comprobante a Excel"
-                                                    Background="#ECFDF5" BorderBrush="#A7F3D0" BorderThickness="1" Foreground="#047857"
-                                                    Command="{Binding DataContext.export_commission_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="📥 ▾" Style="{StaticResource GridRowBadgeExport}"
+                                                    ToolTip="Exportar comprobante (PDF o Excel)"
+                                                    common:DropdownMenuHelper.IsOpenOnClick="True"
+                                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu Style="{StaticResource StandardDropdownContextMenu}">
+                                                        <MenuItem Header="📄 Descargar PDF"
+                                                                  Style="{StaticResource StandardDropdownMenuItem}"
+                                                                  Command="{Binding PlacementTarget.Tag.print_commission_pdf_command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                        <MenuItem Header="📊 Exportar a Excel"
+                                                                  Style="{StaticResource StandardDropdownMenuItem}"
+                                                                  Command="{Binding PlacementTarget.Tag.export_commission_excel_command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

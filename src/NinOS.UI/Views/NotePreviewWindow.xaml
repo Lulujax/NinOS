@@ -1,47 +1,133 @@
 <Window x:Class="NinOS.UI.Views.NotePreviewWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Vista Previa - Nota de Entrega"
-        Width="760" Height="600"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Confirmar Creación - Nota de Entrega"
+        Width="980" Height="680"
         MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
         MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanResizeWithGrip"
-        Background="White">
+        Background="#F1F5F9"
+        FontFamily="Segoe UI">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="52"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="NotePanel" Margin="16" Width="700"/>
-        </ScrollViewer>
-        <Button Click="OnCancel" Content="✕ Cerrar" 
-                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,24,0"
-                Padding="10,5" Background="#64748B" Foreground="White" FontWeight="Bold" FontSize="12"
-                Cursor="Hand" BorderThickness="0">
-            <Button.Template>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="#475569"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Border Grid.Row="1" Background="#F0F4EC" BorderBrush="#B0B0B0" BorderThickness="0,1,0,0" Padding="12">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="CancelButton" IsCancel="True" Content="Cancelar" Width="110" Height="36" Margin="0,0,8,0" Background="#888888" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnCancel"/>
-                <Button x:Name="SaveOnlyButton" Content="Guardar" Width="130" Height="36" Margin="0,0,8,0" Background="#2196F3" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSaveOnly"/>
-                <Button x:Name="SavePdfButton" Content="Guardar y PDF" Width="140" Height="36" Margin="0,0,8,0" Background="#4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnSavePdf"/>
-                <Button x:Name="DirectPrintButton" Content="🖨️ Imprimir" Width="120" Height="36" Margin="0,0,8,0" Background="#0284C7" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnDirectPrint" Visibility="Collapsed"/>
-                <Button x:Name="ExcelButton" Content="📊 Excel" Width="110" Height="36" Background="#16A34A" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="OnExcel" Visibility="Collapsed"/>
-            </StackPanel>
+
+        <!-- Barra Superior (Header moderno) -->
+        <Border Grid.Row="0" Background="#1E293B" BorderBrush="#0F172A" BorderThickness="0,0,0,1" Padding="16,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📄" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTitle" Text="Confirmar Creación de Nota de Entrega" FontSize="15" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Visor WebView2 con PDF vectorial generado -->
+        <Grid Grid.Row="1">
+            <wv2:WebView2 x:Name="PdfWebView" DefaultBackgroundColor="#F1F5F9"/>
+
+            <!-- Indicador de Carga -->
+            <Border x:Name="LoadingOverlay" Background="#F8FAFC" Opacity="0.95" Visibility="Visible">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" Margin="0,0,0,14" Foreground="#0284C7"/>
+                    <TextBlock Text="Generando vista previa de la nota..." FontSize="14" FontWeight="SemiBold" Foreground="#475569" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Panel de Fallback si WebView2 no está disponible -->
+            <Border x:Name="FallbackOverlay" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1"
+                    CornerRadius="8" Padding="24" MaxWidth="540" MaxHeight="240"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⚠️ Vista previa interna no disponible" FontSize="16" FontWeight="Bold" Foreground="#92400E" Margin="0,0,0,8" TextAlignment="Center"/>
+                    <TextBlock Text="El componente Microsoft Edge WebView2 no pudo inicializarse. La nota se generó correctamente y puede confirmarla directamente con los botones inferiores."
+                               FontSize="13" Foreground="#78350F" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,18"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Barra Inferior de Confirmación -->
+        <Border Grid.Row="2" Background="#1E293B" BorderBrush="#334155" BorderThickness="0,1,0,0" Padding="14,10">
+            <DockPanel LastChildFill="False">
+                <Button x:Name="CancelButton" IsCancel="True" Content="✕ Cancelar" Padding="16,8" Margin="0,0,12,0"
+                        Background="#64748B" Foreground="White" FontWeight="Bold" FontSize="12.5" Cursor="Hand" BorderThickness="0"
+                        Click="OnCancel">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#475569"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="SaveOnlyButton" Content="💾 Guardar" Padding="18,8" Margin="0,0,10,0"
+                            Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="12.5" Cursor="Hand" BorderThickness="0"
+                            Click="OnSaveOnly">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#0369A1"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="SaveExcelButton" Content="📊 Guardar y Descargar Excel" Padding="18,8" Margin="0,0,10,0"
+                            Background="#10B981" Foreground="White" FontWeight="Bold" FontSize="12.5" Cursor="Hand" BorderThickness="0"
+                            Click="OnSaveExcel">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#059669"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="SavePdfButton" Content="💾 Guardar y Descargar PDF" Padding="20,8"
+                            Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="12.5" Cursor="Hand" BorderThickness="0"
+                            Click="OnSavePdf">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#15803D"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>

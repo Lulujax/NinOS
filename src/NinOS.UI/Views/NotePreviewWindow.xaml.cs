@@ -1,31 +1,30 @@
 using System;
-using System.Collections.ObjectModel;
+using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Media;
+using Microsoft.Web.WebView2.Core;
 using NinOS.Domain.ViewModels;
 using NinOS.UI.Common;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
 
 namespace NinOS.UI.Views
 {
+    /// <summary>
+    /// Ventana de confirmación y vista previa en alta fidelidad (WebView2 con PDF vectorial)
+    /// mostrada al guardar una nueva nota de entrega.
+    /// </summary>
     public partial class NotePreviewWindow : Window
     {
-        private Brush PrimaryBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D));
-        private static readonly Brush LabelGrayBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
-        private Brush LightGrayBrush = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC));
-        private static readonly Brush BorderGrayBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
-        private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
-        private static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(0xCC, 0x00, 0x00));
-        private static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(0x22, 0x8B, 0x22));
-        private static readonly Brush FooterGrayBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
-
         public bool Confirmed { get; private set; }
         public bool PdfRequested { get; private set; }
+        public bool ExcelRequested { get; private set; }
 
         private readonly note_print_dto _note;
         private readonly note_print_dto? _pair_original;
         private readonly bool _view_only;
+        private string? _tempPdfPath;
+        private bool _isDisposed;
 
         public NotePreviewWindow(note_print_dto note, bool view_only = false)
             : this(note, null, view_only)
@@ -36,35 +35,63 @@ namespace NinOS.UI.Views
         {
             InitializeComponent();
             WindowSizingHelper.FitToScreen(this, startMaximizedIfScreenSmall: true);
-            _note = note;
+            _note = note ?? throw new ArgumentNullException(nameof(note));
             _pair_original = pair_original;
             _view_only = view_only;
-            PrimaryBrush = ParseBrush(note.accent_color, new SolidColorBrush(Color.FromRgb(0x1B, 0x3A, 0x2D)));
-            LightGrayBrush = ParseBrush(note.accent_soft_color, new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xEC)));
-            Title = $"Vista Previa - Nota {note.note_number}";
+
+            string label = string.IsNullOrWhiteSpace(note.document_label) ? "Nota de Entrega" : note.document_label;
+            TxtTitle.Text = $"Confirmar Creación - {label} {note.note_number}";
+            Title = $"Vista Previa - {label} {note.note_number}";
 
             if (_view_only)
             {
-                CancelButton.Content = "Cerrar";
-                SaveOnlyButton.Visibility = System.Windows.Visibility.Collapsed;
-                SavePdfButton.Content = "📄 PDF";
-                DirectPrintButton.Visibility = System.Windows.Visibility.Visible;
-                ExcelButton.Visibility = System.Windows.Visibility.Visible;
+                CancelButton.Content = "✕ Cerrar";
+                SaveOnlyButton.Visibility = Visibility.Collapsed;
+                SaveExcelButton.Visibility = Visibility.Collapsed;
+                SavePdfButton.Content = "📄 Guardar como PDF";
             }
 
-            BuildPreview(note);
+            Loaded += OnWindowLoaded;
+            Closed += OnWindowClosed;
         }
 
-        private static Brush ParseBrush(string? hex, Brush fallback)
+        private async void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(hex)) return fallback;
             try
             {
-                return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+                var doc = _pair_original != null
+                    ? NotePdfGenerator.build_document(_pair_original, _note)
+                    : NotePdfGenerator.build_document(_note);
+
+                _tempPdfPath = TempFileManager.GetTempFilePath("preview_nota", ".pdf");
+
+                await Task.Run(() =>
+                {
+                    QuestPDF.Settings.License = LicenseType.Community;
+                    doc.GeneratePdf(_tempPdfPath);
+                });
+
+                if (string.IsNullOrWhiteSpace(_tempPdfPath) || !File.Exists(_tempPdfPath))
+                {
+                    throw new FileNotFoundException("No se pudo generar el archivo PDF temporal para la vista previa.");
+                }
+
+                string userDataFolder = Path.Combine(Path.GetTempPath(), "NinOS", "WebView2Data");
+                var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await PdfWebView.EnsureCoreWebView2Async(environment);
+
+                PdfWebView.NavigationCompleted += (s, args) =>
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                };
+
+                PdfWebView.CoreWebView2.Navigate(_tempPdfPath);
             }
-            catch
+            catch (Exception ex)
             {
-                return fallback;
+                LoadingOverlay.Visibility = Visibility.Collapsed;
+                FallbackOverlay.Visibility = Visibility.Visible;
+                System.Diagnostics.Debug.WriteLine($"[NotePreviewWindow Error] {ex}");
             }
         }
 
@@ -73,576 +100,69 @@ namespace NinOS.UI.Views
             Confirmed = false;
             PdfRequested = false;
             DialogResult = false;
+            Close();
         }
 
         private void OnSaveOnly(object sender, RoutedEventArgs e)
         {
             Confirmed = true;
             PdfRequested = false;
+            ExcelRequested = false;
             DialogResult = true;
+            Close();
+        }
+
+        private void OnSaveExcel(object sender, RoutedEventArgs e)
+        {
+            Confirmed = true;
+            PdfRequested = false;
+            ExcelRequested = true;
+            DialogResult = true;
+            Close();
         }
 
         private void OnSavePdf(object sender, RoutedEventArgs e)
         {
-            if (_view_only)
-            {
-                try
-                {
-                    if (_pair_original != null)
-                        NotePdfGenerator.generate(_pair_original, _note);
-                    else
-                        NotePdfGenerator.generate(_note);
-                }
-                catch (Exception ex)
-                {
-                    AppDialog.Show($"Error al generar el PDF: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                return;
-            }
-
             Confirmed = true;
             PdfRequested = true;
+            ExcelRequested = false;
             DialogResult = true;
+            Close();
         }
 
-        private void OnDirectPrint(object sender, RoutedEventArgs e)
+        private void OnWindowClosed(object? sender, EventArgs e)
         {
+            if (_isDisposed) return;
+            _isDisposed = true;
+
             try
             {
-                var doc = _pair_original != null
-                    ? NotePdfGenerator.build_document(_pair_original, _note)
-                    : NotePdfGenerator.build_document(_note);
-                string filename = _pair_original != null
-                    ? NotePdfGenerator.get_default_file_name(_pair_original, _note)
-                    : NotePdfGenerator.get_default_file_name(_note);
-                ReportPrintService.DirectPrint(doc, this, filename, filename);
+                PdfWebView?.Dispose();
             }
-            catch (Exception ex)
+            catch
             {
-                AppDialog.Show($"Error al imprimir: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // Ignorar error de disposición
             }
-        }
 
-        private void OnExcel(object sender, RoutedEventArgs e)
-        {
-            try
+            if (!string.IsNullOrWhiteSpace(_tempPdfPath) && File.Exists(_tempPdfPath))
             {
-                if (_pair_original != null)
-                    NoteExcelExporter.export(_pair_original, _note);
-                else
-                    NoteExcelExporter.export(_note);
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show($"Error al exportar Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void BuildPreview(note_print_dto note)
-        {
-            var p = NotePanel;
-
-            if (note.is_promo)
-            {
-                var bannerBorder = new Border
+                _ = Task.Run(async () =>
                 {
-                    BorderBrush = PrimaryBrush,
-                    BorderThickness = new Thickness(2),
-                    Padding = new Thickness(12, 4, 12, 4),
-                    Margin = new Thickness(0, 0, 0, 6)
-                };
-                bannerBorder.Child = MakeText("PROMOCION", 18, true, PrimaryBrush, null, HorizontalAlignment.Center);
-                p.Children.Add(bannerBorder);
+                    for (int i = 0; i < 6; i++)
+                    {
+                        try
+                        {
+                            await Task.Delay(1000);
+                            if (File.Exists(_tempPdfPath)) File.Delete(_tempPdfPath);
+                            break;
+                        }
+                        catch
+                        {
+                            // Reintentar si WebView2 aún tiene el handle abierto
+                        }
+                    }
+                });
             }
-
-            // CABECERA: empresa izquierda, NOTA DE ENTREGA derecha
-            var header = new DockPanel { LastChildFill = true };
-            var left = new StackPanel();
-            left.Children.Add(MakeText(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title, 22, true, PrimaryBrush, note.is_promo ? new Thickness(0, 4, 0, 0) : null));
-            left.Children.Add(MakeText("Caracas - Venezuela", 10, false, LabelGrayBrush, new Thickness(0, 2, 0, 0)));
-            DockPanel.SetDock(left, Dock.Left);
-            var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
-            right.Children.Add(MakeText(note.document_label, 16, true, PrimaryBrush));
-            DockPanel.SetDock(right, Dock.Right);
-            header.Children.Add(right);
-            header.Children.Add(left);
-            p.Children.Add(header);
-
-            var subHeader = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 4, 0, 0) };
-            var nroText = MakeText($"Nro: {note.note_number}", 11, true, Brushes.Black);
-            DockPanel.SetDock(nroText, Dock.Right);
-            subHeader.Children.Add(nroText);
-
-            if (!string.IsNullOrWhiteSpace(note.seller_name))
-            {
-                var sellerText = MakeText($"Vendedor: {note.seller_name}", 11, true, Brushes.Black);
-                DockPanel.SetDock(sellerText, Dock.Left);
-                subHeader.Children.Add(sellerText);
-            }
-            p.Children.Add(subHeader);
-            p.Children.Add(MakeLine(2, PrimaryBrush, new Thickness(0, 6, 0, 0)));
-
-            // CAJA DE DATOS DEL CLIENTE
-            var infoBox = MakeBox(padding: new Thickness(6));
-            infoBox.Margin = new Thickness(8, 6, 0, 0);
-            var infoGrid = new Grid();
-            infoGrid.RowDefinitions.Add(new RowDefinition());
-            infoGrid.RowDefinitions.Add(new RowDefinition());
-            infoGrid.RowDefinitions.Add(new RowDefinition());
-            infoGrid.RowDefinitions.Add(new RowDefinition());
-            infoGrid.RowDefinitions.Add(new RowDefinition());
-
-            var infoRow1 = MakeInfoRowWithCode(
-                MakeInfoCell("Razon Social", note.customer_business_name),
-                MakeInfoCell("Codigo", note.customer_code),
-                MakeInfoCell("RIF", note.customer_rif));
-            Grid.SetRow(infoRow1, 0);
-            infoGrid.Children.Add(infoRow1);
-
-            var divider1 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
-            Grid.SetRow(divider1, 1);
-            infoGrid.Children.Add(divider1);
-
-            var infoRow2 = MakeInfoRow(
-                MakeInfoCell("Domicilio Fiscal", note.fiscal_address),
-                MakeInfoCell("Direccion de Entrega", note.customer_delivery_address));
-            Grid.SetRow(infoRow2, 2);
-            infoGrid.Children.Add(infoRow2);
-
-            var divider2 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
-            Grid.SetRow(divider2, 3);
-            infoGrid.Children.Add(divider2);
-
-            // Una nota de credito no tiene vencimiento ni credito: es un abono, no una cuenta por cobrar.
-            // Las notas de promocion tampoco llevan credito.
-            bool preview_is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", StringComparison.OrdinalIgnoreCase);
-            bool show_credit_days = !preview_is_credit && !note.is_promo && !string.IsNullOrWhiteSpace(note.credit_days_text);
-
-            var infoRow3 = MakeQuadRow(
-                MakeInfoCell("Fecha Emision", note.creation_date.ToString("dd/MM/yyyy")),
-                show_credit_days ? MakeInfoCell("CREDITO", note.credit_days_text) : null,
-                preview_is_credit ? null : MakeInfoCell("Fecha Vencimiento", note.due_date.ToString("dd/MM/yyyy")),
-                MakeInfoCell("Telefono", note.customer_phone));
-            Grid.SetRow(infoRow3, 4);
-            infoGrid.Children.Add(infoRow3);
-
-            bool preview_has_contacto = !string.IsNullOrWhiteSpace(note.customer_contact);
-
-            if (preview_has_contacto)
-            {
-                infoGrid.RowDefinitions.Add(new RowDefinition());
-                infoGrid.RowDefinitions.Add(new RowDefinition());
-
-                var divider3 = MakeLine(1, DividerBrush, new Thickness(0, 4, 0, 0));
-                Grid.SetRow(divider3, 5);
-                infoGrid.Children.Add(divider3);
-
-                var infoRow4 = MakeInfoRow(
-                    MakeInfoCell("Contacto", note.customer_contact),
-                    null);
-                Grid.SetRow(infoRow4, 6);
-                infoGrid.Children.Add(infoRow4);
-            }
-
-            infoBox.Child = infoGrid;
-            p.Children.Add(infoBox);
-
-            // DETALLE DE PRODUCTOS
-            p.Children.Add(MakeText("DETALLE DE PRODUCTOS", 9, true, PrimaryBrush, new Thickness(0, 8, 0, 0)));
-            p.Children.Add(MakeDetailTable(note));
-
-            // ---- Fila 1: condicion de pago + primer Total General ----
-            var totalRow1 = new Grid { Margin = new Thickness(0, 8, 0, 0) };
-            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            totalRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
-
-            // Igual que el PDF: la caja de condiciones solo se dibuja si hay texto.
-            if (!string.IsNullOrWhiteSpace(note.conditions_text))
-            {
-                var condBox = MakeBox(new Thickness(6));
-                var condCol = new StackPanel();
-                condCol.Children.Add(MakeText(note.conditions_text, 9, false, Brushes.Black));
-                condBox.Child = condCol;
-                totalRow1.Children.Add(condBox);
-            }
-
-            // Igual que el PDF: la nota de credito rotula TOTAL DEVUELTO (u OBSEQUIADO) y
-            // muestra el monto de la NC; el resto mantiene Total General.
-            var tgBox = MakeBox(new Thickness(6));
-            var tgCol = new StackPanel();
-            string tg_label = "Total General";
-            if (preview_is_credit)
-            {
-                bool es_obsequio = (note.conditions_text?.IndexOf("OBSEQUIO", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
-                tg_label = es_obsequio ? "TOTAL OBSEQUIADO" : "TOTAL DEVUELTO";
-            }
-            tgCol.Children.Add(MakeText(tg_label, 9, true, PrimaryBrush, null, HorizontalAlignment.Center));
-            decimal tgValue = preview_is_credit
-                ? note.total_amount_usd
-                : (note.is_promo ? note.discounted_total_usd : note.gross_total_usd);
-            tgCol.Children.Add(MakeText($"{tgValue:N2}", 14, true, PrimaryBrush, null, HorizontalAlignment.Center));
-            tgBox.Child = tgCol;
-            Grid.SetColumn(tgBox, 2);
-            totalRow1.Children.Add(tgBox);
-            p.Children.Add(totalRow1);
-
-            // ---- Fila 2: DATOS PARA PAGO (3 columnas: desglose | firma | datos de pago) ----
-            var payBox = MakeBox(new Thickness(0));
-            payBox.Margin = new Thickness(0, 8, 0, 0);
-            var payStack = new StackPanel();
-            var bankHeaderBox = new Border { Background = PrimaryBrush, Padding = new Thickness(5), BorderBrush = BorderGrayBrush, BorderThickness = new Thickness(1) };
-            var bankHeaderCol = new StackPanel();
-            bankHeaderCol.Children.Add(MakeText("FORMAS DE PAGO", 10, true, Brushes.White, null, HorizontalAlignment.Center));
-            bankHeaderBox.Child = bankHeaderCol;
-            // Igual que el PDF: las notas de credito no muestran FORMAS DE PAGO.
-            if (!preview_is_credit) payStack.Children.Add(bankHeaderBox);
-
-            var bankDataGrid = new Grid { Margin = new Thickness(0, 5, 0, 0) };
-            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
-            bankDataGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            var transferCol = new StackPanel();
-            transferCol.Children.Add(MakeText("TRANSFERENCIA", 8, true, PrimaryBrush));
-            transferCol.Children.Add(MakeText(note.is_pro_venta ? "BANCO VENEZUELA  _  CUENTA CORRIENTE" : "BANCO MERCANTIL  _  CUENTA CORRIENTE", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
-            transferCol.Children.Add(MakeText(note.is_pro_venta ? "NRO DE CUENTA  _  0102-0868-84-00000-27-407" : "NRO DE CUENTA  _  0105-0120-23-11200-92426", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            transferCol.Children.Add(MakeText(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            bankDataGrid.Children.Add(transferCol);
-
-            var pagoMovilCol = new StackPanel();
-            pagoMovilCol.Children.Add(MakeText("PAGO MOVIL", 8, true, PrimaryBrush));
-            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "BANCO VENEZUELA" : "BANCO MERCANTIL", 8, false, Brushes.Black, new Thickness(0, 2, 0, 0), HorizontalAlignment.Left));
-            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "NRO TELEFONO  _  0414.598.68.65" : "NRO TELEFONO  _  0424.496.01.02", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            pagoMovilCol.Children.Add(MakeText(note.is_pro_venta ? "CEDULA  _  6.266.986" : "CEDULA  _  13.046.042", 8, false, Brushes.Black, new Thickness(0, 1, 0, 0), HorizontalAlignment.Left));
-            Grid.SetColumn(pagoMovilCol, 2);
-            bankDataGrid.Children.Add(pagoMovilCol);
-
-            if (!preview_is_credit)
-            {
-                payStack.Children.Add(bankDataGrid);
-                payStack.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
-            }
-
-            var payRow = new Grid();
-            // Igual que el PDF: promocion y credito comparten el mismo armado (sin caja
-            // de desglose a la izquierda).
-            bool preview_use_promo_layout = note.is_promo || preview_is_credit;
-            // Igual que el PDF: la nota de credito (devolucion) no lleva DATOS PARA PAGO,
-            // asi que su fila queda de una sola columna con la firma del cliente.
-            bool preview_show_pago = !preview_is_credit;
-            if (preview_use_promo_layout)
-            {
-                if (preview_show_pago)
-                {
-                    payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-                    payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                }
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            }
-            else
-            {
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                payRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            }
-
-            // columna izquierda: desglose (igual que el PDF: solo en notas que no sean
-            // promocion ni de credito)
-            if (!preview_use_promo_layout)
-            {
-                var leftBox = MakeBox(new Thickness(6));
-                var leftCol = new StackPanel();
-                leftCol.Children.Add(MakeText(note.discount_conditions_text, 8, true, Brushes.Black, null, HorizontalAlignment.Center));
-                leftCol.Children.Add(MakeTotalsRow("sub total", $"{note.gross_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-                if (note.promo_discount_amount > 0)
-                    leftCol.Children.Add(MakeTotalsRow($"{note.promo_discount_percentage:0.##}% PROMO", $"-{note.promo_discount_amount:N2}", false, RedBrush, new Thickness(0, 2, 0, 0)));
-                decimal disc_pdf = note.discount_amount > 0 ? note.discount_amount : 0;
-                leftCol.Children.Add(MakeTotalsRow($"{note.discount_percentage:0.##}%", (note.discount_amount > 0 ? "-" : "") + $"{disc_pdf:N2}", false, note.discount_amount > 0 ? RedBrush : FooterGrayBrush, new Thickness(0, 2, 0, 0)));
-                leftCol.Children.Add(MakeTotalsRow("Total General", $"{note.discounted_total_usd:N2}", true, PrimaryBrush, new Thickness(0, 3, 0, 0)));
-                leftBox.Child = leftCol;
-                payRow.Children.Add(leftBox);
-            }
-
-            // columna media: datos para pago (relleno manual). Las notas de credito no lo llevan.
-            if (preview_show_pago)
-            {
-                var manualBox = MakeBox(new Thickness(6));
-                var manualCol = new StackPanel();
-                manualCol.Children.Add(MakeText("DATOS PARA PAGO", 8, true, PrimaryBrush));
-                manualCol.Children.Add(MakeManualRow("Fecha de pago:"));
-                manualCol.Children.Add(MakeManualRow("Monto Bs:"));
-                manualCol.Children.Add(MakeManualRow("Nro Referencia:"));
-                manualCol.Children.Add(MakeManualRow("Banco:"));
-                manualCol.Children.Add(MakeManualRow("Equivalente a:"));
-                manualBox.Child = manualCol;
-                Grid.SetColumn(manualBox, preview_use_promo_layout ? 0 : 2);
-                payRow.Children.Add(manualBox);
-            }
-
-            var midBox = new Border { Padding = new Thickness(6) };
-            var midCol = new StackPanel();
-            midCol.Children.Add(MakeText("FECHA _ FIRMA Y SELLO DEL CLIENTE", 8, false, FooterGrayBrush, new Thickness(0, 8, 0, 0), HorizontalAlignment.Center));
-            midCol.Children.Add(MakeText("________________________________", 8, false, FooterGrayBrush, new Thickness(0, 12, 0, 0), HorizontalAlignment.Center));
-            midCol.VerticalAlignment = VerticalAlignment.Bottom;
-            midBox.Child = midCol;
-            Grid.SetColumn(midBox, preview_use_promo_layout ? (preview_show_pago ? 2 : 0) : 4);
-            payRow.Children.Add(midBox);
-
-            payStack.Children.Add(payRow);
-            payBox.Child = payStack;
-            p.Children.Add(payBox);
-
-            // ---- Fila 3: igual que el PDF ----
-            //   GENERAL / PROMOCION / CREDITO: no se dibuja nada al final.
-            //   VOLUMEN: caja con "Descuento por volumen X%" -monto, linea y TOTAL A PAGAR.
-            if (!preview_is_credit && !note.is_promo && note.es_volumen)
-            {
-                var volBox = MakeBox(new Thickness(6));
-                volBox.Width = 300;
-                volBox.HorizontalAlignment = HorizontalAlignment.Left;
-                volBox.Margin = new Thickness(0, 8, 0, 0);
-
-                var volCol = new StackPanel();
-                decimal vol_pdf = note.volume_discount_amount;
-                volCol.Children.Add(MakeTotalsRow(
-                    $"Descuento por volumen {note.volume_discount_percentage:0.##}%",
-                    (vol_pdf > 0 ? "-" : "") + $"{vol_pdf:N2}",
-                    true,
-                    vol_pdf > 0 ? RedBrush : FooterGrayBrush));
-                volCol.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 4, 0, 0)));
-                volCol.Children.Add(MakeTotalsRow("TOTAL A PAGAR", $"{note.total_amount_usd:N2}", true, PrimaryBrush, new Thickness(0, 4, 0, 0)));
-
-                volBox.Child = volCol;
-                p.Children.Add(volBox);
-            }
-
-            // PIE
-            p.Children.Add(MakeLine(1, BorderGrayBrush, new Thickness(0, 10, 0, 0)));
-            var footerRow = new Grid { Margin = new Thickness(0, 3, 0, 0) };
-            footerRow.ColumnDefinitions.Add(new ColumnDefinition());
-            footerRow.ColumnDefinitions.Add(new ColumnDefinition());
-            footerRow.ColumnDefinitions.Add(new ColumnDefinition());
-            footerRow.Children.Add(MakeText($"Nota: {note.note_number}", 7, false, FooterGrayBrush));
-            footerRow.Children.Add(MakeText($"Impreso: {NinOS.Domain.AppTimeZone.to_local(DateTime.UtcNow):dd/MM/yyyy HH:mm}", 7, false, FooterGrayBrush, null, HorizontalAlignment.Center));
-            Grid.SetColumn(footerRow.Children[footerRow.Children.Count - 1], 1);
-            footerRow.Children.Add(MakeText("Pagina 1", 7, false, FooterGrayBrush, null, HorizontalAlignment.Right));
-            Grid.SetColumn(footerRow.Children[footerRow.Children.Count - 1], 2);
-            p.Children.Add(footerRow);
-        }
-
-        private Border MakeSection(string title, string body)
-        {
-            var box = MakeBox(new Thickness(6));
-            var col = new StackPanel();
-            col.Children.Add(MakeText(title, 9, true, PrimaryBrush));
-            if (!string.IsNullOrWhiteSpace(body))
-                col.Children.Add(MakeText(body, 9, false, Brushes.Black, new Thickness(0, 3, 0, 0)));
-            box.Child = col;
-            return box;
-        }
-
-        private Grid MakeManualRow(string label)
-        {
-            var g = new Grid();
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            g.Children.Add(MakeText(label, 8, false, Brushes.Black));
-            g.Children.Add(MakeText("____________________", 8, false, Brushes.Black, null, HorizontalAlignment.Right));
-            return g;
-        }
-
-        private DockPanel MakeTotalsRow(string left, string right, bool bold, Brush? foreground, Thickness? margin = null)
-        {
-            var dp = new DockPanel { LastChildFill = true };
-            if (margin.HasValue) dp.Margin = margin.Value;
-            var rightTb = MakeText(right, bold ? 11 : 9, bold, foreground ?? Brushes.Black, null, HorizontalAlignment.Right);
-            DockPanel.SetDock(rightTb, Dock.Right);
-            var leftTb = MakeText(left, bold ? 11 : 9, bold, foreground ?? Brushes.Black);
-            dp.Children.Add(rightTb);
-            dp.Children.Add(leftTb);
-            return dp;
-        }
-
-        private Border MakeBox(Thickness padding)
-        {
-            return new Border
-            {
-                BorderBrush = BorderGrayBrush,
-                BorderThickness = new Thickness(1),
-                Padding = padding
-            };
-        }
-
-        private Grid MakeInfoRow(StackPanel? cell1, StackPanel? cell2)
-        {
-            var r = new Grid();
-            if (cell1 != null && cell2 != null)
-            {
-                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                r.Children.Add(cell1);
-                Grid.SetColumn(cell2, 1);
-                r.Children.Add(cell2);
-            }
-            else if (cell1 != null)
-            {
-                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                r.Children.Add(cell1);
-            }
-            else
-            {
-                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                r.Children.Add(cell2!);
-            }
-            return r;
-        }
-
-        private Grid MakeInfoRowWithCode(StackPanel cell1, StackPanel cell2, StackPanel cell3)
-        {
-            var r = new Grid();
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-            r.Children.Add(cell1);
-            Grid.SetColumn(cell2, 1);
-            r.Children.Add(cell2);
-            Grid.SetColumn(cell3, 2);
-            r.Children.Add(cell3);
-            return r;
-        }
-
-        private Grid MakeQuadRow(StackPanel? cell1, StackPanel? cell2, StackPanel? cell3, StackPanel? cell4)
-        {
-            var r = new Grid();
-            for (int i = 0; i < 4; i++)
-                r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            if (cell1 != null) r.Children.Add(cell1);
-            if (cell2 != null)
-            {
-                Grid.SetColumn(cell2, 1);
-                r.Children.Add(cell2);
-            }
-            if (cell3 != null)
-            {
-                Grid.SetColumn(cell3, 2);
-                r.Children.Add(cell3);
-            }
-            if (cell4 != null)
-            {
-                Grid.SetColumn(cell4, 3);
-                r.Children.Add(cell4);
-            }
-            return r;
-        }
-
-        private Grid MakeTripleRow(StackPanel? cell1, StackPanel? cell2, StackPanel? cell3)
-        {
-            var r = new Grid();
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            r.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            // Las celdas nulas se dejan como hueco: la columna se conserva para que lo que viene
-            // despues no se corra de lugar.
-            if (cell1 != null) r.Children.Add(cell1);
-            if (cell2 != null)
-            {
-                Grid.SetColumn(cell2, 1);
-                r.Children.Add(cell2);
-            }
-            if (cell3 != null)
-            {
-                Grid.SetColumn(cell3, 2);
-                r.Children.Add(cell3);
-            }
-            return r;
-        }
-
-        private StackPanel MakeInfoCell(string label, string? value, double fixedWidth = 0)
-        {
-            var col = new StackPanel { Margin = new Thickness(0, 3, 0, 0) };
-            col.Children.Add(MakeText(label, 7, true, LabelGrayBrush));
-            col.Children.Add(MakeText(value ?? "", 10, false, Brushes.Black, new Thickness(0, 1, 0, 0)));
-            return col;
-        }
-
-        private Border MakeLine(double height, Brush brush, Thickness margin)
-        {
-            return new Border
-            {
-                Height = height,
-                Background = brush,
-                Margin = margin
-            };
-        }
-
-        private TextBlock MakeText(string text, double size, bool bold, Brush foreground, Thickness? margin = null, HorizontalAlignment alignment = HorizontalAlignment.Left)
-        {
-            var tb = new TextBlock
-            {
-                Text = text ?? "",
-                FontSize = size,
-                FontWeight = bold ? FontWeights.Bold : FontWeights.Normal,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = foreground,
-                HorizontalAlignment = alignment
-            };
-            if (margin.HasValue) tb.Margin = margin.Value;
-            return tb;
-        }
-
-        private DataGrid MakeDetailTable(note_print_dto note)
-        {
-            var dg = new DataGrid
-            {
-                AutoGenerateColumns = false,
-                IsReadOnly = true,
-                CanUserAddRows = false,
-                CanUserDeleteRows = false,
-                GridLinesVisibility = DataGridGridLinesVisibility.All,
-                HorizontalGridLinesBrush = BorderGrayBrush,
-                VerticalGridLinesBrush = BorderGrayBrush,
-                BorderBrush = BorderGrayBrush,
-                BorderThickness = new Thickness(1),
-                FontSize = 9,
-                RowHeight = 26,
-                HeadersVisibility = DataGridHeadersVisibility.Column,
-                AlternatingRowBackground = LightGrayBrush,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
-                Margin = new Thickness(0, 3, 0, 0),
-                ItemsSource = new ObservableCollection<object>(note.details)
-            };
-
-            var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, PrimaryBrush));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, Brushes.White));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontWeightProperty, FontWeights.Bold));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontSizeProperty, 8.0));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.HorizontalContentAlignmentProperty, HorizontalAlignment.Left));
-            dg.ColumnHeaderStyle = headerStyle;
-
-            dg.Columns.Add(MakeTextColumn("CANT.", "quantity", 45));
-            dg.Columns.Add(MakeTextColumn("CODIGO", "code", 85));
-            dg.Columns.Add(MakeTextColumn("DESCRIPCION", "name", 210));
-            dg.Columns.Add(MakeTextColumn("PRECIO U.", "unit_price_usd", 80, "N2"));
-            if (note.is_promo)
-                dg.Columns.Add(MakeTextColumn($"DESCUENTO {note.promo_discount_percentage ?? 0:0.##}%", "discount_usd", 80, "N2"));
-            dg.Columns.Add(MakeTextColumn("PRECIO P.", "promo_price_usd", 80, "N2"));
-            dg.Columns.Add(MakeTextColumn("SUBTOTAL", "subtotal_usd", 85, "N2"));
-
-            return dg;
-        }
-
-        private DataGridTextColumn MakeTextColumn(string header, string binding, double width, string? format = null)
-        {
-            var col = new DataGridTextColumn { Header = header, Width = width };
-            var b = new Binding(binding);
-            if (format != null) b.StringFormat = format;
-            col.Binding = b;
-            return col;
         }
     }
 }

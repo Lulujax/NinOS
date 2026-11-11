@@ -104,6 +104,51 @@ namespace NinOS.UI.Views
             return false;
         }
 
+        private void on_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = !popup_reporte.IsOpen;
+            if (popup_reporte.IsOpen && DataContext is CustomerViewModel vm)
+            {
+                vm.sync_report_scope_from_screen();
+            }
+        }
+
+        private void on_preview_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is CustomerViewModel vm)
+            {
+                vm.PreviewCustomersCommand.Execute(null);
+            }
+        }
+
+        private void on_print_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is CustomerViewModel vm)
+            {
+                vm.DirectPrintCustomersCommand.Execute(null);
+            }
+        }
+
+        private void on_descargar_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is CustomerViewModel vm)
+            {
+                vm.ExportCustomersPdfCommand.Execute(null);
+            }
+        }
+
+        private void on_excel_reporte_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte.IsOpen = false;
+            if (DataContext is CustomerViewModel vm)
+            {
+                vm.ExportCustomersExcelCommand.Execute(null);
+            }
+        }
+
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             SetupEvents();

@@ -1962,6 +1962,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (!preview_window.Confirmed) return;
                 bool generate_pdf = preview_window.PdfRequested;
+                bool generate_excel = preview_window.ExcelRequested;
 
                 string initial_status = _total_amount_usd <= 0 ? "Pagada" : "Pendiente";
                 delivery_note new_note = new delivery_note(
@@ -2073,6 +2074,8 @@ namespace NinOS.UI.Common.ViewModels
 
                 if (generate_pdf)
                     NinOS.UI.Common.NotePdfGenerator.generate(preview);
+                if (generate_excel)
+                    NinOS.UI.Common.NoteExcelExporter.export(preview);
 
                 AppDialog.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }

@@ -72,7 +72,13 @@ namespace NinOS.UI.Views
                 try
                 {
                     note_print_dto printable = await view_model.get_printable_note_async(row.id_delivery_note);
-                    NotePreviewWindow preview = new NotePreviewWindow(printable, view_only: true);
+                    var doc = NotePdfGenerator.build_document(printable);
+                    var fileName = NotePdfGenerator.get_default_file_name(printable);
+                    var preview = new PdfPreviewWindow(
+                        doc,
+                        $"Nota de Entrega {printable.note_number}",
+                        fileName,
+                        () => NoteExcelExporter.export(printable));
                     preview.Owner = Window.GetWindow(this);
                     preview.ShowDialog();
                 }
@@ -91,9 +97,16 @@ namespace NinOS.UI.Views
 
             view_model.on_request_edit_notes = (row) =>
             {
-                var window = new ProVentaEditNotesWindow(view_model, row);
-                window.Owner = Window.GetWindow(this);
-                window.ShowDialog();
+                try
+                {
+                    var window = new ProVentaEditNotesWindow(view_model, row);
+                    window.Owner = Window.GetWindow(this) ?? Application.Current?.MainWindow;
+                    window.ShowDialog();
+                }
+                catch (System.Exception ex)
+                {
+                    AppDialog.Show($"Error al abrir el editor de notas: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             };
 
             view_model.on_request_annul_note = async (row) =>

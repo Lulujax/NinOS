@@ -6,6 +6,17 @@
         MinHeight="550" MinWidth="750"
         WindowStartupLocation="CenterOwner" Background="#F5F5F5"
         ResizeMode="CanResizeWithGrip" FontSize="12">
+    <Window.Resources>
+        <Style x:Key="CenterCellStyle" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="RightCellStyle" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0,0,8,0"/>
+        </Style>
+    </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -193,11 +204,11 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="MONTO BASE ($)" Binding="{Binding gross_total_usd, StringFormat=N2}" Width="1.4*"
-                                            ElementStyle="{StaticResource CenterCellStyle}"/>
+                                            ElementStyle="{StaticResource RightCellStyle}"/>
                         <DataGridTextColumn Header="DCTO %" Binding="{Binding discount_percentage_text}" Width="1*"
                                             ElementStyle="{StaticResource CenterCellStyle}"/>
                         <DataGridTextColumn Header="MONTO A COBRAR ($)" Binding="{Binding amount, StringFormat=N2}" Width="1.5*"
-                                            ElementStyle="{StaticResource CenterCellStyle}"/>
+                                            ElementStyle="{StaticResource RightCellStyle}"/>
                         <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="1*"
                                             ElementStyle="{StaticResource CenterCellStyle}"/>
                     </DataGrid.Columns>

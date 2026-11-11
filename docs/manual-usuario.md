@@ -1,7 +1,7 @@
 # 📖 Manual de Usuario — NinOS
 
 **Sistema Administrativo de Facturación, Cobranzas y Comisiones**
-Versión 1.0.9 · Windows
+Versión 1.0.10 · Windows
 
 ---
 
@@ -456,7 +456,7 @@ Sí. Cada quien trabaja en su pestaña; el servidor es quien controla que no se 
 <div align="center">
 
 **NinOS — Sistema Administrativo**
-*Manual de usuario · Versión 1.0.9*
+*Manual de usuario · Versión 1.0.10*
 
 Ante cualquier duda, primero consulta a tu administrador antes de presionar botones que no reconozcas.
 

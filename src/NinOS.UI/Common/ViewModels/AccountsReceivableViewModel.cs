@@ -196,7 +196,8 @@ namespace NinOS.UI.Common.ViewModels
         // Arranca en "Por Vendedor". No hay modo de "cambiar alcance": las checklists de
         // vendedores y zonas son directamente el filtro.
         private string _selected_report_group = "Por Vendedor";
-        private bool _is_report_year_mode;
+        private string _report_primary_mode = "Mes"; // "Mes", "Año", "Por Zona"
+        private string _report_zone_subperiod = "Todas"; // "Todas", "Mes", "Año"
         private int _selected_report_year;
         private bool _all_report_sellers_selected = true;
         private bool _all_report_zones_selected = true;
@@ -278,6 +279,33 @@ namespace NinOS.UI.Common.ViewModels
             set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
         }
 
+        public string report_primary_mode
+        {
+            get => _report_primary_mode;
+            set
+            {
+                if (_report_primary_mode == value) return;
+                _report_primary_mode = value;
+                on_property_changed();
+                on_property_changed(nameof(is_report_zone_mode));
+                on_property_changed(nameof(is_report_year_mode));
+                on_property_changed(nameof(is_report_month_mode));
+            }
+        }
+
+        public bool is_report_zone_mode => _report_primary_mode == "Por Zona";
+
+        public string report_zone_subperiod
+        {
+            get => _report_zone_subperiod;
+            set
+            {
+                if (_report_zone_subperiod == value) return;
+                _report_zone_subperiod = value;
+                on_property_changed();
+            }
+        }
+
         /// <summary>
         /// Cuando es true el reporte de CxC se arma por año completo en vez de por mes.
         /// Solo afecta al PDF del popup de reporte; el combo de la barra de tools
@@ -285,14 +313,22 @@ namespace NinOS.UI.Common.ViewModels
         /// </summary>
         public bool is_report_year_mode
         {
-            get => _is_report_year_mode;
-            set { if (_is_report_year_mode == value) return; _is_report_year_mode = value; on_property_changed(); on_property_changed(nameof(is_report_month_mode)); }
+            get => _report_primary_mode == "Año";
+            set
+            {
+                if (value) report_primary_mode = "Año";
+                else if (_report_primary_mode == "Año") report_primary_mode = "Mes";
+            }
         }
 
         public bool is_report_month_mode
         {
-            get => !_is_report_year_mode;
-            set { is_report_year_mode = !value; }
+            get => _report_primary_mode == "Mes";
+            set
+            {
+                if (value) report_primary_mode = "Mes";
+                else if (_report_primary_mode == "Mes") report_primary_mode = "Año";
+            }
         }
 
         public int selected_report_year
@@ -652,6 +688,22 @@ namespace NinOS.UI.Common.ViewModels
         /// </summary>
         public void sync_report_scope_from_screen()
         {
+            if (_report_primary_mode == "Por Zona")
+            {
+                _suppress_seller_sync = true;
+                foreach (var opt in report_seller_options) opt.is_checked = true;
+                _suppress_seller_sync = false;
+                _all_report_sellers_selected = report_seller_options.Count > 0;
+                on_property_changed(nameof(all_report_sellers_selected));
+
+                _suppress_zone_sync = true;
+                foreach (var opt in report_zone_options) opt.is_checked = true;
+                _suppress_zone_sync = false;
+                _all_report_zones_selected = report_zone_options.Count > 0;
+                on_property_changed(nameof(all_report_zones_selected));
+                return;
+            }
+
             string tab_name = (selected_tab?.Header ?? string.Empty).Trim();
             bool all_sellers = selected_tab?.IdSeller == null || tab_name.Length == 0;
 
@@ -1096,7 +1148,31 @@ namespace NinOS.UI.Common.ViewModels
 
         public monthly_report_dto? build_cxc_report_dto()
         {
-            if (_is_report_year_mode)
+            if (_report_primary_mode == "Por Zona")
+            {
+                if (_report_zone_subperiod == "Año" && _selected_report_year <= 0)
+                {
+                    AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return null;
+                }
+                if (_report_zone_subperiod == "Mes")
+                {
+                    if (_selected_report_year <= 0)
+                    {
+                        AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
+                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        return null;
+                    }
+                    if (string.IsNullOrWhiteSpace(_selected_month))
+                    {
+                        AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
+                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                        return null;
+                    }
+                }
+            }
+            else if (is_report_year_mode)
             {
                 if (_selected_report_year <= 0)
                 {
@@ -1118,7 +1194,8 @@ namespace NinOS.UI.Common.ViewModels
             var zone_scope = report_zone_options.Where(o => o.is_checked).Select(o => o.name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            bool filter_sellers = !_all_report_sellers_selected;
+            bool is_zona = _report_primary_mode == "Por Zona";
+            bool filter_sellers = !is_zona && !_all_report_sellers_selected;
             bool filter_zones = !_all_report_zones_selected;
 
             if (filter_sellers && seller_scope.Count == 0)
@@ -1135,11 +1212,60 @@ namespace NinOS.UI.Common.ViewModels
                 return null;
             }
 
-            var month_rows = (_is_report_year_mode
-                    ? filter_by_year(_all_notes_source, _selected_report_year)
-                    : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
-                .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            List<accounts_receivable_row_dto> month_rows;
+            string period_label;
+            string period_title;
+            string group_mode;
+
+            if (is_zona)
+            {
+                group_mode = "Por Zona";
+                if (_report_zone_subperiod == "Todas")
+                {
+                    var today = DateTime.Today;
+                    month_rows = _all_notes_source
+                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                                 && AppTimeZone.to_local(n.creation_date).Date <= today)
+                        .ToList();
+                    period_label = $"A LA FECHA ({today:dd/MM/yyyy})";
+                    period_title = "CUENTAS POR COBRAR - COBRANZA EN CALLE POR ZONAS";
+                }
+                else if (_report_zone_subperiod == "Año")
+                {
+                    month_rows = filter_by_year(_all_notes_source, _selected_report_year)
+                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    period_label = $"AÑO {_selected_report_year}";
+                    period_title = $"CUENTAS POR COBRAR - POR ZONAS (AÑO {_selected_report_year})";
+                }
+                else // Mes
+                {
+                    month_rows = _all_notes_source
+                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                                 && AppTimeZone.to_local(n.creation_date).Year == _selected_report_year
+                                 && (string.Equals(_selected_month, "Todos", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), _selected_month, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+                    period_label = $"{_selected_month} {_selected_report_year}".ToUpperInvariant();
+                    period_title = "CUENTAS POR COBRAR - POR ZONAS";
+                }
+            }
+            else
+            {
+                group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
+                month_rows = (is_report_year_mode
+                        ? filter_by_year(_all_notes_source, _selected_report_year)
+                        : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
+                    .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                period_label = is_report_year_mode
+                    ? $"AÑO {_selected_report_year}"
+                    : _selected_month;
+                period_title = is_report_year_mode
+                    ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
+                    : "CUENTAS POR COBRAR - DETALLE DEL MES";
+            }
 
             if (filter_sellers)
                 month_rows = month_rows.Where(n => seller_scope.Contains((n.seller_name ?? string.Empty).Trim())).ToList();
@@ -1162,14 +1288,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             string combined = string.Join(" - ", new[] { seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
-            string group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
-
-            string period_label = _is_report_year_mode
-                ? $"AÑO {_selected_report_year}"
-                : _selected_month;
-            string period_title = _is_report_year_mode
-                ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
-                : "CUENTAS POR COBRAR - DETALLE DEL MES";
+            bool is_full_detail = is_zona || is_report_year_mode;
 
             return new monthly_report_dto
             {
@@ -1177,17 +1296,19 @@ namespace NinOS.UI.Common.ViewModels
                     ? period_title
                     : $"{period_title} ({combined})",
                 month = period_label,
-                report_name = "cuentas por cobrar",
+                report_name = is_zona ? "cuentas por cobrar por zonas" : "cuentas por cobrar",
                 detail_column_header = "SALDO",
                 show_paid_balance_summary = true,
-                empty_text = _is_report_year_mode
-                    ? "Sin cuentas por cobrar para el año seleccionado."
-                    : "Sin cuentas por cobrar para el mes seleccionado.",
+                empty_text = is_zona
+                    ? "Sin cuentas por cobrar pendientes para los filtros de zona seleccionados."
+                    : (is_report_year_mode
+                        ? "Sin cuentas por cobrar para el año seleccionado."
+                        : "Sin cuentas por cobrar para el mes seleccionado."),
                 group_mode = group_mode,
-                ordenar_zombies_primero = _is_report_year_mode,
-                show_dispatch_date_column = _is_report_year_mode,
+                ordenar_zombies_primero = is_full_detail,
+                show_dispatch_date_column = is_full_detail,
                 rows = month_rows
-                    .OrderBy(n => _is_report_year_mode && n.is_customer_ghost ? 0 : 1)
+                    .OrderBy(n => is_full_detail && n.is_customer_ghost ? 0 : 1)
                     .ThenBy(n => n.creation_date)
                     .ThenBy(n => n.id_delivery_note)
                     .Select(n => new monthly_report_row_dto

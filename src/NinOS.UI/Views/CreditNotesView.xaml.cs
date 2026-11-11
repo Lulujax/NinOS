@@ -129,7 +129,13 @@ namespace NinOS.UI.Views
             try
             {
                 var pair = await vm.get_printable_pair_async(selected);
-                var window = new NotePreviewWindow(pair.credit, pair.original, view_only: true)
+                var doc = NotePdfGenerator.build_document(pair.original, pair.credit);
+                var fileName = NotePdfGenerator.get_default_file_name(pair.original, pair.credit);
+                var window = new PdfPreviewWindow(
+                    doc,
+                    $"Nota de Crédito {pair.credit.note_number}",
+                    fileName,
+                    () => NoteExcelExporter.export(pair.original, pair.credit))
                 {
                     Owner = Window.GetWindow(this)
                 };
