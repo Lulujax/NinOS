@@ -641,7 +641,7 @@ _all_rows_source = all_rows;
 
                 .ToList();
 
-            var new_months = new List<string> { "Todos", "" };
+            var new_months = new List<string> { "", "Todos" };
 
             new_months.AddRange(months_in_year);
 
@@ -651,7 +651,7 @@ _all_rows_source = all_rows;
 
             {
 
-                desired = "";
+                desired = "Todos";
 
             }
 

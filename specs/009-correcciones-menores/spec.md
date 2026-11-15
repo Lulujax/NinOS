@@ -19,6 +19,8 @@ Varios detalles pequeños que, juntos, generan datos incorrectos o confusión. S
 - **RF-11** EL SISTEMA tendrá pruebas unitarias de las reglas de dinero (saldos, descuentos, comisiones, notas de crédito, redondeo), cada una con caso feliz, caso límite y caso de error.
 - **RF-12** CUANDO se crea o edita un cliente, EL SISTEMA no le asignará ninguna vendedora: el cliente pertenece a una zona y la vendedora sale de la zona. El campo viejo `seller_name` quedará vacío en los clientes nuevos y no se usará para nada.
 - **RF-13** EL SISTEMA no usará `customer.seller_name` para calcular números de vendedora ni para agrupar clientes; los 247 clientes antiguos conservan su valor sin cambios.
+- **RF-14** CUANDO se está llenando una nota de crédito, EL SISTEMA ofrecerá el botón "Vista previa" que muestra la nota tal como saldrá impresa, antes de guardarla; la vista previa no crea ningún registro.
+- **RF-15** CUANDO se ve la vista previa de una nota de crédito, EL SISTEMA permitirá exportarla a Excel con la misma estructura que el Excel de notas de entrega, adaptada a devolución: cantidad devuelta, precio y subtotal.
 
 ## Cómo sé que está listo
 
@@ -29,6 +31,8 @@ Varios detalles pequeños que, juntos, generan datos incorrectos o confusión. S
 - Una vendedora nueva aparece sola en las pestañas.
 - `dotnet build NinOS.slnx` queda en 0 errores y 0 advertencias, `dotnet test NinOS.slnx` pasa, y cada prueba manual de las tareas pasa en el debug.
 - Un cliente nuevo no queda asociado a "Anais" sin que nadie lo elija.
+- Vista previa de una nota de crédito nueva: muestra la nota con los datos de la pantalla, y el número que aparece es el de previsualización; después de guardar, el PDF sale con el número definitivo.
+- Excel de la vista previa: se abre con la misma estructura que el de notas de entrega, con las devoluciones y sus totales.
 
 ## Fuera de alcance
 
@@ -38,5 +42,6 @@ Varios detalles pequeños que, juntos, generan datos incorrectos o confusión. S
 ## Decisiones tomadas
 
 - Volumen suma, no cascada: confirmado por el cliente.
+- Vista previa y Excel de nota de crédito (RF-14, RF-15): confirmado por Luis. La vista previa es un botón dentro de la ventana, antes de guardar. El Excel tiene el mismo diseño que el de notas de entrega.
 
 - Sí hay proyecto de pruebas (`tests/NinOS.Tests`, xUnit), creado en la spec 002. Lo que no se puede automatizar (ventanas, PDF) se prueba a mano.

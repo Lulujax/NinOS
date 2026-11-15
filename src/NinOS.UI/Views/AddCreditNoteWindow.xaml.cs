@@ -1083,6 +1083,169 @@ namespace NinOS.UI.Views
 
         private bool _is_saving;
 
+        private void OnItemsGridPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ScrollViewer? grid_scroller = find_scroll_viewer(ItemsGrid);
+            bool grid_can_scroll = grid_scroller != null && (e.Delta > 0
+                ? grid_scroller.VerticalOffset > 0
+                : grid_scroller.VerticalOffset < grid_scroller.ScrollableHeight);
+
+            if (grid_can_scroll) return;
+
+            e.Handled = true;
+            MainScroller.ScrollToVerticalOffset(MainScroller.VerticalOffset - e.Delta);
+        }
+
+        private static ScrollViewer? find_scroll_viewer(DependencyObject parent)
+        {
+            int child_count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < child_count; i++)
+            {
+                DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is ScrollViewer scroll_viewer) return scroll_viewer;
+
+                ScrollViewer? nested = find_scroll_viewer(child);
+                if (nested != null) return nested;
+            }
+            return null;
+        }
+
+        private async void OnPreviewClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var draft = await build_draft_async();
+                if (draft == null) return;
+
+                var details = build_print_details(draft.Value.rows);
+                var pair = await _vm.get_draft_print_pair_async(draft.Value.note, details);
+
+                var document = pair.original != null
+                    ? NotePdfGenerator.build_document(pair.original, pair.credit)
+                    : NotePdfGenerator.build_document(pair.credit);
+                var default_file_name = pair.original != null
+                    ? NotePdfGenerator.get_default_file_name(pair.original, pair.credit)
+                    : NotePdfGenerator.get_default_file_name(pair.credit);
+
+                var preview = new PdfPreviewWindow(document, "Vista previa - Nota de credito", default_file_name)
+                {
+                    Owner = this
+                };
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+        }
+
+        private static List<note_detail_print_dto> build_print_details(IEnumerable<credit_note_edit_row> rows)
+        {
+            return rows.Select(r => new note_detail_print_dto
+            {
+                code = r.code,
+                name = r.name,
+                quantity = r.return_quantity,
+                unit_price_usd = r.unit_price_usd,
+                discount_usd = 0,
+                promo_price_usd = r.unit_price_usd,
+                subtotal_usd = r.subtotal_usd
+            }).ToList();
+        }
+
+        private async Task<(credit_note note, List<credit_note_edit_row> rows)?> build_draft_async()
+        {
+            credit_note new_note;
+            List<credit_note_edit_row> rows;
+
+            if (_is_gift)
+            {
+                if (_selected_customer == null)
+                {
+                    AppDialog.Show("Busque y seleccione el cliente del obsequio.", "Aviso");
+                    return null;
+                }
+
+                rows = _gift_items.Where(r => r.return_quantity > 0).ToList();
+                if (rows.Count == 0)
+                {
+                    AppDialog.Show("Debe agregar al menos un producto a obsequiar con cantidad mayor a cero.", "Aviso");
+                    return null;
+                }
+
+                foreach (var r in rows)
+                {
+                    if (r.return_quantity > r.remaining_quantity)
+                    {
+                        AppDialog.Show($"La cantidad a obsequiar de {r.name} ({r.return_quantity}) supera el stock disponible ({r.remaining_quantity}).", "Aviso");
+                        return null;
+                    }
+                }
+
+                decimal gift_total = rows.Sum(r => r.subtotal_usd);
+                int admin_seller_id = _admin_seller?.id_seller ?? 1;
+                string gift_correlative = await _vm.generate_credit_correlative_async(admin_seller_id);
+
+                new_note = new credit_note(
+                    note_number: gift_correlative,
+                    creation_date: DateTime.UtcNow,
+                    id_delivery_note: null,
+                    id_seller: admin_seller_id,
+                    id_customer: _selected_customer.id_customer,
+                    total_amount_usd: gift_total,
+                    status: "Registrada",
+                    category: "Obsequio")
+                {
+                    observations = null
+                };
+            }
+            else
+            {
+                if (_selected_seller == null)
+                {
+                    AppDialog.Show("Seleccione el vendedor que emite la nota de credito.", "Aviso");
+                    return null;
+                }
+                if (_source == null)
+                {
+                    AppDialog.Show("Busque primero la nota de entrega a la que corresponde la devolucion.", "Aviso");
+                    return null;
+                }
+
+                rows = ((ItemsGrid.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>())
+                    .Where(r => r.return_quantity > 0)
+                    .ToList();
+
+                if (rows.Count == 0)
+                {
+                    AppDialog.Show("Debe indicar al menos una cantidad a devolver.", "Aviso");
+                    return null;
+                }
+
+                decimal return_total = rows.Sum(r => r.subtotal_usd);
+                string return_correlative = await _vm.generate_credit_correlative_async(_source.id_seller);
+
+                new_note = new credit_note(
+                    note_number: return_correlative,
+                    // Una nota de credito se emite el dia en que se recibe la mercancia de vuelta,
+                    // no el dia en que se emitio la nota que se esta revirtiendo. Anclar la NC a la
+                    // fecha de la entrega arrastra al karded, al abono negativo y al filtro por mes
+                    // del modulo: una devolucion de una nota de marzo caeria en el mes que se registro.
+                    creation_date: DateTime.UtcNow,
+                    id_delivery_note: _source.id_delivery_note,
+                    id_seller: _source.id_seller,
+                    id_customer: _source.id_customer,
+                    total_amount_usd: return_total,
+                    status: "Registrada",
+                    category: "Devolucion")
+                {
+                    observations = ObsBox.Text?.Trim()
+                };
+            }
+
+            return (new_note, rows);
+        }
+
         private async Task SaveAsync(bool with_pdf)
         {
             if (_is_saving) return;
@@ -1091,93 +1254,11 @@ namespace NinOS.UI.Views
             BtnSavePdf.IsEnabled = false;
             try
             {
-                credit_note new_note;
-                List<credit_note_edit_row> rows;
+                var draft = await build_draft_async();
+                if (draft == null) return;
 
-                if (_is_gift)
-                {
-                    if (_selected_customer == null)
-                    {
-                        AppDialog.Show("Busque y seleccione el cliente del obsequio.", "Aviso");
-                        return;
-                    }
-
-                    rows = _gift_items.Where(r => r.return_quantity > 0).ToList();
-                    if (rows.Count == 0)
-                    {
-                        AppDialog.Show("Debe agregar al menos un producto a obsequiar con cantidad mayor a cero.", "Aviso");
-                        return;
-                    }
-
-                    foreach (var r in rows)
-                    {
-                        if (r.return_quantity > r.remaining_quantity)
-                        {
-                            AppDialog.Show($"La cantidad a obsequiar de {r.name} ({r.return_quantity}) supera el stock disponible ({r.remaining_quantity}).", "Aviso");
-                            return;
-                        }
-                    }
-
-                    decimal total = rows.Sum(r => r.subtotal_usd);
-                    int admin_seller_id = _admin_seller?.id_seller ?? 1;
-                    string correlative = await _vm.generate_credit_correlative_async(admin_seller_id);
-
-                    new_note = new credit_note(
-                        note_number: correlative,
-                        creation_date: DateTime.UtcNow,
-                        id_delivery_note: null,
-                        id_seller: admin_seller_id,
-                        id_customer: _selected_customer.id_customer,
-                        total_amount_usd: total,
-                        status: "Registrada",
-                        category: "Obsequio")
-                    {
-                        observations = null
-                    };
-                }
-                else
-                {
-                    if (_selected_seller == null)
-                    {
-                        AppDialog.Show("Seleccione el vendedor que emite la nota de credito.", "Aviso");
-                        return;
-                    }
-                    if (_source == null)
-                    {
-                        AppDialog.Show("Busque primero la nota de entrega a la que corresponde la devolucion.", "Aviso");
-                        return;
-                    }
-
-                    rows = ((ItemsGrid.ItemsSource as IEnumerable<credit_note_edit_row>) ?? Enumerable.Empty<credit_note_edit_row>())
-                        .Where(r => r.return_quantity > 0)
-                        .ToList();
-
-                    if (rows.Count == 0)
-                    {
-                        AppDialog.Show("Debe indicar al menos una cantidad a devolver.", "Aviso");
-                        return;
-                    }
-
-                    decimal total = rows.Sum(r => r.subtotal_usd);
-                    string correlative = await _vm.generate_credit_correlative_async(_source.id_seller);
-
-                    new_note = new credit_note(
-                        note_number: correlative,
-                        // Una nota de credito se emite el dia en que se recibe la mercancia de vuelta,
-                        // no el dia en que se emitio la nota que se esta revirtiendo. Anclar la NC a la
-                        // fecha de la entrega arrastra al karded, al abono negativo y al filtro por mes
-                        // del modulo: una devolucion de una nota de marzo caeria en el mes que se registro.
-                        creation_date: DateTime.UtcNow,
-                        id_delivery_note: _source.id_delivery_note,
-                        id_seller: _source.id_seller,
-                        id_customer: _source.id_customer,
-                        total_amount_usd: total,
-                        status: "Registrada",
-                        category: "Devolucion")
-                    {
-                        observations = ObsBox.Text?.Trim()
-                    };
-                }
+                credit_note new_note = draft.Value.note;
+                List<credit_note_edit_row> rows = draft.Value.rows;
 
                 var details = rows.Select(r => new credit_note_detail(
                     id_credit_note: 0,

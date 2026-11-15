@@ -22,7 +22,8 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="14">
+        <ScrollViewer x:Name="MainScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <Grid Margin="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -32,10 +33,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <!-- FILA DE LA TABLA DE PRODUCTOS. El MinHeight reserva un espacio real para la tabla
-                 y su barra vertical: al achicar la ventana, la fila "*" se encoge hasta este
-                 minimo y no mas, asi que la tabla nunca queda aplastada ni recortada. -->
-            <RowDefinition Height="*" MinHeight="150"/>
+            <RowDefinition Height="300"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -370,9 +368,6 @@
             </Border>
         </Grid>
 
-        <!-- TABLA DE ITEMS. MinHeight en sync con el MinHeight de la fila "*" de arriba: la tabla
-             nunca baja de ese alto, asi que su barra vertical verticalmente tiene espacio para
-             aparecer y lasUltimas lineas se pueden alcanzar al achicar la ventana. -->
         <DataGrid Grid.Row="8" x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                   Background="White" BorderThickness="1" BorderBrush="#BDBDBD"
@@ -380,7 +375,8 @@
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
                   CanUserResizeColumns="False" CanUserReorderColumns="False"
-                  CellEditEnding="OnCellEditEnding">
+                  CellEditEnding="OnCellEditEnding"
+                  PreviewMouseWheel="OnItemsGridPreviewMouseWheel">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#C62828"/>
@@ -538,6 +534,9 @@
         </Grid>
 
         <StackPanel Grid.Row="13" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="BtnPreview" Content="Vista previa" Height="30" Padding="14,0" Margin="0,0,8,0"
+                    Background="#1565C0" Foreground="White" BorderThickness="0" Cursor="Hand"
+                    FontWeight="SemiBold" Click="OnPreviewClick"/>
             <Button x:Name="BtnSavePdf" Content="Guardar y PDF" Height="30" Padding="14,0" Margin="0,0,8,0"
                     Background="#C62828" Foreground="White" BorderThickness="0" Cursor="Hand"
                     FontWeight="SemiBold" Click="OnSavePdfClick"/>
@@ -549,5 +548,6 @@
                     Cursor="Hand" IsCancel="True"/>
         </StackPanel>
         </Grid>
+        </ScrollViewer>
     </Grid>
 </Window>

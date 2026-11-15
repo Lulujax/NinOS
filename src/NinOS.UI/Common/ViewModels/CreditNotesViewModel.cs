@@ -1320,7 +1320,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            var new_months = new List<string> { "Todos", "" };
+            var new_months = new List<string> { "", "Todos" };
 
 
 
@@ -1344,7 +1344,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-                desired = "";
+                desired = "Todos";
 
 
 
@@ -1908,6 +1908,18 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
+
+        public async Task<(note_print_dto? original, note_print_dto credit)> get_draft_print_pair_async(credit_note draft, IEnumerable<note_detail_print_dto> details)
+        {
+            note_print_dto? original = null;
+
+            if (!string.Equals(draft.category, "Obsequio", StringComparison.OrdinalIgnoreCase) && draft.id_delivery_note is int id_delivery_note && id_delivery_note > 0)
+                original = await _receivable_service.get_printable_note_async(id_delivery_note);
+
+            note_print_dto credit = await _credit_note_service.get_draft_print_credit_note_async(draft, details);
+
+            return (original, credit);
+        }
 
         public async Task<(note_print_dto? original, note_print_dto credit)> get_printable_pair_async(credit_note_dto credit_note)
 

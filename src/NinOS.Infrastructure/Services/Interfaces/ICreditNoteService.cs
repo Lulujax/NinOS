@@ -20,6 +20,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<credit_note_dto> create_credit_note_async(credit_note new_note, IEnumerable<credit_note_detail> details);
         Task<IEnumerable<credit_note_detail_dto>> get_credit_note_details_async(int id_credit_note);
         Task<note_print_dto> get_printable_credit_note_async(int id_credit_note);
+        Task<note_print_dto> get_draft_print_credit_note_async(credit_note draft, IEnumerable<note_detail_print_dto> details);
         Task<credit_note_report_dto> get_credit_note_report_async(DateTime from_date, DateTime to_date, string? category, int? id_seller);
 
         /// <summary>

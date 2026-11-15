@@ -69,3 +69,17 @@ Cubre: RF-10
 - Hecho cuando: `git diff -w --ignore-blank-lines` no muestra cambios de contenido y el build queda en 0/0.
 - Cómo probarla: ese comando; abrir Comisiones y pagar una comisión de prueba.
 - [x] Hecha y probada
+
+## Tarea 11 - Vista previa de la nota de crédito
+Cubre: RF-14
+- Botón "Vista previa" en `AddCreditNoteWindow` que arma el documento con los datos de la pantalla, sin guardar, usando el mismo generador del PDF final y mostrándolo con `PdfPreviewWindow`.
+- Hecho cuando: la vista previa muestra la nota con la misma información que el PDF; no se crea ningún registro en la base.
+- Cómo probarla: llenar una nota de crédito, pulsar "Vista previa", revisar que muestra los productos y el total; luego cerrar sin guardar y comprobar en Notas de crédito que no apareció nada nuevo.
+- [ ] Hecha y probada
+
+## Tarea 12 - Excel de la nota de crédito
+Cubre: RF-15
+- `CreditNoteExcelExporter` con la misma estructura que `NoteExcelExporter` (encabezado, cliente, tabla de devoluciones y totales), conectado al botón Excel de la vista previa.
+- Hecho cuando: el Excel abre con cliente, productos devueltos, cantidades, precio, subtotal y total; las filas se generan con una función pura probada en `tests/NinOS.Tests` (caso feliz, sin productos, cantidad cero).
+- Cómo probarla: vista previa de una nota de crédito con dos productos → Excel; comparar con una nota de entrega en Excel.
+- [ ] Hecha y probada

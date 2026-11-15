@@ -854,13 +854,13 @@ namespace NinOS.UI.Common.ViewModels
                 .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
                 .ToList();
 
-            var new_months = new List<string> { "Todos", "" };
+            var new_months = new List<string> { "", "Todos" };
             new_months.AddRange(months_in_year);
 
             string desired = _selected_month;
             if (!new_months.Contains(desired))
             {
-                desired = "";
+                desired = "Todos";
             }
 
             available_months.Clear();

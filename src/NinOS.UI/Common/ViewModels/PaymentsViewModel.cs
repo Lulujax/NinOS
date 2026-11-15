@@ -1136,7 +1136,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            var new_months = new List<string> { "Todos", "" };
+            var new_months = new List<string> { "", "Todos" };
 
             new_months.AddRange(months_in_year);
 
@@ -1148,7 +1148,7 @@ namespace NinOS.UI.Common.ViewModels
 
             {
 
-                desired = "";
+                desired = "Todos";
 
             }
 

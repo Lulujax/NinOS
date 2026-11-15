@@ -1308,6 +1308,44 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<note_print_dto> get_draft_print_credit_note_async(credit_note draft, IEnumerable<note_detail_print_dto> details)
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                var original = draft.id_delivery_note == null
+                    ? null
+                    : await db_context.delivery_notes
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(n => n.id_delivery_note == draft.id_delivery_note);
+                var customer = await db_context.customers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.id_customer == draft.id_customer);
+                var seller = await db_context.sellers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.id_seller == draft.id_seller);
+
+                string header_title = BrandHeader.Title;
+                if (original != null && original.note_type_id != null)
+                {
+                    var note_type = await db_context.note_types
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(t => t.id_note_type == original.note_type_id);
+                    if (note_type != null && !string.IsNullOrWhiteSpace(note_type.header_title))
+                        header_title = note_type.header_title;
+                }
+
+                bool is_gift = string.Equals(draft.category, "Obsequio", StringComparison.OrdinalIgnoreCase);
+                string source_text = original != null ? original.note_number : string.Empty;
+
+                return build_credit_print_dto(
+                    draft.id_delivery_note ?? 0, draft.note_number, header_title, draft.status, draft.total_amount_usd,
+                    AppTimeZone.to_local(draft.creation_date), is_gift, source_text, original,
+                    seller?.full_name, customer, details.ToList());
+            }
+        }
+
         private static note_print_dto build_credit_print_dto(
             int id_delivery_note, string note_number, string header_title, string status, decimal total,
             DateTime local_creation_date, bool is_gift, string source_text, delivery_note? original,
