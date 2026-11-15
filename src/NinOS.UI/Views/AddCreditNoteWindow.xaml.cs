@@ -1127,7 +1127,8 @@ namespace NinOS.UI.Views
                     ? NotePdfGenerator.get_default_file_name(pair.original, pair.credit)
                     : NotePdfGenerator.get_default_file_name(pair.credit);
 
-                var preview = new PdfPreviewWindow(document, "Vista previa - Nota de credito", default_file_name)
+                var preview = new PdfPreviewWindow(document, "Vista previa - Nota de credito", default_file_name,
+                    () => NoteExcelExporter.export(pair.credit))
                 {
                     Owner = this
                 };
