@@ -43,6 +43,11 @@ namespace NinOS.UI.Views
             };
         }
 
+        private async void OnUpdateNowClick(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel != null) await _viewModel.update_now_async();
+        }
+
         private DateTime _last_title_click;
         private int _title_click_count;
 

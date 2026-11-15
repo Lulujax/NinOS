@@ -26,6 +26,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<product_line> product_lines { get; set; }
         public DbSet<price_list> price_lists { get; set; }
         public DbSet<product_price> product_prices { get; set; }
+        public DbSet<app_update_policy> app_update_policies { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -499,6 +500,18 @@ namespace NinOS.Infrastructure.Data
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<promotion>().WithMany().HasForeignKey(e => e.id_promotion).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            model_builder.Entity<app_update_policy>(entity =>
+            {
+                entity.ToTable("app_update_policy", table => table.HasCheckConstraint("ck_app_update_policy_single_row", "id_policy = 1"));
+                entity.HasKey(e => e.id_policy);
+                entity.Property(e => e.id_policy).HasColumnName("id_policy").ValueGeneratedNever();
+                entity.Property(e => e.minimum_version).HasColumnName("minimum_version").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.recommended_version).HasColumnName("recommended_version").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.notice_at_utc).HasColumnName("notice_at_utc");
+                entity.Property(e => e.notice_message).HasColumnName("notice_message").HasMaxLength(500);
+                entity.Property(e => e.updated_at_utc).HasColumnName("updated_at_utc").IsRequired();
             });
         }
     }

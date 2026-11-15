@@ -141,6 +141,12 @@ namespace NinOS.UI.Views
             }
         }
 
+        public void SetStatus(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("El texto de estado no puede estar vacio.", nameof(text));
+            if (LoadingText != null) LoadingText.Text = text;
+        }
+
         public void SetLoading()
         {
             if (ErrorPanel != null) ErrorPanel.Visibility = Visibility.Collapsed;

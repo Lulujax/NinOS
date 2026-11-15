@@ -39,7 +39,7 @@
                            TextAlignment="Center" MaxWidth="420" FontWeight="SemiBold" />
 
                 <StackPanel x:Name="LoadingPanel" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                    <TextBlock Text="Cargando" FontSize="13" Foreground="#9AA4B0"
+                    <TextBlock x:Name="LoadingText" Text="Cargando" FontSize="13" Foreground="#9AA4B0"
                                VerticalAlignment="Center" />
                     <TextBlock x:Name="DotsText" Text="..." FontSize="13" Foreground="#9AA4B0"
                                VerticalAlignment="Center" Width="28" />

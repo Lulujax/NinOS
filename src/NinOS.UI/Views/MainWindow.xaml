@@ -9,6 +9,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -17,7 +18,17 @@
                        Foreground="White" VerticalAlignment="Center" />
         </Border>
 
-        <TabControl x:Name="MainTabControl" Grid.Row="1" Margin="10" SelectionChanged="TabControl_SelectionChanged" 
+        <Border x:Name="UpdateBanner" Grid.Row="1" Background="#FFF3E0" BorderBrush="#E65100" BorderThickness="0,0,0,1" Padding="10,6"
+                Visibility="{Binding update_banner_visible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Actualizar ahora" Click="OnUpdateNowClick" Padding="12,3" Margin="8,0,0,0"
+                        Background="#E65100" Foreground="White" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding update_banner_text}" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Foreground="#4E342E" FontWeight="SemiBold"/>
+            </DockPanel>
+        </Border>
+
+        <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="10" IsEnabled="{Binding work_allowed}" SelectionChanged="TabControl_SelectionChanged"
                     PreviewMouseLeftButtonDown="MainTabControl_PreviewMouseLeftButtonDown"
                     PreviewKeyDown="MainTabControl_PreviewKeyDown">
 <TabItem Header="Notas de Entrega">

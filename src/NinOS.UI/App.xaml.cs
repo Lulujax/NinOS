@@ -11,6 +11,7 @@ using NinOS.Infrastructure.Services.Implementations;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
+using NinOS.UI.Updates;
 using NinOS.UI.Views;
 
 namespace NinOS.UI
@@ -22,6 +23,8 @@ namespace NinOS.UI
 
         public App()
         {
+            Velopack.VelopackApp.Build().Run();
+
             DispatcherUnhandledException += (s, e) =>
             {
                 log_error("DispatcherUnhandledException", e.Exception);
@@ -139,6 +142,8 @@ namespace NinOS.UI
 
             System.Threading.Tasks.Task.Run(async () =>
             {
+                await run_update_check_async(splash);
+
                 log_startup_message("Before DbInitializer (attempt)");
 
                 // Cada intento crea su propio scope limpio para evitar instancias de DbContext o conexiones dañadas
@@ -215,6 +220,39 @@ namespace NinOS.UI
                     ready_timer.Start();
                 });
             });
+        }
+
+        private async System.Threading.Tasks.Task run_update_check_async(SplashWindow splash)
+        {
+            IAppUpdater updater = _service_provider!.GetRequiredService<IAppUpdater>();
+            show_splash_status(splash, "Buscando actualizaciones...");
+
+            update_check_result check = await updater.check_for_update_async(System.Threading.CancellationToken.None);
+            if (!check.is_available)
+            {
+                if (check.error_message != null) show_splash_status(splash, check.error_message);
+                return;
+            }
+
+            try
+            {
+                show_splash_status(splash, $"Descargando la version {check.available_version}...");
+                var progress = new Progress<int>(percent => show_splash_status(splash, $"Descargando actualizacion {percent}%"));
+                await updater.download_update_async(progress, System.Threading.CancellationToken.None);
+
+                show_splash_status(splash, "Aplicando actualizacion, NinOS se reiniciara...");
+                updater.apply_update_and_restart();
+            }
+            catch (Exception exception)
+            {
+                log_startup_message("Actualizacion fallida; se sigue con la version actual", exception);
+                show_splash_status(splash, "No se pudo aplicar la actualizacion. Se sigue con la version actual.");
+            }
+        }
+
+        private static void show_splash_status(SplashWindow splash, string text)
+        {
+            splash.Dispatcher.BeginInvoke(() => splash.SetStatus(text));
         }
 
         private static void log_startup_message(string message, Exception? exception = null)
@@ -354,6 +392,25 @@ namespace NinOS.UI
             Shutdown();
         }
 
+        private static IAppUpdater create_app_updater()
+        {
+            if (!UpdateSettings.try_get_base_url(out string base_url, out string reason))
+            {
+                AppLog.Warn($"Actualizaciones desactivadas: {reason}");
+                return new DisabledAppUpdater();
+            }
+
+            try
+            {
+                return new VelopackAppUpdater(base_url);
+            }
+            catch (Exception exception)
+            {
+                AppLog.Warn($"Actualizaciones desactivadas: el actualizador no se pudo iniciar ({exception.GetType().Name}).");
+                return new DisabledAppUpdater();
+            }
+        }
+
         private void configure_services(ServiceCollection services)
         {
             services.AddDbContext<NinOSDbContext>(options =>
@@ -379,6 +436,7 @@ namespace NinOS.UI
             services.AddScoped<ISellerService, SellerService>();
             services.AddScoped<IProVentaService, ProVentaService>();
             services.AddScoped<IPriceListService, PriceListService>();
+            services.AddSingleton<IAppUpdater>(_ => create_app_updater());
 
             services.AddTransient<DeliveryNotesViewModel>();
             services.AddTransient<AccountsReceivableViewModel>();
@@ -393,6 +451,7 @@ namespace NinOS.UI
             services.AddTransient<CreditNotesViewModel>();
             services.AddTransient<CreditNotesReportViewModel>();
             
+            NinOS.UI.Updates.UpdatePolicyServices.add_update_policy_services(services);
             services.AddTransient<MainWindowViewModel>();
             services.AddTransient<MainWindow>();
         }

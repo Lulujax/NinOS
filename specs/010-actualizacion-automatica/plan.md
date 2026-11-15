@@ -124,7 +124,7 @@ Va en la base y no en el servidor de archivos porque todas las PCs ya hablan con
 3. **Cambia la carpeta de instalación.** Velopack instala en la carpeta del usuario, sin pedir administrador en cada actualización. Eso obliga a la mudanza manual de la última visita: desinstalar la vieja, instalar la nueva y mover el `appsettings.json`.
 4. **Espacio en las PCs.** Velopack conserva la versión anterior para poder revertir: unos 400 MB por PC.
 5. **Si se sube la versión mínima y una PC no puede descargar, esa persona no trabaja.** Por eso la mínima se usa solo cuando es imprescindible.
-6. **Ubuntu 20.04 ya no recibe parches gratis normales.** Se activa Ubuntu Pro, que es gratis hasta 5 máquinas y no obliga a reinstalar.
+6. **Ubuntu 20.04 ya no recibe parches gratis normales.** Luis decidió el 2026-11-15 no activar Ubuntu Pro y dejar la versión actual: riesgo aceptado. Se mitiga con el firewall activo, exponer solo lo necesario (22, 80, 443, 5432) y aplicar las actualizaciones normales de apt.
 7. **El proveedor no deja abrir ningún puerto para HTTPS.** Se averigua en la tarea 2; si pasa, Luis decide sobre el plan B.
 8. **El certificado cambia o vence y las PCs no aceptan al servidor.** Se mitiga con vigencia larga, una huella de respaldo ya incluida en la app y el procedimiento de renovación descrito arriba.
 9. **Sin dominio, si el proveedor cambia la IP del VPS**, dejan de conectar la base de datos y el actualizador. Se corrige cambiando la dirección en la configuración de cada PC; el riesgo ya existe hoy con la base.

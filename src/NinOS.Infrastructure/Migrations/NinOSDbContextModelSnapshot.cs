@@ -22,6 +22,45 @@ namespace NinOS.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("NinOS.Domain.app_update_policy", b =>
+                {
+                    b.Property<int>("id_policy")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_policy");
+
+                    b.Property<string>("minimum_version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("minimum_version");
+
+                    b.Property<DateTime?>("notice_at_utc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("notice_at_utc");
+
+                    b.Property<string>("notice_message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notice_message");
+
+                    b.Property<string>("recommended_version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("recommended_version");
+
+                    b.Property<DateTime>("updated_at_utc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("id_policy");
+
+                    b.ToTable("app_update_policy", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_app_update_policy_single_row", "id_policy = 1");
+                        });
+                });
+
             modelBuilder.Entity("NinOS.Domain.commission", b =>
                 {
                     b.Property<int>("id_commission")
