@@ -64,6 +64,8 @@ namespace NinOS.Domain
         // vale la linea es el snapshot de unit_price_usd.
         public int? id_price_list { get; set; }
 
+        public string? promo_items_snapshot { get; set; }
+
         protected note_detail() { }
 
         public note_detail(int id_delivery_note, int? id_product, int? id_promotion, int quantity, decimal unit_price_usd, decimal subtotal_usd)

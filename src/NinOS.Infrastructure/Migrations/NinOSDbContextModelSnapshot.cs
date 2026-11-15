@@ -42,8 +42,8 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnName("amount_usd");
 
                     b.Property<decimal>("commission_percentage")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
                         .HasColumnName("commission_percentage");
 
                     b.Property<decimal>("exchange_rate")
@@ -75,7 +75,8 @@ namespace NinOS.Infrastructure.Migrations
 
                     b.HasKey("id_commission");
 
-                    b.HasIndex("id_delivery_note");
+                    b.HasIndex("id_delivery_note")
+                        .IsUnique();
 
                     b.HasIndex("id_seller");
 
@@ -111,6 +112,10 @@ namespace NinOS.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)")
                         .HasColumnName("exchange_rate");
+
+                    b.Property<Guid?>("id_batch")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_batch");
 
                     b.Property<int>("id_commission")
                         .HasColumnType("integer")
@@ -186,6 +191,14 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("observations");
 
+                    b.Property<string>("print_snapshot")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("print_snapshot");
+
+                    b.Property<int?>("print_snapshot_version")
+                        .HasColumnType("integer")
+                        .HasColumnName("print_snapshot_version");
+
                     b.Property<string>("status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -236,6 +249,10 @@ namespace NinOS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("product_code_snapshot");
+
+                    b.Property<string>("promo_items_snapshot")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("promo_items_snapshot");
 
                     b.Property<int>("quantity")
                         .HasColumnType("integer")
@@ -441,6 +458,14 @@ namespace NinOS.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("payment_transfer_text");
 
+                    b.Property<string>("print_snapshot")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("print_snapshot");
+
+                    b.Property<int?>("print_snapshot_version")
+                        .HasColumnType("integer")
+                        .HasColumnName("print_snapshot_version");
+
                     b.Property<string>("promo_banner")
                         .HasColumnType("text");
 
@@ -515,6 +540,10 @@ namespace NinOS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("product_code_snapshot");
+
+                    b.Property<string>("promo_items_snapshot")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("promo_items_snapshot");
 
                     b.Property<int>("quantity")
                         .HasColumnType("integer")

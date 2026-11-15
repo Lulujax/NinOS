@@ -3,17 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Repositories.Interfaces;
+using System.Data;
+using System.Data.Common;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 
 namespace NinOS.Infrastructure.Services.Implementations
 {
     public class DeliveryNoteService : IDeliveryNoteService
     {
+        public const long CorrelativeLockKey = 9070002L;
+
         private readonly IServiceScopeFactory _scope_factory;
 
         public DeliveryNoteService(IServiceScopeFactory scope_factory)
@@ -38,7 +44,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             return await repo.get_next_correlative_async();
         }
 
-        public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details)
+        public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details, NinOS.Domain.ViewModels.note_print_dto? print_dto = null)
         {
             if (new_note == null) throw new ArgumentNullException(nameof(new_note));
             if (details == null) throw new InvalidOperationException("Los detalles no pueden ser nulos.");
@@ -50,6 +56,21 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 try
                 {
+                    DbConnection conn = _db_context.Database.GetDbConnection();
+                    if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+                    using DbCommand lockCmd = conn.CreateCommand();
+                    lockCmd.Transaction = transaction.GetDbTransaction();
+                    lockCmd.CommandText = $"SELECT pg_advisory_xact_lock({CorrelativeLockKey})";
+                    await lockCmd.ExecuteNonQueryAsync();
+
+                    var all_numbers = await _db_context.delivery_notes.AsNoTracking().Select(n => n.note_number).ToListAsync();
+                    string correlativo_definitivo = NinOS.Infrastructure.Common.SeriesCalculator.GetNextGlobal6(all_numbers);
+                    if (correlativo_definitivo != new_note.note_number)
+                    {
+                        AppLog.Info($"Correlativo cambiado de {new_note.note_number} a {correlativo_definitivo} (otra PC lo tomo primero).");
+                        new_note.note_number = correlativo_definitivo;
+                    }
+
                     var details_list = details.ToList();
 
                     var direct_product_ids = new HashSet<int>();
@@ -98,7 +119,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                             // el codigo con el que se emitio.
                             detail.product_code_snapshot = p.product_code;
 
-                            stock_movimientos.Add(stock_movement_writer.registrar_salida(
+                            stock_movimientos.Add(await stock_movement_writer.registrar_salida_async(
                                 _db_context, p, detail.quantity,
                                 stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,
                                 new_note.creation_date, detail.unit_price_usd,
@@ -116,28 +137,22 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                             decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
 
-                            foreach (var p_item in promo.items)
-                            {
-                                if (!products.TryGetValue(p_item.id_product, out var p))
+                            detail.promo_items_snapshot = NinOS.Domain.promo_items_snapshot_store.serialize(
+                                promo.items.Select(i => new NinOS.Domain.promo_item_snapshot
                                 {
-                                    throw new InvalidOperationException(
-                                        $"La promocion '{promo.name}' referencia un producto que ya no existe en el inventario. " +
-                                        $"Elimine esta promocion y cree una nueva con productos validos.");
-                                }
-                                int required_qty = detail.quantity * p_item.quantity_required;
+                                    id_product = i.id_product,
+                                    quantity_required = i.quantity_required
+                                }).ToList());
 
-                                stock_movimientos.Add(stock_movement_writer.registrar_salida(
-                                    _db_context, p, required_qty,
-                                    stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,
-                                    new_note.creation_date, precio_por_unidad,
-                                    estado_documento: new_note.status,
-                                    id_vendedor: new_note.id_seller,
-                                    id_cliente: new_note.id_customer,
-                                    id_promocion: detail.id_promotion,
-                                    unidades_promocion: detail.quantity,
-                                    vendido_como: stock_movement_writer.VendidoPromocion,
-                                    descripcion_linea: promo.name));
-                            }
+                            var movimientos_promo = await stock_movement_writer.mover_promocion_async(
+                                _db_context, detail.promo_items_snapshot, promo, detail.quantity, es_salida: true,
+                                stock_movement.RazonVenta, stock_movement.DocumentoEntrega, new_note.note_number,
+                                new_note.creation_date, precio_por_unidad,
+                                estado_documento: new_note.status, id_entrega: null, id_credito: null,
+                                id_vendedor: new_note.id_seller, id_cliente: new_note.id_customer,
+                                id_promocion: detail.id_promotion, descripcion_linea: promo.name);
+
+                            stock_movimientos.AddRange(movimientos_promo);
                         }
                     }
 
@@ -173,6 +188,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         detail.id_delivery_note = new_note.id_delivery_note;
                         await _db_context.note_details.AddAsync(detail);
+                    }
+
+                    if (print_dto != null)
+                    {
+                        print_dto.note_number = new_note.note_number;
+                        new_note.print_snapshot = NinOS.Domain.note_snapshot_store.serialize(print_dto);
+                        new_note.print_snapshot_version = NinOS.Domain.note_snapshot_store.CurrentVersion;
                     }
 
                     await _db_context.SaveChangesAsync();

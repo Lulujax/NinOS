@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ClosedXML.Excel;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 
 namespace NinOS.UI.Common
@@ -34,7 +35,7 @@ namespace NinOS.UI.Common
             var ws = wb.Worksheets.Add(sheetName);
 
             // 1. BANNER DE ENCABEZADO (Idéntico al PDF de ProVentaRelationsSummaryPdfGenerator)
-            ws.Cell(1, 1).SetValue("REPORTE DE RELACIONES PRO VENTA - MARACAY");
+            ws.Cell(1, 1).SetValue($"REPORTE DE RELACIONES PRO VENTA - {pro_venta_calculator.Ciudad}");
             ws.Range(1, 1, 1, 3).Merge();
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 13;

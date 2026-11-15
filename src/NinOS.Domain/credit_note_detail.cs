@@ -58,6 +58,8 @@ namespace NinOS.Domain
         // note_detail: la nota vieja conserva el codigo con el que se emitio.
         public string? product_code_snapshot { get; set; }
 
+        public string? promo_items_snapshot { get; set; }
+
         protected credit_note_detail() { }
 
         public credit_note_detail(int id_credit_note, int? id_product, int? id_promotion, int quantity, decimal unit_price_usd, decimal subtotal_usd)

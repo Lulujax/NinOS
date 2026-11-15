@@ -257,6 +257,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.payment_transfer_text).HasColumnName("payment_transfer_text");
                 entity.Property(e => e.payment_account_text).HasColumnName("payment_account_text");
                 entity.Property(e => e.payment_movil_text).HasColumnName("payment_movil_text");
+                entity.Property(e => e.print_snapshot).HasColumnName("print_snapshot").HasColumnType("jsonb");
+                entity.Property(e => e.print_snapshot_version).HasColumnName("print_snapshot_version");
 
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
@@ -277,6 +279,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.product_code_snapshot).HasColumnName("product_code_snapshot").IsRequired(false).HasMaxLength(50);
                 entity.Property(e => e.id_price_list).HasColumnName("id_price_list").IsRequired(false);
+                entity.Property(e => e.promo_items_snapshot).HasColumnName("promo_items_snapshot").HasColumnType("jsonb");
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);
@@ -313,7 +316,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.id_commission).HasColumnName("id_commission").UseIdentityByDefaultColumn();
                 entity.Property(e => e.id_seller).HasColumnName("id_seller").IsRequired();
                 entity.Property(e => e.id_delivery_note).HasColumnName("id_delivery_note").IsRequired();
-                entity.Property(e => e.commission_percentage).HasColumnName("commission_percentage").IsRequired().HasPrecision(18, 2);
+                entity.Property(e => e.commission_percentage).HasColumnName("commission_percentage").IsRequired().HasPrecision(18, 4);
                 entity.Property(e => e.amount_usd).HasColumnName("amount_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.amount_bs).HasColumnName("amount_bs").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.exchange_rate).HasColumnName("exchange_rate").IsRequired().HasPrecision(18, 4);
@@ -323,6 +326,7 @@ namespace NinOS.Infrastructure.Data
 
                 entity.HasOne<seller>().WithMany().HasForeignKey(e => e.id_seller).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => e.id_delivery_note).IsUnique();
             });
 
             model_builder.Entity<commission_payment>(entity =>
@@ -339,6 +343,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.bank_name).HasColumnName("bank_name").HasMaxLength(100);
                 entity.Property(e => e.observations).HasColumnName("observations");
                 entity.Property(e => e.payment_date).HasColumnName("payment_date").IsRequired();
+                entity.Property(e => e.id_batch).HasColumnName("id_batch");
 
                 entity.HasOne<commission>().WithMany().HasForeignKey(e => e.id_commission).OnDelete(DeleteBehavior.Cascade);
             });
@@ -437,6 +442,8 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.status).HasColumnName("status").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.category).HasColumnName("category").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.observations).HasColumnName("observations").HasMaxLength(500);
+                entity.Property(e => e.print_snapshot).HasColumnName("print_snapshot").HasColumnType("jsonb");
+                entity.Property(e => e.print_snapshot_version).HasColumnName("print_snapshot_version");
 
                 entity.HasOne<delivery_note>().WithMany().HasForeignKey(e => e.id_delivery_note).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<customer>().WithMany().HasForeignKey(e => e.id_customer).OnDelete(DeleteBehavior.Restrict);
@@ -455,6 +462,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.unit_price_usd).HasColumnName("unit_price_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.subtotal_usd).HasColumnName("subtotal_usd").IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.product_code_snapshot).HasColumnName("product_code_snapshot").IsRequired(false).HasMaxLength(50);
+                entity.Property(e => e.promo_items_snapshot).HasColumnName("promo_items_snapshot").HasColumnType("jsonb");
 
                 entity.HasOne<credit_note>().WithMany().HasForeignKey(e => e.id_credit_note).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne<product>().WithMany().HasForeignKey(e => e.id_product).OnDelete(DeleteBehavior.Restrict);

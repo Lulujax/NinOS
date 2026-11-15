@@ -229,10 +229,6 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<int> pending_years { get; }
         public ObservableCollection<string> filter_options { get; }
         public ObservableCollection<accounts_receivable_row_dto> all_notes { get; }
-        public ObservableCollection<accounts_receivable_row_dto> sandra_notes { get; }
-        public ObservableCollection<accounts_receivable_row_dto> anais_notes { get; }
-        public ObservableCollection<accounts_receivable_row_dto> alejandra_notes { get; }
-        public ObservableCollection<accounts_receivable_row_dto> juan_luis_notes { get; }
 
         public ObservableCollection<string> report_group_options { get; } = new();
         public ObservableCollection<filter_selection_option> report_seller_options { get; } = new();
@@ -449,10 +445,6 @@ namespace NinOS.UI.Common.ViewModels
             pending_years = new ObservableCollection<int>();
             filter_options = new ObservableCollection<string>();
             all_notes = new ObservableCollection<accounts_receivable_row_dto>();
-            sandra_notes = new ObservableCollection<accounts_receivable_row_dto>();
-            anais_notes = new ObservableCollection<accounts_receivable_row_dto>();
-            alejandra_notes = new ObservableCollection<accounts_receivable_row_dto>();
-            juan_luis_notes = new ObservableCollection<accounts_receivable_row_dto>();
 
             filter_options.Add("Por Cobrar");
             filter_options.Add("Anuladas");
@@ -822,10 +814,6 @@ namespace NinOS.UI.Common.ViewModels
                 .ToList();
 
             update_collection(all_notes, filtered);
-            update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
-            update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
-            update_collection(alejandra_notes, filtered.Where(n => n.seller_name == "Alejandra").ToList());
-            update_collection(juan_luis_notes, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
             foreach (var tab in seller_tabs)
             {

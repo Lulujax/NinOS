@@ -1081,8 +1081,14 @@ namespace NinOS.UI.Views
 
         private async void OnSavePdfClick(object sender, RoutedEventArgs e) => await SaveAsync(true);
 
+        private bool _is_saving;
+
         private async Task SaveAsync(bool with_pdf)
         {
+            if (_is_saving) return;
+            _is_saving = true;
+            BtnSave.IsEnabled = false;
+            BtnSavePdf.IsEnabled = false;
             try
             {
                 credit_note new_note;
@@ -1202,6 +1208,12 @@ namespace NinOS.UI.Views
             catch (Exception ex)
             {
                 AppDialog.Show(ErrorText.Get(ex), "Error");
+            }
+            finally
+            {
+                _is_saving = false;
+                BtnSave.IsEnabled = true;
+                BtnSavePdf.IsEnabled = true;
             }
         }
     }

@@ -153,7 +153,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="MONTO NOTA" Binding="{Binding amount, StringFormat=N2}" Width="1.05*"
+                            <DataGridTextColumn Header="MONTO ORIG." Binding="{Binding monto_original, StringFormat=N2}" Width="1.05*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="COM. LUIS 10%" Binding="{Binding commission_luis, StringFormat=N2}" Width="1.20*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
@@ -215,7 +215,7 @@
                             </Border>
                             <Border Grid.Column="1" BorderBrush="#1565C0" BorderThickness="0,0,1,0" Background="#E3F2FD"/>
                             <Border Grid.Column="2" BorderBrush="#1565C0" BorderThickness="0,0,1,0" Background="#E3F2FD" Padding="4">
-                                <TextBlock Text="{Binding total_amount, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding total_monto_original, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <Border Grid.Column="3" BorderBrush="#1565C0" BorderThickness="0,0,1,0" Background="#E3F2FD" Padding="4">
                                 <TextBlock Text="{Binding total_commission_luis, StringFormat=N2}" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>

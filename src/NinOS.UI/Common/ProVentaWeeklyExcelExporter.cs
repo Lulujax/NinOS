@@ -37,7 +37,7 @@ namespace NinOS.UI.Common
             // 2. ENCABEZADOS DE LA TABLA
             string[] headers = new[]
             {
-                "NRO NOTA CLIENTE", "CLIENTE", "MONTO NOTA ($)", "COMISION LUIS 10% ($)",
+                "NRO NOTA CLIENTE", "CLIENTE", "MONTO ORIG. ($)", "COMISION LUIS 10% ($)",
                 "GASTOS OPER 25% ($)", "GASTOS ADM 15% ($)", "FECHA PAGO CLIENTE", "FORMA DE PAGO"
             };
 
@@ -57,7 +57,7 @@ namespace NinOS.UI.Common
                 ws.Cell(rowIdx, c++).SetValue(r.customer_name);
 
                 var amtCell = ws.Cell(rowIdx, c++);
-                amtCell.SetValue(r.amount);
+                amtCell.SetValue(r.monto_original);
                 amtCell.Style.NumberFormat.Format = "#,##0.00";
 
                 var commCell = ws.Cell(rowIdx, c++);
@@ -86,7 +86,7 @@ namespace NinOS.UI.Common
 
             // Fila de totales
             ws.Cell(rowIdx, 1).SetValue("TOTAL");
-            ws.Cell(rowIdx, 3).SetValue(dto.total_amount);
+            ws.Cell(rowIdx, 3).SetValue(dto.total_monto_original);
             ws.Cell(rowIdx, 3).Style.NumberFormat.Format = "#,##0.00";
             ws.Cell(rowIdx, 4).SetValue(dto.total_commission_luis);
             ws.Cell(rowIdx, 4).Style.NumberFormat.Format = "#,##0.00";

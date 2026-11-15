@@ -61,6 +61,23 @@ namespace NinOS.UI
         {
             base.OnStartup(e);
 
+            // Argumento oculto para crear o cambiar la clave del Panel Admin sin entrar al
+            // sistema. Es la unica forma de ponerla la primera vez, porque ya no existe una
+            // clave por defecto escrita en el codigo.
+            if (Array.Exists(e.Args, argument => string.Equals(argument, SetAdminPasswordArgument, StringComparison.OrdinalIgnoreCase)))
+            {
+                run_set_admin_password();
+                return;
+            }
+
+            // Argumento oculto para cargar los datos iniciales en una base NUEVA. Se niega
+            // si la base ya tiene datos: el arranque normal no siembra nada (spec 007).
+            if (Array.Exists(e.Args, argument => string.Equals(argument, SeedInitialDataArgument, StringComparison.OrdinalIgnoreCase)))
+            {
+                run_seed_initial_data();
+                return;
+            }
+
             try
             {
                 log_startup_message("OnStartup begin");
@@ -71,6 +88,20 @@ namespace NinOS.UI
 
                 // Los botones van en mayúsculas (solo visual, la BD y los PDF no cambian).
                 UpperCaseText.EnableGlobally();
+
+                // La conexion se valida antes de la pantalla de carga: sin ella no hay nada
+                // que mostrar, y asi el usuario ve el motivo real en vez de un error de red.
+                if (!DbConnectionFactory.TryGetConnectionString(out _, out string connection_source))
+                {
+                    log_startup_message("OnStartup abortado: falta la configuracion de conexion");
+                    AppDialog.Show(
+                        DbConnectionFactory.MissingConfigurationMessage,
+                        "Falta la configuracion de conexion");
+                    Shutdown();
+                    return;
+                }
+
+                log_startup_message($"Conexion configurada desde {connection_source}");
 
                 SplashWindow splash = new SplashWindow();
                 splash.ShowWithAnimation();
@@ -137,9 +168,14 @@ namespace NinOS.UI
                     Exception exception = previous.Exception?.GetBaseException() ?? new Exception("Error de conexión");
                     log_startup_message("Startup task faulted", exception);
 
+                    // El mensaje dice la causa real (configuracion, red, credenciales, base
+                    // inexistente, permisos o migracion) en vez de culpar siempre a internet.
+                    startup_diagnosis diagnostico = StartupDiagnosis.describe(exception);
+                    log_startup_message($"Causa detectada del fallo de arranque: {diagnostico.cause}");
+
                     Dispatcher.BeginInvoke(() =>
                     {
-                        splash.SetError("No se pudo conectar con el servidor. Verifique su conexión a internet.");
+                        splash.SetError(diagnostico.mensaje);
                     });
                     return;
                 }
@@ -216,12 +252,116 @@ namespace NinOS.UI
             AppLog.Error(source, exception);
         }
 
+        private const string SeedInitialDataArgument = "--seed-initial-data";
+
+        private void run_seed_initial_data()
+        {
+            UiScale.init();
+
+            if (!DbConnectionFactory.TryGetConnectionString(out _, out string origen))
+            {
+                AppDialog.Show(DbConnectionFactory.MissingConfigurationMessage, "Datos iniciales");
+                Shutdown();
+                return;
+            }
+
+            try
+            {
+                ServiceCollection service_collection = new ServiceCollection();
+                configure_services(service_collection);
+
+                using ServiceProvider provider = service_collection.BuildServiceProvider();
+                using var scope = provider.CreateScope();
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                db_context.Database.Migrate();
+
+                if (!DbSeeder.esta_vacia(db_context))
+                {
+                    AppDialog.Show(DbSeeder.MensajeBaseConDatos, "Datos iniciales",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Shutdown();
+                    return;
+                }
+
+                MessageBoxResult confirmacion = AppDialog.Show(
+                    $"La base configurada en {origen} esta vacia. Se van a cargar los datos iniciales (tipos de nota, zonas, vendedoras, lineas de producto y catalogo). Desea continuar?",
+                    "Datos iniciales",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirmacion != MessageBoxResult.Yes)
+                {
+                    Shutdown();
+                    return;
+                }
+
+                DbSeeder.seed_initial_data(db_context);
+                AppDialog.Show("Datos iniciales cargados correctamente.", "Datos iniciales");
+            }
+            catch (Exception ex)
+            {
+                log_startup_message("Fallo la carga de datos iniciales", ex);
+                AppDialog.Show(
+                    "No se pudieron cargar los datos iniciales." + Environment.NewLine + Environment.NewLine + ErrorText.Get(ex),
+                    "Datos iniciales",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
+            Shutdown();
+        }
+
+        private const string SetAdminPasswordArgument = "--set-admin-password";
+
+        private void run_set_admin_password()
+        {
+            UiScale.init();
+
+            PromptWindow first = new PromptWindow(
+                "Clave del Panel Admin",
+                $"Escriba la clave nueva (minimo {AdminSecurity.MinimumPasswordLength} caracteres).");
+            first.ShowDialog();
+
+            if (!first.Accepted || first.Value.Length < AdminSecurity.MinimumPasswordLength)
+            {
+                AppDialog.Show("No se cambio la clave del Panel Admin.", "Panel Admin");
+                Shutdown();
+                return;
+            }
+
+            PromptWindow confirmation = new PromptWindow(
+                "Clave del Panel Admin",
+                "Repita la clave para confirmar.");
+            confirmation.ShowDialog();
+
+            if (!confirmation.Accepted || !string.Equals(first.Value, confirmation.Value, StringComparison.Ordinal))
+            {
+                AppDialog.Show("Las dos claves no coinciden. No se cambio nada.", "Panel Admin");
+                Shutdown();
+                return;
+            }
+
+            if (AdminSecurity.change_password(confirmation.Value))
+            {
+                AppDialog.Show($"Clave guardada en: {AdminSecurity.ConfigPath}", "Panel Admin");
+            }
+            else
+            {
+                AppDialog.Show($"No se pudo guardar la clave. El detalle quedo en: {AppLog.FilePath}", "Panel Admin");
+            }
+
+            Shutdown();
+        }
+
         private void configure_services(ServiceCollection services)
         {
             services.AddDbContext<NinOSDbContext>(options =>
             {
+                // Sin silenciar PendingModelChangesWarning: si alguien cambia una entidad y
+                // olvida crear la migracion, la app lo dice en vez de trabajar con la base
+                // desalineada del modelo.
                 options.UseNpgsql(DbConnectionFactory.GetConnectionString());
-                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             });
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 

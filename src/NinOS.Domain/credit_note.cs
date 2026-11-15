@@ -109,6 +109,9 @@ namespace NinOS.Domain
 
         public string? observations { get; set; }
 
+        public string? print_snapshot { get; set; }
+        public int? print_snapshot_version { get; set; }
+
         protected credit_note()
         {
             _note_number = "-";

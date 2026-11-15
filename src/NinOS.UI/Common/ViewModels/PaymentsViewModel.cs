@@ -53,6 +53,10 @@ namespace NinOS.UI.Common.ViewModels
 
         public DateTime? last_payment_date { get; set; }
 
+        public string last_payment_date_display => last_payment_date.HasValue
+            ? AppTimeZone.to_local(last_payment_date.Value).ToString("dd/MM/yy")
+            : string.Empty;
+
         public string payment_method_text { get; set; } = string.Empty;
 
         public string bank_name_text { get; set; } = string.Empty;
@@ -207,13 +211,6 @@ namespace NinOS.UI.Common.ViewModels
 
         public ObservableCollection<payment_row_dto> all_notes { get; }
 
-        public ObservableCollection<payment_row_dto> sandra_notes { get; }
-
-        public ObservableCollection<payment_row_dto> anais_notes { get; }
-
-        public ObservableCollection<payment_row_dto> alejandra_notes { get; }
-
-        public ObservableCollection<payment_row_dto> juan_luis_notes { get; }
 
 
 
@@ -496,14 +493,6 @@ namespace NinOS.UI.Common.ViewModels
             filter_options = new ObservableCollection<string>();
 
             all_notes = new ObservableCollection<payment_row_dto>();
-
-            sandra_notes = new ObservableCollection<payment_row_dto>();
-
-            anais_notes = new ObservableCollection<payment_row_dto>();
-
-            alejandra_notes = new ObservableCollection<payment_row_dto>();
-
-            juan_luis_notes = new ObservableCollection<payment_row_dto>();
 
 
 
@@ -1102,14 +1091,6 @@ namespace NinOS.UI.Common.ViewModels
 
 
             update_collection(all_notes, filtered);
-
-            update_collection(sandra_notes, filtered.Where(n => n.seller_name == "Sandra").ToList());
-
-            update_collection(anais_notes, filtered.Where(n => n.seller_name == "Anais").ToList());
-
-            update_collection(alejandra_notes, filtered.Where(n => n.seller_name == "Alejandra").ToList());
-
-            update_collection(juan_luis_notes, filtered.Where(n => n.seller_name == "Juan Luis").ToList());
 
 
 

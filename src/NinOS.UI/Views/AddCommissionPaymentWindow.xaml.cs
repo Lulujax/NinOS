@@ -416,6 +416,15 @@ namespace NinOS.UI.Views
                 }
                 decimal pending_after = total_pending - amount_usd;
 
+                int id_seller = _to_pay.FirstOrDefault()?.id_seller ?? 0;
+                if (id_seller > 0 && await _vm.is_reference_used_by_other_seller_async(reference, id_seller))
+                {
+                    var reference_confirm = AppDialog.Show(
+                        $"La referencia \"{reference}\" ya fue usada por otra vendedora.\n\n¿Desea continuar con el pago de todas formas?",
+                        "Referencia repetida", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (reference_confirm != MessageBoxResult.Yes) return;
+                }
+
                 string plan = $"FECHA: {payment_date:dd/MM/yyyy}\n" +
                     $"TASA: {rate:0.##}\nMONTO BS: {amount_bs:0.##}\nTIPO: {payment_type}\nREFERENCIA: {reference}\n" +
                     (string.IsNullOrWhiteSpace(bank_name) ? "" : $"BANCO: {bank_name}\n") +

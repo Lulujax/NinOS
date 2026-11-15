@@ -120,6 +120,9 @@ namespace NinOS.Domain
         public string? payment_account_text { get; set; }
         public string? payment_movil_text { get; set; }
 
+        public string? print_snapshot { get; set; }
+        public int? print_snapshot_version { get; set; }
+
         protected delivery_note()
         {
             _note_number = "-";

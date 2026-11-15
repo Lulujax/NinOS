@@ -43,6 +43,13 @@ namespace NinOS.Domain.ViewModels
         public decimal gross_total_usd { get; set; }
 
         /// <summary>
+        /// Monto SIN descuento aplicado: suma de los renglones a precio de lista, menos las
+        /// unidades devueltas con nota de credito vigente. Es la base de la comision y de los
+        /// gastos (spec 008), y es lo que se muestra en las relaciones.
+        /// </summary>
+        public decimal monto_original { get; set; }
+
+        /// <summary>
         /// Porcentaje de descuento comercial aplicado a la nota.
         /// </summary>
         public decimal? discount_percentage { get; set; }
@@ -223,13 +230,14 @@ namespace NinOS.Domain.ViewModels
         public int relation_number { get; set; }
         public DateTime week_start { get; set; }
         public DateTime week_end { get; set; }
-        public string city { get; set; } = "MARACAY";
+        public string city { get; set; } = pro_venta_calculator.Ciudad;
         public List<pro_venta_weekly_row> rows { get; set; } = new();
 
         /// <summary>
         /// Totales de la semana. Cagan solo las notas vigentes: las anuladas se siguen mostrando en
         /// la tabla, en rojo, pero no suman ni a la venta ni a la comision ni a los gastos.
         /// </summary>
+        public decimal total_monto_original { get; set; }
         public decimal total_amount { get; set; }
         public decimal total_commission_luis { get; set; }
         public decimal total_gastos_25 { get; set; }

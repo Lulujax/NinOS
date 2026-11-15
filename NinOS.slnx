@@ -4,4 +4,7 @@
     <Project Path="src/NinOS.Infrastructure/NinOS.Infrastructure.csproj" />
     <Project Path="src/NinOS.UI/NinOS.UI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NinOS.Tests/NinOS.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -14,6 +14,7 @@ namespace NinOS.Domain
         private string _bank_name = string.Empty;
         private string _observations = string.Empty;
         private DateTime _payment_date;
+        private Guid? _id_batch;
 
         public int id_commission_payment
         {
@@ -97,6 +98,12 @@ namespace NinOS.Domain
                 if (value == default) throw new ArgumentException();
                 _payment_date = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
             }
+        }
+
+        public Guid? id_batch
+        {
+            get { return _id_batch; }
+            set { _id_batch = value; }
         }
 
         protected commission_payment()

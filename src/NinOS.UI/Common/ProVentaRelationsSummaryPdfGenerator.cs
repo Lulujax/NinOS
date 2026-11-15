@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Microsoft.Win32;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -57,7 +58,7 @@ namespace NinOS.UI.Common
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("REPORTE DE RELACIONES PRO VENTA - MARACAY")
+                                c.Item().Text($"REPORTE DE RELACIONES PRO VENTA - {pro_venta_calculator.Ciudad}")
                                     .FontSize(13).Bold().FontColor(Accent);
                                 c.Item().PaddingTop(1).Text(reportTitle.ToUpperInvariant())
                                     .FontSize(10).Bold().FontColor("#333333");

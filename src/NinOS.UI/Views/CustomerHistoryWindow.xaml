@@ -266,7 +266,7 @@
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding DeliveryNotes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="N° NOTA" Binding="{Binding note_number}" Width="75" ElementStyle="{StaticResource CellCenter}"/>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
+                        <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yyyy}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="TIPO" Binding="{Binding note_type_display}" Width="75" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="95" ElementStyle="{StaticResource CellCenter}"/>
@@ -325,7 +325,7 @@
                             <DataGridTextColumn Header="N° NC" Binding="{Binding note_number}" Width="85" ElementStyle="{StaticResource CellCenter}"/>
                             <DataGridTextColumn Header="CATEGORÍA" Binding="{Binding category}" Width="95" ElementStyle="{StaticResource CellCenter}"/>
                             <DataGridTextColumn Header="NOTA ORIGEN" Binding="{Binding source_note_number}" Width="95" ElementStyle="{StaticResource CellCenter}"/>
-                            <DataGridTextColumn Header="FECHA" Binding="{Binding creation_date, StringFormat=dd/MM/yyyy}" Width="85" ElementStyle="{StaticResource CellCenter}"/>
+                            <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_nc_display}" Width="85" ElementStyle="{StaticResource CellCenter}"/>
                             <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="100" ElementStyle="{StaticResource CellCenter}"/>
                             <DataGridTextColumn Header="TOTAL USD" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="95" ElementStyle="{StaticResource CellRight}"/>
                             <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="85" ElementStyle="{StaticResource CellCenter}"/>

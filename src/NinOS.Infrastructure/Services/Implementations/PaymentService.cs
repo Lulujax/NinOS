@@ -65,6 +65,56 @@ namespace NinOS.Infrastructure.Services.Implementations
                 $"El pago no fue registrado.");
         }
 
+        private static Task lock_relation_for_update_async(NinOSDbContext db_context, int id_relacion)
+        {
+            return db_context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM relacion WHERE id_relacion = {id_relacion} FOR UPDATE");
+        }
+
+        private static async Task<(decimal amount, decimal paid)> get_relation_amount_and_paid_async(NinOSDbContext db_context, relacion relation)
+        {
+            decimal amount;
+
+            if (relation.es_hueca)
+            {
+                amount = relation.saldo;
+            }
+            else
+            {
+                var relation_notes = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => n.id_relacion == relation.id_relacion)
+                    .ToListAsync();
+
+                amount = relation_notes
+                    .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
+                    .Sum(n => n.adjusted_total_usd);
+            }
+
+            var relation_payments = await db_context.payments
+                .AsNoTracking()
+                .Where(p => p.id_relacion == relation.id_relacion && p.amount_usd > 0)
+                .ToListAsync();
+
+            decimal paid = relation_payments.Sum(p => p.amount_usd);
+
+            return (amount, paid);
+        }
+
+        private static void verificar_exceso_permitido_relacion(int id_relacion, decimal relation_amount, decimal paid_sin_este_abono, decimal amount_usd)
+        {
+            decimal saldo = RelationBalance.raw_balance(relation_amount, paid_sin_este_abono < 0 ? 0 : paid_sin_este_abono);
+            decimal maximo_a_pagar = saldo + EXCESO_MAXIMO_PERMITIDO;
+            if (amount_usd <= maximo_a_pagar) return;
+
+            throw new InvalidOperationException(
+                $"El monto excede el saldo de la relacion {id_relacion}.\n\n" +
+                $"Saldo pendiente: {saldo:N2}\n" +
+                $"Maximo a pagar (saldo + {EXCESO_MAXIMO_PERMITIDO:N2}): {maximo_a_pagar:N2}\n" +
+                $"Monto ingresado: {amount_usd:N2}\n\n" +
+                $"El abono no fue registrado.");
+        }
+
         public async Task register_payment_async(payment new_payment, bool is_pro_venta = false)
         {
             if (new_payment == null) throw new ArgumentNullException(nameof(new_payment));
@@ -80,6 +130,10 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 delivery_note target_note = await _db_context.delivery_notes.FindAsync(new_payment.id_delivery_note);
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
+
+                await lock_note_for_update_async(_db_context, target_note.id_delivery_note);
+                await _db_context.Entry(target_note).ReloadAsync();
+
                 if (target_note.status == "Anulada") throw new InvalidOperationException("No se puede abonar una nota anulada.");
                 if (target_note.status == "Devuelta") throw new InvalidOperationException("No se puede abonar una nota devuelta en su totalidad.");
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
@@ -110,54 +164,11 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 await _db_context.SaveChangesAsync();
 
-                payment[] all_payments = await _db_context.payments
+                decimal total_paid_usd = await _db_context.payments
                     .Where(p => p.id_delivery_note == target_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
-                    .ToArrayAsync();
+                    .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
-                decimal total_paid_usd = 0;
-                for (int i = 0; i < all_payments.Length; i++)
-                {
-                    total_paid_usd += all_payments[i].amount_usd;
-                }
-
-                bool is_fully_paid = total_paid_usd > 0 && (target_note.adjusted_total_usd - total_paid_usd) <= 0.01m;
-
-                var existing_commission = await _db_context.commissions
-                    .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
-
-                if (is_fully_paid && target_note.status != "Pagada" && target_note.status != "Devuelta")
-                {
-                    target_note.status = "Pagada";
-
-                    if (!is_pro_venta && existing_commission == null)
-                    {
-                        decimal cash_collected = all_payments.Where(p => p.payment_type != "NOTA DE CREDITO").Sum(p => p.amount_usd);
-                        decimal commissionable = Math.Min(cash_collected, target_note.adjusted_total_usd);
-                        if (commissionable > 0)
-                        {
-                            var note_seller = await _db_context.sellers
-                                .AsNoTracking()
-                                .Include(s => s.seller_zones)
-                                    .ThenInclude(sz => sz.zona)
-                                .FirstOrDefaultAsync(s => s.id_seller == target_note.id_seller);
-
-                            if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
-                            {
-                                decimal pct = note_seller.commission_percentage;
-                                decimal generated_amount_usd = Math.Round(commissionable * pct, 2);
-                                commission new_commission = new commission(
-                                    target_note.id_seller,
-                                    target_note.id_delivery_note,
-                                    pct,
-                                    generated_amount_usd,
-                                    false,
-                                    null);
-
-                                await _db_context.commissions.AddAsync(new_commission);
-                            }
-                        }
-                    }
-                }
+                await apply_settlement_async(_db_context, target_note, total_paid_usd, is_pro_venta);
 
                 await _db_context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -180,15 +191,30 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scope_factory.CreateScope();
             var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            bool relation_exists = await _db_context.relaciones.AnyAsync(r => r.id_relacion == id_relacion);
-            if (!relation_exists) throw new InvalidOperationException("La relacion no existe.");
+            using var transaction = await _db_context.Database.BeginTransactionAsync();
+            try
+            {
+                await lock_relation_for_update_async(_db_context, id_relacion);
 
-            payment new_payment = new payment(
-                null, payment_date, amount_usd, 0, null,
-                "Efectivo", $"REL-{id_relacion}", "", observations ?? "", id_relacion);
+                relacion? relation = await _db_context.relaciones.AsNoTracking().FirstOrDefaultAsync(r => r.id_relacion == id_relacion);
+                if (relation == null) throw new InvalidOperationException("La relacion no existe.");
 
-            await _db_context.payments.AddAsync(new_payment);
-            await _db_context.SaveChangesAsync();
+                var (relation_amount, relation_paid) = await get_relation_amount_and_paid_async(_db_context, relation);
+                verificar_exceso_permitido_relacion(id_relacion, relation_amount, relation_paid, amount_usd);
+
+                payment new_payment = new payment(
+                    null, payment_date, amount_usd, 0, null,
+                    "Efectivo", $"REL-{id_relacion}", "", observations ?? "", id_relacion);
+
+                await _db_context.payments.AddAsync(new_payment);
+                await _db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task update_relation_payment_async(int id_payment, decimal amount_usd, DateTime payment_date, string observations)
@@ -198,16 +224,36 @@ namespace NinOS.Infrastructure.Services.Implementations
             using var scope = _scope_factory.CreateScope();
             var _db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-            payment? existing = await _db_context.payments.FindAsync(id_payment);
-            if (existing == null) throw new InvalidOperationException("El pago no existe.");
-            if (existing.id_relacion == null) throw new InvalidOperationException("El pago no pertenece a una relacion.");
+            using var transaction = await _db_context.Database.BeginTransactionAsync();
+            try
+            {
+                payment? existing = await _db_context.payments.FindAsync(id_payment);
+                if (existing == null) throw new InvalidOperationException("El pago no existe.");
+                if (existing.id_relacion == null) throw new InvalidOperationException("El pago no pertenece a una relacion.");
 
-            existing.amount_usd = amount_usd;
-            existing.payment_date = payment_date;
-            existing.observations = observations ?? "";
-            existing.updated_at = DateTime.UtcNow;
+                int id_relacion = existing.id_relacion.Value;
+                await lock_relation_for_update_async(_db_context, id_relacion);
 
-            await _db_context.SaveChangesAsync();
+                relacion? relation = await _db_context.relaciones.AsNoTracking().FirstOrDefaultAsync(r => r.id_relacion == id_relacion);
+                if (relation == null) throw new InvalidOperationException("La relacion no existe.");
+
+                var (relation_amount, relation_paid_before) = await get_relation_amount_and_paid_async(_db_context, relation);
+                decimal relation_paid_sin_este = relation_paid_before - existing.amount_usd;
+                verificar_exceso_permitido_relacion(id_relacion, relation_amount, relation_paid_sin_este, amount_usd);
+
+                existing.amount_usd = amount_usd;
+                existing.payment_date = payment_date;
+                existing.observations = observations ?? "";
+                existing.updated_at = DateTime.UtcNow;
+
+                await _db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task update_payment_async(payment updated_payment, bool is_pro_venta = false)
@@ -229,11 +275,34 @@ namespace NinOS.Infrastructure.Services.Implementations
                 delivery_note target_note = await _db_context.delivery_notes.FindAsync(existing.id_delivery_note);
                 if (target_note == null) throw new InvalidOperationException("La nota de entrega no existe.");
 
+                await lock_note_for_update_async(_db_context, target_note.id_delivery_note);
+                await _db_context.Entry(target_note).ReloadAsync();
+
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
                     throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
 
                 await verificar_exceso_permitido_async(_db_context, target_note, updated_payment.amount_usd, existing.id_payment);
+
+                var commission_before_edit = await _db_context.commissions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
+
+                if (commission_before_edit != null && commission_before_edit.is_paid)
+                {
+                    decimal other_payments_usd = await _db_context.payments
+                        .AsNoTracking()
+                        .Where(p => p.id_delivery_note == target_note.id_delivery_note
+                                 && p.payment_type != "NOTA DE CREDITO"
+                                 && p.id_payment != existing.id_payment)
+                        .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
+                    decimal would_be_total_paid = other_payments_usd + updated_payment.amount_usd;
+                    bool would_remain_fully_paid = would_be_total_paid > 0 && (target_note.adjusted_total_usd - would_be_total_paid) <= 0.01m;
+
+                    if (!would_remain_fully_paid)
+                        throw new InvalidOperationException(
+                            $"No se puede editar este pago: la comisión de la nota {target_note.note_number} ya fue pagada y este cambio la dejaría sin saldar.");
+                }
 
                 existing.id_delivery_note = updated_payment.id_delivery_note;
                 existing.payment_date = updated_payment.payment_date;
@@ -261,61 +330,11 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 await _db_context.SaveChangesAsync();
 
-                payment[] all_payments = await _db_context.payments
+                decimal total_paid_usd = await _db_context.payments
                     .Where(p => p.id_delivery_note == existing.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
-                    .ToArrayAsync();
+                    .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
-                decimal total_paid_usd = all_payments.Sum(p => p.amount_usd);
-
-                bool is_fully_paid = total_paid_usd > 0 && (target_note.adjusted_total_usd - total_paid_usd) <= 0.01m;
-
-                var existing_commission = await _db_context.commissions
-                    .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
-
-                if (is_fully_paid)
-                {
-                    if (target_note.status != "Pagada" && target_note.status != "Devuelta")
-                    {
-                        target_note.status = "Pagada";
-
-                        if (!is_pro_venta && existing_commission == null)
-                        {
-                            decimal cash_collected = all_payments.Where(p => p.payment_type != "NOTA DE CREDITO").Sum(p => p.amount_usd);
-                            decimal commissionable = Math.Min(cash_collected, target_note.adjusted_total_usd);
-                            if (commissionable > 0)
-                            {
-                                var note_seller = await _db_context.sellers
-                                    .AsNoTracking()
-                                    .Include(s => s.seller_zones)
-                                        .ThenInclude(sz => sz.zona)
-                                    .FirstOrDefaultAsync(s => s.id_seller == target_note.id_seller);
-
-                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
-                                {
-                                    decimal pct = note_seller.commission_percentage;
-                                    decimal generated_amount_usd = Math.Round(commissionable * pct, 2);
-                                    commission new_commission = new commission(
-                                        target_note.id_seller,
-                                        target_note.id_delivery_note,
-                                        pct,
-                                        generated_amount_usd,
-                                        false,
-                                        null);
-                                    await _db_context.commissions.AddAsync(new_commission);
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (target_note.status == "Pagada") target_note.status = "Pendiente";
-
-                    if (!is_pro_venta && existing_commission != null && !existing_commission.is_paid)
-                    {
-                        _db_context.commissions.Remove(existing_commission);
-                    }
-                }
+                await apply_settlement_async(_db_context, target_note, total_paid_usd, is_pro_venta);
 
                 await _db_context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -422,7 +441,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             var query = db.payments
                 .AsNoTracking()
                 .Where(p => p.payment_date.AddHours(tz_offset).Year == year
-                         && p.payment_type != "NOTA DE CREDITO");
+                         && p.payment_type != "NOTA DE CREDITO"
+                         && p.id_delivery_note != null);
 
             if (month.HasValue)
             {
@@ -517,6 +537,68 @@ namespace NinOS.Infrastructure.Services.Implementations
         {
             var all = await get_payments_by_month_async(month_year);
             return all.Where(p => p.id_seller == id_seller);
+        }
+
+        internal static Task lock_note_for_update_async(NinOSDbContext db_context, int id_delivery_note)
+        {
+            return db_context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM delivery_note WHERE id_delivery_note = {id_delivery_note} FOR UPDATE");
+        }
+
+        internal static async Task apply_settlement_async(NinOSDbContext db_context, delivery_note target_note, decimal total_paid_usd, bool is_pro_venta, bool is_fully_returned = false, bool allow_transition_from_returned = false)
+        {
+            if (target_note.status == "Devuelta" && !is_fully_returned && !allow_transition_from_returned) return;
+
+            var existing_commission = await db_context.commissions
+                .FirstOrDefaultAsync(c => c.id_delivery_note == target_note.id_delivery_note);
+
+            bool eligible_for_commission = false;
+            decimal commission_percentage = 0m;
+
+            if (!is_pro_venta)
+            {
+                var note_seller = await db_context.sellers
+                    .AsNoTracking()
+                    .Include(s => s.seller_zones)
+                        .ThenInclude(sz => sz.zona)
+                    .FirstOrDefaultAsync(s => s.id_seller == target_note.id_seller);
+
+                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
+                {
+                    eligible_for_commission = true;
+                    commission_percentage = note_seller.commission_percentage;
+                }
+            }
+
+            var result = NoteSettlement.evaluate(
+                target_note.adjusted_total_usd,
+                total_paid_usd,
+                existing_commission?.is_paid,
+                eligible_for_commission,
+                commission_percentage,
+                is_fully_returned);
+
+            target_note.status = result.status;
+
+            switch (result.commission_action)
+            {
+                case CommissionAction.Create:
+                    var new_commission = new commission(
+                        target_note.id_seller,
+                        target_note.id_delivery_note,
+                        commission_percentage,
+                        result.commission_amount_usd ?? 0m,
+                        false,
+                        null);
+                    await db_context.commissions.AddAsync(new_commission);
+                    break;
+                case CommissionAction.Remove:
+                    if (existing_commission != null) db_context.commissions.Remove(existing_commission);
+                    break;
+                case CommissionAction.UpdateAmount:
+                    if (existing_commission != null) existing_commission.amount_usd = result.commission_amount_usd ?? existing_commission.amount_usd;
+                    break;
+            }
         }
 
         private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)

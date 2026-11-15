@@ -634,6 +634,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand add_item_command { get; }
         public ICommand remove_item_command { get; }
         public ICommand save_note_command { get; }
+        private bool _is_saving_note;
         public ICommand reset_payment_details_command { get; }
         public ICommand select_customer_command { get; }
         public ICommand toggle_customer_popup_command { get; }
@@ -1606,7 +1607,7 @@ namespace NinOS.UI.Common.ViewModels
 
             add_item_command = new RelayCommand(execute_add_item);
             remove_item_command = new RelayCommand(execute_remove_item);
-            save_note_command = new RelayCommand(execute_save_note);
+            save_note_command = new RelayCommand(execute_save_note, _ => !_is_saving_note);
             reset_payment_details_command = new RelayCommand(_ => ResetPaymentDetailsToDefaults());
             select_customer_command = new RelayCommand(execute_select_customer);
             toggle_customer_popup_command = new RelayCommand(execute_toggle_customer_popup);
@@ -1922,27 +1923,25 @@ namespace NinOS.UI.Common.ViewModels
             running -= promo_discount_amount;
 
             string normalized_discount = string.IsNullOrWhiteSpace(_discount_percentage_text) ? "0" : _discount_percentage_text.Replace(",", ".");
-            if (decimal.TryParse(normalized_discount, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount))
-            {
-                discount_amount = running * (parsed_discount / 100m);
-            }
-            else
-            {
-                discount_amount = 0;
-            }
-            running -= discount_amount;
-            discounted_total_usd = running;
+            decimal parsed_discount = decimal.TryParse(normalized_discount, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsed_discount_value)
+                ? parsed_discount_value
+                : 0;
 
             // El descuento por volumen solo existe en VOL / VOLMAR. En el resto de tipos queda en 0.
             decimal vol_pct = parsed_volume_percentage();
-            volume_discount_amount = running * (vol_pct / 100m);
-            running -= volume_discount_amount;
+
+            // Condicion y volumen se SUMAN sobre la misma base (10% + 5% = 15%), no en cascada.
+            var discount_result = NinOS.Domain.note_discount_calculator.calculate(running, parsed_discount, vol_pct);
+            discount_amount = discount_result.condition_amount;
+            volume_discount_amount = discount_result.volume_amount;
+            discounted_total_usd = running - discount_amount;
+            running = discount_result.total_amount_usd;
 
             total_amount_usd = running;
 
             // Los 3 totales que salen en el PDF:
             //   TOTAL A CREDITO                     = bruto                     -> 1.000,00
-            //   TOTAL CON DESCUENTO [Y VOLUMEN]      = (bruto - condicion) - volumen -> 855,00
+            //   TOTAL CON DESCUENTO [Y VOLUMEN]      = bruto - condicion - volumen -> 850,00
             //   TOTAL CREDITO C/ VOLUMEN             = bruto - volumen           ->   950,00
             //Se asignan por las propiedades para que la pantalla se actualice sola.
             total_con_descuento_volumen = running;
@@ -1956,8 +1955,8 @@ namespace NinOS.UI.Common.ViewModels
             note_print_dto dto = new note_print_dto
             {
                 note_number = _note_number,
-                creation_date = _creation_date,
-                due_date = _due_date,
+                creation_date = AppTimeZone.to_local(_creation_date),
+                due_date = AppTimeZone.to_local(_due_date),
                 gross_total_usd = gross_total_usd,
                 discount_percentage = string.IsNullOrWhiteSpace(_discount_percentage_text) ? 0 : (decimal.TryParse(_discount_percentage_text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dp) ? dp : 0),
                 discount_amount = discount_amount,
@@ -2015,6 +2014,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void execute_save_note(object? parameter)
         {
+            if (_is_saving_note) return;
+            _is_saving_note = true;
+            (save_note_command as RelayCommand)?.RaiseCanExecuteChanged();
             try
             {
                 if (_selected_seller == null) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
@@ -2155,13 +2157,15 @@ namespace NinOS.UI.Common.ViewModels
                     domain_details.Add(nd);
                 }
 
+                string previewed_note_number = _note_number;
+
                 int save_attempts = 0;
                 while (true)
                 {
                     save_attempts++;
                     try
                     {
-                        await _delivery_note_service.create_delivery_note_async(new_note, domain_details);
+                        await _delivery_note_service.create_delivery_note_async(new_note, domain_details, build_preview_dto());
                         break;
                     }
                     catch (InvalidOperationException ex) when (ex.Message.IndexOf("correlativo", StringComparison.OrdinalIgnoreCase) >= 0 && save_attempts <= 3)
@@ -2171,6 +2175,9 @@ namespace NinOS.UI.Common.ViewModels
                         note_number = regenerated;
                     }
                 }
+
+                bool note_number_changed = !string.Equals(previewed_note_number, new_note.note_number, StringComparison.OrdinalIgnoreCase);
+                preview = build_preview_dto();
 
                 note_details.Clear();
                 discount_percentage_text = "0";
@@ -2197,11 +2204,20 @@ namespace NinOS.UI.Common.ViewModels
                 if (generate_excel)
                     NinOS.UI.Common.NoteExcelExporter.export(preview);
 
-                AppDialog.Show("Nota guardada exitosamente", "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                string saved_message = $"Nota guardada exitosamente con el numero {preview.note_number}.";
+                if (note_number_changed)
+                    saved_message += $"\n\nEl numero cambio de {previewed_note_number} a {preview.note_number} porque otra persona lo tomo primero.";
+
+                AppDialog.Show(saved_message, "Exito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 AppDialog.Show($"Error al guardar nota: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+            finally
+            {
+                _is_saving_note = false;
+                (save_note_command as RelayCommand)?.RaiseCanExecuteChanged();
             }
         }
 

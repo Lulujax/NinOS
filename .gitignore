@@ -7,3 +7,14 @@ publish/
 dist/
 *.log
 *.dump
+
+# Spec 002: nada de esto entra al repositorio (es publico).
+# Credenciales de conexion: cada PC tiene el suyo, el ejemplo si se versiona.
+appsettings.json
+# Clave del Panel Admin.
+admin_security.json
+# Datos reales del cliente y scripts de una sola vez.
+/scratch/
+# Archivo privado con la conexion del cliente que usa el instalador.
+/installer/private/
+*.bak

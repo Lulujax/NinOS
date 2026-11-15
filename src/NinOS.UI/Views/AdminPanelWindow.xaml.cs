@@ -481,7 +481,14 @@ namespace NinOS.UI.Views
                 return;
             }
 
-            AdminSecurity.change_password(nueva);
+            if (!AdminSecurity.change_password(nueva))
+            {
+                AppDialog.Show(
+                    $"No se pudo guardar la clave (minimo {AdminSecurity.MinimumPasswordLength} caracteres). El detalle quedo en el log.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             AppDialog.Show("Contraseña cambiada correctamente.", "Listo",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }

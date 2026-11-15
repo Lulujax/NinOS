@@ -61,8 +61,6 @@ namespace NinOS.UI.Common.ViewModels
         private readonly ICustomerService _customerService;
         private readonly IGenericRepository<seller> _sellerRepository;
         private readonly IZonaService _zonaService;
-        private readonly Dictionary<string, string> _sellerPrefixMap;
-        private readonly Dictionary<string, long> _sellerLastNumberMap;
         private List<CustomerRowDto> _allCustomersSource;
         private CustomerRowDto? _editingCustomer;
         private bool _isLoading;
@@ -79,7 +77,6 @@ namespace NinOS.UI.Common.ViewModels
         private string _newPhoneNumber = string.Empty;
         private string _newFiscalAddress = string.Empty;
         private string _newDeliveryAddress = string.Empty;
-        private string _newSellerName = string.Empty;
         private int? _newZonaId;
         private bool _canEditSeller = true;
         private bool _canEditCode = false;
@@ -100,12 +97,6 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<CustomerRowDto> FlorAmarilloCustomers { get; }
         public ObservableCollection<CustomerRowDto> MaracayCustomers { get; }
 
-        public ObservableCollection<CustomerRowDto> AnaisCustomers { get; }
-        public ObservableCollection<CustomerRowDto> SandraCustomers { get; }
-        public ObservableCollection<CustomerRowDto> AlejandraCustomers { get; }
-        public ObservableCollection<CustomerRowDto> JuanLuisCustomers { get; }
-
-        public ObservableCollection<string> SellerOptions { get; }
         public ObservableCollection<zona> ZonasOptions { get; } = new ObservableCollection<zona>();
         public Action? EditZonasRequested { get; set; }
         public ObservableCollection<string> RifTypeOptions { get; }
@@ -275,16 +266,6 @@ namespace NinOS.UI.Common.ViewModels
             set { _newDeliveryAddress = value; on_property_changed(); }
         }
 
-        public string NewSellerName
-        {
-            get => _newSellerName;
-            set
-            {
-                _newSellerName = value;
-                on_property_changed();
-            }
-        }
-
         public int? NewZonaId
         {
             get => _newZonaId;
@@ -350,16 +331,6 @@ namespace NinOS.UI.Common.ViewModels
             _sellerRepository = sellerRepository ?? throw new ArgumentNullException(nameof(sellerRepository));
             _zonaService = zonaService ?? throw new ArgumentNullException(nameof(zonaService));
 
-            _sellerPrefixMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "Sandra", "001" },
-                { "Anais", "002" },
-                { "Alejandra", "003" },
-                { "Juan Luis", "004" }
-            };
-
-            _sellerLastNumberMap = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-
             _allCustomersSource = new List<CustomerRowDto>();
             _isLoading = false;
 
@@ -371,14 +342,7 @@ namespace NinOS.UI.Common.ViewModels
             FlorAmarilloCustomers = new ObservableCollection<CustomerRowDto>();
             MaracayCustomers = new ObservableCollection<CustomerRowDto>();
 
-            AnaisCustomers = new ObservableCollection<CustomerRowDto>();
-            SandraCustomers = new ObservableCollection<CustomerRowDto>();
-            AlejandraCustomers = new ObservableCollection<CustomerRowDto>();
-            JuanLuisCustomers = new ObservableCollection<CustomerRowDto>();
-
-            SellerOptions = new ObservableCollection<string> { "Sandra", "Anais", "Alejandra", "Juan Luis" };
             RifTypeOptions = new ObservableCollection<string> { "V", "E", "J", "G", "P" };
-            _newSellerName = "Anais";
             _newRifType = "J";
 
             SaveCustomerCommand = new RelayCommand(ExecuteSaveCustomer, CanExecuteSaveCustomer);
@@ -555,26 +519,6 @@ namespace NinOS.UI.Common.ViewModels
 
                 IEnumerable<customer> customers = await _customerService.GetVisibleCustomersAsync();
 
-                try
-                {
-                    seller[] sellers = await _sellerRepository.get_all_async();
-                    foreach (seller s in sellers)
-                    {
-                        if (!string.IsNullOrWhiteSpace(s.full_name) && !string.IsNullOrWhiteSpace(s.seller_code))
-                        {
-                            _sellerPrefixMap[s.full_name] = s.seller_code;
-                        }
-                        if (!string.IsNullOrWhiteSpace(s.full_name))
-                        {
-                            _sellerLastNumberMap[s.full_name] = s.last_customer_number;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error loading sellers: {ErrorText.Get(ex)}");
-                }
-
                 if (customers == null)
                 {
                     _allCustomersSource = new List<CustomerRowDto>();
@@ -689,12 +633,6 @@ namespace NinOS.UI.Common.ViewModels
                 UpdateCollection(CentroCustomers, filtered.Where(c => c.ZonaCode == "04" || c.ZonaName.Contains("Zona 4", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Centro", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(FlorAmarilloCustomers, filtered.Where(c => c.ZonaCode == "05" || c.ZonaName.Contains("Zona 5", StringComparison.OrdinalIgnoreCase) || c.ZonaName.Contains("Flor Amarillo", StringComparison.OrdinalIgnoreCase)).ToList());
                 UpdateCollection(MaracayCustomers, filtered.Where(c => c.ZonaCode == "06" || c.ZonaName.Contains("Maracay", StringComparison.OrdinalIgnoreCase)).ToList());
-
-                // Colecciones legacy por vendedor
-                UpdateCollection(AnaisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase)).ToList());
-                UpdateCollection(SandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase)).ToList());
-                UpdateCollection(AlejandraCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase)).ToList());
-                UpdateCollection(JuanLuisCustomers, filtered.Where(c => string.Equals(c.SellerName?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase)).ToList());
             }
             catch (Exception ex)
             {
@@ -755,7 +693,7 @@ namespace NinOS.UI.Common.ViewModels
                     _newPhoneNumber,
                     _newFiscalAddress,
                     _newDeliveryAddress,
-                    _newSellerName
+                    string.Empty
                 )
                 {
                     id_zona = _newZonaId
@@ -771,7 +709,6 @@ namespace NinOS.UI.Common.ViewModels
                     existing.phone_number = _newPhoneNumber;
                     existing.fiscal_address = _newFiscalAddress;
                     existing.delivery_address = _newDeliveryAddress;
-                    existing.seller_name = _newSellerName;
                     existing.id_zona = _newZonaId;
                     existing.zona = null;
 
@@ -854,7 +791,6 @@ namespace NinOS.UI.Common.ViewModels
             NewPhoneNumber = selected.PhoneNumber;
             NewFiscalAddress = selected.FiscalAddress;
             NewDeliveryAddress = selected.DeliveryAddress;
-            NewSellerName = selected.SellerName;
             NewZonaId = selected.CustomerRef?.id_zona ?? selected.IdZona;
             CanEditSeller = false;
             AddOrEditTitle = "Editar Cliente";
@@ -1164,7 +1100,6 @@ namespace NinOS.UI.Common.ViewModels
             NewPhoneNumber = string.Empty;
             NewFiscalAddress = string.Empty;
             NewDeliveryAddress = string.Empty;
-            NewSellerName = "Anais";
             NewZonaId = null;
             _editingCustomer = null;
             _canEditCode = false;

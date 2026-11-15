@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,6 +9,7 @@ using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Common;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 
 namespace NinOS.Infrastructure.Services.Implementations
@@ -621,6 +622,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                     var delivery_note = await db_context.delivery_notes
                         .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
                     if (delivery_note == null) throw new ArgumentException("La nota de entrega seleccionada ya no existe.");
+
+                    await PaymentService.lock_note_for_update_async(db_context, delivery_note.id_delivery_note);
+                    await db_context.Entry(delivery_note).ReloadAsync();
+
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
                     if (delivery_note.status == "Devuelta") throw new InvalidOperationException("No se puede editar una nota devuelta.");
 
@@ -653,56 +658,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(p => p.id_delivery_note == id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                         .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
-                    var existing_commission = await db_context.commissions
-                        .FirstOrDefaultAsync(c => c.id_delivery_note == id_delivery_note);
-
-                    bool is_fully_paid = total_paid > 0 && (adjusted - total_paid) <= 0.01m;
-
-                    if (is_fully_paid)
-                    {
-                        if (delivery_note.status != "Pagada" && delivery_note.status != "Devuelta")
-                        {
-                            delivery_note.status = "Pagada";
-
-                            if (existing_commission == null && !is_pro_venta)
-                            {
-                                var note_seller = await db_context.sellers
-                                    .AsNoTracking()
-                                    .Include(s => s.seller_zones)
-                                        .ThenInclude(sz => sz.zona)
-                                    .FirstOrDefaultAsync(s => s.id_seller == delivery_note.id_seller);
-
-                                if (note_seller != null && note_seller.can_receive_commissions && !note_seller.is_pro_venta_only && note_seller.commission_percentage > 0)
-                                {
-                                    decimal pct = note_seller.commission_percentage;
-
-                                    existing_commission = new commission(
-                                        delivery_note.id_seller,
-                                        delivery_note.id_delivery_note,
-                                        pct,
-                                        Math.Round(adjusted * pct, 2),
-                                        false,
-                                        null);
-                                    await db_context.commissions.AddAsync(existing_commission);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (delivery_note.status == "Pagada") delivery_note.status = "Pendiente";
-
-                        if (!is_pro_venta && existing_commission != null && !existing_commission.is_paid)
-                        {
-                            db_context.commissions.Remove(existing_commission);
-                            existing_commission = null;
-                        }
-                    }
-
-                    if (existing_commission != null && !existing_commission.is_paid)
-                    {
-                        existing_commission.amount_usd = Math.Round(adjusted * existing_commission.commission_percentage, 2);
-                    }
+                    await PaymentService.apply_settlement_async(db_context, delivery_note, total_paid, is_pro_venta);
 
                     await db_context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -748,7 +704,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .AnyAsync(p => p.id_delivery_note == id_delivery_note && p.amount_usd > 0 && p.payment_type != "NOTA DE CREDITO");
 
                     if (has_payments)
-                        throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos. Elimine primero los pagos registrados.");
+                        throw new InvalidOperationException("No se puede anular una nota que ya tiene abonos registrados.");
 
                     // Las notas Pro Venta (MAR) cobran por relacion, y esos pagos se guardan con
                     // id_delivery_note en null. El chequeo de arriba no los ve, asi que sin esto se
@@ -772,14 +728,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                             .AnyAsync(p => p.id_relacion == delivery_note.id_relacion.Value && p.amount_usd > 0);
 
                         if (has_mar_payments)
-                            throw new InvalidOperationException("No se puede anular una nota Pro Venta que ya tiene pagos MAR registrados. Elimine primero los pagos.");
+                            throw new InvalidOperationException("No se puede anular una nota Pro Venta que ya tiene pagos MAR registrados.");
                     }
 
                     var has_credit_notes = await db_context.credit_notes
-                        .AnyAsync(c => c.id_delivery_note == id_delivery_note);
+                        .AnyAsync(c => c.id_delivery_note == id_delivery_note && c.status != "Anulada");
 
                     if (has_credit_notes)
-                        throw new InvalidOperationException("No se puede anular una nota que tiene notas de credito registradas.");
+                        throw new InvalidOperationException("No se puede anular una nota que tiene notas de credito vigentes registradas.");
 
                     var details = await db_context.note_details
                         .Where(d => d.id_delivery_note == id_delivery_note)
@@ -807,7 +763,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         if (detail.id_product != null && products.TryGetValue(detail.id_product.Value, out var product))
                         {
-                            stock_movement_writer.registrar_entrada(
+                            await stock_movement_writer.registrar_entrada_async(
                                 db_context, product, detail.quantity,
                                 stock_movement.RazonAnulacion, stock_movement.DocumentoEntrega, delivery_note.note_number,
                                 DateTime.UtcNow, detail.unit_price_usd,
@@ -817,31 +773,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 id_cliente: delivery_note.id_customer,
                                 vendido_como: stock_movement_writer.VendidoProducto);
                         }
-                        else if (detail.id_promotion != null && promotions.TryGetValue(detail.id_promotion.Value, out var promotion))
+                        else if (detail.id_promotion != null)
                         {
-                            if (promotion.items != null)
-                            {
-                                decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
+                            promotions.TryGetValue(detail.id_promotion.Value, out var promotion);
+                            decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
 
-                                foreach (var promo_item in promotion.items)
-                                {
-                                    if (products.TryGetValue(promo_item.id_product, out var promo_product))
-                                    {
-                                        stock_movement_writer.registrar_entrada(
-                                            db_context, promo_product, detail.quantity * promo_item.quantity_required,
-                                            stock_movement.RazonAnulacion, stock_movement.DocumentoEntrega, delivery_note.note_number,
-                                            DateTime.UtcNow, precio_por_unidad,
-                                            estado_documento: "Anulada",
-                                            id_entrega: delivery_note.id_delivery_note,
-                                            id_vendedor: delivery_note.id_seller,
-                                            id_cliente: delivery_note.id_customer,
-                                            id_promocion: detail.id_promotion,
-                                            unidades_promocion: detail.quantity,
-                                            vendido_como: stock_movement_writer.VendidoPromocion,
-                                            descripcion_linea: promotion.name);
-                                    }
-                                }
-                            }
+                            await stock_movement_writer.mover_promocion_async(
+                                db_context, detail.promo_items_snapshot, promotion, detail.quantity, es_salida: false,
+                                stock_movement.RazonAnulacion, stock_movement.DocumentoEntrega, delivery_note.note_number,
+                                DateTime.UtcNow, precio_por_unidad,
+                                estado_documento: "Anulada", id_entrega: delivery_note.id_delivery_note, id_credito: null,
+                                id_vendedor: delivery_note.id_seller, id_cliente: delivery_note.id_customer,
+                                id_promocion: detail.id_promotion, descripcion_linea: promotion?.name ?? $"Promocion {detail.id_promotion}");
                         }
                     }
 
@@ -898,6 +841,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
                 if (note == null) throw new ArgumentException("Nota no encontrada.");
+
+                if (!string.IsNullOrEmpty(note.print_snapshot))
+                {
+                    note_print_dto? frozen = NinOS.Domain.note_snapshot_store.deserialize(note.print_snapshot);
+                    if (frozen != null)
+                    {
+                        AppLog.Info($"Reimprimiendo nota {note.note_number}: usando foto guardada al emitir.");
+                        return frozen;
+                    }
+                }
+
+                AppLog.Warn($"Nota {note.note_number} sin foto guardada: reimprimiento con datos vivos actuales.");
 
                 var customer = await db_context.customers
                     .AsNoTracking()

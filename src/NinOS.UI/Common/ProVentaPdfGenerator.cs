@@ -163,7 +163,7 @@ namespace NinOS.UI.Common
 
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.note_number).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).Text(r.customer_name).FontColor(fg);
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.amount.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.monto_original.ToString("N2")).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.commission_luis.ToString("N2")).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_25.ToString("N2")).FontColor(fg);
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(BorderColor).MinHeight(22).PaddingHorizontal(2).PaddingVertical(3).AlignCenter().Text(r.gastos_15.ToString("N2")).FontColor(fg);
@@ -176,7 +176,7 @@ namespace NinOS.UI.Common
                     {
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text("TOTAL").Bold();
                         table.Cell().Background(SoftAccent);
-                        table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_amount.ToString("N2")).Bold();
+                        table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_monto_original.ToString("N2")).Bold();
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_commission_luis.ToString("N2")).Bold();
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_gastos_25.ToString("N2")).Bold();
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_gastos_15.ToString("N2")).Bold();
@@ -283,7 +283,7 @@ namespace NinOS.UI.Common
                     {
                         header.Cell().Background(Accent).Padding(3).AlignCenter().Text("NRO NOTA").Bold().FontColor(Colors.White);
                         header.Cell().Background(Accent).Padding(3).Text("CLIENTE").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO").Bold().FontColor(Colors.White);
+                        header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO ORIG.").Bold().FontColor(Colors.White);
                     });
 
                     bool alternate = false;
@@ -297,14 +297,14 @@ namespace NinOS.UI.Common
 
                         table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.note_number).FontColor(fg);
                         table.Cell().Background(bg).Padding(2).Text(n.customer_name).FontColor(fg);
-                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.amount.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.monto_original.ToString("N2")).FontColor(fg);
                     }
 
                     if (dto.rows.Count > 0)
                     {
                         table.Cell().Background(SoftAccent).Padding(2).Text("TOTAL").Bold();
                         table.Cell().Background(SoftAccent);
-                        table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(total_notes.ToString("N2")).Bold();
+                        table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_monto_original.ToString("N2")).Bold();
                     }
                 });
 

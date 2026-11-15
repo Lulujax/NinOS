@@ -22,6 +22,31 @@ namespace NinOS.Infrastructure.Services.Implementations
             _scope_factory = scope_factory;
         }
 
+        private static async Task<(Dictionary<int, string> dn_status, Dictionary<int, string> cn_status)> resolve_live_statuses_async(
+            NinOSDbContext db, IEnumerable<stock_movement> movements)
+        {
+            var dn_ids = movements.Where(m => m.id_delivery_note != null).Select(m => m.id_delivery_note!.Value).Distinct().ToList();
+            var cn_ids = movements.Where(m => m.id_credit_note != null).Select(m => m.id_credit_note!.Value).Distinct().ToList();
+
+            var dn_status = dn_ids.Count == 0
+                ? new Dictionary<int, string>()
+                : await db.delivery_notes.AsNoTracking().Where(n => dn_ids.Contains(n.id_delivery_note)).ToDictionaryAsync(n => n.id_delivery_note, n => n.status);
+
+            var cn_status = cn_ids.Count == 0
+                ? new Dictionary<int, string>()
+                : await db.credit_notes.AsNoTracking().Where(c => cn_ids.Contains(c.id_credit_note)).ToDictionaryAsync(c => c.id_credit_note, c => c.status);
+
+            return (dn_status, cn_status);
+        }
+
+        private static string resolve_live_status(
+            stock_movement m, Dictionary<int, string> dn_status, Dictionary<int, string> cn_status)
+        {
+            if (m.id_credit_note != null && cn_status.TryGetValue(m.id_credit_note.Value, out var cs)) return cs;
+            if (m.id_delivery_note != null && dn_status.TryGetValue(m.id_delivery_note.Value, out var ds)) return ds;
+            return m.document_status ?? string.Empty;
+        }
+
         public async Task<IEnumerable<product>> get_all_products_async()
         {
             using (IServiceScope scope = _scope_factory.CreateScope())
@@ -194,9 +219,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                 actual.name = product_to_update.name;
                 actual.unit_price_usd = product_to_update.unit_price_usd;
 
-                int diferencia = product_to_update.stock_quantity - actual.stock_quantity;
-                actual.stock_quantity = product_to_update.stock_quantity;
-
                 // Sincronizamos los valores finales en el objeto recibido
                 product_to_update.product_code = actual.product_code;
                 product_to_update.category = actual.category;
@@ -215,22 +237,6 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         throw new InvalidOperationException(
                             $"El código {actual.product_code} ya pertenece a otro producto.");
-                    }
-
-                    // Si el usuario edito el stock a mano, queda asentado en el kardex como ajuste.
-                    if (diferencia != 0)
-                    {
-                        stock_movement_writer.registrar_ajuste(
-                            db_context,
-                            actual.id_product,
-                            diferencia,
-                            $"AJUSTE-{actual.product_code}",
-                            DateTime.UtcNow,
-                            actual.unit_price_usd,
-                            motivo_ajuste,
-                            nota_ajuste);
-
-                        await db_context.SaveChangesAsync();
                     }
 
                     await transaction.CommitAsync();
@@ -291,6 +297,81 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
 
             return product_code_rules.Format(prefix, next_number, digits);
+        }
+
+        /// <summary>
+        /// Suma unidades al stock ACTUAL de la base. Si otra PC vendio mientras el formulario
+        /// estaba abierto, ese movimiento no se pierde. Devuelve el stock que quedo.
+        /// </summary>
+        public async Task<int> agregar_stock_async(int id_product, int cantidad, string? motivo, string? nota = null)
+        {
+            if (cantidad <= 0) throw new ArgumentException("La cantidad a agregar debe ser mayor que cero.", nameof(cantidad));
+            return await mover_stock_async(id_product, cantidad, motivo, nota);
+        }
+
+        /// <summary>Resta unidades al stock ACTUAL de la base. Devuelve el stock que quedo.</summary>
+        public async Task<int> quitar_stock_async(int id_product, int cantidad, string? motivo, string? nota = null)
+        {
+            if (cantidad <= 0) throw new ArgumentException("La cantidad a quitar debe ser mayor que cero.", nameof(cantidad));
+            return await mover_stock_async(id_product, -cantidad, motivo, nota);
+        }
+
+        /// <summary>
+        /// Conteo manual: deja el stock exactamente en cantidad_contada y asienta la diferencia
+        /// contra el stock real del momento. Si stock_visto ya no coincide con la base, lanza
+        /// stock_cambiado_exception para que la pantalla avise antes de pisar otro movimiento.
+        /// </summary>
+        public async Task<int> contar_stock_async(int id_product, int cantidad_contada, int? stock_visto, string? motivo, string? nota = null)
+        {
+            if (cantidad_contada < 0) throw new ArgumentException("La cantidad contada no puede ser negativa.", nameof(cantidad_contada));
+            // con_producto_async devuelve la diferencia asentada; lo que interesa devolver
+            // aqui es el stock final, que por definicion es la cantidad contada.
+            await con_producto_async(id_product, (db_context, producto) =>
+                stock_movement_writer.fijar_stock_async(
+                    db_context, id_product, cantidad_contada, stock_visto,
+                    $"CONTEO-{producto.product_code}", producto.unit_price_usd, motivo, nota));
+
+            return cantidad_contada;
+        }
+
+        private Task<int> mover_stock_async(int id_product, int delta, string? motivo, string? nota)
+        {
+            return con_producto_async(id_product, (db_context, producto) =>
+                stock_movement_writer.ajustar_stock_async(
+                    db_context, id_product, delta,
+                    $"AJUSTE-{producto.product_code}", producto.unit_price_usd, motivo, nota));
+        }
+
+        /// <summary>
+        /// Abre scope y transaccion, busca el producto y ejecuta la operacion de stock.
+        /// Centraliza el commit y el rollback para que ninguna operacion quede a medias.
+        /// </summary>
+        private async Task<int> con_producto_async(int id_product, Func<NinOSDbContext, product, Task<int>> operacion)
+        {
+            using (IServiceScope scope = _scope_factory.CreateScope())
+            {
+                NinOSDbContext db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+                product? producto = await db_context.products.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.id_product == id_product);
+                if (producto == null) throw new InvalidOperationException("El producto ya no existe en el inventario.");
+
+                await using var transaction = await db_context.Database.BeginTransactionAsync();
+                try
+                {
+                    int resultado = await operacion(db_context, producto);
+                    await db_context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    AppLog.Info($"Stock del producto {id_product} actualizado por inventario");
+                    return resultado;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
 
         public async Task<IEnumerable<promotion>> get_promotions_using_product_async(int id_product)
@@ -548,6 +629,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(s => seller_ids.Contains(s.id_seller))
                         .ToDictionaryAsync(s => s.id_seller);
 
+                var (dn_status, cn_status) = await resolve_live_statuses_async(db, movements);
+
                 var result = new List<product_sales_history_dto>();
 
                 foreach (stock_movement m in movements)
@@ -571,7 +654,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         units_sold = unidades,
                         unit_price_usd = m.unit_price_usd,
                         line_subtotal_usd = m.unit_price_usd * unidades,
-                        status = m.document_status ?? string.Empty,
+                        status = resolve_live_status(m, dn_status, cn_status),
                         movement_type = m.movement_type,
                         movement_reason = m.reason,
                         document_type = m.document_type,
@@ -634,6 +717,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(s => seller_ids.Contains(s.id_seller))
                         .ToDictionaryAsync(s => s.id_seller);
 
+                var (dn_status, cn_status) = await resolve_live_statuses_async(db, movements);
+
                 var result = new List<promotion_sales_history_dto>();
 
                 var groups = movements.GroupBy(m => new
@@ -672,7 +757,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         units_sold = unidades,
                         unit_price_usd = first.unit_price_usd,
                         line_subtotal_usd = first.unit_price_usd * unidades,
-                        status = first.document_status ?? string.Empty,
+                        status = resolve_live_status(first, dn_status, cn_status),
                         movement_type = first.movement_type,
                         movement_reason = first.reason,
                         document_type = first.document_type,
@@ -742,6 +827,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                         .Where(s => seller_ids.Contains(s.id_seller))
                         .ToDictionaryAsync(s => s.id_seller);
 
+                var (dn_status, cn_status) = await resolve_live_statuses_async(db, movements);
+
                 var result = new List<product_sales_history_dto>(movements.Count);
 
                 foreach (stock_movement m in movements)
@@ -775,7 +862,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         units_sold = unidades,
                         unit_price_usd = m.unit_price_usd,
                         line_subtotal_usd = m.unit_price_usd * unidades,
-                        status = m.document_status ?? string.Empty,
+                        status = resolve_live_status(m, dn_status, cn_status),
                         movement_type = m.movement_type,
                         movement_reason = m.reason,
                         document_type = m.document_type,

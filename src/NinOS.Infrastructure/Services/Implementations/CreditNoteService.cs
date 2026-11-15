@@ -17,6 +17,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 {
     public class CreditNoteService : ICreditNoteService
     {
+        public const long CreditNoteCorrelativeLockKey = 9070003L;
+
         private readonly IServiceScopeFactory _scope_factory;
 
         public CreditNoteService(IServiceScopeFactory scope_factory)
@@ -634,8 +636,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         if (new_note.id_seller <= 0)
                         {
-                            var adminSeller = await db_context.sellers
-                                .FirstOrDefaultAsync(s => s.seller_code == "001" || s.full_name.Contains("Sandra"));
+                            var all_sellers = await db_context.sellers.ToListAsync();
+                            var adminSeller = all_sellers.FirstOrDefault(s => SellerCodes.is_obsequio_admin_seller(s.seller_code, s.full_name));
                             if (adminSeller != null)
                             {
                                 new_note.id_seller = adminSeller.id_seller;
@@ -730,6 +732,13 @@ namespace NinOS.Infrastructure.Services.Implementations
                                         throw new InvalidOperationException(
                                             $"La cantidad obsequiada de {promotion.name} ({detail.quantity}) supera el stock de {promo_product.name} ({promo_product.stock_quantity}).");
                                 }
+
+                                detail.promo_items_snapshot = NinOS.Domain.promo_items_snapshot_store.serialize(
+                                    promotion.items.Select(i => new NinOS.Domain.promo_item_snapshot
+                                    {
+                                        id_product = i.id_product,
+                                        quantity_required = i.quantity_required
+                                    }).ToList());
                             }
                         }
                     }
@@ -745,7 +754,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         var existing_credit_ids = await db_context.credit_notes
                             .AsNoTracking()
-                            .Where(c => c.id_delivery_note == original_note!.id_delivery_note)
+                            .Where(c => c.id_delivery_note == original_note!.id_delivery_note && c.status != "Anulada")
                             .Select(c => c.id_credit_note)
                             .ToListAsync();
 
@@ -790,6 +799,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                                     if (!products.TryGetValue(promo_item.id_product, out var promo_product))
                                         throw new InvalidOperationException("Uno de los productos de la promocion devuelta ya no existe.");
                                 }
+
+                                detail.promo_items_snapshot = original_detail.promo_items_snapshot;
                             }
                         }
 
@@ -835,12 +846,61 @@ namespace NinOS.Infrastructure.Services.Implementations
                         new_note.total_amount_usd = Money.round(detail_list.Sum(d => d.subtotal_usd));
                     }
 
-                    // El correlativo es por vendedor e independiente del numero de la nota de entrega.
+                    // El correlativo es independiente del numero de la nota de entrega.
                     if (string.IsNullOrWhiteSpace(new_note.note_number))
                     {
+                        await db_context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({CreditNoteCorrelativeLockKey})");
                         var repository = scope.ServiceProvider.GetRequiredService<ICreditNoteRepository>();
                         new_note.note_number = await repository.get_next_credit_correlative_async();
                     }
+
+                    var snapshot_customer = await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == new_note.id_customer);
+                    var snapshot_seller = await db_context.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == new_note.id_seller);
+
+                    string snapshot_header_title = BrandHeader.Title;
+                    if (original_note != null && original_note.note_type_id != null)
+                    {
+                        var snapshot_note_type = await db_context.note_types.AsNoTracking().FirstOrDefaultAsync(t => t.id_note_type == original_note.note_type_id);
+                        if (snapshot_note_type != null && !string.IsNullOrWhiteSpace(snapshot_note_type.header_title))
+                            snapshot_header_title = snapshot_note_type.header_title;
+                    }
+
+                    var snapshot_details = detail_list.Select(d =>
+                    {
+                        string code = string.Empty;
+                        string name = string.Empty;
+                        if (d.id_product != null && products.TryGetValue(d.id_product.Value, out var sp))
+                        {
+                            code = sp.product_code;
+                            name = sp.name;
+                        }
+                        else if (d.id_promotion != null && promotions.TryGetValue(d.id_promotion.Value, out var spromo))
+                        {
+                            code = spromo.promotion_code;
+                            name = spromo.name;
+                        }
+
+                        return new note_detail_print_dto
+                        {
+                            code = code,
+                            name = name,
+                            quantity = d.quantity,
+                            unit_price_usd = d.unit_price_usd,
+                            discount_usd = 0,
+                            promo_price_usd = d.unit_price_usd,
+                            subtotal_usd = d.subtotal_usd
+                        };
+                    }).ToList();
+
+                    string snapshot_source_text = original_note != null ? original_note.note_number : string.Empty;
+
+                    note_print_dto snapshot_dto = build_credit_print_dto(
+                        new_note.id_delivery_note ?? 0, new_note.note_number, snapshot_header_title, new_note.status, new_note.total_amount_usd,
+                        AppTimeZone.to_local(new_note.creation_date), is_gift, snapshot_source_text, original_note,
+                        snapshot_seller?.full_name, snapshot_customer, snapshot_details);
+
+                    new_note.print_snapshot = NinOS.Domain.note_snapshot_store.serialize(snapshot_dto);
+                    new_note.print_snapshot_version = NinOS.Domain.note_snapshot_store.CurrentVersion;
 
                     await db_context.credit_notes.AddAsync(new_note);
 
@@ -875,7 +935,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                             if (is_gift)
                             {
-                                stock_movement_writer.registrar_salida(
+                                await stock_movement_writer.registrar_salida_async(
                                     db_context, producto, detail.quantity,
                                     stock_movement.RazonObsequio, stock_movement.DocumentoCredito, new_note.note_number,
                                     new_note.creation_date, detail.unit_price_usd,
@@ -888,7 +948,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                             }
                             else
                             {
-                                stock_movement_writer.registrar_entrada(
+                                await stock_movement_writer.registrar_entrada_async(
                                     db_context, producto, detail.quantity,
                                     stock_movement.RazonDevolucion, stock_movement.DocumentoCredito, new_note.note_number,
                                     new_note.creation_date, detail.unit_price_usd,
@@ -902,47 +962,17 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                         else if (detail.id_promotion != null)
                         {
-                            var promocion = promotions[detail.id_promotion.Value];
+                            promotions.TryGetValue(detail.id_promotion.Value, out var promocion);
                             decimal precio_por_unidad = detail.quantity > 0 ? detail.unit_price_usd / detail.quantity : 0m;
 
-                            foreach (var promo_item in promocion.items!)
-                            {
-                                var promo_producto = products[promo_item.id_product];
-                                int cantidad = detail.quantity * promo_item.quantity_required;
-
-                                if (is_gift)
-                                {
-                                    stock_movement_writer.registrar_salida(
-                                        db_context, promo_producto, cantidad,
-                                        stock_movement.RazonObsequio, stock_movement.DocumentoCredito, new_note.note_number,
-                                        new_note.creation_date, precio_por_unidad,
-                                        estado_documento: new_note.status,
-                                        id_entrega: original_note?.id_delivery_note,
-                                        id_credito: new_note.id_credit_note,
-                                        id_vendedor: new_note.id_seller,
-                                        id_cliente: new_note.id_customer,
-                                        id_promocion: detail.id_promotion,
-                                        unidades_promocion: detail.quantity,
-                                        vendido_como: stock_movement_writer.VendidoPromocion,
-                                        descripcion_linea: promocion.name);
-                                }
-                                else
-                                {
-                                    stock_movement_writer.registrar_entrada(
-                                        db_context, promo_producto, cantidad,
-                                        stock_movement.RazonDevolucion, stock_movement.DocumentoCredito, new_note.note_number,
-                                        new_note.creation_date, precio_por_unidad,
-                                        estado_documento: new_note.status,
-                                        id_entrega: original_note?.id_delivery_note,
-                                        id_credito: new_note.id_credit_note,
-                                        id_vendedor: new_note.id_seller,
-                                        id_cliente: new_note.id_customer,
-                                        id_promocion: detail.id_promotion,
-                                        unidades_promocion: detail.quantity,
-                                        vendido_como: stock_movement_writer.VendidoPromocion,
-                                        descripcion_linea: promocion.name);
-                                }
-                            }
+                            await stock_movement_writer.mover_promocion_async(
+                                db_context, detail.promo_items_snapshot, promocion, detail.quantity, es_salida: is_gift,
+                                is_gift ? stock_movement.RazonObsequio : stock_movement.RazonDevolucion,
+                                stock_movement.DocumentoCredito, new_note.note_number,
+                                new_note.creation_date, precio_por_unidad,
+                                estado_documento: new_note.status, id_entrega: original_note?.id_delivery_note, id_credito: new_note.id_credit_note,
+                                id_vendedor: new_note.id_seller, id_cliente: new_note.id_customer,
+                                id_promocion: detail.id_promotion, descripcion_linea: promocion?.name ?? $"Promocion {detail.id_promotion}");
                         }
                     }
 
@@ -950,6 +980,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                     // simplemente reducen el total del monto de la nota de entrega (adjusted_total_usd y total_amount_usd).
                     if (!is_gift && original_note != null)
                     {
+                        await PaymentService.lock_note_for_update_async(db_context, original_note.id_delivery_note);
+                        await db_context.Entry(original_note).ReloadAsync();
+
                         original_note.adjusted_total_usd = Money.round(Math.Max(original_note.adjusted_total_usd - new_note.total_amount_usd, 0m));
                         original_note.total_amount_usd = Money.round(Math.Max(original_note.total_amount_usd - new_note.total_amount_usd, 0m));
 
@@ -983,44 +1016,19 @@ namespace NinOS.Infrastructure.Services.Implementations
                             return (already + in_this_nc) >= od.quantity;
                         });
 
-                        if (is_fully_returned)
-                        {
-                            original_note.status = "Devuelta";
+                        decimal existing_paid = await db_context.payments
+                            .AsNoTracking()
+                            .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
+                            .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
 
-                            // Si existia comision pendiente de liquidar generada previamente, se cancela/elimina
-                            var existing_comm = await db_context.commissions
-                                .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
-                            if (existing_comm != null && !existing_comm.is_paid)
-                            {
-                                db_context.commissions.Remove(existing_comm);
-                            }
-                        }
-                        else
-                        {
-                            // Devolución parcial: comprobar si el saldo restante ya quedo cubierto por pagos reales
-                            decimal existing_paid = await db_context.payments
-                                .AsNoTracking()
-                                .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
-                                .SumAsync(p => (decimal?)p.amount_usd) ?? 0m;
+                        var mar_ids_credit = await db_context.note_types
+                            .AsNoTracking()
+                            .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
+                            .Select(t => t.id_note_type)
+                            .ToListAsync();
+                        bool is_pro_venta_credit = original_note.note_type_id != null && mar_ids_credit.Contains(original_note.note_type_id.Value);
 
-                            bool is_fully_paid = existing_paid > 0 && (original_note.adjusted_total_usd - existing_paid) <= 0.01m;
-                            if (is_fully_paid)
-                            {
-                                original_note.status = "Pagada";
-                            }
-                            else
-                            {
-                                original_note.status = "Pendiente";
-                            }
-
-                            // Actualizar comision pendiente si existe para que refleje el nuevo monto ajustado
-                            var existing_comm = await db_context.commissions
-                                .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
-                            if (existing_comm != null && !existing_comm.is_paid)
-                            {
-                                existing_comm.amount_usd = Math.Round(original_note.adjusted_total_usd * existing_comm.commission_percentage, 2);
-                            }
-                        }
+                        await PaymentService.apply_settlement_async(db_context, original_note, existing_paid, is_pro_venta_credit, is_fully_returned);
                     }
 
                     await db_context.SaveChangesAsync();
@@ -1097,7 +1105,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     {
                         if (es_obsequio)
                         {
-                            stock_movement_writer.registrar_entrada(
+                            await stock_movement_writer.registrar_entrada_async(
                                 db_context, producto, detalle.quantity,
                                 stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
                                 DateTime.UtcNow, detalle.unit_price_usd,
@@ -1110,7 +1118,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         }
                         else
                         {
-                            stock_movement_writer.registrar_salida(
+                            await stock_movement_writer.registrar_salida_async(
                                 db_context, producto, detalle.quantity,
                                 stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
                                 DateTime.UtcNow, detalle.unit_price_usd,
@@ -1122,51 +1130,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                                 vendido_como: stock_movement_writer.VendidoProducto);
                         }
                     }
-                    else if (detalle.id_promotion != null && promotions.TryGetValue(detalle.id_promotion.Value, out var promocion))
+                    else if (detalle.id_promotion != null)
                     {
-                        if (promocion.items == null) continue;
-
+                        promotions.TryGetValue(detalle.id_promotion.Value, out var promocion);
                         decimal precio_por_unidad = detalle.quantity > 0 ? detalle.unit_price_usd / detalle.quantity : 0m;
 
-                        foreach (var promo_item in promocion.items)
-                        {
-                            if (!products.TryGetValue(promo_item.id_product, out var promo_producto)) continue;
-
-                            int cantidad = detalle.quantity * promo_item.quantity_required;
-
-                            if (es_obsequio)
-                            {
-                                stock_movement_writer.registrar_entrada(
-                                    db_context, promo_producto, cantidad,
-                                    stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
-                                    DateTime.UtcNow, precio_por_unidad,
-                                    estado_documento: "Anulada",
-                                    id_entrega: original_note?.id_delivery_note,
-                                    id_credito: nota.id_credit_note,
-                                    id_vendedor: nota.id_seller,
-                                    id_cliente: nota.id_customer,
-                                    id_promocion: detalle.id_promotion,
-                                    unidades_promocion: detalle.quantity,
-                                    vendido_como: stock_movement_writer.VendidoPromocion,
-                                    descripcion_linea: promocion.name);
-                            }
-                            else
-                            {
-                                stock_movement_writer.registrar_salida(
-                                    db_context, promo_producto, cantidad,
-                                    stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
-                                    DateTime.UtcNow, precio_por_unidad,
-                                    estado_documento: "Anulada",
-                                    id_entrega: original_note?.id_delivery_note,
-                                    id_credito: nota.id_credit_note,
-                                    id_vendedor: nota.id_seller,
-                                    id_cliente: nota.id_customer,
-                                    id_promocion: detalle.id_promotion,
-                                    unidades_promocion: detalle.quantity,
-                                    vendido_como: stock_movement_writer.VendidoPromocion,
-                                    descripcion_linea: promocion.name);
-                            }
-                        }
+                        await stock_movement_writer.mover_promocion_async(
+                            db_context, detalle.promo_items_snapshot, promocion, detalle.quantity, es_salida: !es_obsequio,
+                            stock_movement.RazonAnulacion, stock_movement.DocumentoCredito, nota.note_number,
+                            DateTime.UtcNow, precio_por_unidad,
+                            estado_documento: "Anulada", id_entrega: original_note?.id_delivery_note, id_credito: nota.id_credit_note,
+                            id_vendedor: nota.id_seller, id_cliente: nota.id_customer,
+                            id_promocion: detalle.id_promotion, descripcion_linea: promocion?.name ?? $"Promocion {detalle.id_promotion}");
                     }
                 }
 
@@ -1174,28 +1149,24 @@ namespace NinOS.Infrastructure.Services.Implementations
                 // Al anular, se restaura el monto de la nota de entrega (sin crear pagos/abonos).
                 if (!es_obsequio && original_note != null)
                 {
+                    await PaymentService.lock_note_for_update_async(db_context, original_note.id_delivery_note);
+                    await db_context.Entry(original_note).ReloadAsync();
+
                     original_note.adjusted_total_usd = Money.round(original_note.adjusted_total_usd + nota.total_amount_usd);
                     original_note.total_amount_usd = Money.round(original_note.total_amount_usd + nota.total_amount_usd);
 
-                    // El estado de la nota de entrega se recalcula: sin la devolucion, la nota
-                    // vuelve a Pendiente o queda Pagada segun lo que ya se le haya abonado en pagos reales.
                     decimal pagado = await db_context.payments
                         .Where(p => p.id_delivery_note == original_note.id_delivery_note && p.payment_type != "NOTA DE CREDITO")
                         .SumAsync(p => (decimal?)p.amount_usd) ?? 0;
 
-                    bool is_fully_paid = pagado > 0 && (original_note.adjusted_total_usd - pagado) <= 0.01m;
-                    if (is_fully_paid)
-                        original_note.status = "Pagada";
-                    else
-                        original_note.status = "Pendiente";
+                    var mar_ids_annul = await db_context.note_types
+                        .AsNoTracking()
+                        .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
+                        .Select(t => t.id_note_type)
+                        .ToListAsync();
+                    bool is_pro_venta_annul = original_note.note_type_id != null && mar_ids_annul.Contains(original_note.note_type_id.Value);
 
-                    // Restaurar comision si existia
-                    var existing_comm = await db_context.commissions
-                        .FirstOrDefaultAsync(c => c.id_delivery_note == original_note.id_delivery_note);
-                    if (existing_comm != null && !existing_comm.is_paid)
-                    {
-                        existing_comm.amount_usd = Math.Round(original_note.adjusted_total_usd * existing_comm.commission_percentage, 2);
-                    }
+                    await PaymentService.apply_settlement_async(db_context, original_note, pagado, is_pro_venta_annul, allow_transition_from_returned: true);
                 }
 
                 nota.status = "Anulada";
@@ -1280,6 +1251,18 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .FirstOrDefaultAsync(c => c.id_credit_note == id_credit_note);
                 if (credit == null) throw new ArgumentException("Nota de credito no encontrada.");
 
+                if (!string.IsNullOrEmpty(credit.print_snapshot))
+                {
+                    note_print_dto? frozen = NinOS.Domain.note_snapshot_store.deserialize(credit.print_snapshot);
+                    if (frozen != null)
+                    {
+                        AppLog.Info($"Reimprimiendo nota de credito {credit.note_number}: usando foto guardada al emitir.");
+                        return frozen;
+                    }
+                }
+
+                AppLog.Warn($"Nota de credito {credit.note_number} sin foto guardada: reimprimiendo con datos vivos actuales.");
+
                 var original = await db_context.delivery_notes
                     .AsNoTracking()
                     .FirstOrDefaultAsync(n => n.id_delivery_note == credit.id_delivery_note);
@@ -1318,53 +1301,64 @@ namespace NinOS.Infrastructure.Services.Implementations
                 string source_text = original != null ? original.note_number : string.Empty;
                 bool is_gift = string.Equals(credit.category, "Obsequio", StringComparison.OrdinalIgnoreCase);
 
-                return new note_print_dto
-                {
-                    id_delivery_note = credit.id_delivery_note ?? 0,
-                    note_number = credit.note_number,
-                    company_name = BrandHeader.Title,
-                    promo_banner_text = string.Empty,
-                    header_title = header_title,
-                    document_label = "NOTA DE CREDITO",
-                    is_pro_venta = false,
-                    is_promo = false,
-                    accent_color = "#2E7D32",
-                    accent_soft_color = "#F1F8E9",
-                    promo_discount_percentage = null,
-                    promo_discount_amount = 0,
-                    volume_discount_percentage = 0,
-                    volume_discount_amount = 0,
-                    discounted_total_usd = total,
-                    creation_date = credit.creation_date,
-                    due_date = credit.creation_date,
-                    status = credit.status,
-                    gross_total_usd = total,
-                    discount_percentage = 0,
-                    discount_amount = 0,
-                    total_amount_usd = total,
-                    paid_amount_usd = 0,
-                    balance_due_usd = 0,
-                    seller_name = seller?.full_name ?? string.Empty,
-                    customer_code = customer?.customer_code ?? string.Empty,
-                    customer_business_name = customer?.business_name ?? string.Empty,
-                    customer_rif = customer?.rif ?? string.Empty,
-                    customer_phone = customer?.phone_number ?? string.Empty,
-                    customer_contact = customer?.contact_name ?? string.Empty,
-                    customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
-                    fiscal_address = customer?.fiscal_address ?? string.Empty,
-                    conditions_text = is_gift
-                        ? "NOTA DE CREDITO POR OBSEQUIO DE PRODUCTOS."
-                        : string.IsNullOrWhiteSpace(source_text)
-                            ? "NOTA DE CREDITO POR DEVOLUCION DE PRODUCTOS."
-                            : $"DEVOLUCION DE PRODUCTOS DE LA NOTA {source_text}. ESTA NOTA RESTA DEL MONTO A COBRAR.",
-                    discount_conditions_text = string.Empty,
-                    payment_header_text = original?.payment_header_text,
-                    payment_transfer_text = original?.payment_transfer_text,
-                    payment_account_text = original?.payment_account_text,
-                    payment_movil_text = original?.payment_movil_text,
-                    details = print_details
-                };
+                return build_credit_print_dto(
+                    credit.id_delivery_note ?? 0, credit.note_number, header_title, credit.status, total,
+                    AppTimeZone.to_local(credit.creation_date), is_gift, source_text, original,
+                    seller?.full_name, customer, print_details);
             }
+        }
+
+        private static note_print_dto build_credit_print_dto(
+            int id_delivery_note, string note_number, string header_title, string status, decimal total,
+            DateTime local_creation_date, bool is_gift, string source_text, delivery_note? original,
+            string? seller_name, customer? customer, List<note_detail_print_dto> print_details)
+        {
+            return new note_print_dto
+            {
+                id_delivery_note = id_delivery_note,
+                note_number = note_number,
+                company_name = BrandHeader.Title,
+                promo_banner_text = string.Empty,
+                header_title = header_title,
+                document_label = "NOTA DE CREDITO",
+                is_pro_venta = false,
+                is_promo = false,
+                accent_color = "#2E7D32",
+                accent_soft_color = "#F1F8E9",
+                promo_discount_percentage = null,
+                promo_discount_amount = 0,
+                volume_discount_percentage = 0,
+                volume_discount_amount = 0,
+                discounted_total_usd = total,
+                creation_date = local_creation_date,
+                due_date = local_creation_date,
+                status = status,
+                gross_total_usd = total,
+                discount_percentage = 0,
+                discount_amount = 0,
+                total_amount_usd = total,
+                paid_amount_usd = 0,
+                balance_due_usd = 0,
+                seller_name = seller_name ?? string.Empty,
+                customer_code = customer?.customer_code ?? string.Empty,
+                customer_business_name = customer?.business_name ?? string.Empty,
+                customer_rif = customer?.rif ?? string.Empty,
+                customer_phone = customer?.phone_number ?? string.Empty,
+                customer_contact = customer?.contact_name ?? string.Empty,
+                customer_delivery_address = customer?.effective_delivery_address ?? string.Empty,
+                fiscal_address = customer?.fiscal_address ?? string.Empty,
+                conditions_text = is_gift
+                    ? "NOTA DE CREDITO POR OBSEQUIO DE PRODUCTOS."
+                    : string.IsNullOrWhiteSpace(source_text)
+                        ? "NOTA DE CREDITO POR DEVOLUCION DE PRODUCTOS."
+                        : $"DEVOLUCION DE PRODUCTOS DE LA NOTA {source_text}. ESTA NOTA RESTA DEL MONTO A COBRAR.",
+                discount_conditions_text = string.Empty,
+                payment_header_text = original?.payment_header_text,
+                payment_transfer_text = original?.payment_transfer_text,
+                payment_account_text = original?.payment_account_text,
+                payment_movil_text = original?.payment_movil_text,
+                details = print_details
+            };
         }
 
         public async Task<credit_note_report_dto> get_credit_note_report_async(DateTime from_date, DateTime to_date, string? category, int? id_seller)

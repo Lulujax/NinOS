@@ -37,11 +37,11 @@ namespace NinOS.Domain.ViewModels
         // Fecha en que se emitio la nota de credito. No es la fecha de la nota de entrega: una
         // devolucion se registra el dia que se recibe la mercancia, y el filtro por mes del
         // modulo tambien tiene que seguir a la NC, no a la nota que se esta revirtiendo.
-        public string fecha_nc_display => creation_date.ToString("dd/MM/yyyy");
+        public string fecha_nc_display => AppTimeZone.to_local(creation_date).ToString("dd/MM/yyyy");
 
         // Mismo formato que arma get_credit_note_months_async en el servicio, para que el filtro
         // por mes de la barra lo pueda comparar sin andar parseando la fecha.
-        public string fecha_nc_month_label => creation_date.ToString("MMMM yyyy", new CultureInfo("es-VE"));
+        public string fecha_nc_month_label => AppTimeZone.to_local(creation_date).ToString("MMMM yyyy", new CultureInfo("es-VE"));
     }
 
     // Nota de entrega origen + lineas devolubles para armar la Nota de Credito.

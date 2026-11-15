@@ -57,7 +57,7 @@ namespace NinOS.UI.Views
                     if (viewModel.selected_note.paid_amount_usd > 0)
                     {
                         AppDialog.Show(
-                            $"No se puede anular la nota {viewModel.selected_note.note_number}.\nTiene abonos registrados ({viewModel.selected_note.paid_amount_usd:N2} USD). Elimine primero los pagos.",
+                            $"No se puede anular la nota {viewModel.selected_note.note_number}.\nTiene abonos registrados ({viewModel.selected_note.paid_amount_usd:N2} USD).",
                             "Anulacion bloqueada",
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning);

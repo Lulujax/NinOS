@@ -17,6 +17,7 @@ namespace NinOS.Infrastructure.Services.Interfaces
         Task<IEnumerable<commission_payment_dto>> get_commission_payments_async(int id_commission);
         Task<commission_receipt_dto?> get_commission_receipt_async(int[] commission_ids, string reference_number, bool only_specified_commissions = false);
         Task register_commission_payment_async(int[] commission_ids, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations);
+        Task<bool> is_reference_used_by_other_seller_async(string reference_number, int id_seller);
         Task update_commission_payment_async(int id_commission_payment, decimal amount_usd, decimal exchange_rate, string payment_type, string reference_number, decimal amount_bs, DateTime payment_date, string bank_name, string observations);
     }
 }

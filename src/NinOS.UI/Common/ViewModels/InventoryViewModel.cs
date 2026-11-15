@@ -2586,6 +2586,7 @@ namespace NinOS.UI.Common.ViewModels
                 && string.IsNullOrWhiteSpace(stock_addition_quantity)
                 && string.IsNullOrEmpty(adjustment_reason_selected);
 
+            int cantidad_del_movimiento = 0;
             bool hay_ajuste_de_stock = is_stock_addition_mode && !apartado_vacio && _product_being_edited != null;
 
             if (hay_ajuste_de_stock)
@@ -2607,6 +2608,8 @@ namespace NinOS.UI.Common.ViewModels
                     ErrorMessage = "La cantidad debe ser un número entero válido.";
                     return;
                 }
+
+                cantidad_del_movimiento = qty_move;
 
                 if (is_stock_edit_mode)
                 {
@@ -2705,18 +2708,21 @@ namespace NinOS.UI.Common.ViewModels
                     // el codigo de la serie nueva y asigna los dos juntos.
                     _product_being_edited.name = new_name;
                     _product_being_edited.unit_price_usd = parsed_price;
-                    _product_being_edited.stock_quantity = parsed_quantity;
                     _product_being_edited.product_code = normalized_code;
 
-                    string? motivoParaPasar = null;
-                    if (hay_ajuste_de_stock)
-                    {
-                        motivoParaPasar = adjustment_reason_selected;
-                    }
+                    // El stock NO se manda aqui. Antes se enviaba la cantidad que la pantalla
+                    // tenia cargada al abrirse: si otra PC vendia mientras el formulario estaba
+                    // abierto, al guardar se devolvia el stock viejo y el kardex registraba un
+                    // ajuste que nadie hizo.
                     await _inventory_service.update_product_async(
                         _product_being_edited,
-                        motivoParaPasar,
+                        null,
                         has_pending_brand_change ? new_category : null);
+
+                    if (hay_ajuste_de_stock && !await aplicar_movimiento_de_stock_async(cantidad_del_movimiento))
+                    {
+                        return;
+                    }
                 }
                 else
                 {
@@ -2917,5 +2923,62 @@ namespace NinOS.UI.Common.ViewModels
                 ? $"{nombre} actualizado exitosamente."
                 : $"{nombre} {(es_femenino ? "creada" : "creado")} exitosamente.";
         }
+
+        /// <summary>
+        /// Aplica el movimiento de stock sobre la cantidad REAL de la base, no sobre la que
+        /// tenia la pantalla. Devuelve false si el usuario cancelo o si algo fallo.
+        /// </summary>
+        private async Task<bool> aplicar_movimiento_de_stock_async(int cantidad)
+        {
+            if (_product_being_edited == null) return true;
+
+            int id_producto = _product_being_edited.id_product;
+            string? motivo = adjustment_reason_selected;
+            string? nota = string.IsNullOrWhiteSpace(stock_addition_reason) ? null : stock_addition_reason.Trim();
+
+            try
+            {
+                if (is_stock_edit_mode)
+                {
+                    await _inventory_service.contar_stock_async(id_producto, cantidad, _original_quantity_for_edit, motivo, nota);
+                }
+                else if (is_stock_removal_mode)
+                {
+                    await _inventory_service.quitar_stock_async(id_producto, cantidad, motivo, nota);
+                }
+                else
+                {
+                    await _inventory_service.agregar_stock_async(id_producto, cantidad, motivo, nota);
+                }
+
+                return true;
+            }
+            catch (NinOS.Infrastructure.Services.stock_cambiado_exception cambio)
+            {
+                MessageBoxResult respuesta = AppDialog.Show(
+                    "El stock cambio mientras llenabas el formulario." + Environment.NewLine + Environment.NewLine
+                    + "Lo que viste: " + cambio.stock_visto + Environment.NewLine
+                    + "Lo que hay ahora: " + cambio.stock_real + Environment.NewLine + Environment.NewLine
+                    + "Si continuas, el stock quedara en " + cantidad + ". Deseas continuar?",
+                    "El stock cambio",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (respuesta != MessageBoxResult.Yes)
+                {
+                    ErrorMessage = "Conteo cancelado. El stock quedo en " + cambio.stock_real + ".";
+                    return false;
+                }
+
+                await _inventory_service.contar_stock_async(id_producto, cantidad, null, motivo, nota);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ErrorText.Get(ex);
+                return false;
+            }
+        }
+
     }
 }

@@ -139,21 +139,6 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public ObservableCollection<credit_note_dto> sandra_notes { get; }
-
-
-
-        public ObservableCollection<credit_note_dto> anais_notes { get; }
-
-
-
-        public ObservableCollection<credit_note_dto> alejandra_notes { get; }
-
-
-
-        public ObservableCollection<credit_note_dto> juan_luis_notes { get; }
-
-
 
 
 
@@ -608,22 +593,6 @@ namespace NinOS.UI.Common.ViewModels
 
 
             notes = new ObservableCollection<credit_note_dto>();
-
-
-
-            sandra_notes = new ObservableCollection<credit_note_dto>();
-
-
-
-            anais_notes = new ObservableCollection<credit_note_dto>();
-
-
-
-            alejandra_notes = new ObservableCollection<credit_note_dto>();
-
-
-
-            juan_luis_notes = new ObservableCollection<credit_note_dto>();
 
 
 
@@ -1443,22 +1412,6 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            sandra_notes.Clear();
-
-
-
-            anais_notes.Clear();
-
-
-
-            alejandra_notes.Clear();
-
-
-
-            juan_luis_notes.Clear();
-
-
-
             total_credit_usd = 0;
 
 
@@ -1573,19 +1526,6 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Sandra", StringComparison.OrdinalIgnoreCase))) sandra_notes.Add(row);
-
-
-
-            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Anais", StringComparison.OrdinalIgnoreCase))) anais_notes.Add(row);
-
-
-
-            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Alejandra", StringComparison.OrdinalIgnoreCase))) alejandra_notes.Add(row);
-
-
-
-            foreach (var row in rows.Where(r => string.Equals(r.seller_name?.Trim(), "Juan Luis", StringComparison.OrdinalIgnoreCase))) juan_luis_notes.Add(row);
 
 
 
@@ -2117,7 +2057,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            => (await _seller_service.GetAllActiveAsync()).FirstOrDefault(s => s.seller_code == "001" || s.full_name.Contains("Sandra", StringComparison.OrdinalIgnoreCase));
+            => (await _seller_service.GetAllActiveAsync()).FirstOrDefault(s => SellerCodes.is_obsequio_admin_seller(s.seller_code, s.full_name));
 
 
 

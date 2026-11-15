@@ -22,7 +22,7 @@ namespace NinOS.UI.Common
                 relation_number = row.relation_number,
                 week_start = row.week_start,
                 week_end = row.week_end,
-                city = "MARACAY",
+                city = pro_venta_calculator.Ciudad,
                 rows = notes,
                 total_amount = Money.round(vigentes.Sum(r => r.amount)),
                 total_commission_luis = Money.round(vigentes.Sum(r => r.commission_luis)),

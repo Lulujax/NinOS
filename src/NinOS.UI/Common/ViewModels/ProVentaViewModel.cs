@@ -187,6 +187,7 @@ namespace NinOS.UI.Common.ViewModels
                     on_property_changed(nameof(pending_total_balance));
                     on_property_changed(nameof(paid_total_amount));
                     on_property_changed(nameof(available_relations));
+                    on_property_changed(nameof(total_monto_original));
                     on_property_changed(nameof(total_amount));
                     on_property_changed(nameof(total_commission_luis));
                     on_property_changed(nameof(total_gastos_25));
@@ -240,7 +241,7 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public string city => "MARACAY";
+        public string city => pro_venta_calculator.Ciudad;
 
         public decimal nota_por_pagar => Money.round(total_amount - total_gastos_25 - total_gastos_15);
 
@@ -248,7 +249,7 @@ namespace NinOS.UI.Common.ViewModels
 
         public string relation_subtitle => (_report == null || !has_rows)
             ? string.Empty
-            : $"{_report.week_start:dd/MM} AL {_report.week_end:dd/MM} _ FACTURAS POR COBRAR MARACAY";
+            : $"{_report.week_start:dd/MM} AL {_report.week_end:dd/MM} _ FACTURAS POR COBRAR {pro_venta_calculator.Ciudad}";
 
         public bool has_rows => _report != null && _report.rows.Count > 0;
         public bool is_empty => !has_rows;
@@ -264,6 +265,7 @@ namespace NinOS.UI.Common.ViewModels
             : $"Las notas marcadas en rojo están ANULADAS y no se incluyen en los totales ni en la liquidación. " +
               $"Anuladas: {_report.annulled_count} nota(s) por {_report.annulled_amount:N2} USD.";
 
+        public decimal total_monto_original => _report?.total_monto_original ?? 0;
         public decimal total_amount => _report?.total_amount ?? 0;
         public decimal total_commission_luis => _report?.total_commission_luis ?? 0;
         public decimal total_gastos_25 => _report?.total_gastos_25 ?? 0;
@@ -328,6 +330,7 @@ namespace NinOS.UI.Common.ViewModels
                 on_property_changed(nameof(pending_total_balance));
                 on_property_changed(nameof(paid_total_amount));
                 on_property_changed(nameof(available_relations));
+                on_property_changed(nameof(total_monto_original));
                 on_property_changed(nameof(total_amount));
                 on_property_changed(nameof(total_commission_luis));
                 on_property_changed(nameof(total_gastos_25));
@@ -535,7 +538,7 @@ namespace NinOS.UI.Common.ViewModels
                 {
                     return;
                 }
-                report.city = "MARACAY";
+                report.city = pro_venta_calculator.Ciudad;
                 _report = report;
 
                 report_rows.Clear();
@@ -591,6 +594,7 @@ namespace NinOS.UI.Common.ViewModels
             on_property_changed(nameof(relation_subtitle));
             on_property_changed(nameof(has_rows));
             on_property_changed(nameof(is_empty));
+            on_property_changed(nameof(total_monto_original));
             on_property_changed(nameof(total_amount));
             on_property_changed(nameof(total_commission_luis));
             on_property_changed(nameof(total_gastos_25));
