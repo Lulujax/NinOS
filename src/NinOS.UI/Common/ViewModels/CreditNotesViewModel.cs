@@ -1149,6 +1149,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
                 foreach (var y in detected_years) available_years.Add(y);
+                on_property_changed(nameof(selected_year));
 
 
 

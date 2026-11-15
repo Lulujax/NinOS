@@ -1001,6 +1001,7 @@ namespace NinOS.UI.Common.ViewModels
                 available_years.Clear();
 
                 foreach (var y in detected_years) available_years.Add(y);
+                on_property_changed(nameof(selected_year));
 
 
 

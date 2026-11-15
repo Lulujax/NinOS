@@ -14,7 +14,7 @@ Cubre: RF-4 (preparación)
 - Sacar un respaldo de `ninos_db` y de `ninos_db_testing` y guardarlos **fuera del repo** (por ejemplo `D:\respaldos\`).
 - Hecho cuando: existen dos archivos y se pueden listar con `pg_restore --list`.
 - Cómo probarla: abrir el respaldo con `pg_restore --list archivo.dump`.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15: respaldos en `Programacion Trabajo\NinOS\respaldos\` (fuera del repo, carpeta padre sin Git): `ninos_db_2026-11-15_1549.dump` y `ninos_db_testing_2026-11-15_1549.dump`, ambos listados con `pg_restore --list` (199 objetos) y con datos distintos y reales. Contienen datos reales de clientes: no subirlos a ningún lado.
 
 ## Tarea 2 (manual) - Rotar el usuario y la contraseña de testing
 Cubre: RF-4
@@ -42,7 +42,7 @@ Cubre: RF-6
 - Mover `backup_ninos_db_pre_v1.0.9.dump` y `scratch/` a una carpeta fuera del repo; agregar `*.dump`, `scratch/`, `*.sql` con datos y `admin_security.json` al `.gitignore`.
 - Hecho cuando: `git ls-files` no lista ninguno de esos archivos.
 - Cómo probarla: `git ls-files | grep -E "dump|scratch"` no devuelve nada.
-- [~] Parcialmente hecha — Git ya no rastrea el `.dump` ni `scratch/`, y el `.gitignore` los cubre. **Falta que muevas esos archivos fuera de la carpeta del repo** (siguen en tu disco, intactos).
+- [x] Hecha y probada — 2026-11-15: `scratch/` (69 archivos) movida a `Programacion Trabajo\NinOS\respaldos\scratch`; `git ls-files | grep -E "dump|scratch"` no devuelve nada. El `backup_ninos_db_pre_v1.0.9.dump` ya no estaba en el repo ni en el Escritorio.
 
 ## Tarea 6 - El instalador no lleva credenciales
 Cubre: RF-7, RF-11
@@ -90,4 +90,4 @@ Cubre: RF-12
 Cubre: RF-10
 - Escribir a GitHub Support para que eliminen los commits antiguos accesibles por SHA.
 - Hecho cuando: GitHub confirma.
-- [ ] Hecha y probada
+- [x] Hecha y probada — Decisión de Luis (2026-11-15): se da por cerrada sin enviar la solicitud porque llevaría tiempo; el repositorio sigue público y todo lo que estuvo en el historial se considera filtrado.

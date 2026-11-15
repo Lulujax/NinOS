@@ -5,7 +5,7 @@ Cubre: RF-2 (preparación)
 - Ejecutar en producción: `select id_delivery_note, count(*) from commission group by 1 having count(*) > 1;`
 - Hecho cuando: devuelve 0 filas (en testing ya devuelve 0). Si devuelve filas, se resuelven con una spec aparte antes de seguir.
 - Cómo probarla: es la propia consulta.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, corrida por Claude con la conexión en modo solo lectura: `ninos_db` devuelve 0 filas (117 notas, 61 pagos); `ninos_db_testing` también 0.
 
 ## Tarea 2 - Migración: índice único de comisión por nota y columna de lote
 Cubre: RF-2, RF-6
@@ -68,7 +68,7 @@ Cubre: RF-1, RF-2, RF-3
 - Sin código: repetir las pruebas de concurrencia con dos copias y correr las consultas de control de la auditoría (pendientes con saldo cero, pagadas con saldo, sobrepagos, comisiones duplicadas).
 - Hecho cuando: todas las consultas devuelven 0 filas.
 - Cómo probarla: lo indicado; guardar el resultado en este archivo.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, corrida por Claude. Concurrencia: dos abonos simultáneos (60 y 40) sobre una nota de 100 en testing dejaron la nota Pagada, 2 pagos que suman 100 y una sola comisión de 10,00. Consultas de control en solo lectura, con saldo = `adjusted_total_usd` menos la suma de pagos de la nota: pendientes con saldo cero, pagadas con saldo, sobrepagos y comisiones duplicadas devuelven 0 filas tanto en `ninos_db` como en `ninos_db_testing`. Nota: la fórmula del saldo de esas consultas es una aproximación mía a la que usa la app; si quieres una auditoría exacta, se compara contra la pantalla de Cuentas por cobrar.
 
 ## Tarea 11 - Bloquear la edición de un pago con comisión ya pagada
 Cubre: RF-11, RF-12

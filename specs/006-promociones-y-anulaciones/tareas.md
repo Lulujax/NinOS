@@ -5,7 +5,7 @@ Cubre: RF-1, RF-4 (preparación)
 - Ejecutar en producción: `select count(*) from note_detail where id_promotion is not null;` y lo mismo en `credit_note_detail`.
 - Hecho cuando: tienes los dos números. Si son 0, las notas viejas sin foto no son un problema.
 - Cómo probarla: es la propia consulta.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, corrida por Claude en solo lectura: producción tiene 0 renglones de nota con promoción y 0 de nota de crédito con promoción, así que las notas viejas sin foto no son un problema. Testing tiene 1 renglón con promoción (el de las pruebas).
 
 ## Tarea 2 - Migración: composición guardada por renglón
 Cubre: RF-3

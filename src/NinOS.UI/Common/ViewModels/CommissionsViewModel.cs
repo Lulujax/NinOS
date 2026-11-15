@@ -548,6 +548,7 @@ _all_rows_source = all_rows;
                 available_years.Clear();
 
                 foreach (var y in detected_years) available_years.Add(y);
+                on_property_changed(nameof(selected_year));
 
                 if (!available_years.Contains(_selected_year))
 

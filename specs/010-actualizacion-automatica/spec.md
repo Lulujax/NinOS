@@ -8,7 +8,9 @@ La app pesa 179 MB, pero el código propio son solo 2,9 MB (`NinOS.UI.dll`, `Nin
 
 El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelación, cuenta atrás, el sistema se reinicia y vuelve actualizado.
 
-**Esto es un canal para ejecutar código en las PCs del cliente.** Si alguien pudiera colocar un paquete falso, instalaría cualquier programa en todas las PCs a la vez. Por eso la firma y el HTTPS son parte del requisito, no un extra.
+**Esto es un canal para ejecutar código en las PCs del cliente.** Si alguien pudiera colocar un paquete falso, instalaría cualquier programa en todas las PCs a la vez. Por eso la conexión cifrada y la comprobación de identidad del servidor son parte del requisito, no un extra.
+
+**Punto de partida real:** el VPS no tiene dominio ni subdominio; se usa por su dirección IP. nginx ya está instalado y el puerto 80 responde desde internet. Todavía no se sabe si el proveedor deja abrir otro puerto para la conexión cifrada.
 
 ## Requisitos
 
@@ -22,9 +24,10 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 ### Descargar y aplicar
 
-- **RF-6** EL SISTEMA servirá los paquetes por **HTTPS**.
+- **RF-6** EL SISTEMA servirá los paquetes por una conexión cifrada (**HTTPS**), usando la dirección IP del VPS, sin depender de un dominio.
 - **RF-7** ANTES de aplicar una actualización, EL SISTEMA verificará que el paquete esté completo y sin alterar; SI la verificación falla, ENTONCES no lo aplicará, lo registrará en el log y seguirá con la versión actual.
-- **RF-7b** EL SISTEMA aceptará actualizaciones **solo** del servidor de Luis, comprobando su identidad, y rechazará cualquier otro origen aunque responda en la misma dirección.
+- **RF-7b** EL SISTEMA aceptará actualizaciones **solo** del servidor de Luis, reconociéndolo por la huella de su certificado que la app ya trae, y rechazará cualquier otro origen aunque responda en la misma dirección o presente un certificado válido de una autoridad pública.
+- **RF-7c** SI el certificado del servidor debe cambiar, ENTONCES la app aceptará la huella nueva siempre que ya la traiga como huella de respaldo; SI no la trae, ENTONCES no actualizará, mostrará el motivo y seguirá trabajando con su versión actual.
 - **RF-8** CUANDO se abre la app, EL SISTEMA comprobará si hay una versión nueva y, si la hay, la descargará y la aplicará mostrando el avance en la pantalla de carga que ya existe.
 - **RF-9** SI la descarga o la instalación falla, ENTONCES EL SISTEMA seguirá funcionando con la versión actual y mostrará el motivo, sin quedar inservible.
 - **RF-10** CUANDO una actualización termina, EL SISTEMA se reiniciará solo y abrirá en la versión nueva.
@@ -51,7 +54,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 ### Seguridad
 
-- **RF-22** EL SISTEMA no llevará dentro de la app ninguna contraseña ni llave que permita publicar una actualización; la app solo verifica firmas, no las crea.
+- **RF-22** EL SISTEMA no llevará dentro de la app ninguna contraseña ni llave que permita publicar una actualización; la app solo verifica identidad y firmas, no las crea.
 - **RF-23** EL SISTEMA no expondrá en el servidor ninguna forma de subir paquetes sin contraseña: nginx solo entrega archivos, no los recibe.
 
 ## Cómo sé que está listo
@@ -64,6 +67,8 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - Una PC desactualizada por debajo de la mínima no deja trabajar; por debajo de la recomendada sí, con aviso.
 - Si se altera a mano un archivo del paquete en el servidor, la PC rechaza la actualización y lo deja en el log.
 - Si se apaga nginx, la app sigue abriendo y trabajando con su versión actual.
+- Un servidor de prueba con otro certificado, aunque sea válido de una autoridad pública, es rechazado por la PC y queda en el log.
+- Con el certificado del servidor cambiado a uno cuya huella la app ya trae de respaldo, la PC sigue actualizando.
 - Luis vuelve al código anterior y las PCs quedan en esa versión.
 - `dotnet build NinOS.slnx` con 0 errores y 0 advertencias.
 
@@ -73,6 +78,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - Actualizaciones silenciosas sin avisar al usuario.
 - Que distintas PCs trabajen a propósito con versiones distintas.
 - Desinstalar la app a distancia.
+- Conseguir un dominio o un certificado emitido por una autoridad pública: se usa la IP del VPS con un certificado propio.
 
 ## Decisiones tomadas
 
@@ -83,14 +89,16 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - Se acepta que una actualización mala llegue a las 3 PCs a la vez; se mitiga probando en testing primero y con la vuelta atrás.
 - Se hará **una última instalación manual** PC por PC para dejar el actualizador puesto, junto con la ronda de la spec 002.
 - El VPS seguirá en Ubuntu 20.04 (es lo que ofrece el proveedor).
+- **Sin dominio:** el servidor de actualizaciones se usa por la IP del VPS. Se descarta el subdominio gratuito con certbot; la identidad del servidor se comprueba con la huella de su certificado propio.
+- nginx ya está instalado en el VPS y el puerto 80 responde desde internet (probado desde la PC de Luis). El 443 y el 8443 no respondieron todavía, pero nginx aún no escucha en ellos, así que no se sabe si el proveedor los bloquea.
 
-## Sin presupuesto: cómo se resuelve HTTPS gratis
+## Sin presupuesto: cómo se resuelve la conexión cifrada gratis
 
 No hace falta comprar nada:
 
-- **Dominio:** un subdominio gratuito (por ejemplo DuckDNS) apuntando a la IP del VPS.
-- **Certificado:** Let's Encrypt con certbot, gratis y con renovación automática.
-- **Autenticidad de los paquetes:** se resuelve gratis con HTTPS más la verificación de integridad que ya trae la herramienta, reforzado con "fijar" en la app la identidad del servidor. Lo que **sí cuesta dinero** es un certificado de firma de código de Windows (unos 200 USD al año o más): no es obligatorio, pero sin él Windows puede mostrar advertencias de "programa no reconocido". Esto se detalla en el plan, con el riesgo asociado.
+- **Dominio:** ninguno. Se usa la IP del VPS.
+- **Certificado:** uno propio (autofirmado) generado en el VPS, gratis y con vigencia larga. No lo respalda ninguna autoridad pública; por eso la app no confía en autoridades, sino en la huella exacta de este certificado.
+- **Autenticidad de los paquetes:** conexión cifrada más huella del certificado fijada en la app, más la verificación de integridad que ya trae la herramienta de actualización. Lo que **sí cuesta dinero** es un certificado de firma de código de Windows (unos 200 USD al año o más): no es obligatorio, pero sin él Windows puede mostrar advertencias de "programa no reconocido". Esto se detalla en el plan, con el riesgo asociado.
 - **Parches del sistema operativo:** Ubuntu 20.04 ya está fuera del soporte gratuito normal, pero Ubuntu Pro da parches de seguridad **gratis hasta 5 máquinas** y se activa sobre el mismo Ubuntu 20.04, sin reinstalar nada.
 
-[NECESITA ACLARACIÓN: ¿el proveedor del VPS deja abrir los puertos 80 y 443? El 80 se necesita una vez para que Let's Encrypt valide el dominio, y el 443 para servir las actualizaciones.]
+[NECESITA ACLARACIÓN: la tarea 2 averigua si el proveedor deja abrir un puerto para la conexión cifrada (443 u otro). SI el proveedor solo deja el puerto 80, ¿aceptas el plan B, que sirve los paquetes por HTTP sin cifrar y hace que la app verifique una firma del paquete creada con una llave que vive solo en tu PC? Los detalles y riesgos están en el plan. Mientras no se sepa el resultado de la tarea 2, no se decide.]
