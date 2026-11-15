@@ -75,11 +75,11 @@ Cubre: RF-14
 - Botón "Vista previa" en `AddCreditNoteWindow` que arma el documento con los datos de la pantalla, sin guardar, usando el mismo generador del PDF final y mostrándolo con `PdfPreviewWindow`.
 - Hecho cuando: la vista previa muestra la nota con la misma información que el PDF; no se crea ningún registro en la base.
 - Cómo probarla: llenar una nota de crédito, pulsar "Vista previa", revisar que muestra los productos y el total; luego cerrar sin guardar y comprobar en Notas de crédito que no apareció nada nuevo.
-- [ ] Hecha y probada
+- [x] Hecha y probada
 
 ## Tarea 12 - Excel de la nota de crédito
 Cubre: RF-15
 - Reutilizar `NoteExcelExporter.export` (ya genera la misma estructura y pone "NOTA DE CREDITO" en la columna DOCUMENTO), conectado al botón Excel de la vista previa. No se crea un exportador nuevo.
 - Hecho cuando: el Excel abre con cliente, productos devueltos, cantidades, precio, subtotal y total, igual que el de una nota de entrega.
 - Cómo probarla: vista previa de una nota de crédito con dos productos → Excel; comparar con una nota de entrega en Excel.
-- [ ] Hecha y probada
+- [x] Hecha y probada
