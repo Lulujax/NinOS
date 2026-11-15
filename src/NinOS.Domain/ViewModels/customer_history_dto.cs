@@ -10,6 +10,7 @@ namespace NinOS.Domain.ViewModels
         public int TotalQuantity { get; set; }
         public decimal LastPriceUsd { get; set; }
         public DateTime LastPurchaseDate { get; set; }
+        public string last_purchase_display => AppTimeZone.to_local_text(LastPurchaseDate, "dd/MM/yyyy");
         public decimal TotalAmountUsd { get; set; }
     }
 

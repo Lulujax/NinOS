@@ -78,7 +78,7 @@
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="FECHA PAGO" Binding="{Binding payment_date, StringFormat={}{0:dd/MM/yyyy}}" Width="100"/>
+                <DataGridTextColumn Header="FECHA PAGO" Binding="{Binding payment_date, Converter={StaticResource UtcToLocalTextConverter}}" Width="100"/>
                 <DataGridTextColumn Header="MONTO USD" Binding="{Binding amount_usd, StringFormat={}{0:N2}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">

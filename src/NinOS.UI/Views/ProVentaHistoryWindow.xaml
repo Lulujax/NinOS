@@ -91,7 +91,7 @@
                   AlternatingRowBackground="#F1F8FF" RowBackground="White"
                   ColumnHeaderStyle="{StaticResource ProVentaHeader}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="FECHA DEL PAGO" Binding="{Binding payment_date, StringFormat={}{0:dd/MM/yyyy}}" Width="150"
+                <DataGridTextColumn Header="FECHA DEL PAGO" Binding="{Binding payment_date, Converter={StaticResource UtcToLocalTextConverter}}" Width="150"
                                     ElementStyle="{StaticResource CenterCell}"/>
                 <DataGridTextColumn Header="MONTO USD" Binding="{Binding monto_usd_magnitud, StringFormat={}{0:N2}}" Width="130">
                     <DataGridTextColumn.ElementStyle>

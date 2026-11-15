@@ -49,4 +49,4 @@ Cubre: RF-1 a RF-8
 - Sin código: recorrer la lista de "Cómo sé que está listo" de la spec.
 - Hecho cuando: todos los puntos pasan y la base no cambió (el arranque ya no escribe, spec 007).
 - Cómo probarla: Ventas, su reporte, PDF y Excel; después Cobranzas, Pagos, Comisiones y Pro Venta para confirmar que muestran lo mismo que antes.
-- [ ] Hecha y probada
+- [x] Hecha y probada — confirmada por Luis en pantalla (2026-11-15)

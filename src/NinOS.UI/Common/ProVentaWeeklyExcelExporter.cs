@@ -225,7 +225,7 @@ namespace NinOS.UI.Common
             {
                 foreach (var p in payments)
                 {
-                    wsDetail.Cell(rn, 1).SetValue(p.payment_date.ToString("dd/MM/yyyy"));
+                    wsDetail.Cell(rn, 1).SetValue(p.fecha_pago_display);
                     var mCell = wsDetail.Cell(rn, 2);
                     mCell.SetValue(p.amount_usd);
                     mCell.Style.NumberFormat.Format = "#,##0.00";

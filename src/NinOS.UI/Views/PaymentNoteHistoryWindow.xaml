@@ -72,7 +72,7 @@
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="FECHA PAGO" Binding="{Binding payment_date, StringFormat={}{0:dd/MM/yyyy}}" Width="90"/>
+                <DataGridTextColumn Header="FECHA PAGO" Binding="{Binding payment_date, Converter={StaticResource UtcToLocalTextConverter}}" Width="90"/>
                 <DataGridTextColumn Header="FECHA REGISTRO" Binding="{Binding fecha_registro_display}" Width="120"/>
                 <DataGridTextColumn Header="ULT. EDICION" Binding="{Binding ult_edicion_display}" Width="120"/>
                 <DataGridTextColumn Header="TIPO" Binding="{Binding payment_type}" Width="80"/>

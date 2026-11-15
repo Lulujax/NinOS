@@ -316,8 +316,8 @@ namespace NinOS.UI.Common
                         else if (isAnulada) t.FontColor(RedColor);
                     }
 
-                    cellText(n.creation_date.ToString("dd/MM/yyyy"));
-                    cellText(n.dispatch_date.HasValue ? n.dispatch_date.Value.ToString("dd/MM/yyyy") : "-");
+                    cellText(n.fecha_display);
+                    cellText(string.IsNullOrEmpty(n.despacho_display) ? "-" : n.despacho_display);
                     cellText(n.note_number);
                     cellText(string.IsNullOrWhiteSpace(n.seller_name) ? "-" : n.seller_name);
                     cellText(string.IsNullOrWhiteSpace(n.note_type_name) ? "GEN" : n.note_type_name);
@@ -389,7 +389,7 @@ namespace NinOS.UI.Common
                         if (customColor != null) t.FontColor(customColor).Bold();
                     }
 
-                    cellText(c.creation_date.ToString("dd/MM/yyyy"));
+                    cellText(c.fecha_nc_display);
                     cellText(c.note_number);
                     cellText(string.IsNullOrWhiteSpace(c.source_note_number) ? "-" : c.source_note_number);
                     cellText(string.IsNullOrWhiteSpace(c.category) ? "Credito" : c.category);
@@ -460,7 +460,7 @@ namespace NinOS.UI.Common
                         if (customColor != null) t.FontColor(customColor).Bold();
                     }
 
-                    cellText(p.payment_date.ToString("dd/MM/yyyy"));
+                    cellText(p.fecha_pago_display);
                     cellText(string.IsNullOrWhiteSpace(p.note_number) ? "-" : p.note_number);
                     cellText(string.IsNullOrWhiteSpace(p.payment_type) ? "-" : p.payment_type);
                     cellText(string.IsNullOrWhiteSpace(p.reference_number) ? "-" : p.reference_number);
@@ -534,7 +534,7 @@ namespace NinOS.UI.Common
                     cellText(p.TotalQuantity.ToString(), right: true);
                     cellText(p.LastPriceUsd.ToString("N2", Ve), right: true);
                     cellText(p.TotalAmountUsd.ToString("N2", Ve), right: true, customColor: PrimaryColor);
-                    cellText(p.LastPurchaseDate != DateTime.MinValue ? p.LastPurchaseDate.ToString("dd/MM/yyyy") : "-");
+                    cellText(string.IsNullOrEmpty(p.last_purchase_display) ? "-" : p.last_purchase_display);
                 }
 
                 // Total

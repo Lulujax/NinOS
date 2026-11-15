@@ -22,6 +22,7 @@ namespace NinOS.Domain.ViewModels
         public DateTime creation_date { get; set; }
         public string fecha_display => AppTimeZone.to_local(creation_date).ToString("dd/MM/yyyy");
         public DateTime? dispatch_date { get; set; }
+        public string despacho_display => AppTimeZone.to_local_text(dispatch_date, "dd/MM/yyyy");
         public decimal total_amount_usd { get; set; }
         public decimal gross_total_usd { get; set; }
         public decimal discount_amount { get; set; }

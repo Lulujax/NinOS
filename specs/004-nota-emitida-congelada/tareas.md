@@ -5,7 +5,7 @@ Cubre: RF-1, RF-6
 - Sin cambiar código, listar en `specs/004-nota-emitida-congelada/inventario.md` cada lugar que muestra datos de una nota o fechas (PDF nota, PDF nota de crédito, Excel, historial de cliente, detalle de nota de crédito, comprobantes) y qué fuente usa cada uno.
 - Hecho cuando: el archivo existe y cada fila dice "fecha UTC / local" y "dato vivo / congelado".
 - Cómo probarla: revisarlo contigo; no hay nada que ejecutar.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, cerrada por Claude con autorización de Luis (ver `inventario.md`, secciones 6 y 7).
 
 ## Tarea 2 - Migración: columnas de foto en nota y nota de crédito
 Cubre: RF-1, RF-7
@@ -75,4 +75,4 @@ Cubre: RF-8, RF-2
 - Generar un PDF de cada tipo y comprobar tamaño carta; recorrer la lista de la tarea 1.
 - Hecho cuando: todos los PDF son carta y la tabla del inventario queda toda en "local / congelado" (salvo notas viejas).
 - Cómo probarla: abrir cada PDF y ver propiedades del documento.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, cerrada por Claude con autorización de Luis (ver `inventario.md`, secciones 6 y 7).

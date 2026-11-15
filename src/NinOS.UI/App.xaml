@@ -9,6 +9,7 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:IntEqualsToVisibilityConverter x:Key="IntEqualsToVisibilityConverter" />
+        <converters:UtcToLocalTextConverter x:Key="UtcToLocalTextConverter" />
 
         <!--
             La barra horizontal aparece solo cuando la tabla realmente la necesita.

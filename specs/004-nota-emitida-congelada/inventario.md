@@ -116,9 +116,21 @@ Las fechas de pago se guardan en UTC porque `payment`, `commission_payment` y `c
 - **H3 (RF-2, RF-7):** en notas sin foto el nombre del producto, los datos del cliente y de la vendedora son vivos (es lo decidido en RF-9). En las notas con foto, el detalle de nota de crédito mezcla el código congelado con el nombre vivo y el cliente vivo, porque esa ventana no lee la foto.
 - **H4:** el pie "Impreso" del PDF usa la hora de impresión, no la de emisión. Es intencional, pero queda registrado para que nadie lo confunda con la fecha de la nota.
 
-## 6. Aclaraciones
+## 6. Cierre (tarea 11, 2026-11-15)
 
-- **[NECESITA ACLARACIÓN A1: ¿`dispatch_date` (fecha de despacho) es una fecha de calendario sin hora, o lleva hora UTC? Se muestra sin conversión en la ventana de historial, en su PDF y en su Excel. Si lleva hora, también necesita pasar por `to_local`.]**
-- **[NECESITA ACLARACIÓN A2: los comprobantes de pago y los de comisión están dentro de RF-6 ("pagos y comprobantes en hora de Venezuela"), pero la spec no dice si hay un comprobante de pago impreso aparte. El código solo tiene el comprobante de comisión. ¿Existe otro comprobante de pago que deba entrar en el inventario?]**
-- **[NECESITA ACLARACIÓN A4: `pro_venta_dto.payment_date_display` (columna FECHA PAGO CLIENTE de Pro Venta) se arma en `ProVentaService`, y no se verificó si convierte a hora de Venezuela. ¿Se revisa en la tarea de fechas (RF-6)?]**
-- **[NECESITA ACLARACIÓN A3: en el Excel de una nota de crédito con su nota de entrega las hojas se llaman "Original" y "Copia" (nota de entrega y nota de crédito). ¿Se dejan esos nombres?]**
+Luis delegó el cierre de la spec en Claude. Estado de cada hallazgo después de los cambios:
+
+- **H1 — aceptado, cumple RF-4.** El PDF/Excel inmediato sale después de guardar, con el número definitivo, y de los mismos datos que se congelaron en ese instante. Las reimpresiones leen la foto.
+- **H2 — corregido.** Todas las fechas de la sección 4 que salían en UTC ahora pasan por `AppTimeZone.to_local` / `to_local_text`: historial de cliente (ventana, PDF y Excel, incluidas DESPACHO, pagos y ÚLTIMA COMPRA), comprobante y reportes de comisiones, reporte de pagos (PDF y Excel), PDF y Excel semanal de Pro Venta, y las ventanas de historial de pagos, de pagos por nota, de comisiones y de Pro Venta (con el convertidor `UtcToLocalTextConverter`). Pruebas: `AppTimeZoneTextTests` y `UtcToLocalTextConverterTests` (las 9 pm del día 12 salen 12).
+- **H3 — corregido.** `CreditNoteDetailWindow` muestra cliente, vendedora, fecha y renglones de la foto cuando existe, y la fecha en hora de Venezuela. Sin foto (nota vieja) sigue con datos vivos, como pide RF-9.
+- **H4 — intencional.** El pie "Impreso" es la hora de impresión.
+- **RF-8 — verificado.** Los 15 generadores de PDF usan `PageSizes.Letter` (el de clientes, carta horizontal). `NotePdfCartaTests` genera nota de entrega, nota de crédito y las dos juntas, sin renglones y con 20 renglones, y comprueba que cada página mide 612 x 792 puntos.
+
+Con esto, todo lo que se imprime o exporta de una nota sale en hora local y congelado (salvo las notas viejas sin foto, por RF-9). Las listas y reportes siguen siendo vistas del estado actual, como dice «Fuera de alcance».
+
+## 7. Aclaraciones resueltas
+
+- **A1 — resuelta:** `dispatch_date` sí lleva hora UTC (columna `timestamp with time zone`, se guarda con `ToUniversalTime()` en `AccountsReceivableService`). Por eso ahora también se convierte al mostrarla.
+- **A2 — resuelta:** no existe un comprobante de pago impreso aparte; el único comprobante es el de comisión, que ya sale en hora local.
+- **A3 — resuelta:** se dejan las hojas "Original" y "Copia" en el Excel con dos notas.
+- **A4 — fuera de esta spec:** `pro_venta_dto.payment_date_display` (FECHA PAGO CLIENTE de Pro Venta) nunca se asigna en el código, así que la columna sale vacía. No es un tema de hora sino un dato faltante; queda para cuando se retome Pro Venta, que todavía no está terminado.

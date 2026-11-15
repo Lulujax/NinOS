@@ -96,10 +96,10 @@ namespace NinOS.UI.Common.ViewModels
 
         public DateTime? commission_paid_date { get; set; }            // FECHA EN QUE LA COMISION FUE PAGADA
 
-        public string note_last_payment_date_text => note_last_payment_date?.ToString("dd/MM/yyyy") ?? string.Empty;
+        public string note_last_payment_date_text => AppTimeZone.to_local_text(note_last_payment_date, "dd/MM/yyyy");
 
         public string note_payments_text { get; set; } = string.Empty;
-        public string commission_paid_date_text => commission_paid_date?.ToString("dd-MMM", new CultureInfo("es-VE")).Replace(".", "").ToLowerInvariant() ?? string.Empty;
+        public string commission_paid_date_text => AppTimeZone.to_local_text(commission_paid_date, "dd-MMM").Replace(".", "").ToLowerInvariant();
 
         public string early_payment_text => (discount_percentage != null && discount_percentage.Value > 0)
 

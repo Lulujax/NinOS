@@ -54,4 +54,4 @@ Cubre: RF-8
 - Prueba sin código nuevo: confirmar con la foto que notas viejas no cambian.
 - Hecho cuando: editar la promoción no altera la reimpresión ni la anulación de una nota vieja.
 - Cómo probarla: vender, editar la promoción (quitar un producto), reimprimir y anular la nota → todo como al emitirla.
-- [ ] Hecha y probada
+- [x] Hecha y probada — confirmada por Luis en pantalla (2026-11-15)

@@ -20,7 +20,7 @@ namespace NinOS.Domain.ViewModels
         public decimal commission_amount { get; set; }
         public decimal commission_10 { get => commission_amount; set => commission_amount = value; }
         public DateTime? commission_paid_date { get; set; }
-        public string commission_paid_date_dmon => commission_paid_date?.ToString("dd-MMM", new CultureInfo("es-VE")).Replace(".", "").ToLowerInvariant() ?? string.Empty;
+        public string commission_paid_date_dmon => AppTimeZone.to_local_text(commission_paid_date, "dd-MMM").Replace(".", "").ToLowerInvariant();
     }
 
     public class commission_receipt_dto

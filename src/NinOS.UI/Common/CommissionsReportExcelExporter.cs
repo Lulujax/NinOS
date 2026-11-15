@@ -144,7 +144,7 @@ namespace NinOS.UI.Common
                     var fpCell = ws.Cell(rowIdx, 4);
                     string pDateText = !string.IsNullOrWhiteSpace(r.note_payments_text)
                         ? r.note_payments_text
-                        : (r.note_last_payment_date?.ToString("dd/MM/yyyy") ?? "-");
+                        : (r.note_last_payment_date.HasValue ? NinOS.Domain.AppTimeZone.to_local_text(r.note_last_payment_date, "dd/MM/yyyy") : "-");
                     pDateText = pDateText.Replace("\r\n", "\n").Replace("\r", "\n").Replace("$", string.Empty);
                     fpCell.SetValue(pDateText);
                     fpCell.Style.Font.FontSize = 11;
@@ -223,7 +223,7 @@ namespace NinOS.UI.Common
                         Ref = string.IsNullOrWhiteSpace(r.reference_number) ? "-" : r.reference_number.Trim(),
                         Date = !string.IsNullOrWhiteSpace(r.commission_paid_date_text)
                             ? r.commission_paid_date_text
-                            : (r.commission_paid_date != null ? r.commission_paid_date.Value.ToString("dd-MMM", Ve).Replace(".", "").ToLowerInvariant() : "-")
+                            : (r.commission_paid_date != null ? NinOS.Domain.AppTimeZone.to_local(r.commission_paid_date.Value).ToString("dd-MMM", Ve).Replace(".", "").ToLowerInvariant() : "-")
                     })
                     .Select(group => new
                     {

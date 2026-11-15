@@ -37,5 +37,15 @@ namespace NinOS.Domain
         /// donde no se puede invocar la conversion en C#.
         /// </summary>
         public static double offset_hours => Offset.TotalHours;
+
+        private static readonly System.Globalization.CultureInfo VenezuelaCulture = new System.Globalization.CultureInfo("es-VE");
+
+        public static string to_local_text(DateTime? utc, string format)
+        {
+            if (string.IsNullOrWhiteSpace(format))
+                throw new ArgumentException("El formato de fecha no puede estar vacio.", nameof(format));
+            if (utc == null || utc.Value == default) return string.Empty;
+            return to_local(utc.Value).ToString(format, VenezuelaCulture);
+        }
     }
 }

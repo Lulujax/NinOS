@@ -20,7 +20,7 @@ namespace NinOS.UI.Common
         {
             string seller = (receipt?.seller_name ?? string.Empty).ToUpperInvariant();
             string seller_tag = seller.Replace(" ", string.Empty);
-            var date = receipt?.payment_date ?? DateTime.Now;
+            var date = receipt != null ? NinOS.Domain.AppTimeZone.to_local(receipt.payment_date) : DateTime.Now;
             return $"Comprobante_Comision_{seller_tag}_{date:yyyyMMdd}.pdf";
         }
 
@@ -263,7 +263,7 @@ namespace NinOS.UI.Common
         private static string DateDMon(DateTime? value)
         {
             if (value == null || value.Value == default) return string.Empty;
-            return value.Value.ToString("dd-MMM", Ve).Replace(".", string.Empty).ToLowerInvariant();
+            return NinOS.Domain.AppTimeZone.to_local(value.Value).ToString("dd-MMM", Ve).Replace(".", string.Empty).ToLowerInvariant();
         }
     }
 }

@@ -12,7 +12,7 @@ Cómo cumplir [spec.md](spec.md). Todavía no se ha tocado código.
 | Mecanismo de actualización | No existe ninguno |
 | Instalación | Inno Setup, `Program Files`, pide administrador, carpeta abierta a todos los usuarios |
 | Pantalla de carga | [SplashWindow](../../src/NinOS.UI/Views/SplashWindow.xaml.cs) ya tiene `SetLoading`, `SetReady`, `SetError`, `RetryRequested`, `ExitRequested` |
-| Servidor de archivos | nginx ya instalado en el VPS. El puerto 80 responde desde internet (probado desde la PC de Luis). El 443 y el 8443 no respondieron: nginx aún no escucha ahí y no se sabe si el proveedor los bloquea |
+| Servidor de archivos | nginx ya instalado en el VPS. El puerto 80 responde desde internet (probado desde la PC de Luis). El 443 responde por HTTPS desde internet (probado el 2026-11-15 con una página de prueba); el proveedor no bloquea puertos y el firewall del VPS (`ufw`) lo permite |
 | Dominio | Ninguno. Se usa la IP del VPS |
 
 **Capacidad del VPS:** 1,9 GB de RAM (347 MB en uso), 1 vCore, 25,3 GB libres. nginx sirviendo archivos estáticos añade unos 20 MB de RAM y nada de CPU. Tres versiones completas ocupan ~540 MB. El servidor no es el cuello de botella.
@@ -56,7 +56,7 @@ Esto es lo más delicado del plan, porque el actualizador ejecuta código en las
 
 **Lo que no se hará:** escribir una firma criptográfica propia a mano. Hacer criptografía a mano es un error clásico; entre eso y HTTPS con huella fijada, lo segundo es más seguro.
 
-### Plan B (solo si el proveedor deja únicamente el puerto 80)
+### Plan B (descartado: el 443 funciona)
 
 Se activa solo si la tarea 2 demuestra que no se puede abrir ningún puerto para HTTPS.
 
@@ -67,7 +67,7 @@ Se activa solo si la tarea 2 demuestra que no se puede abrir ningún puerto para
 - La política de versión mínima, el aviso y la versión recomendada siguen yendo por la base de datos, con su propia conexión cifrada, así que no cambian.
 - Cuesta más trabajo que el plan principal: generar y guardar la llave, firmar en `deploy.ps1` y verificar en la app.
 
-[NECESITA ACLARACIÓN: si la tarea 2 confirma que solo el puerto 80 está disponible, ¿aceptas el plan B de arriba, o prefieres buscar otra salida (por ejemplo pedir al proveedor que abra un puerto)? No elijo yo; espero tu decisión después de la tarea 2.]
+Resuelto el 2026-11-15: la tarea 2 confirmó que el 443 llega desde internet, así que el plan B no se usa. Queda escrito solo como referencia.
 
 ## Flujo de publicación (el que aprobó Luis, con su aviso previo)
 

@@ -71,7 +71,7 @@ namespace NinOS.UI.Common
             ws.Cell(3, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
             ws.Cell(3, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-            ws.Cell(3, 9).Value = receipt.payment_date.ToString("dd/MM/yyyy");
+            ws.Cell(3, 9).Value = NinOS.Domain.AppTimeZone.to_local_text(receipt.payment_date, "dd/MM/yyyy");
             ws.Cell(3, 9).Style.Font.Bold = true;
             ws.Cell(3, 9).Style.Font.FontSize = 10;
             ws.Cell(3, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -139,7 +139,7 @@ namespace NinOS.UI.Common
                 var fpCell = ws.Cell(rowIdx, 4);
                 string pDateText = !string.IsNullOrWhiteSpace(r.note_payments_text)
                     ? r.note_payments_text
-                    : (r.payment_date?.ToString("dd/MM/yyyy") ?? "-");
+                    : (r.payment_date.HasValue ? NinOS.Domain.AppTimeZone.to_local_text(r.payment_date, "dd/MM/yyyy") : "-");
                 pDateText = pDateText.Replace("\r\n", "\n").Replace("\r", "\n").Replace("$", string.Empty);
                 fpCell.SetValue(pDateText);
                 fpCell.Style.Font.FontSize = 11;
@@ -185,7 +185,7 @@ namespace NinOS.UI.Common
                 var pagComCell = ws.Cell(rowIdx, 9);
                 string commPaidDateText = !string.IsNullOrWhiteSpace(r.commission_paid_date_dmon)
                     ? r.commission_paid_date_dmon
-                    : (r.commission_paid_date?.ToString("dd/MM/yyyy") ?? "-");
+                    : (r.commission_paid_date.HasValue ? NinOS.Domain.AppTimeZone.to_local_text(r.commission_paid_date, "dd/MM/yyyy") : "-");
                 pagComCell.SetValue(commPaidDateText);
                 pagComCell.Style.Font.FontSize = 11;
                 pagComCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -318,7 +318,7 @@ namespace NinOS.UI.Common
             usdCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             usdCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-            string payDateDMon = receipt.payment_date.ToString("dd-MMM", Ve).Replace(".", "").ToLowerInvariant();
+            string payDateDMon = NinOS.Domain.AppTimeZone.to_local(receipt.payment_date).ToString("dd-MMM", Ve).Replace(".", "").ToLowerInvariant();
             var bDateCell = ws.Cell(bankDataRow, 9);
             bDateCell.SetValue(payDateDMon);
             bDateCell.Style.Font.FontSize = 11;

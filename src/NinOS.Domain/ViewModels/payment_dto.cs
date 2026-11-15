@@ -16,6 +16,7 @@ namespace NinOS.Domain.ViewModels
         public string zone_name { get; set; } = string.Empty;
 
         public DateTime payment_date { get; set; }
+        public string fecha_pago_display => AppTimeZone.to_local_text(payment_date, "dd/MM/yyyy");
         public DateTime created_at { get; set; }
         public DateTime? updated_at { get; set; }
         public decimal amount_usd { get; set; }

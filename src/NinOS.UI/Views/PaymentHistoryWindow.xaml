@@ -34,7 +34,7 @@
                 <DataGridTextColumn Header="TASA" Binding="{Binding exchange_rate, StringFormat={}{0:N2}}" Width="60"/>
                 <DataGridTextColumn Header="TIPO" Binding="{Binding payment_type}" Width="80"/>
                 <DataGridTextColumn Header="REF" Binding="{Binding reference_number}" Width="80"/>
-                <DataGridTextColumn Header="FECHA" Binding="{Binding payment_date, StringFormat={}{0:dd/MM/yyyy HH:mm}}" Width="110"/>
+                <DataGridTextColumn Header="FECHA" Binding="{Binding payment_date, Converter={StaticResource UtcToLocalTextConverter}, ConverterParameter='dd/MM/yyyy HH:mm'}" Width="110"/>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

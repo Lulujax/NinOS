@@ -28,8 +28,8 @@ namespace NinOS.UI.Common
             foreach (var n in model.DeliveryNotes)
             {
                 int c = 1;
-                wsNotes.Cell(rNote, c++).SetValue(n.creation_date.ToString("dd/MM/yyyy"));
-                wsNotes.Cell(rNote, c++).SetValue(n.dispatch_date.HasValue ? n.dispatch_date.Value.ToString("dd/MM/yyyy") : "-");
+                wsNotes.Cell(rNote, c++).SetValue(n.fecha_display);
+                wsNotes.Cell(rNote, c++).SetValue(string.IsNullOrEmpty(n.despacho_display) ? "-" : n.despacho_display);
                 wsNotes.Cell(rNote, c++).SetValue(n.note_number);
                 wsNotes.Cell(rNote, c++).SetValue(n.seller_name);
                 wsNotes.Cell(rNote, c++).SetValue(n.note_type_name);
@@ -82,7 +82,7 @@ namespace NinOS.UI.Common
                 foreach (var cn in model.CreditNotes)
                 {
                     int c = 1;
-                    wsCn.Cell(rCn, c++).SetValue(cn.creation_date.ToString("dd/MM/yyyy"));
+                    wsCn.Cell(rCn, c++).SetValue(cn.fecha_nc_display);
                     wsCn.Cell(rCn, c++).SetValue(cn.note_number);
                     wsCn.Cell(rCn, c++).SetValue(cn.source_note_number);
                     wsCn.Cell(rCn, c++).SetValue(cn.category);
@@ -120,7 +120,7 @@ namespace NinOS.UI.Common
                 foreach (var p in model.Payments)
                 {
                     int c = 1;
-                    wsPay.Cell(rPay, c++).SetValue(p.payment_date.ToString("dd/MM/yyyy"));
+                    wsPay.Cell(rPay, c++).SetValue(p.fecha_pago_display);
                     wsPay.Cell(rPay, c++).SetValue(p.note_number);
                     wsPay.Cell(rPay, c++).SetValue(p.payment_type);
                     wsPay.Cell(rPay, c++).SetValue(p.reference_number);
@@ -185,7 +185,7 @@ namespace NinOS.UI.Common
                     totCell.SetValue(prod.TotalAmountUsd);
                     totCell.Style.NumberFormat.Format = "#,##0.00";
 
-                    wsTop.Cell(rTop, c++).SetValue(prod.LastPurchaseDate != DateTime.MinValue ? prod.LastPurchaseDate.ToString("dd/MM/yyyy") : "-");
+                    wsTop.Cell(rTop, c++).SetValue(string.IsNullOrEmpty(prod.last_purchase_display) ? "-" : prod.last_purchase_display);
                     rTop++;
                 }
                 wsTop.Cell(rTop, 1).SetValue("TOTALES");

@@ -12,7 +12,7 @@ Cubre: RF-1, RF-5
 - Ejecutar en producción: `select count(*) from payment where payment_type='NOTA DE CREDITO';` y la consulta de clientes con código fuera de 5 dígitos.
 - Hecho cuando: ambos devuelven 0. Si no, se corrige con un script supervisado antes de la tarea 3.
 - Cómo probarla: es la propia consulta.
-- [~] Ya no hace falta correr SQL a mano: el diagnóstico de la tarea 1 cuenta solo los pagos de tipo NOTA DE CREDITO y los códigos de cliente fuera de formato. **Falta que abras la app en producción y leas `ninos-ui.log`.**
+- [x] Hecha y probada — 2026-11-15, corrida por Claude en producción en solo lectura: 0 pagos de tipo NOTA DE CREDITO y 0 clientes con código fuera de 5 dígitos. No hay nada que limpiar.
 
 ## Tarea 3 - Quitar limpieza de pagos y renumeraciones del arranque
 Cubre: RF-1, RF-5
@@ -68,4 +68,4 @@ Cubre: RF-1 a RF-6
 - Sin código: respaldo de testing, abrir y cerrar la app dos veces, segundo respaldo y comparar conteos y sumas.
 - Hecho cuando: no hay diferencias.
 - Cómo probarla: conteos por tabla y `sum(amount_usd)` de pagos, `sum(adjusted_total_usd)` de notas, antes y después.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15, corrida por Claude en testing: foto de las 22 tablas (conteo y huella md5 del contenido) más suma de pagos (6751,36) y de notas (38771,64); se abrió y cerró la app dos veces (arranque completo); la segunda foto es idéntica.

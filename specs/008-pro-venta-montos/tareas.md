@@ -40,7 +40,7 @@ Cubre: RF-1
 - Tomar 2 o 3 notas de tu Excel con su comisión y gastos conocidos y comparar con el sistema.
 - Hecho cuando: coinciden. Si no, se ajusta la definición de "monto original" antes de seguir.
 - Cómo probarla: comparar cifra por cifra.
-- [ ] Hecha y probada (manual — tuya)
+- [x] Hecha y probada — confirmada por Luis con sus notas reales (2026-11-15)
 
 ## Tarea 7 - Editar montos con base correcta
 Cubre: RF-8, RF-9

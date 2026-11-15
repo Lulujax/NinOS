@@ -32,7 +32,7 @@ namespace NinOS.UI.Common
             foreach (var p in payments.OrderBy(x => x.payment_date).ThenBy(x => x.note_number))
             {
                 int c = 1;
-                ws.Cell(rowIdx, c++).SetValue(p.payment_date.ToString("dd/MM/yyyy"));
+                ws.Cell(rowIdx, c++).SetValue(p.fecha_pago_display);
                 ws.Cell(rowIdx, c++).SetValue(p.note_number);
                 ws.Cell(rowIdx, c++).SetValue(p.customer_name);
                 ws.Cell(rowIdx, c++).SetValue(p.seller_name);

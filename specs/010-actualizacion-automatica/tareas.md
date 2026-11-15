@@ -11,7 +11,7 @@ Cubre: preparación
 - Respaldo de `ninos_db` y `ninos_db_testing`, y una copia del `publish\` de la versión 1.0.10 actual, guardados fuera del repo.
 - Hecho cuando: existen los tres y el `.dump` se puede listar con `pg_restore --list`.
 - Cómo probarla: listar el respaldo y abrir la carpeta copiada.
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15: en `Programacion Trabajo\NinOS\respaldos\` (fuera del repo) están `ninos_db_2026-11-15_1549.dump` y `ninos_db_testing_2026-11-15_1549.dump` (ambos listados con `pg_restore --list`) y `publish-1.0.9-instalada` (444 archivos, 177,7 MB). Ojo: la versión instalada en producción y la de `publish\` es la **1.0.9**, aunque el `.csproj` dice 1.0.10; la versión de partida del actualizador es la 1.0.9.
 
 ## Tarea 2 (manual) - Averiguar qué puertos deja abiertos el proveedor
 Cubre: RF-6 (preparación), riesgo 7 del plan
@@ -19,7 +19,7 @@ Cubre: RF-6 (preparación), riesgo 7 del plan
 - Hecho cuando: queda anotado en este archivo qué puertos alcanzan a nginx desde internet y cuál se usará para HTTPS; o queda anotado que solo responde el 80.
 - Cómo probarla: desde Windows, `Test-NetConnection <IP del VPS> -Port 443` y lo mismo con el 8443 → `TcpTestSucceeded : True` en el que sirva.
 - **Si solo responde el 80, parar aquí:** la tarea 3 queda bloqueada hasta que Luis decida sobre el plan B (ver el `[NECESITA ACLARACIÓN]` del plan).
-- [ ] Hecha y probada
+- [x] Hecha y probada — 2026-11-15: `ufw` activo con 22, 80, 443, 5432 y 54329 permitidos. nginx escuchó en el 443 con certificado autofirmado y desde la PC de Luis `Test-NetConnection` dio `True` y HTTPS respondió la página de prueba. **Se usará el 443 para HTTPS.** El proveedor no bloquea puertos; el plan B queda descartado. La página de prueba (`prueba-443` en nginx) se reemplaza en la tarea 3.
 
 ## Tarea 3 (manual, depende de la tarea 2) - HTTPS con certificado propio en el VPS
 Cubre: RF-6, RF-23

@@ -21,7 +21,7 @@ Cubre: RF-4
 - Crear un usuario nuevo para testing con contraseña larga y aleatoria (guardada en un gestor de contraseñas) y poner la cadena en tu variable de entorno `NINOS_DB_CONNECTION`.
 - Hecho cuando: la app en debug conecta a testing con el usuario nuevo.
 - Cómo probarla: `dotnet run --project src/NinOS.UI` abre normal.
-- [ ] Hecha y probada
+- [~] Parcialmente hecha — 2026-11-15: creado `ninos_test` (clave aleatoria de 32 caracteres, guardada solo en tu variable de entorno de usuario `NINOS_DB_CONNECTION` y en los `appsettings.json` locales, fuera de Git) y `ninos_app` para producción (su cadena quedó en `installer\private\appsettings.client.json`, fuera de Git). Las 145 pruebas pasan con `ninos_test`. **Falta que abras la app en debug con el usuario nuevo y copies las claves a tu gestor de contraseñas.** `ninos_admin` no se toca hasta el día de la rotación (tarea 10).
 
 ## Tarea 3 - La app no trae conexión escrita y falla claro sin configuración
 Cubre: RF-1, RF-2, RF-3
@@ -84,7 +84,7 @@ Cubre: RF-12
 - Crear el rol dueño de las tablas de NinOS: puede crear y modificar sus tablas (necesario porque la app migra al arrancar), pero sin `SUPERUSER`, sin `CREATEDB`, sin `CREATEROLE` y sin acceso a otras bases.
 - Hecho cuando: la app arranca y aplica migraciones con ese usuario, y ese usuario no puede ver ni tocar otras bases.
 - Cómo probarla: recorrer una nota, un pago, una nota de crédito y una comisión; con ese usuario intentar `CREATE DATABASE prueba` → rechazado; intentar listar otras bases → sin acceso.
-- [ ] Hecha y probada
+- [~] Parcialmente hecha — 2026-11-15, en testing: `ninos_test` (sin superusuario, sin crear bases, sin crear roles) es dueño de `ninos_db_testing` y de sus tablas; `CREATE DATABASE` → rechazado; leer las tablas de producción → "permission denied"; las 145 pruebas pasan con ese usuario, incluidas las que migran la base. En producción falta aplicar `installer\private\rotacion_produccion.sql` con `ninos_admin` el día de la rotación (tarea 10), junto con instalar `appsettings.client.json` en las PCs. La lista de nombres de bases no se puede ocultar en PostgreSQL; sí se bloquea conectarse a ellas.
 
 ## Tarea 12 (manual) - Pedir a GitHub la purga de caché
 Cubre: RF-10

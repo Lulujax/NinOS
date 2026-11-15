@@ -360,7 +360,7 @@ namespace NinOS.UI.Common
                             if (remaining <= 0.005m) remaining = 0m;
                             string subtotal = remaining.ToString("N2");
 
-                            hist.Cell().Background(bg).Padding(2).AlignCenter().Text(p.payment_date.ToString("dd/MM/yyyy"));
+                            hist.Cell().Background(bg).Padding(2).AlignCenter().Text(p.fecha_pago_display);
                             hist.Cell().Background(bg).Padding(2).AlignCenter().Text(monto).FontColor(color).Bold();
                             hist.Cell().Background(bg).Padding(2).AlignCenter().Text(subtotal).FontColor(Accent).Bold();
                             hist.Cell().Background(bg).Padding(2).Text(p.notes);

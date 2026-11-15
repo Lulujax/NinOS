@@ -267,7 +267,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="N° NOTA" Binding="{Binding note_number}" Width="75" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_display}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
-                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding dispatch_date, StringFormat=dd/MM/yyyy}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
+                        <DataGridTextColumn Header="DESPACHO" Binding="{Binding despacho_display}" SortMemberPath="dispatch_date" Width="80" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="TIPO" Binding="{Binding note_type_display}" Width="75" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="VENDEDOR" Binding="{Binding seller_name}" Width="95" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="TOTAL ($)" Binding="{Binding total_amount_usd, StringFormat=N2}" Width="85" ElementStyle="{StaticResource CellRight}"/>
@@ -352,7 +352,7 @@
             <TabItem Header="Cobranzas y Abonos Realizados">
                 <DataGrid Style="{StaticResource CompactDataGrid}" ItemsSource="{Binding Payments}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="FECHA" Binding="{Binding payment_date, StringFormat=dd/MM/yyyy}" Width="85" ElementStyle="{StaticResource CellCenter}"/>
+                        <DataGridTextColumn Header="FECHA" Binding="{Binding fecha_pago_display}" SortMemberPath="payment_date" Width="85" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="N° NOTA" Binding="{Binding note_number}" Width="80" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="MÉTODO" Binding="{Binding payment_type}" Width="105" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="MONTO USD" Binding="{Binding amount_usd, StringFormat=N2}" Width="95" ElementStyle="{StaticResource CellRight}"/>
@@ -380,7 +380,7 @@
                         <DataGridTextColumn Header="CANTIDAD TOTAL" Binding="{Binding TotalQuantity}" Width="110" ElementStyle="{StaticResource CellCenter}"/>
                         <DataGridTextColumn Header="ÚLTIMO PRECIO ($)" Binding="{Binding LastPriceUsd, StringFormat=N2}" Width="120" ElementStyle="{StaticResource CellRight}"/>
                         <DataGridTextColumn Header="TOTAL FACTURADO ($)" Binding="{Binding TotalAmountUsd, StringFormat=N2}" Width="135" ElementStyle="{StaticResource CellRight}"/>
-                        <DataGridTextColumn Header="ÚLTIMA COMPRA" Binding="{Binding LastPurchaseDate, StringFormat=dd/MM/yyyy}" Width="105" ElementStyle="{StaticResource CellCenter}"/>
+                        <DataGridTextColumn Header="ÚLTIMA COMPRA" Binding="{Binding last_purchase_display}" SortMemberPath="LastPurchaseDate" Width="105" ElementStyle="{StaticResource CellCenter}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>

@@ -507,7 +507,7 @@ namespace NinOS.UI.Common
         private static string DateDMon(DateTime? value)
         {
             if (value == null || value.Value == default) return string.Empty;
-            return value.Value.ToString("dd-MMM", Ve).Replace(".", string.Empty).ToLowerInvariant();
+            return NinOS.Domain.AppTimeZone.to_local(value.Value).ToString("dd-MMM", Ve).Replace(".", string.Empty).ToLowerInvariant();
         }
 
         private static string Capitalize(string text)

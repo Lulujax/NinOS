@@ -384,7 +384,7 @@ namespace NinOS.UI.Common
 
 
 
-                        cell(r.payment_date.ToString("d/M/yyyy"));
+                        cell(NinOS.Domain.AppTimeZone.to_local_text(r.payment_date, "d/M/yyyy"));
 
                         cell(r.note_number);
 
