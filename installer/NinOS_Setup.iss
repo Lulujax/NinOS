@@ -62,7 +62,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "{app}"; Permissions: users-modify
 
 [Files]
-Source: "C:\Users\Lulujax\Desktop\Programacion Trabajo\NinOS\NinOS\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Lulujax\Desktop\Programacion Trabajo\NinOS\NinOS\publish\*"; DestDir: "{app}"; Excludes: "appsettings.json"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "private\appsettings.client.json"; DestDir: "{app}"; DestName: "appsettings.json"; Flags: onlyifdoesntexist
 
 [Registry]
 ; Limpieza de versiones previas que forzaban la ejecución como administrador:
