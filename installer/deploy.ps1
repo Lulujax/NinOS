@@ -191,10 +191,15 @@ function publicar_paquete {
     ejecutar_ssh $acceso "rm -rf $ruta_servidor.viejo; if [ -d $ruta_servidor ]; then mv $ruta_servidor $ruta_servidor.viejo; fi; mv $nuevo $ruta_servidor && rm -rf $ruta_servidor.viejo"
     Write-Host "Version $nueva_version publicada. Versiones en el servidor: $((versiones_en_servidor $acceso) -join ', ')"
 
-    if ($actualizar_recomendada) {
-        ejecutar_ssh $acceso "sudo -u postgres psql -v ON_ERROR_STOP=1 -d $base_politica -c `"update app_update_policy set recommended_version='$nueva_version' where id_policy=1;`""
-        Write-Host "Version recomendada cambiada a $nueva_version en $base_politica."
-    }
+    if ($actualizar_recomendada) { actualizar_version_recomendada $acceso $nueva_version }
+}
+
+function actualizar_version_recomendada {
+    param($acceso, [string]$nueva_version)
+    $sql = "update app_update_policy set recommended_version='$nueva_version' where id_policy=1;"
+    $sql_codificado = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($sql))
+    ejecutar_ssh $acceso "echo $sql_codificado | base64 -d | sudo -u postgres psql -v ON_ERROR_STOP=1 -d $base_politica"
+    Write-Host "Version recomendada cambiada a $nueva_version en $base_politica."
 }
 
 function publicar_version {
