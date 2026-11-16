@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 $iteraciones_kdf = 210000
 $longitud_hash = 32
 $minimo_clave = 12
-$versiones_a_conservar = 3
+$versiones_a_conservar = 4
 $patron_version = '^\d+\.\d+\.\d+$'
 $segundos_entre_medidas = 3
 $raiz_repo = Split-Path -Parent $PSScriptRoot
@@ -253,7 +253,7 @@ function volver_atras_version {
 
     $versiones = @(versiones_en_servidor $acceso)
     if ($versiones.Count -lt 2) { throw 'No hay versiones anteriores en el servidor para volver atras.' }
-    $anteriores = @($versiones | Select-Object -Skip 1 -First 2)
+    $anteriores = @($versiones | Select-Object -Skip 1 -First ($versiones_a_conservar - 1))
     if ($version_pedida) {
         if ($version_pedida -notmatch $patron_version) { throw "La version '$version_pedida' no tiene el formato X.Y.Z." }
         if ($anteriores -notcontains $version_pedida) { throw "Solo se puede volver a: $($anteriores -join ', ')." }

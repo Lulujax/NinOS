@@ -87,14 +87,14 @@ Cubre: RF-14
 
 ## Tarea 12 (manual) - Script de publicación con contraseña
 Cubre: RF-1, RF-2, RF-4, RF-5, RF-23
-- `deploy.ps1`: pide la contraseña una vez, compila, empaqueta, sube por SSH, deja solo la versión actual y las 2 anteriores, y actualiza la política en la base. Si la subida se corta, no marca la versión nueva como disponible. La dirección del VPS y el usuario salen de la configuración local, no del repositorio.
-- Hecho cuando: una publicación completa funciona con un solo comando y en el servidor quedan exactamente 3 versiones.
+- `deploy.ps1`: pide la contraseña una vez, compila, empaqueta, sube por SSH, deja solo la versión actual y las 3 anteriores, y actualiza la política en la base. Si la subida se corta, no marca la versión nueva como disponible. La dirección del VPS y el usuario salen de la configuración local, no del repositorio.
+- Hecho cuando: una publicación completa funciona con un solo comando y en el servidor quedan exactamente 4 versiones.
 - Cómo probarla: publicar la 1.0.12, 1.0.13 y 1.0.14 seguidas y comprobar que la 1.0.11 ya no está; probar con contraseña incorrecta → no sube nada; cortar la red a mitad de la subida → las PCs siguen en la versión anterior.
 - [~] Hecha — 2026-11-15, `installer\deploy.ps1`. Probado por Claude: clave equivocada no sube nada; publicar 1.0.12, 1.0.13 y 1.0.14 deja exactamente 3 versiones completas en el servidor; una subida con llave SSH inexistente no cambia el servidor. Se usó una clave de prueba creada y borrada al terminar. Queda para Luis: escribir la clave real con `-crear_clave` (pide dos veces, guarda solo hash y sal en `installer\private\clave_publicacion.json`), publicar una versión con su contraseña y comprobar el resultado en PC. Las versiones de prueba 1.0.12 a 1.0.14 siguen en el servidor: pendiente de confirmación de Luis para borrarlas (la carpeta es la de actualizaciones).
 
 ## Tarea 13 - Volver atrás
 Cubre: RF-20, RF-21
-- Opción del script que toma el código de una de las 2 versiones anteriores del servidor y lo publica como versión nueva; el mensaje recuerda que vuelve el código, no los datos.
+- Opción del script que toma el código de una de las 3 versiones anteriores del servidor y lo publica como versión nueva; el mensaje recuerda que vuelve el código, no los datos.
 - Hecho cuando: desde la 1.0.14 se vuelve al código de la 1.0.13 en un minuto y las PCs quedan en esa versión.
 - Cómo probarla: publicar una versión con un cambio visible, volver atrás y comprobar en la PC de prueba que el cambio desapareció.
 - [ ] Hecha y probada — pendiente por decisión de Luis (2026-11-15): no se implementa ni se prueba por ahora.

@@ -58,7 +58,7 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 - **Acceso a la base:** puerto reforzado, no VPN (decisión de Luis). Las PCs del cliente se conectan desde cualquier internet, así que el puerto queda abierto pero con contraseña larga y aleatoria, TLS obligatorio, usuario sin superusuario y puerto no estándar.
 - **Actualizaciones automáticas (spec 010):** Luis publica una versión al VPS y las PCs se actualizan solas. Reglas fijas:
   - Publicar **siempre pide contraseña** a Luis.
-  - El servidor guarda la versión actual **más las 2 anteriores**, para poder volver atrás rápido.
+  - El servidor guarda la versión actual **más las 3 anteriores**, para poder volver atrás rápido y que, tras una vuelta atrás, queden 2 más atrás.
   - Volver atrás devuelve el **código**, nunca los datos: si una versión mala escribió datos mal, eso se arregla con el respaldo.
   - Los paquetes van **firmados** y se sirven por **HTTPS**; la app verifica la firma antes de aplicar nada. Sin eso, el actualizador sería una forma de instalar cualquier programa en las PCs del cliente.
   - El aviso de actualización se anuncia con antelación y cuenta atrás, estilo WoW o Albion: "en X minutos el sistema se reinicia para actualizar".

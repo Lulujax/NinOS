@@ -163,21 +163,17 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 AppLog.Info("Actualizacion iniciada por el usuario");
-                update_check_result check = await _updater.check_for_update_async(CancellationToken.None);
-                if (!check.is_available)
+                IProgress<int> progress = new Progress<int>(percent => update_banner_text = $"Descargando actualizacion: {percent}%");
+                update_flow_result result = await AppUpdateFlow.run_async(_updater, progress, CancellationToken.None);
+                if (result.outcome != update_flow_outcome.restarting)
                 {
                     _update_in_progress = false;
                     AppDialog.Show(
-                        check.error_message ?? "Ya tienes la version mas reciente.",
+                        result.message ?? "Ya tienes la version mas reciente.",
                         "Actualizacion",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
-                    return;
                 }
-
-                IProgress<int> progress = new Progress<int>(percent => update_banner_text = $"Descargando actualizacion: {percent}%");
-                await _updater.download_update_async(progress, CancellationToken.None);
-                _updater.apply_update_and_restart();
             }
             catch (Exception exception)
             {

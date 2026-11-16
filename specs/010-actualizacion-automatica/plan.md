@@ -23,7 +23,7 @@ Cómo cumplir [spec.md](spec.md). Todavía no se ha tocado código.
 
 **2. En el VPS (servidor).** nginx sirviendo una carpeta estática por HTTPS, en la IP del VPS, con un certificado propio (autofirmado) y en el puerto que el proveedor deje abierto. Solo entrega archivos; no recibe nada. La subida va por SSH, que ya existe.
 
-**3. En la PC de Luis (publicación).** Un script `deploy.ps1` que pide la contraseña una vez y hace todo: compilar, empaquetar, subir, dejar solo 3 versiones y actualizar la política en la base.
+**3. En la PC de Luis (publicación).** Un script `deploy.ps1` que pide la contraseña una vez y hace todo: compilar, empaquetar, subir, dejar solo 4 versiones (la actual y 3 anteriores) y actualizar la política en la base.
 
 ## Herramienta: Velopack
 
@@ -74,7 +74,7 @@ Resuelto el 2026-11-15: la tarea 2 confirmó que el 443 llega desde internet, as
 1. **Luis programa el aviso.** Escribe en la base: "actualización en 15 minutos" más el mensaje.
 2. **Las PCs muestran la cuenta atrás.** Un recuadro visible, revisado cada 3 minutos. La gente sigue trabajando.
 3. **Al llegar a cero**, cada PC pide guardar y actualizar. Si hay una nota a medio llenar, lo advierte antes de cerrar.
-4. **Luis publica** con `deploy.ps1`: una contraseña, y el script compila, empaqueta, sube y deja 3 versiones.
+4. **Luis publica** con `deploy.ps1`: una contraseña, y el script compila, empaqueta, sube y deja 4 versiones.
 5. **Luis fija la política** en la base: versión recomendada y, solo si hace falta, versión mínima.
 6. **Cada PC se actualiza** al abrir: descarga unos 3 MB, aplica y vuelve a abrir en la pantalla de carga.
 7. **La primera PC que abre con la versión nueva aplica la migración** sola, como decidió Luis.
@@ -94,7 +94,7 @@ La regla de oro, que ya está en el CLAUDE.md: **escribir migraciones aditivas s
 
 ## Volver atrás
 
-Luis pidió poder volver atrás rápido, con las 2 versiones anteriores guardadas.
+Luis pidió poder volver atrás rápido, con las 3 versiones anteriores guardadas.
 
 **No se hace bajando de versión**, porque pasar de la 1.1 a la 1.0 es un camino que las herramientas de actualización manejan mal. Se hace **publicando hacia adelante**: el script toma el código de la versión anterior, que ya está en el servidor, y lo publica como una versión nueva (de 1.1 se vuelve a la 1.0 publicándola como 1.2). Tarda un minuto y es el método que usa cualquier equipo de software.
 

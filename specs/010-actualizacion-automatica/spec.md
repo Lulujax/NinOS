@@ -19,7 +19,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - **RF-1** CUANDO Luis publica una versión, EL SISTEMA le pedirá una contraseña antes de subir nada.
 - **RF-2** EL SISTEMA garantizará que una PC solo acepte paquetes que vengan de verdad del servidor de Luis, y no de alguien que se haya metido en el medio de la conexión. El mecanismo concreto se elige en el plan (ver "Autenticidad de los paquetes").
 - **RF-3** EL SISTEMA publicará los paquetes como **diferenciales** cuando sea posible, de modo que una corrección de código pese unos pocos MB y no 179 MB.
-- **RF-4** EL SISTEMA conservará en el servidor la versión actual **y las 2 anteriores**, y borrará las más viejas.
+- **RF-4** EL SISTEMA conservará en el servidor la versión actual **y las 3 anteriores**, y borrará las más viejas.
 - **RF-5** SI la publicación falla a medias (se corta la subida), ENTONCES EL SISTEMA no dejará la versión nueva marcada como disponible, y las PCs seguirán con la anterior.
 
 ### Descargar y aplicar
@@ -49,7 +49,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 ### Volver atrás
 
-- **RF-20** EL SISTEMA permitirá a Luis volver al código de una de las 2 versiones anteriores sin tener que recompilar.
+- **RF-20** EL SISTEMA permitirá a Luis volver al código de una de las 3 versiones anteriores sin tener que recompilar.
 - **RF-21** CUANDO se vuelve atrás, EL SISTEMA dejará claro que se recupera el **código**, no los datos: lo que una versión mala haya escrito en la base se arregla con el respaldo.
 
 ### Seguridad
@@ -61,7 +61,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 - Luis publica una corrección de código y el paquete que se sube pesa unos pocos MB, no 179 MB.
 - Publicar sin la contraseña correcta no sube nada.
-- En el servidor quedan exactamente 3 versiones.
+- En el servidor quedan exactamente 4 versiones: la actual y las 3 anteriores.
 - Una PC abierta trabajando muestra la cuenta atrás y, al llegar a cero, pide guardar y actualizar.
 - Una PC con una nota a medio llenar avisa antes de cerrarse.
 - Una PC desactualizada por debajo de la mínima no deja trabajar; por debajo de la recomendada sí, con aviso.
@@ -84,7 +84,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 - Lo pidió la dueña de la empresa; es un requisito del negocio, no una mejora opcional.
 - Publicar **siempre** pide contraseña a Luis.
-- Se guardan la versión actual y las **2 anteriores**.
+- Se guardan la versión actual y las **3 anteriores** (decisión de Luis, 2026-11-16: así, tras una vuelta atrás todavía quedan 2 más atrás).
 - Se anuncia con antelación y cuenta atrás, estilo WoW o Albion.
 - Se acepta que una actualización mala llegue a las 3 PCs a la vez; se mitiga probando en testing primero y con la vuelta atrás.
 - Se hará **una última instalación manual** PC por PC para dejar el actualizador puesto, junto con la ronda de la spec 002.
