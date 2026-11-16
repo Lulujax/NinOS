@@ -63,23 +63,23 @@ Cubre: RF-10
 - Clonar un espejo de respaldo; ejecutar `git filter-repo` quitando `.dump`, `scratch/`, `appsettings.json` y reemplazando el texto de las contraseñas; **antes del force-push te pido confirmación**.
 - Hecho cuando: buscar el nombre del `.dump` y la contraseña vieja en todo el historial no devuelve nada.
 - Cómo probarla: `git log --all -- backup_ninos_db_pre_v1.0.9.dump` vacío; `git grep "<contraseña vieja>" $(git rev-list --all)` vacío.
-- [ ] Hecha y probada
+- [ ] Descartada por decisión de Luis (2026-11-16): el historial viejo se queda en GitHub y no se reescribe más.
 
-## Tarea 9 (manual) - Reforzar el acceso a la base
+## Tarea 9 (manual, día de la visita, ver spec 011) - Reforzar el acceso a la base
 Cubre: RF-5, RF-13
 - En el VPS: mover PostgreSQL a un puerto no estándar, exigir TLS en `pg_hba.conf` (`hostssl`), cerrar el 5432 en el firewall y rechazar conexiones sin cifrar. En la app, agregar `SSL Mode=Require` a la cadena de conexión.
 - Hecho cuando: la app conecta por el puerto nuevo con TLS, y una conexión sin cifrar o al 5432 es rechazada.
 - Cómo probarla: abrir la app (funciona); intentar conectar al 5432 con pgAdmin → rechazado; intentar sin TLS → rechazado.
 - [ ] Hecha y probada
 
-## Tarea 10 (manual, ventana acordada con el cliente) - Rotar producción y actualizar las PCs
+## Tarea 10 (manual, día de la visita, ver spec 011) - Rotar producción y actualizar las PCs
 Cubre: RF-4, RF-7
 - Crear usuario y contraseña nuevos de producción, instalar la versión nueva con su `appsettings.json` en cada PC del cliente y anular el usuario viejo.
 - Hecho cuando: todas las PCs abren con el usuario nuevo y el viejo ya no conecta.
 - Cómo probarla: abrir la app en cada PC; intentar conectar con `ninos_admin` / `1234` → rechazado.
 - [ ] Hecha y probada
 
-## Tarea 11 (manual) - Usuario de la app limitado a sus tablas
+## Tarea 11 (manual, día de la visita, ver spec 011) - Usuario de la app limitado a sus tablas
 Cubre: RF-12
 - Crear el rol dueño de las tablas de NinOS: puede crear y modificar sus tablas (necesario porque la app migra al arrancar), pero sin `SUPERUSER`, sin `CREATEDB`, sin `CREATEROLE` y sin acceso a otras bases.
 - Hecho cuando: la app arranca y aplica migraciones con ese usuario, y ese usuario no puede ver ni tocar otras bases.

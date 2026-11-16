@@ -106,7 +106,7 @@ Cubre: todos, y el riesgo 2 del plan
 - Cómo probarla: lo descrito. **Si Windows o el antivirus la bloquean, parar aquí** y decidir entre añadir la exclusión en cada PC durante la visita manual o comprar el certificado de firma. Anotar el resultado en este archivo.
 - [ ] Hecha y probada
 
-## Tarea 15 (manual, con la clienta) - Instalación en la PC de la clienta
+## Tarea 15 (manual, día de la visita, ver spec 011) - Instalación en la PC de la clienta
 Cubre: despliegue
 - En cada PC de la clienta, en la misma visita que la spec 002: desinstalar la versión vieja, instalar la nueva con actualizador, colocar el `appsettings.json` de producción, mover logs y configuración, y verificar que el sistema abre y trabaja.
 - Hecho cuando: las 3 PCs trabajan con la versión nueva y una actualización de prueba les llega sola.
