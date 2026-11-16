@@ -42,6 +42,11 @@ public class AppUpdateFlowTests
             llamadas.Add("aplicar");
             if (!_hay_pendiente) throw new InvalidOperationException("No hay actualizacion pendiente de aplicar.");
         }
+
+        public void restart_app_to_update()
+        {
+            llamadas.Add("reiniciar");
+        }
     }
 
     [Fact]

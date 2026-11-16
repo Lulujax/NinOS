@@ -28,7 +28,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - **RF-7** ANTES de aplicar una actualización, EL SISTEMA verificará que el paquete esté completo y sin alterar; SI la verificación falla, ENTONCES no lo aplicará, lo registrará en el log y seguirá con la versión actual.
 - **RF-7b** EL SISTEMA aceptará actualizaciones **solo** del servidor de Luis, reconociéndolo por la huella de su certificado que la app ya trae, y rechazará cualquier otro origen aunque responda en la misma dirección o presente un certificado válido de una autoridad pública.
 - **RF-7c** SI el certificado del servidor debe cambiar, ENTONCES la app aceptará la huella nueva siempre que ya la traiga como huella de respaldo; SI no la trae, ENTONCES no actualizará, mostrará el motivo y seguirá trabajando con su versión actual.
-- **RF-8** CUANDO se abre la app, EL SISTEMA comprobará si hay una versión nueva y, si la hay, la descargará y la aplicará mostrando el avance en la pantalla de carga que ya existe.
+- **RF-8** CUANDO se abre la app, EL SISTEMA comprobará si hay una versión nueva y, si la hay, la descargará y la aplicará mostrando el avance en la pantalla de carga que ya existe. CUANDO el usuario pulsa «Actualizar ahora» y hay una versión nueva, EL SISTEMA pedirá confirmación; SI el usuario acepta, ENTONCES cerrará NinOS y la volverá a abrir, y la pantalla de carga de ese arranque instalará la versión nueva. (Cambio decidido por Luis el 2026-11-16.)
 - **RF-9** SI la descarga o la instalación falla, ENTONCES EL SISTEMA seguirá funcionando con la versión actual y mostrará el motivo, sin quedar inservible.
 - **RF-10** CUANDO una actualización termina, EL SISTEMA se reiniciará solo y abrirá en la versión nueva.
 

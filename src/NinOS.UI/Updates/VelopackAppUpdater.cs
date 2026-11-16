@@ -68,5 +68,15 @@ namespace NinOS.UI.Updates
             AppLog.Info("Actualizaciones: aplicando y reiniciando.");
             _manager.ApplyUpdatesAndRestart(_pending_update.TargetFullRelease);
         }
+
+        public void restart_app_to_update()
+        {
+            string? ruta_del_programa = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(ruta_del_programa)) throw new InvalidOperationException("No se encontro la ruta de NinOS para reiniciarla.");
+
+            AppLog.Info("Actualizaciones: NinOS se cierra y se vuelve a abrir para instalar la version nueva al arrancar.");
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta_del_programa) { UseShellExecute = true });
+            Environment.Exit(0);
+        }
     }
 }

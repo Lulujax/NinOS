@@ -15,5 +15,7 @@ namespace NinOS.UI.Updates
         Task download_update_async(IProgress<int> progress_percent, CancellationToken cancellation_token);
 
         void apply_update_and_restart();
+
+        void restart_app_to_update();
     }
 }
