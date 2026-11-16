@@ -20,14 +20,14 @@ Cubre: RF-23, RF-29
 
 ## Tarea 3 - Monto y saldo de la relación en una sola función
 Cubre: RF-12, RF-15, RF-29
-- Crear `relation_amounts` en `NinOS.Domain` (monto por pagar, abonado, saldo, saldo a favor, estado) a partir de las notas vigentes, los abonos positivos (sin los de notas anuladas) y si la relación es heredada.
+- Crear `relation_amounts` en `NinOS.Domain` (monto por pagar, abonado, saldo, estado) a partir de las notas vigentes, los abonos positivos (sin los de notas anuladas) y si la relación es heredada.
 - Pruebas: feliz (2 notas, 1 abono), límite (todas anuladas → Pagada con monto 0; abono igual al monto; heredada sin notas), error (monto de nota negativo → excepción).
 - Hecho cuando: las pruebas pasan.
 - Cómo probarla: `dotnet test --filter RelationAmounts`.
 - [ ] Hecha y probada
 
 ## Tarea 4 - Usar la función única en servicio y tope de abono
-Cubre: RF-12, RF-24
+Cubre: RF-12, RF-15, RF-24
 - `ProVentaService.build_relation_rows_async` y `PaymentService.get_relation_amount_and_paid_async` llaman a `relation_amounts`. La ventana de abono usa la misma constante de exceso (3,00) que el servicio.
 - Hecho cuando: build 0/0, `dotnet test` pasa y la lista de relaciones muestra los mismos montos que antes del cambio.
 - Cómo probarla (manual): anotar el monto y el saldo de 3 relaciones antes del cambio y compararlos después. Abonar el saldo + 2,50 → se acepta; saldo + 3,50 → se rechaza con el mensaje de tope.
@@ -128,16 +128,9 @@ Cubre: RF-25, RF-29
 - Cómo probarla: `dotnet test --filter RelationBalanceAt`.
 - [ ] Hecha y probada
 
-## Tarea 18 - Marcas de impresa y revisada (bloqueada: RF-27 y RF-28 pendientes)
-Cubre: RF-27, RF-28
-- Migración aditiva en `relacion` (`printed_at`, `reviewed_at`, `review_note`, todas nulas). **Antes:** `NINOS_DB_CONNECTION` a testing y preguntar a Luis. Métodos del servicio para marcar y desmarcar, con log.
-- Hecho cuando: la migración se aplica en testing sin tocar datos y una relación se puede marcar y desmarcar.
-- Cómo probarla (manual): marcar una relación como impresa y otra como revisada; reiniciar la app y ver que las marcas siguen.
-- [ ] Hecha y probada
-
-## Tarea 19 - Reporte "Relación semanal por cobrar" (bloqueada: diferencia entre "-" y "0,00" en el saldo, y marca de impresa de RF-27)
-Cubre: RF-25, RF-26, RF-27
-- Pantalla con fecha de corte para toda la empresa; columnas RELACION NRO, MONTO POR PAGAR, SALDO, IMPRESA/POR IMPRIMIR; total. PDF tamaño carta y Excel con los mismos datos.
+## Tarea 19 - Reporte "Relación semanal por cobrar"
+Cubre: RF-25, RF-26, RF-35
+- Pantalla con fecha de corte para toda la empresa; columnas RELACION NRO, MONTO POR PAGAR, SALDO (0,00 cuando el saldo es cero); total. PDF tamaño carta y Excel con los mismos datos.
 - Hecho cuando: con corte al 4 oct, el total coincide con la suma de saldos a esa fecha y las tres salidas muestran lo mismo.
 - Cómo probarla (manual): sacar el reporte a dos fechas distintas con un abono entre ellas y comparar.
 - [ ] Hecha y probada

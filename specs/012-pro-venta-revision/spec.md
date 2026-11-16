@@ -10,7 +10,7 @@ La revisión ([analisis.md](analisis.md)) encontró otros huecos que tocan diner
 - consultar un reporte puede **renumerar** relaciones ya impresas;
 - se pueden editar notas o hacer notas de crédito en relaciones ya pagadas, y el sobrepago queda oculto.
 
-También falta lo que el cliente lleva a mano en su Excel: el saldo a una fecha de corte y las marcas de impresa y revisada.
+También falta lo que el cliente lleva a mano en su Excel: el saldo a una fecha de corte.
 
 Esta spec no repite la 008: usa su fórmula y su "monto original" tal como están.
 
@@ -35,7 +35,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - **RF-12** EL SISTEMA calculará el monto por pagar, lo abonado y el saldo de una relación con una sola función, y mostrará las mismas cifras en la lista de relaciones, el historial, la ventana de abono, la ventana de edición, el PDF (las dos páginas) y el Excel (las dos hojas).
 - **RF-13** EL SISTEMA mostrará en el detalle de la relación (PDF página 2 y Excel hoja 2) dos columnas por nota, «monto original» y «monto a cobrar», y el total de cada columna coincidirá con la cifra del encabezado que lleva su nombre.
 - **RF-14** EL SISTEMA calculará «total cobrado», «nota por pagar a Pro Venta» y «diferencial» sobre el monto original sin descuento, igual en pantalla, PDF y Excel.
-- **RF-15** SI lo abonado a una relación supera su monto por pagar, ENTONCES EL SISTEMA mostrará la diferencia como saldo a favor en vez de mostrar 0. `[NECESITA ACLARACIÓN: ¿qué se hace con ese saldo a favor?]`
+- **RF-15** SI un abono supera lo que falta por pagar de la relación más el tope de exceso de la spec 005 (3,00), ENTONCES EL SISTEMA bloqueará el pago al registrarlo, con un mensaje que diga el máximo permitido, y no guardará nada. No existe saldo a favor.
 
 ### Relaciones, semanas y números
 
@@ -60,12 +60,11 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 
 - **RF-25** CUANDO se pide la «Relación semanal por cobrar» con una fecha de corte, EL SISTEMA mostrará por relación el número, el monto por pagar y el saldo a esa fecha (solo notas y abonos hasta la fecha de corte), y el total. Saldrá en pantalla, PDF tamaño carta y Excel.
 - **RF-26** EL SISTEMA mantendrá las relaciones por semana para toda la empresa, como hoy. El reporte sale para toda la empresa, sin filtro por vendedor: Juan Navas es la única vendedora de la zona y la empresa confirmó que no planea sumar más.
-- **RF-27** EL SISTEMA permitirá marcar una relación como impresa (con fecha) y mostrará «POR IMPRIMIR» o «IMPRESA» en la lista y en el reporte. `[NECESITA ACLARACIÓN: ¿se marca sola al imprimir o exportar, o a mano?]`
-- **RF-28** EL SISTEMA permitirá marcar una relación como revisada, con fecha y una nota corta, sin guardar el nombre de quien la revisó. `[NECESITA ACLARACIÓN: ¿basta con eso? Guardar quién revisó choca con la regla de no registrar quién hizo qué.]`
 
 ### Liquidación congelada
 
 - **RF-34** CUANDO se liquida una relación, EL SISTEMA guardará congelada su comisión y sus gastos. Las ediciones y las notas de crédito posteriores no los cambian.
+- **RF-35** CUANDO una relación tiene saldo 0, EL SISTEMA mostrará «0,00» en la columna de saldo, en pantalla, PDF y Excel. No usará guion.
 
 ### Pruebas y registro
 
