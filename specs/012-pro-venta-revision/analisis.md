@@ -78,7 +78,7 @@ Lo que sí está bien y hay que conservar: la comisión y los gastos se calculan
 - **No es por notas de crédito**: una nota de crédito baja el monto, nunca lo sube.
 - Lo que encaja es que se **agregaron notas** a una relación ya emitida (una nota con fecha atrasada o despachada tarde que se anotó en esa semana), o una corrección a mano. En el sistema, eso pasa hoy sin aviso al guardar una nota con fecha atrasada (H-09), y también al editar una nota de una relación pagada (H-07).
 - 174 (1.333,78 → 690,26) y 175 (488,94 → 44,16) bajan: son abonos.
-- `[NECESITA ACLARACIÓN: ¿por qué subieron la 146 y la 173? ¿Se agregaron notas atrasadas, el cliente perdió el descuento o fue una corrección a mano?]`
+- Luis (2026-11-16): no se sabe por qué subieron; como se trabaja en testing, no bloquea.
 
 ### Cómo se relaciona con lo que hay en el sistema
 
@@ -101,15 +101,15 @@ Lo que haría falta para reproducir el reporte (va en la spec, RF-25 a RF-28): u
 
 ## 5. Preguntas que Luis debe responder
 
-1. `[NECESITA ACLARACIÓN: El "MONTO POR PAGAR" de una relación, ¿debe ser con descuento (lo que hoy se cobra) o sin descuento? En el Excel del cliente, ¿esos montos tienen el 10% aplicado?]`
+1. Respondida (Luis, 2026-11-16): sin descuento; quien usa el sistema determina o modifica el monto. Ver RF-32 (queda abierto si aplica a las notas existentes).
 2. `[NECESITA ACLARACIÓN: En la liquidación, ¿sobre qué base van "total cobrado", "nota por pagar a Pro Venta" y "diferencial": monto original sin descuento, total emitido con descuento, o lo realmente cobrado después de editar?]`
-3. `[NECESITA ACLARACIÓN: Cuando una relación ya está pagada (o impresa, o liquidada), ¿se puede seguir editando el monto o el descuento de sus notas? ¿Bloquear o solo avisar?]`
-4. `[NECESITA ACLARACIÓN: Una nota con fecha atrasada que cae en una relación ya pagada o impresa: ¿se bloquea, se avisa o se manda a la relación de la semana actual?]`
+3. Respondida (Luis, 2026-11-16): se bloquea editar porque ya está pagada (RF-8).
+4. Respondida (Luis, 2026-11-16): lo ideal es no crear notas en relaciones pagadas, pero si pasa, la relación se reabre como no pagada (RF-21, RF-31).
 5. `[NECESITA ACLARACIÓN: ¿Se permite una nota de crédito sobre una nota Pro Venta cuya relación ya está pagada? Si sí, ¿qué pasa con el dinero sobrante: saldo a favor del cliente, devolución o abono a otra relación?]`
-6. `[NECESITA ACLARACIÓN: ¿Las relaciones son por semana para toda la empresa (como hoy) o por vendedora (como el Excel de Juan Navas)? ¿Anais tiene sus propias relaciones?]`
+6. Respondida (Luis, 2026-11-16): son por semana para toda la empresa (RF-26). Queda abierto si hace falta filtrar el reporte por vendedor.
 7. `[NECESITA ACLARACIÓN: ¿Se quiere guardar en el sistema la marca POR IMPRIMIR/IMPRESA y la marca de revisión? Si se guarda la revisión, ¿basta con fecha y una nota corta, sin nombre de persona, para respetar la regla de no registrar quién hizo qué?]`
 8. `[NECESITA ACLARACIÓN: ¿Qué diferencia hay entre "-" y "0,00" en la columna de saldo?]`
 9. `[NECESITA ACLARACIÓN: ¿La comisión de Luis y los gastos de una relación ya liquidada deben quedar congelados, o siempre se recalculan?]`
-10. `[NECESITA ACLARACIÓN: ¿Por qué subieron la 146 y la 173 en el Excel? ¿De qué corte salió el saldo cargado de las relaciones heredadas 149-179?]`
+10. Respondida en parte (Luis, 2026-11-16): no se sabe por qué subieron la 146 y la 173; como se trabaja en testing, no bloquea. `[NECESITA ACLARACIÓN: ¿de qué corte salió el saldo cargado de las relaciones heredadas 149-179?]`
 11. `[NECESITA ACLARACIÓN: ¿Hay notas en producción mal asignadas por H-03 (domingo en la noche)? Se sabe con una consulta de solo lectura; corregirlas sería un script supervisado con respaldo y spec propia.]`
 12. `[NECESITA ACLARACIÓN: ¿Hace falta un historial de cambios de monto en la base (qué nota, antes y después, cuándo, sin persona) o basta con el log técnico?]`

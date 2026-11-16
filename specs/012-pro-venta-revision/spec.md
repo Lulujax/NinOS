@@ -25,7 +25,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - **RF-5** EL SISTEMA aceptará montos escritos con separador de miles en cualquiera de las dos formas (1.234,56 y 1,234.56) y montos de 1.000 o más.
 - **RF-6** CUANDO se guarda la edición, EL SISTEMA cambiará solo el monto a cobrar de la nota y, con él, el monto por pagar y el saldo de su relación. No cambiará la comisión ni los gastos (siguen sobre el monto original, spec 008) ni la nota impresa (spec 004).
 - **RF-7** EL SISTEMA mostrará en la edición, por nota: monto original, descuento de emisión, descuento actual, monto a cobrar, comisión y gastos, y el monto por pagar y el saldo de la relación antes y después del cambio.
-- **RF-8** SI la relación de la nota ya está pagada, ENTONCES EL SISTEMA no permitirá editar sus notas y dirá por qué. `[NECESITA ACLARACIÓN: ¿también se bloquea si la relación está impresa o liquidada? ¿Bloquear o solo avisar y pedir confirmación?]`
+- **RF-8** SI la relación de la nota ya está pagada, ENTONCES EL SISTEMA bloqueará la edición de sus notas y dirá que la relación ya está pagada. Que la relación esté impresa o liquidada no bloquea la edición.
 - **RF-9** SI la nota cambió desde que se abrió la edición (otra PC la editó o le hicieron una nota de crédito), ENTONCES EL SISTEMA no guardará, avisará que la nota cambió y recargará los datos.
 - **RF-10** CUANDO se guarda una edición, EL SISTEMA bloqueará también la relación mientras guarda, para que un abono hecho al mismo tiempo no se valide contra el saldo viejo.
 - **RF-11** CUANDO se edita una nota Pro Venta, EL SISTEMA dejará en el log técnico el id de la nota, el id de la relación, el descuento de antes y el de después y el resultado (guardado o rechazado y por qué), sin datos del cliente.
@@ -44,7 +44,8 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - **RF-18** EL SISTEMA no creará ni modificará relaciones al consultar un reporte, una semana o una relación: solo al guardar una nota Pro Venta.
 - **RF-19** EL SISTEMA no tomará una relación heredada (cartera cargada del Excel) como la relación de una semana.
 - **RF-20** SI dos personas guardan al mismo tiempo la primera nota Pro Venta de una semana, ENTONCES EL SISTEMA creará una sola relación, guardará las dos notas en ella y ninguna de las dos personas verá un error.
-- **RF-21** CUANDO una nota con fecha atrasada va a caer en una relación ya pagada, EL SISTEMA avisará antes de guardar. `[NECESITA ACLARACIÓN: ¿bloquear, avisar y dejar seguir, o mandarla a la relación de la semana actual? ¿Aplica también si la relación está impresa?]`
+- **RF-21** CUANDO una nota con fecha atrasada va a caer en una relación ya pagada, EL SISTEMA avisará antes de guardar que esa relación está pagada y pedirá confirmación, porque lo ideal es no agregar notas a relaciones pagadas.
+- **RF-31** CUANDO se confirma y se guarda una nota en una relación ya pagada, EL SISTEMA reabrirá la relación como no pagada y su saldo incluirá la nota nueva.
 
 ### Notas de crédito y devoluciones
 
@@ -58,7 +59,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 ### El reporte que el cliente lleva a mano
 
 - **RF-25** CUANDO se pide la «Relación semanal por cobrar» con una fecha de corte, EL SISTEMA mostrará por relación el número, el monto por pagar y el saldo a esa fecha (solo notas y abonos hasta la fecha de corte), y el total. Saldrá en pantalla, PDF tamaño carta y Excel.
-- **RF-26** EL SISTEMA permitirá sacar ese reporte de una sola vendedora. `[NECESITA ACLARACIÓN: ¿las relaciones son por semana para toda la empresa o por vendedora? Si son por semana, ¿el reporte de una vendedora muestra solo la parte de sus notas en cada relación?]`
+- **RF-26** EL SISTEMA mantendrá las relaciones por semana para toda la empresa, como hoy, y permitirá sacar ese reporte de un solo vendedor mostrando en cada relación solo la parte de sus notas. `[NECESITA ACLARACIÓN: ¿hace falta el filtro por vendedor (el Excel del cliente es de Juan Navas), o basta con el reporte de toda la empresa?]`
 - **RF-27** EL SISTEMA permitirá marcar una relación como impresa (con fecha) y mostrará «POR IMPRIMIR» o «IMPRESA» en la lista y en el reporte. `[NECESITA ACLARACIÓN: ¿se marca sola al imprimir o exportar, o a mano?]`
 - **RF-28** EL SISTEMA permitirá marcar una relación como revisada, con fecha y una nota corta, sin guardar el nombre de quien la revisó. `[NECESITA ACLARACIÓN: ¿basta con eso? Guardar quién revisó choca con la regla de no registrar quién hizo qué.]`
 
@@ -67,13 +68,19 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - **RF-29** EL SISTEMA tendrá pruebas unitarias de: cálculo de la edición, semana de Venezuela, monto y saldo de la relación, saldo a una fecha de corte y devoluciones por renglón. Cada una con caso feliz, caso límite y caso de error.
 - **RF-30** EL SISTEMA dejará logs del flujo Pro Venta (consulta de semana o relación, abono, edición, asignación de relación) con ids y estados, nunca con datos del cliente.
 
+### Monto por pagar sin descuento
+
+- **RF-32** EL SISTEMA tomará como monto por pagar de cada nota Pro Venta su monto original **sin descuento**. Quien usa el sistema lo ajusta con la edición (RF-1 a RF-3) cuando el cliente paga con descuento. `[NECESITA ACLARACIÓN: ¿aplica también a las notas y relaciones que ya existen (subiría su monto por pagar y su saldo) o solo a las notas emitidas desde esta versión?]`
+
 ## Cómo sé que está listo
 
 - Nota con monto original 325,44 emitida al 10% (292,90). «Pagó sin descuento» la deja en 325,44 y el saldo de su relación sube 32,54. La comisión sigue en 32,54, los gastos operativos en 81,36 y los administrativos en 36,61. La nota reimpresa sale igual que la original.
 - Con esa misma nota: 5% da 309,17; volver al 10% da 292,90. Editar dos veces no acumula descuento.
 - Una nota de 1.250,00 se edita y se guarda sin reescribir el monto.
 - Escribir 400 en una nota con monto original 325,44 da un mensaje y no guarda nada.
-- En una relación pagada no se puede editar (o avisa, según la decisión de RF-8).
+- En una relación pagada no se puede editar ninguna nota, y el mensaje dice que la relación ya está pagada.
+- Una nota con fecha de una semana cuya relación está pagada pide confirmación; al guardarla, la relación vuelve a no pagada y su saldo sube por el monto de la nota.
+- Una nota Pro Venta nueva entra a su relación con el monto original sin descuento.
 - La misma relación muestra el mismo monto por pagar y el mismo saldo en la lista, el historial, el abono, el PDF y el Excel. En el detalle, el total de cada columna es igual a su encabezado.
 - Una nota creada el domingo a las 9:00 pm queda en la relación de ese domingo y sale en esa misma semana del reporte.
 - Abrir semanas viejas en el reporte no crea relaciones ni cambia ningún número. Con una consulta de solo lectura, antes y después, la tabla de relaciones queda igual.
@@ -96,4 +103,5 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 ## Decisiones tomadas
 
 - La base de la edición es el monto original de la spec 008. No se inventa otra.
+- Luis, 2026-11-16: el monto por pagar va sin descuento y quien usa el sistema lo modifica (RF-32); una relación pagada bloquea la edición (RF-8); no se deberían crear notas en relaciones pagadas, pero si pasa, la relación se reabre como no pagada (RF-21, RF-31); las relaciones son por semana para toda la empresa (RF-26); no se sabe por qué subieron la 146 y la 173, y como se trabaja en testing no bloquea nada.
 - Las preguntas de [analisis.md](analisis.md) sección 5 se responden antes de empezar las tareas que dependen de ellas. Cada tarea dice si está bloqueada.

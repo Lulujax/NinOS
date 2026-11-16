@@ -63,10 +63,10 @@ Cubre: RF-1, RF-4, RF-6, RF-9, RF-10, RF-11
 - Cómo probarla: `dotnet test --filter ProVentaEdicion` con `NINOS_DB_CONNECTION` a testing.
 - [ ] Hecha y probada
 
-## Tarea 9 - Bloqueo de edición en relación pagada (bloqueada: pregunta 3)
+## Tarea 9 - Bloqueo de edición en relación pagada
 Cubre: RF-8
-- Agregar al servicio de la tarea 8 la regla que decida Luis (bloquear o avisar; pagada, impresa o liquidada) y quitar o condicionar el botón "Editar Notas" en la tabla Pagadas (`ProVentaView.xaml:473`).
-- Hecho cuando: en una relación pagada no se puede editar (o pide confirmación), con un mensaje claro.
+- Agregar al servicio de la tarea 8 el bloqueo: si la relación está pagada, no se edita ninguna de sus notas (impresa o liquidada no bloquean). Quitar el botón "Editar Notas" de la tabla Pagadas (`ProVentaView.xaml:473`).
+- Hecho cuando: en una relación pagada no se puede editar, con un mensaje que dice que ya está pagada.
 - Cómo probarla (manual): pagar por completo una relación de prueba e intentar editar una de sus notas.
 - [ ] Hecha y probada
 
@@ -112,11 +112,12 @@ Cubre: RF-15, RF-22
 - Cómo probarla (manual): pagar por completo una relación de prueba e intentar una nota de crédito de 1 unidad.
 - [ ] Hecha y probada
 
-## Tarea 16 - Nota con fecha atrasada en relación pagada (bloqueada: pregunta 4)
-Cubre: RF-21
-- Antes de guardar una nota MAR, si la relación de su semana está pagada (o impresa, según la decisión), aplicar lo que diga Luis: avisar, bloquear o mandar a la relación actual.
-- Hecho cuando: una nota fechada en una semana ya pagada muestra el aviso o el bloqueo.
-- Cómo probarla (manual): crear una nota Pro Venta con la fecha de una semana cuya relación está pagada.
+## Tarea 16 - Nota con fecha atrasada en relación pagada
+Cubre: RF-21, RF-31
+- Antes de guardar una nota MAR, si la relación de su semana está pagada, avisar y pedir confirmación. Si se confirma, guardar la nota y reabrir la relación como no pagada en la misma transacción, con log (ids y estados).
+- Pruebas: feliz (relación abierta, sin aviso), límite (relación pagada y se cancela: no se guarda nada), error (relación pagada y se confirma: queda no pagada y el saldo sube por el monto de la nota).
+- Hecho cuando: las pruebas pasan y la relación reabierta muestra el saldo nuevo en la lista, el PDF y el Excel.
+- Cómo probarla (manual): crear una nota Pro Venta con la fecha de una semana cuya relación está pagada, cancelar una vez y confirmar la segunda.
 - [ ] Hecha y probada
 
 ## Tarea 17 - Saldo a una fecha de corte (función pura)
@@ -134,7 +135,7 @@ Cubre: RF-27, RF-28
 - Cómo probarla (manual): marcar una relación como impresa y otra como revisada; reiniciar la app y ver que las marcas siguen.
 - [ ] Hecha y probada
 
-## Tarea 19 - Reporte "Relación semanal por cobrar" (bloqueada: preguntas 6 y 8)
+## Tarea 19 - Reporte "Relación semanal por cobrar" (bloqueada: pregunta 8 y filtro por vendedor de RF-26)
 Cubre: RF-25, RF-26, RF-27
 - Pantalla con fecha de corte y vendedora; columnas RELACION NRO, MONTO POR PAGAR, SALDO, IMPRESA/POR IMPRIMIR; total. PDF tamaño carta y Excel con los mismos datos.
 - Hecho cuando: con corte al 4 oct, el total coincide con la suma de saldos a esa fecha y las tres salidas muestran lo mismo.
@@ -153,6 +154,14 @@ Cubre: RF-16
 - En testing (y en producción solo si Luis lo autoriza, y solo lectura): contar las notas MAR cuyo lunes en hora de Venezuela no coincide con el `week_start` de su relación.
 - Hecho cuando: Luis tiene el número y decide si hace falta una spec de corrección.
 - Cómo probarla: la consulta devuelve la lista; se revisan a mano 2 casos.
+- [ ] Hecha y probada
+
+## Tarea 23 - Monto por pagar sin descuento (bloqueada: RF-32, notas existentes)
+Cubre: RF-32
+- Al emitir una nota MAR, su monto a cobrar en la relación es el monto original sin descuento; la nota impresa no cambia (spec 004). La edición de las tareas 7 y 8 lo ajusta cuando el cliente paga con descuento. Aplicar a las notas existentes solo si Luis lo decide, y en ese caso con script supervisado y respaldo.
+- Pruebas: feliz (nota al 10%: monto por pagar 325,44), límite (nota sin descuento: igual al original), error (nota sin renglones: excepción con mensaje).
+- Hecho cuando: una nota nueva entra a su relación sin descuento y las relaciones existentes no cambian.
+- Cómo probarla (manual): emitir una nota MAR al 10% en testing y ver el monto por pagar de su relación.
 - [ ] Hecha y probada
 
 ## Tarea 22 (manual) - Prueba completa contra testing
