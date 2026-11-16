@@ -42,8 +42,6 @@
     <ApplicationIcon>Assets\ninOS_logo.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.11</Version>
-    <AssemblyVersion>1.0.11.0</AssemblyVersion>
-    <FileVersion>1.0.11.0</FileVersion>
     <Product>NinOS - Sistema Administrativo</Product>
     <Company>NinOS</Company>
     <Description>Sistema Administrativo de Facturación, Cobranzas y Comisiones</Description>
