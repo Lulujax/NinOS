@@ -34,9 +34,9 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 
 ### Avisar mientras se trabaja
 
-- **RF-11** CUANDO Luis programa una actualización, EL SISTEMA mostrará en todas las PCs un aviso con cuenta atrás: "en X minutos el sistema se reinicia para actualizar".
-- **RF-12** EL SISTEMA revisará ese aviso cada pocos minutos mientras la app está abierta, sin que el usuario haga nada.
-- **RF-13** CUANDO la cuenta atrás llega a cero, EL SISTEMA pedirá al usuario guardar su trabajo y actualizar.
+- **RF-11** (descartado por decisión de Luis, 2026-11-16) CUANDO Luis programa una actualización, EL SISTEMA mostraría en todas las PCs un aviso con cuenta atrás. Se reemplaza por el recuadro «Actualizar ahora» (RF-17 a RF-19).
+- **RF-12** (descartado con RF-11) EL SISTEMA revisaría ese aviso mientras la app está abierta. La revisión que queda es cada 10 segundos.
+- **RF-13** (descartado con RF-11) CUANDO la cuenta atrás llega a cero, EL SISTEMA pediría al usuario guardar su trabajo y actualizar. Lo cubre la confirmación de «Actualizar ahora».
 - **RF-14** SI el usuario tiene una nota o un formulario a medio llenar sin guardar, ENTONCES EL SISTEMA se lo advertirá antes de cerrar y no perderá ese trabajo sin avisar.
 - **RF-15** EL SISTEMA permitirá a Luis cancelar un aviso programado.
 

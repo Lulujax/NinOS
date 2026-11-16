@@ -69,14 +69,14 @@ Cubre: RF-17, RF-18, RF-19
 - Al abrir y cada 3 minutos: comparar la versión propia con la política. Por debajo de la mínima, no deja trabajar y obliga a actualizar; por debajo de la recomendada, deja trabajar con aviso.
 - Hecho cuando: los dos casos se comportan distinto.
 - Cómo probarla: poner la recomendada en 1.0.11 con la app en 1.0.10 → trabaja con aviso; poner la mínima en 1.0.11 → no deja trabajar.
-- [~] Código hecho y compilado; pruebas unitarias del evaluador pasan (9). Falta tu prueba en pantalla: con la recomendada en 1.0.11 y la app en 1.0.10 debe trabajar con aviso; con la mínima en 1.0.11 debe bloquear las pestañas y dejar solo "Actualizar ahora". Revisa cada 3 minutos; si la base no responde, sigue trabajando y lo deja en el log.
+- [x] Hecha y probada — 2026-11-16, confirmada por Luis: con la mínima por encima de la versión instalada, la app bloquea; con la recomendada, avisa. Pruebas del evaluador (9) pasan. La revisión ahora es cada 10 segundos (decisión de Luis 2026-11-16).
 
 ## Tarea 10 - Aviso con cuenta atrás mientras se trabaja
 Cubre: RF-11, RF-12, RF-13, RF-15
 - Recuadro visible con la cuenta atrás, revisado cada 3 minutos; al llegar a cero, pide guardar y actualizar; si Luis cancela el aviso, el recuadro desaparece.
 - Hecho cuando: con la app abierta y trabajando, el aviso aparece solo, cuenta y al final pide actualizar.
 - Cómo probarla: programar el aviso a 3 minutos con la app abierta; esperar sin tocar nada; cancelarlo a mitad y comprobar que desaparece.
-- [~] Código hecho y compilado; pruebas de la cuenta atrás pasan (8). Falta tu prueba en pantalla: programar un aviso a 3 minutos desde testing y ver el recuadro contando; al pasar a cero debe pedir actualizar; cancelar el aviso debe quitarlo. Ojo: el recuadro se refresca cada 3 minutos, como pide la spec.
+- [ ] Descartada por decisión de Luis (2026-11-16): ya no la considera necesaria. No se implementa la cuenta atrás; el aviso que queda es el recuadro «Actualizar ahora» de la tarea 9. El código de la cuenta atrás queda en el proyecto y se puede retirar después.
 
 ## Tarea 11 - Proteger el trabajo sin guardar
 Cubre: RF-14
@@ -97,7 +97,7 @@ Cubre: RF-20, RF-21
 - Opción del script que toma el código de una de las 3 versiones anteriores del servidor y lo publica como versión nueva; el mensaje recuerda que vuelve el código, no los datos.
 - Hecho cuando: desde la 1.0.14 se vuelve al código de la 1.0.13 en un minuto y las PCs quedan en esa versión.
 - Cómo probarla: publicar una versión con un cambio visible, volver atrás y comprobar en la PC de prueba que el cambio desapareció.
-- [ ] Hecha y probada — pendiente por decisión de Luis (2026-11-15): no se implementa ni se prueba por ahora.
+- [x] Hecha y probada — 2026-11-16, confirmada por Luis. La prueba salió al publicar la 1.0.18 con `-volver_atras`: volvió el código de la 1.0.16 y el botón volvió a actualizar sin preguntar, como se esperaba de ese código. Esa publicación se hizo sin querer como prueba; queda registrada aquí.
 
 ## Tarea 14 (manual) - Prueba de punta a punta en PC real, con antivirus
 Cubre: todos, y el riesgo 2 del plan
@@ -112,3 +112,11 @@ Cubre: despliegue
 - Hecho cuando: las 3 PCs trabajan con la versión nueva y una actualización de prueba les llega sola.
 - Cómo probarla: publicar una actualización mínima al día siguiente y confirmar con la clienta que las 3 PCs la tomaron sin que nadie fuera.
 - [ ] Hecha y probada
+
+## Tarea 16 (pendiente) - Espacio del VPS: logs del sistema
+Cubre: RF-4
+- Revisar el espacio que muestra el panel del proveedor frente al del servidor (`df -h`). En el servidor: el disco está al 15 %, la carpeta de actualizaciones pesa 515 MB (4 versiones) y los registros del sistema (`/var/log/journal`) pesan 1,4 GB.
+- Limitar el tamaño de los registros del sistema (journald) y verificar que la carpeta de actualizaciones siga con 4 versiones.
+- Hecho cuando: el espacio de los registros queda por debajo de un límite fijado por Luis y el panel del proveedor coincide con el servidor.
+- Cómo probarla: `df -h /` y `journalctl --disk-usage` antes y después.
+- [ ] Hecha y probada — pendiente: se hace después de resolver la actualización, y solo con el visto bueno de Luis.
