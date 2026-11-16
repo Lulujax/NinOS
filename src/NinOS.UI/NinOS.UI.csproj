@@ -12,6 +12,7 @@
   <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 
@@ -28,6 +29,10 @@
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
+  <Target Name="quitar_configuracion_de_la_publicacion" AfterTargets="Publish">
+    <Delete Files="$(PublishDir)appsettings.json" />
+  </Target>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -36,9 +41,9 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\ninOS_logo.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.10</Version>
-    <AssemblyVersion>1.0.10.0</AssemblyVersion>
-    <FileVersion>1.0.10.0</FileVersion>
+    <Version>1.0.11</Version>
+    <AssemblyVersion>1.0.11.0</AssemblyVersion>
+    <FileVersion>1.0.11.0</FileVersion>
     <Product>NinOS - Sistema Administrativo</Product>
     <Company>NinOS</Company>
     <Description>Sistema Administrativo de Facturación, Cobranzas y Comisiones</Description>

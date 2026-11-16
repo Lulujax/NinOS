@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using NinOS.Domain;
 using NinOS.Infrastructure.Logging;
 using NinOS.UI.Common;
 using NinOS.UI.Common.ViewModels;
@@ -17,6 +19,10 @@ namespace NinOS.UI.Views
             InitializeComponent();
             _viewModel = viewModel;
             DataContext = viewModel;
+            string version_text = AppVersionText.format(Assembly.GetExecutingAssembly().GetName().Version);
+            VersionTextBlock.Text = version_text;
+            Title = $"{version_text} - Sistema Administrativo";
+            AppLog.Info($"Ventana principal abierta: {version_text}");
             Closed += (s, e) => AppLog.Info("Aplicación cerrada");
             Closing += (s, e) =>
             {

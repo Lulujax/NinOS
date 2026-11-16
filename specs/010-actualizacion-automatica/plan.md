@@ -104,7 +104,7 @@ Luis pidió poder volver atrás rápido, con las 2 versiones anteriores guardada
 
 Tabla nueva `app_update_policy`, de una sola fila: versión mínima, versión recomendada, momento del aviso, mensaje del aviso.
 
-Va en la base y no en el servidor de archivos porque todas las PCs ya hablan con la base, la consulta es barata (un `SELECT` cada 3 minutos) y así el aviso funciona aunque nginx esté caído.
+Va en la base y no en el servidor de archivos porque todas las PCs ya hablan con la base, la consulta es barata (un `SELECT` cada 10 segundos, decidido por Luis el 2026-11-16 para que el aviso llegue rápido) y así el aviso funciona aunque nginx esté caído.
 
 ## Opciones descartadas
 

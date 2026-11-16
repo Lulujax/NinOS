@@ -65,6 +65,8 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
   - La base guarda la **versión mínima permitida**: una PC con versión menor no puede trabajar.
 - **Tamaños reales:** el paquete completo pesa 179 MB, pero el código propio son solo 2,9 MB (`NinOS.UI.dll`, `NinOS.Infrastructure.dll`, `NinOS.Domain.dll`). Por eso las actualizaciones son **diferenciales**: una corrección de código son unos 3 MB, no 179 MB.
 - **Última instalación manual:** la ronda PC por PC de la spec 002 (rotar la clave de producción y colocar el `appsettings.json`) es también la que instala el actualizador. Después de esa ronda, las correcciones llegan solas.
+- **La versión que se ve en pantalla sale del ejecutable, nunca de un texto escrito a mano.** El título y la barra superior se llenan con el número de `<Version>` de `NinOS.UI.csproj`. Al subir de versión no hay que tocar ningún texto de la interfaz.
+- **Los paquetes publicados nunca llevan `appsettings.json`.** La publicación lo quita, así que el archivo con la conexión solo vive en cada PC.
 
 ## Reglas de negocio
 

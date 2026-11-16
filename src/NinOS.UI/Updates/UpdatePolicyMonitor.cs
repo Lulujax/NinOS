@@ -19,7 +19,7 @@ namespace NinOS.UI.Updates
 
     public class UpdatePolicyMonitor
     {
-        public static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(3);
+        public static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(10);
 
         private readonly IServiceScopeFactory _scope_factory;
         private readonly IAppUpdater _updater;
