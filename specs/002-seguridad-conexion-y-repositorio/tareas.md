@@ -21,14 +21,14 @@ Cubre: RF-4
 - Crear un usuario nuevo para testing con contraseña larga y aleatoria (guardada en un gestor de contraseñas) y poner la cadena en tu variable de entorno `NINOS_DB_CONNECTION`.
 - Hecho cuando: la app en debug conecta a testing con el usuario nuevo.
 - Cómo probarla: `dotnet run --project src/NinOS.UI` abre normal.
-- [~] Prueba de conexión hecha por Claude el 2026-11-16: la app abre con `ninos_test` y el log dice "Aplicación iniciada correctamente" contra testing. **Falta que copies las claves a tu gestor y lo confirmes.** Detalle previo: creado `ninos_test` (clave aleatoria de 32 caracteres, guardada solo en tu variable de entorno de usuario `NINOS_DB_CONNECTION` y en los `appsettings.json` locales, fuera de Git) y `ninos_app` para producción (su cadena quedó en `installer\private\appsettings.client.json`, fuera de Git). Las 145 pruebas pasan con `ninos_test`. **Falta que abras la app en debug con el usuario nuevo y copies las claves a tu gestor de contraseñas.** `ninos_admin` no se toca hasta el día de la rotación (tarea 10).
+- [x] Hecha y probada — confirmada por Luis el 2026-11-16. La app abre con `ninos_test` contra testing (log: "Aplicación iniciada correctamente"). Detalle previo: creado `ninos_test` (clave aleatoria de 32 caracteres, guardada solo en tu variable de entorno de usuario `NINOS_DB_CONNECTION` y en los `appsettings.json` locales, fuera de Git) y `ninos_app` para producción (su cadena quedó en `installer\private\appsettings.client.json`, fuera de Git). Las 145 pruebas pasan con `ninos_test`. **Falta que abras la app en debug con el usuario nuevo y copies las claves a tu gestor de contraseñas.** `ninos_admin` no se toca hasta el día de la rotación (tarea 10).
 
 ## Tarea 3 - La app no trae conexión escrita y falla claro sin configuración
 Cubre: RF-1, RF-2, RF-3
 - Quitar `DefaultConnectionString` de `DbConnectionFactory`; si no hay variable ni archivo, lanzar un error con mensaje claro y mostrarlo antes de abrir la pantalla de carga, sin conectarse.
 - Hecho cuando: sin configuración sale el mensaje y la app se cierra; con la variable arranca.
 - Cómo probarla: quitar la variable y renombrar `appsettings.json` junto al `.exe` de debug → mensaje claro. Poner la variable → abre.
-- [x] Hecha y probada — 13 pruebas unitarias en `DbConnectionFactoryTests` (caso feliz, límite y error), más una de regresión que falla si alguien vuelve a escribir una conexión en el código. Prueba manual hecha por Claude el 2026-11-16 sin variable ni `appsettings.json`: el log dice "OnStartup abortado: falta la configuracion de conexion" y no intenta conectarse. **Falta que confirmes que el mensaje sale en pantalla.**
+- [x] Hecha y probada — 13 pruebas unitarias en `DbConnectionFactoryTests` (caso feliz, límite y error), más una de regresión que falla si alguien vuelve a escribir una conexión en el código. Prueba manual hecha por Claude el 2026-11-16 sin variable ni `appsettings.json`: el log dice "OnStartup abortado: falta la configuracion de conexion" y no intenta conectarse. Confirmada por Luis el 2026-11-16.
 
 ## Tarea 4 - Sacar appsettings.json de Git y dejar un ejemplo
 Cubre: RF-1, RF-2
@@ -99,4 +99,4 @@ Cubre: RF-8, RF-9, RF-14, RF-15
 - Hecho cuando: con la clave guardada en la base, el panel abre desde dos PCs que apuntan a la misma base; sin fila, el panel queda bloqueado y lo registra en el log; una clave de 11 caracteres se rechaza.
 - Cómo probarla: `NinOS.UI.exe --set-admin-password` → crear clave → Ctrl+Alt+P entra; borrar la fila → Ctrl+Alt+P no entra.
 - Pruebas unitarias: caso feliz, límite (11 y 12 caracteres), error (fila dañada o sin fila).
-- [ ] Hecha y probada — código en el commit e90ddc1 (rama feature/seguridad-conexion). **Falta tu prueba manual.**
+- [x] Hecha y probada — confirmada por Luis el 2026-11-16. Código en el commit e90ddc1.
