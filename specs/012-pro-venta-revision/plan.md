@@ -61,7 +61,7 @@ Una sola migración **aditiva** sobre `relacion`: `printed_at timestamptz null`,
 ## Riesgos
 
 - **Bloqueos:** relación y nota se bloquean siempre en el mismo orden (relación primero) en edición y abono, para que no se traben entre sí. Las transacciones son cortas.
-- **Datos ya mal asignados (domingo en la noche):** corregir el código no mueve notas viejas. La tarea 21 las cuenta con una consulta de solo lectura en testing. Moverlas en producción necesita spec, respaldo y script supervisado.
+- **Datos ya mal asignados (domingo en la noche):** corregir el código no mueve notas viejas. Esta spec no las revisa; si Luis decide corregirlas, va en spec aparte con respaldo y script supervisado.
 - **Cambiar la liquidación** cambia cifras que el cliente ya conoce. Por eso RF-14 espera la decisión de Luis y se compara con 2 o 3 relaciones reales antes de publicar.
 - **Quitar la creación de relaciones al consultar:** una semana con notas sin relación mostraría "sin relación". No debería pasar, porque toda nota MAR recibe relación al guardarse. Si aparece, es un dato a revisar, no algo que se arregle solo.
 

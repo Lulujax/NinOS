@@ -34,7 +34,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 
 - **RF-12** EL SISTEMA calculará el monto por pagar, lo abonado y el saldo de una relación con una sola función, y mostrará las mismas cifras en la lista de relaciones, el historial, la ventana de abono, la ventana de edición, el PDF (las dos páginas) y el Excel (las dos hojas).
 - **RF-13** EL SISTEMA mostrará en el detalle de la relación (PDF página 2 y Excel hoja 2) dos columnas por nota, «monto original» y «monto a cobrar», y el total de cada columna coincidirá con la cifra del encabezado que lleva su nombre.
-- **RF-14** EL SISTEMA calculará «total cobrado», «nota por pagar a Pro Venta» y «diferencial» sobre una sola base, igual en pantalla, PDF y Excel. `[NECESITA ACLARACIÓN: ¿la base es el monto original sin descuento, el total emitido con descuento, o lo realmente cobrado después de editar?]`
+- **RF-14** EL SISTEMA calculará «total cobrado», «nota por pagar a Pro Venta» y «diferencial» sobre el monto original sin descuento, igual en pantalla, PDF y Excel.
 - **RF-15** SI lo abonado a una relación supera su monto por pagar, ENTONCES EL SISTEMA mostrará la diferencia como saldo a favor en vez de mostrar 0. `[NECESITA ACLARACIÓN: ¿qué se hace con ese saldo a favor?]`
 
 ### Relaciones, semanas y números
@@ -49,7 +49,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 
 ### Notas de crédito y devoluciones
 
-- **RF-22** SI se intenta hacer una nota de crédito sobre una nota Pro Venta cuya relación ya está pagada, ENTONCES EL SISTEMA lo impedirá con un mensaje. `[NECESITA ACLARACIÓN: ¿bloquear, o permitir y dejar saldo a favor (RF-15)?]`
+- **RF-22** SI se intenta hacer una nota de crédito sobre una nota Pro Venta cuya relación ya está pagada, ENTONCES EL SISTEMA lo impedirá con un mensaje que diga que la relación ya está pagada.
 - **RF-23** EL SISTEMA descontará las devoluciones del monto original renglón por renglón, sin restar dos veces la misma devolución cuando un producto aparece en dos renglones de la nota.
 
 ### Abonos
@@ -59,9 +59,13 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 ### El reporte que el cliente lleva a mano
 
 - **RF-25** CUANDO se pide la «Relación semanal por cobrar» con una fecha de corte, EL SISTEMA mostrará por relación el número, el monto por pagar y el saldo a esa fecha (solo notas y abonos hasta la fecha de corte), y el total. Saldrá en pantalla, PDF tamaño carta y Excel.
-- **RF-26** EL SISTEMA mantendrá las relaciones por semana para toda la empresa, como hoy, y permitirá sacar ese reporte de un solo vendedor mostrando en cada relación solo la parte de sus notas. `[NECESITA ACLARACIÓN: ¿hace falta el filtro por vendedor (el Excel del cliente es de Juan Navas), o basta con el reporte de toda la empresa?]`
+- **RF-26** EL SISTEMA mantendrá las relaciones por semana para toda la empresa, como hoy. El reporte sale para toda la empresa, sin filtro por vendedor: Juan Navas es la única vendedora de la zona y la empresa confirmó que no planea sumar más.
 - **RF-27** EL SISTEMA permitirá marcar una relación como impresa (con fecha) y mostrará «POR IMPRIMIR» o «IMPRESA» en la lista y en el reporte. `[NECESITA ACLARACIÓN: ¿se marca sola al imprimir o exportar, o a mano?]`
 - **RF-28** EL SISTEMA permitirá marcar una relación como revisada, con fecha y una nota corta, sin guardar el nombre de quien la revisó. `[NECESITA ACLARACIÓN: ¿basta con eso? Guardar quién revisó choca con la regla de no registrar quién hizo qué.]`
+
+### Liquidación congelada
+
+- **RF-34** CUANDO se liquida una relación, EL SISTEMA guardará congelada su comisión y sus gastos. Las ediciones y las notas de crédito posteriores no los cambian.
 
 ### Pruebas y registro
 
@@ -70,7 +74,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 
 ### Monto por pagar sin descuento
 
-- **RF-32** EL SISTEMA tomará como monto por pagar de cada nota Pro Venta su monto original **sin descuento**. Quien usa el sistema lo ajusta con la edición (RF-1 a RF-3) cuando el cliente paga con descuento. `[NECESITA ACLARACIÓN: ¿aplica también a las notas y relaciones que ya existen (subiría su monto por pagar y su saldo) o solo a las notas emitidas desde esta versión?]`
+- **RF-32** EL SISTEMA tomará como monto por pagar de cada nota Pro Venta su monto original **sin descuento**. Quien usa el sistema lo ajusta con la edición (RF-1 a RF-3) cuando el cliente paga con descuento. Esto aplica a las notas nuevas. Las notas ya emitidas con descuento se corrigen en una spec aparte (ver Fuera de alcance), porque cambian datos de negocio.
 
 ## Cómo sé que está listo
 
@@ -93,12 +97,12 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - Cambiar los porcentajes o la fórmula de comisión y gastos (spec 008).
 - Login, usuarios o auditoría por persona (decisión del cliente).
 - Eliminar pagos (no existe y no se agrega).
-- Corregir notas que ya estén mal asignadas a una relación por el problema del domingo en la noche. Se cuentan con una consulta de solo lectura (tarea 21); corregirlas va en otra spec, con respaldo y script supervisado.
+- Revisar o corregir notas que ya estén mal asignadas a una relación por el problema del domingo en la noche. Esta spec no las toca; Luis decide aparte.
 - Editar el saldo de las relaciones heredadas (149-179).
 - Cargar en el sistema el histórico del Excel del cliente.
-- Congelar la liquidación de una relación. `[NECESITA ACLARACIÓN: ¿la comisión de Luis y los gastos de una relación ya liquidada deben quedar fijos? Si sí, entra en esta spec.]`
+- Corregir los montos de las notas Pro Venta ya emitidas con descuento (regla RF-32). Cambia datos de negocio: va en una spec aparte con script supervisado y respaldo, y esta spec no ejecuta ningún cambio sobre notas existentes.
 - Registrar el método de pago, la referencia y el banco de los abonos de relación (hoy siempre "Efectivo").
-- Historial de cambios de monto guardado en la base. `[NECESITA ACLARACIÓN: ¿hace falta, o basta con el log técnico de RF-11?]`
+- Historial de cambios de monto guardado en la base. Basta con el log técnico (RF-11).
 
 ## Decisiones tomadas
 

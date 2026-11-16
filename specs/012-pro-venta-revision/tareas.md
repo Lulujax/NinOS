@@ -98,17 +98,17 @@ Cubre: RF-12, RF-13
 - Cómo probarla (manual): editar una nota y comparar las cuatro vistas.
 - [ ] Hecha y probada
 
-## Tarea 14 - Liquidación con una sola base (bloqueada: pregunta 2)
-Cubre: RF-14
-- Mover el cálculo de `total_cobrado`, `nota_por_pagar` y `diferencial` a una función de `NinOS.Domain` con la base que decida Luis. La usan `ProVentaViewModel`, `ProVentaPdfGenerator` y `ProVentaWeeklyExcelExporter`. Pruebas feliz, límite (relación sin notas vigentes) y error.
+## Tarea 14 - Liquidación con una sola base
+Cubre: RF-14, RF-34
+- Mover el cálculo de `total_cobrado`, `nota_por_pagar` y `diferencial` a una función de `NinOS.Domain` con base en el monto original sin descuento. La comisión y los gastos de una relación liquidada se guardan congelados (RF-34). La usan `ProVentaViewModel`, `ProVentaPdfGenerator` y `ProVentaWeeklyExcelExporter`. Pruebas feliz, límite (relación sin notas vigentes) y error.
 - Hecho cuando: la liquidación es la misma en pantalla, PDF y Excel, y coincide con 2 o 3 relaciones reales que dé Luis.
 - Cómo probarla: `dotnet test` y comparación manual con las relaciones de Luis.
 - [ ] Hecha y probada
 
-## Tarea 15 - Nota de crédito sobre nota de relación pagada (bloqueada: pregunta 5)
-Cubre: RF-15, RF-22
-- En `CreditNoteService`, antes de guardar sobre una nota MAR, bloquear la relación y revisar su saldo con `relation_amounts`. Aplicar la decisión: rechazar, o dejar saldo a favor visible.
-- Hecho cuando: con la relación pagada se cumple la decisión, con mensaje claro.
+## Tarea 15 - Nota de crédito sobre nota de relación pagada
+Cubre: RF-22
+- En `CreditNoteService`, antes de guardar sobre una nota MAR, bloquear la relación y revisar si está pagada: si lo está, rechazar con mensaje.
+- Hecho cuando: con la relación pagada la nota de crédito se rechaza con mensaje claro.
 - Cómo probarla (manual): pagar por completo una relación de prueba e intentar una nota de crédito de 1 unidad.
 - [ ] Hecha y probada
 
@@ -128,16 +128,16 @@ Cubre: RF-25, RF-29
 - Cómo probarla: `dotnet test --filter RelationBalanceAt`.
 - [ ] Hecha y probada
 
-## Tarea 18 - Marcas de impresa y revisada (bloqueada: pregunta 7)
+## Tarea 18 - Marcas de impresa y revisada (bloqueada: RF-27 y RF-28 pendientes)
 Cubre: RF-27, RF-28
 - Migración aditiva en `relacion` (`printed_at`, `reviewed_at`, `review_note`, todas nulas). **Antes:** `NINOS_DB_CONNECTION` a testing y preguntar a Luis. Métodos del servicio para marcar y desmarcar, con log.
 - Hecho cuando: la migración se aplica en testing sin tocar datos y una relación se puede marcar y desmarcar.
 - Cómo probarla (manual): marcar una relación como impresa y otra como revisada; reiniciar la app y ver que las marcas siguen.
 - [ ] Hecha y probada
 
-## Tarea 19 - Reporte "Relación semanal por cobrar" (bloqueada: pregunta 8 y filtro por vendedor de RF-26)
+## Tarea 19 - Reporte "Relación semanal por cobrar" (bloqueada: diferencia entre "-" y "0,00" en el saldo, y marca de impresa de RF-27)
 Cubre: RF-25, RF-26, RF-27
-- Pantalla con fecha de corte y vendedora; columnas RELACION NRO, MONTO POR PAGAR, SALDO, IMPRESA/POR IMPRIMIR; total. PDF tamaño carta y Excel con los mismos datos.
+- Pantalla con fecha de corte para toda la empresa; columnas RELACION NRO, MONTO POR PAGAR, SALDO, IMPRESA/POR IMPRIMIR; total. PDF tamaño carta y Excel con los mismos datos.
 - Hecho cuando: con corte al 4 oct, el total coincide con la suma de saldos a esa fecha y las tres salidas muestran lo mismo.
 - Cómo probarla (manual): sacar el reporte a dos fechas distintas con un abono entre ellas y comparar.
 - [ ] Hecha y probada
@@ -149,16 +149,9 @@ Cubre: RF-30
 - Cómo probarla (manual): abonar y editar en debug y leer `ninos-ui.log`.
 - [ ] Hecha y probada
 
-## Tarea 21 (manual, solo lectura) - Contar notas mal asignadas
-Cubre: RF-16
-- En testing (y en producción solo si Luis lo autoriza, y solo lectura): contar las notas MAR cuyo lunes en hora de Venezuela no coincide con el `week_start` de su relación.
-- Hecho cuando: Luis tiene el número y decide si hace falta una spec de corrección.
-- Cómo probarla: la consulta devuelve la lista; se revisan a mano 2 casos.
-- [ ] Hecha y probada
-
-## Tarea 23 - Monto por pagar sin descuento (bloqueada: RF-32, notas existentes)
+## Tarea 23 - Monto por pagar sin descuento
 Cubre: RF-32
-- Al emitir una nota MAR, su monto a cobrar en la relación es el monto original sin descuento; la nota impresa no cambia (spec 004). La edición de las tareas 7 y 8 lo ajusta cuando el cliente paga con descuento. Aplicar a las notas existentes solo si Luis lo decide, y en ese caso con script supervisado y respaldo.
+- Al emitir una nota MAR, su monto a cobrar en la relación es el monto original sin descuento; la nota impresa no cambia (spec 004). La edición de las tareas 7 y 8 lo ajusta cuando el cliente paga con descuento. Las notas ya emitidas se corrigen en una spec aparte, no aquí.
 - Pruebas: feliz (nota al 10%: monto por pagar 325,44), límite (nota sin descuento: igual al original), error (nota sin renglones: excepción con mensaje).
 - Hecho cuando: una nota nueva entra a su relación sin descuento y las relaciones existentes no cambian.
 - Cómo probarla (manual): emitir una nota MAR al 10% en testing y ver el monto por pagar de su relación.
