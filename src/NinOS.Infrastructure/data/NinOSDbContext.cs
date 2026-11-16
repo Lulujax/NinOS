@@ -127,7 +127,7 @@ namespace NinOS.Infrastructure.Data
 
             model_builder.Entity<zona>(entity =>
             {
-                entity.ToTable("zona");
+                entity.ToTable("zona", table => table.HasCheckConstraint("ck_zona_una_sola_empresa", "NOT (is_pro_venta AND is_vesupronta)"));
                 entity.HasKey(e => e.id_zona);
                 entity.Property(e => e.id_zona).HasColumnName("id_zona").UseIdentityByDefaultColumn();
                 entity.Property(e => e.name).HasColumnName("name").IsRequired().HasMaxLength(100);
@@ -137,6 +137,7 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.deleted_at).HasColumnName("deleted_at");
                 entity.Property(e => e.deleted_reason).HasColumnName("deleted_reason").HasMaxLength(200);
                 entity.Property(e => e.is_pro_venta).HasColumnName("is_pro_venta").IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.is_vesupronta).HasColumnName("is_vesupronta").IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.description).HasColumnName("description").HasMaxLength(1000);
 
                 entity.HasIndex(e => e.code)

@@ -1,4 +1,5 @@
 using System;
+using NinOS.Domain;
 
 namespace NinOS.UI.Common.ViewModels
 {
@@ -10,8 +11,15 @@ namespace NinOS.UI.Common.ViewModels
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public bool IsProVenta { get; set; }
+        public bool IsVesupronta { get; set; }
         public string? Description { get; set; }
-        public string TipoOperacionDisplay => IsProVenta ? "Pro Venta" : "General";
+        public business_unit Unit => IsVesupronta ? business_unit.Vesupronta : IsProVenta ? business_unit.ProVenta : business_unit.General;
+        public string TipoOperacionDisplay => Unit switch
+        {
+            business_unit.Vesupronta => "Vesupronta",
+            business_unit.ProVenta => "Pro Venta",
+            _ => "General",
+        };
         public DateTime? DeletedAt { get; set; }
         public string? DeletedReason { get; set; }
         public string DeletedAtDisplay => DeletedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty;

@@ -79,6 +79,7 @@
                     <ComboBox Grid.Column="5" SelectedIndex="{Binding SelectedModalidadIndex}" VerticalContentAlignment="Center" Padding="5,4">
                         <ComboBoxItem Content="General"/>
                         <ComboBoxItem Content="Pro Venta"/>
+                        <ComboBoxItem Content="Vesupronta"/>
                     </ComboBox>
                 </Grid>
 

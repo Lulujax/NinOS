@@ -141,6 +141,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
                     throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
+                if (await is_vesupronta_note_async(_db_context, target_note))
+                    throw new InvalidOperationException("Los pagos de notas Vesupronta se gestionan en el modulo Vesupronta.");
 
                 await verificar_exceso_permitido_async(_db_context, target_note, new_payment.amount_usd);
 
@@ -281,6 +283,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var mar_ids = await get_pro_venta_type_ids_async(_db_context);
                 if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
                     throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
+                if (await is_vesupronta_note_async(_db_context, target_note))
+                    throw new InvalidOperationException("Los pagos de notas Vesupronta se gestionan en el modulo Vesupronta.");
 
                 await verificar_exceso_permitido_async(_db_context, target_note, updated_payment.amount_usd, existing.id_payment);
 
@@ -555,7 +559,9 @@ namespace NinOS.Infrastructure.Services.Implementations
             bool eligible_for_commission = false;
             decimal commission_percentage = 0m;
 
-            if (!is_pro_venta)
+            bool is_vesupronta = await is_vesupronta_note_async(db_context, target_note);
+
+            if (!is_pro_venta && !is_vesupronta)
             {
                 var note_seller = await db_context.sellers
                     .AsNoTracking()
@@ -599,6 +605,20 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (existing_commission != null) existing_commission.amount_usd = result.commission_amount_usd ?? existing_commission.amount_usd;
                     break;
             }
+        }
+
+        private static async Task<bool> is_vesupronta_note_async(NinOSDbContext db_context, delivery_note target_note)
+        {
+            if (target_note.note_type_id == null) return false;
+
+            var vesupronta_codes = BusinessUnitRules.codes_of_unit(business_unit.Vesupronta);
+            var vesupronta_type_ids = await db_context.note_types
+                .AsNoTracking()
+                .Where(t => vesupronta_codes.Contains(t.code))
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            return vesupronta_type_ids.Contains(target_note.note_type_id.Value);
         }
 
         private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)

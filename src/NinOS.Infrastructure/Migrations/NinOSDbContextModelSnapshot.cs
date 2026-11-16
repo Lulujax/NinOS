@@ -1409,6 +1409,12 @@ namespace NinOS.Infrastructure.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_pro_venta");
 
+                    b.Property<bool>("is_vesupronta")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_vesupronta");
+
                     b.Property<string>("name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1429,7 +1435,10 @@ namespace NinOS.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
 
-                    b.ToTable("zona", (string)null);
+                    b.ToTable("zona", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_zona_una_sola_empresa", "NOT (is_pro_venta AND is_vesupronta)");
+                        });
                 });
 
             modelBuilder.Entity("NinOS.Domain.commission", b =>
