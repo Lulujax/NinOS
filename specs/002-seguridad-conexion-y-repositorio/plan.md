@@ -43,3 +43,12 @@ Cada tarea trae sus pasos. En resumen: sin configuración la app no arranca; con
 ## Rama
 
 `feature/seguridad-conexion` saliendo de `TESTING`. No se toca `main` hasta que el cliente apruebe.
+
+## Cambio del 2026-11-16: clave del Panel Admin en la base
+
+Luis decidió que una sola clave sirva en cualquier PC que abra NinOS. La clave pasa de `admin_security.json` a una tabla `admin_key` de la base (tarea 13 en [tareas.md](tareas.md)).
+
+- **Por qué la base y no un archivo:** un archivo en cada PC obliga a copiarlo a mano y a actualizarlo en todas. La base ya es compartida por todas las PCs.
+- **Qué se pierde:** quien tenga acceso a la base puede leer el hash y probar claves sin conexión. Por eso sube el mínimo a 12 caracteres (RF-15, pendiente de confirmar).
+- **Qué no cambia:** el hash sigue siendo PBKDF2-SHA256 con sal, y la clave nunca se escribe en el código ni en Git.
+- **Pendiente:** RF-16 (qué hace Ctrl+Alt+P en las PCs del cliente). No bloquea la tabla ni el hash, pero sí la prueba de la tarea 13 en PCs del cliente.

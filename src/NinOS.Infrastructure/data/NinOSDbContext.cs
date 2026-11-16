@@ -27,6 +27,7 @@ namespace NinOS.Infrastructure.Data
         public DbSet<price_list> price_lists { get; set; }
         public DbSet<product_price> product_prices { get; set; }
         public DbSet<app_update_policy> app_update_policies { get; set; }
+        public DbSet<admin_key> admin_keys { get; set; }
 
         public NinOSDbContext(DbContextOptions<NinOSDbContext> options) : base(options)
         {
@@ -511,6 +512,17 @@ namespace NinOS.Infrastructure.Data
                 entity.Property(e => e.recommended_version).HasColumnName("recommended_version").IsRequired().HasMaxLength(20);
                 entity.Property(e => e.notice_at_utc).HasColumnName("notice_at_utc");
                 entity.Property(e => e.notice_message).HasColumnName("notice_message").HasMaxLength(500);
+                entity.Property(e => e.updated_at_utc).HasColumnName("updated_at_utc").IsRequired();
+            });
+
+            model_builder.Entity<admin_key>(entity =>
+            {
+                entity.ToTable("admin_key", table => table.HasCheckConstraint("ck_admin_key_single_row", "id_key = 1"));
+                entity.HasKey(e => e.id_key);
+                entity.Property(e => e.id_key).HasColumnName("id_key").ValueGeneratedNever();
+                entity.Property(e => e.password_salt).HasColumnName("password_salt").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.password_hash).HasColumnName("password_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.iterations).HasColumnName("iterations").IsRequired();
                 entity.Property(e => e.updated_at_utc).HasColumnName("updated_at_utc").IsRequired();
             });
         }

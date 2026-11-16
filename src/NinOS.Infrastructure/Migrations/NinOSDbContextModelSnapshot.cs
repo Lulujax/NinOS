@@ -22,6 +22,40 @@ namespace NinOS.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("NinOS.Domain.admin_key", b =>
+                {
+                    b.Property<int>("id_key")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_key");
+
+                    b.Property<int>("iterations")
+                        .HasColumnType("integer")
+                        .HasColumnName("iterations");
+
+                    b.Property<string>("password_hash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("password_hash");
+
+                    b.Property<string>("password_salt")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("password_salt");
+
+                    b.Property<DateTime>("updated_at_utc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("id_key");
+
+                    b.ToTable("admin_key", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_admin_key_single_row", "id_key = 1");
+                        });
+                });
+
             modelBuilder.Entity("NinOS.Domain.app_update_policy", b =>
                 {
                     b.Property<int>("id_policy")

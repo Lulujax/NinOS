@@ -1,148 +1,113 @@
-using System.IO;
-using System.Security.Cryptography;
-using System.Text.Json;
+using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using NinOS.Domain;
+using NinOS.Infrastructure.Data;
 using NinOS.Infrastructure.Logging;
 
 namespace NinOS.UI.Common
 {
-    /// <summary>
-    /// Clave del Panel Admin.
-    ///
-    /// La clave NO esta en el codigo: vive solo en admin_security.json, guardada como hash
-    /// (irreversible) junto al ejecutable, y ese archivo no va a Git. Si el archivo falta o
-    /// esta dañado, el panel queda cerrado: antes se regeneraba con una clave por defecto que
-    /// estaba escrita en el codigo del repositorio publico, asi que cualquiera podia entrar.
-    ///
-    /// Para crear la clave la primera vez: NinOS.UI.exe --set-admin-password
-    /// </summary>
     public static class AdminSecurity
     {
-        private const int KeyIterations = 200_000;
-        private const int MinPasswordLength = 6;
-        private const int MaxAttempts = 5;
+        private static readonly AdminLoginLimiter login_limiter = new AdminLoginLimiter();
 
-        private static readonly string config_path =
-            Path.Combine(AppContext.BaseDirectory, "admin_security.json");
+        public static int MinimumPasswordLength => AdminPasswordHasher.MinimumLength;
 
-        private static int _failed_attempts;
-        private static DateTime _unlock_at = DateTime.MinValue;
-
-        public static string ConfigPath => config_path;
-
-        public static int MinimumPasswordLength => MinPasswordLength;
-
-        /// <summary>True si ya existe una clave guardada y legible.</summary>
         public static bool is_configured()
         {
-            (byte[] salt, byte[] hash, int _) = load_config();
-            return salt.Length > 0 && hash.Length > 0;
+            return load_key() != null;
         }
 
         public static bool verify(string password)
         {
-            if (DateTime.Now < _unlock_at) return false;
+            if (login_limiter.is_locked(DateTime.Now)) return false;
             if (string.IsNullOrEmpty(password)) return false;
 
-            (byte[] salt, byte[] hash, int iterations) = load_config();
-            if (salt.Length == 0 || hash.Length == 0)
+            admin_key? stored = load_key();
+            if (stored == null)
             {
                 AppLog.Warn("Panel Admin sin clave configurada: acceso bloqueado");
                 return false;
             }
 
-            byte[] candidate = Rfc2898DeriveBytes.Pbkdf2(
-                password, salt, iterations, HashAlgorithmName.SHA256, hash.Length);
-
-            bool ok = CryptographicOperations.FixedTimeEquals(candidate, hash);
-            if (ok)
+            if (AdminPasswordHasher.matches(password, stored))
             {
-                _failed_attempts = 0;
-                _unlock_at = DateTime.MinValue;
+                login_limiter.reset();
+                AppLog.Info("Acceso al Panel Admin correcto");
                 return true;
             }
 
-            _failed_attempts++;
-            if (_failed_attempts >= MaxAttempts)
-                _unlock_at = DateTime.Now.AddSeconds(Math.Min(60, 5 * (_failed_attempts - MaxAttempts + 1)));
-
+            login_limiter.register_failure(DateTime.Now);
             AppLog.Error("Intento fallido de acceso al Panel Admin");
             return false;
         }
 
-        /// <summary>
-        /// Guarda la clave nueva. Devuelve false si no se pudo guardar, para que quien llama
-        /// no diga "listo" cuando en realidad el archivo no se escribio.
-        /// </summary>
         public static bool change_password(string new_password)
         {
-            if (string.IsNullOrEmpty(new_password) || new_password.Length < MinPasswordLength)
+            if (!AdminPasswordHasher.is_long_enough(new_password))
             {
-                AppLog.Warn($"Clave del Panel Admin rechazada: minimo {MinPasswordLength} caracteres");
+                AppLog.Warn($"Clave del Panel Admin rechazada: minimo {MinimumPasswordLength} caracteres");
                 return false;
             }
 
-            byte[] salt = RandomNumberGenerator.GetBytes(16);
-            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
-                new_password, salt, KeyIterations, HashAlgorithmName.SHA256, 32);
-
             try
             {
-                using var stream = new FileStream(config_path, FileMode.Create, FileAccess.Write);
-                using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-                writer.WriteStartObject();
-                writer.WriteString("password_salt", Convert.ToBase64String(salt));
-                writer.WriteString("password_hash", Convert.ToBase64String(hash));
-                writer.WriteNumber("iterations", KeyIterations);
-                writer.WriteString("updated", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                writer.WriteEndObject();
-                writer.Flush();
+                using NinOSDbContext db_context = create_context();
+                db_context.Database.Migrate();
 
-                _failed_attempts = 0;
-                _unlock_at = DateTime.MinValue;
-                AppLog.Info("Clave del Panel Admin actualizada");
+                admin_key fresh_key = AdminPasswordHasher.create(new_password, DateTime.UtcNow);
+                admin_key? existing = db_context.admin_keys.FirstOrDefault(k => k.id_key == admin_key.SingleRowId);
+                if (existing == null)
+                {
+                    db_context.admin_keys.Add(fresh_key);
+                }
+                else
+                {
+                    existing.password_salt = fresh_key.password_salt;
+                    existing.password_hash = fresh_key.password_hash;
+                    existing.iterations = fresh_key.iterations;
+                    existing.updated_at_utc = fresh_key.updated_at_utc;
+                }
+
+                db_context.SaveChanges();
+                login_limiter.reset();
+                AppLog.Info("Clave del Panel Admin actualizada en la base");
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                AppLog.Error("No se pudo guardar la clave del Panel Admin", ex);
+                AppLog.Error("No se pudo guardar la clave del Panel Admin", exception);
                 return false;
             }
         }
 
         public static int remaining_delay_seconds()
         {
-            int remaining = (int)Math.Ceiling((_unlock_at - DateTime.Now).TotalSeconds);
-            return remaining > 0 ? remaining : 0;
+            return login_limiter.remaining_delay_seconds(DateTime.Now);
         }
 
-        private static (byte[] salt, byte[] hash, int iterations) load_config()
+        private static admin_key? load_key()
         {
             try
             {
-                if (!File.Exists(config_path)) return (Array.Empty<byte>(), Array.Empty<byte>(), KeyIterations);
-
-                using var doc = JsonDocument.Parse(File.ReadAllText(config_path));
-                if (doc.RootElement.TryGetProperty("password_salt", out JsonElement s)
-                    && doc.RootElement.TryGetProperty("password_hash", out JsonElement h))
-                {
-                    byte[] salt = Convert.FromBase64String(s.GetString() ?? string.Empty);
-                    byte[] hash = Convert.FromBase64String(h.GetString() ?? string.Empty);
-                    int iterations = doc.RootElement.TryGetProperty("iterations", out JsonElement it)
-                        ? it.GetInt32()
-                        : KeyIterations;
-                    return (salt, hash, iterations);
-                }
-
-                AppLog.Warn("admin_security.json sin los campos esperados");
+                using NinOSDbContext db_context = create_context();
+                return db_context.admin_keys
+                    .AsNoTracking()
+                    .FirstOrDefault(k => k.id_key == admin_key.SingleRowId);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                // No se regenera con una clave por defecto: si el archivo esta dañado,
-                // el panel queda cerrado hasta que se vuelva a crear a proposito.
-                AppLog.Error("admin_security.json dañado o ilegible", ex);
+                AppLog.Error("No se pudo leer la clave del Panel Admin de la base", exception);
+                return null;
             }
+        }
 
-            return (Array.Empty<byte>(), Array.Empty<byte>(), KeyIterations);
+        private static NinOSDbContext create_context()
+        {
+            DbContextOptionsBuilder<NinOSDbContext> options_builder = new DbContextOptionsBuilder<NinOSDbContext>();
+            options_builder.UseNpgsql(DbConnectionFactory.GetConnectionString());
+
+            return new NinOSDbContext(options_builder.Options);
         }
     }
 }

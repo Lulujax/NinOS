@@ -91,3 +91,11 @@ Cubre: RF-10
 - Escribir a GitHub Support para que eliminen los commits antiguos accesibles por SHA.
 - Hecho cuando: GitHub confirma.
 - [x] Hecha y probada — Decisión de Luis (2026-11-15): se da por cerrada sin enviar la solicitud porque llevaría tiempo; el repositorio sigue público y todo lo que estuvo en el historial se considera filtrado.
+
+## Tarea 13 - Clave del Panel Admin guardada como hash en la base
+Cubre: RF-8, RF-9, RF-14, RF-15
+- Crear la tabla `admin_key` (migración aditiva) con una sola fila: sal, hash PBKDF2-SHA256 y fecha de actualización. `AdminSecurity` lee y verifica contra esa tabla en vez de `admin_security.json`. Quitar la escritura del archivo y el script `crear-clave-admin.ps1` (se reemplaza por el argumento `--set-admin-password`, que escribe en la base). La clave nueva se rechaza si tiene menos de 12 caracteres.
+- Hecho cuando: con la clave guardada en la base, el panel abre desde dos PCs que apuntan a la misma base; sin fila, el panel queda bloqueado y lo registra en el log; una clave de 11 caracteres se rechaza.
+- Cómo probarla: `NinOS.UI.exe --set-admin-password` → crear clave → Ctrl+Alt+P entra; borrar la fila → Ctrl+Alt+P no entra.
+- Pruebas unitarias: caso feliz, límite (11 y 12 caracteres), error (fila dañada o sin fila).
+- [ ] Hecha y probada — pendiente de aprobar el plan y de resolver RF-16 (Ctrl+Alt+P en PCs del cliente).

@@ -13,8 +13,11 @@ Hoy la contraseña de la base de datos es de 4 caracteres, está escrita en el c
 - **RF-5** EL SISTEMA tendrá el acceso a la base reforzado, no cerrado: las PCs se conectan desde cualquier internet, así que el puerto queda accesible pero con contraseña larga y aleatoria, cifrado TLS obligatorio, usuario sin superusuario y puerto distinto del 5432.
 - **RF-6** EL SISTEMA no tendrá en el repositorio respaldos de base de datos ni copias de datos reales (`*.dump`, `scratch/`, JSON o SQL con datos).
 - **RF-7** CUANDO se instale en una PC del cliente, EL SISTEMA obtendrá la conexión de un archivo de configuración creado por el instalador, no del código.
-- **RF-8** EL SISTEMA no guardará la clave del Panel Admin en el código; se definirá fuera del repositorio y no volverá a una clave por defecto si falta el archivo.
-- **RF-9** SI el archivo de clave del Panel Admin falta o está dañado, ENTONCES EL SISTEMA bloqueará el acceso al panel en vez de restaurar una clave por defecto.
+- **RF-8** EL SISTEMA no guardará la clave del Panel Admin en el código ni en archivos de la PC; se guardará solo como hash dentro de la base de datos y no volverá a una clave por defecto si falta.
+- **RF-9** SI la clave del Panel Admin falta o está dañada en la base, ENTONCES EL SISTEMA bloqueará el acceso al panel en vez de restaurar una clave por defecto.
+- **RF-14** EL SISTEMA guardará la clave del Panel Admin en una tabla de la base, como hash irreversible con sal, de modo que cualquier PC que se conecte a esa base pida la misma clave.
+- **RF-15** SI la clave nueva del Panel Admin tiene menos de 12 caracteres, ENTONCES EL SISTEMA la rechazará y no guardará nada. [NECESITA ACLARACIÓN: confirmar mínimo de 12 caracteres; hoy es 6.]
+- **RF-16** [NECESITA ACLARACIÓN: en una PC del cliente, la combinación Ctrl+Alt+P ¿debe seguir mostrando la ventana de clave o no hacer nada? Hoy la muestra en todas las PCs, y las reglas dicen que el cliente no debe ver nada del panel.]
 - **RF-10** EL SISTEMA tendrá el historial público de Git sin respaldos de base de datos, sin datos reales y sin contraseñas (se reescribe el historial), sabiendo que copias y clones anteriores pueden existir: por eso la rotación de contraseñas (RF-4) es obligatoria y va primero.
 - **RF-11** EL SISTEMA no incluirá credenciales en el instalador: el `appsettings.json` se crea en cada PC al instalar, fuera del contenido de `publish\`.
 - **RF-12** EL SISTEMA usará para la app un usuario de base que sea dueño únicamente de las tablas de NinOS: puede crear y modificar sus tablas (porque la app aplica las migraciones al arrancar), pero no es superusuario, no puede crear ni borrar bases, ni leer las de otros.

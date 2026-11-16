@@ -382,7 +382,7 @@ namespace NinOS.UI
 
             if (AdminSecurity.change_password(confirmation.Value))
             {
-                AppDialog.Show($"Clave guardada en: {AdminSecurity.ConfigPath}", "Panel Admin");
+                AppDialog.Show("Clave del Panel Admin guardada en la base de datos.", "Panel Admin");
             }
             else
             {
