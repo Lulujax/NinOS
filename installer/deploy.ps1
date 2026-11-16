@@ -94,6 +94,23 @@ function ejecutar_ssh {
     if ($LASTEXITCODE -ne 0) { throw "Fallo un comando en el servidor (codigo $LASTEXITCODE)." }
 }
 
+function ejecutar_con_progreso {
+    param([string]$actividad, [int]$segundos_estimados, [scriptblock]$bloque, [object[]]$argumentos)
+    $trabajo = Start-Job -ScriptBlock $bloque -ArgumentList $argumentos
+    $inicio = Get-Date
+    while ($trabajo.State -eq 'Running') {
+        Start-Sleep -Milliseconds 500
+        $transcurrido = ((Get-Date) - $inicio).TotalSeconds
+        $porcentaje = [int][math]::Min(95, 100 * $transcurrido / [math]::Max($segundos_estimados, 1))
+        Write-Progress -Activity $actividad -Status ("{0:N0} s transcurridos" -f $transcurrido) -PercentComplete $porcentaje
+    }
+    Write-Progress -Activity $actividad -Completed
+    $codigo = Receive-Job -Job $trabajo -Wait | Select-Object -Last 1
+    Remove-Job -Job $trabajo
+    Write-Host ("{0} terminado en {1:N0} s." -f $actividad, ((Get-Date) - $inicio).TotalSeconds)
+    return $codigo
+}
+
 function bytes_en_servidor {
     param($acceso, [string]$carpeta_remota)
     $salida = $null | & ssh -i $acceso['SSH_KEY'] @opciones_red "$($acceso['SSH_USER'])@$($acceso['VPS_HOST'])" "du -sb $carpeta_remota 2>/dev/null | cut -f1"
@@ -175,9 +192,12 @@ function publicar_paquete {
         descargar_del_servidor $acceso "$ruta_servidor/NinOS-$($en_servidor[0])-full.nupkg" $carpeta_salida
     }
 
-    Write-Host 'Empaquetando la actualizacion (completa y diferencial)...'
-    & $vpk pack -u NinOS -v $nueva_version -p $carpeta_codigo -e NinOS.UI.exe -o $carpeta_salida | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Fallo el empaquetado. No se subio nada.' }
+    $codigo_empaquetado = ejecutar_con_progreso 'Empaquetando la actualizacion (completa y diferencial)' 40 {
+        param($vpk_a_usar, $version_a_empaquetar, $codigo_a_empaquetar, $salida_empaquetado)
+        & $vpk_a_usar pack -u NinOS -v $version_a_empaquetar -p $codigo_a_empaquetar -e NinOS.UI.exe -o $salida_empaquetado *> $null
+        $LASTEXITCODE
+    } @($vpk, $nueva_version, $carpeta_codigo, $carpeta_salida)
+    if ($codigo_empaquetado -ne 0) { throw 'Fallo el empaquetado. No se subio nada.' }
     Write-Host 'Paquete listo.'
 
     $nuevo = "$ruta_servidor.nuevo"
@@ -217,10 +237,13 @@ function publicar_version {
 
     if (-not $carpeta_publish) {
         $carpeta_publish = Join-Path $carpeta_respaldos "velopack-pruebas\publish-$nueva_version"
-        Write-Host "Compilando la version $nueva_version (tarda entre 1 y 2 minutos)..."
-        & dotnet publish (Join-Path $raiz_repo 'src\NinOS.UI\NinOS.UI.csproj') -c Release -r win-x64 --self-contained "-p:Version=$nueva_version" -o $carpeta_publish | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion. No se subio nada.' }
-        Write-Host 'Compilacion lista.'
+        $proyecto = Join-Path $raiz_repo 'src\NinOS.UI\NinOS.UI.csproj'
+        $codigo_compilacion = ejecutar_con_progreso "Compilando la version $nueva_version" 150 {
+            param($proyecto_a_compilar, $version_a_compilar, $salida_compilacion)
+            dotnet publish $proyecto_a_compilar -c Release -r win-x64 --self-contained "-p:Version=$version_a_compilar" -o $salida_compilacion *> $null
+            $LASTEXITCODE
+        } @($proyecto, $nueva_version, $carpeta_publish)
+        if ($codigo_compilacion -ne 0) { throw 'Fallo la compilacion. No se subio nada.' }
     }
 
     publicar_paquete $nueva_version $carpeta_publish $acceso
