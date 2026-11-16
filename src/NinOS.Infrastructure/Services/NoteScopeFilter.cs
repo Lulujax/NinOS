@@ -59,7 +59,7 @@ namespace NinOS.Infrastructure.Services
                 .ToListAsync();
 
             AppLog.Info($"Alcance de notas cargado: empresa {unit}, {note_types.Count} tipos de nota.");
-            return build_scope(unit, note_types.Select(t => (t.id_note_type, t.code)));
+            return build_scope(unit, note_types.Select(t => (t.id_note_type, (string?)t.code)));
         }
 
         public static bool belongs_to_scope(note_scope scope, int? note_type_id)
