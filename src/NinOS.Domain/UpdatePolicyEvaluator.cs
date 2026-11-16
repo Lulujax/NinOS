@@ -26,6 +26,11 @@ namespace NinOS.Domain
             return new Version(parsed.Major, parsed.Minor, Math.Max(parsed.Build, 0), Math.Max(parsed.Revision, 0));
         }
 
+        public static bool has_installed_version(string? current_version)
+        {
+            return !string.IsNullOrWhiteSpace(current_version);
+        }
+
         public static update_status evaluate(string? current_version, string? minimum_version, string? recommended_version)
         {
             Version current = parse_version(current_version);

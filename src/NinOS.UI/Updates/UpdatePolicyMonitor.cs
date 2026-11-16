@@ -25,6 +25,7 @@ namespace NinOS.UI.Updates
         private readonly IAppUpdater _updater;
         private readonly DispatcherTimer _timer;
         private bool _had_notice;
+        private bool _logged_not_installed;
 
         public event Action<update_policy_snapshot?>? snapshot_changed;
 
@@ -50,6 +51,13 @@ namespace NinOS.UI.Updates
 
         private async Task<update_policy_snapshot?> read_snapshot_async()
         {
+            string current = _updater.current_version;
+            if (!UpdatePolicyEvaluator.has_installed_version(current))
+            {
+                log_not_installed_once();
+                return null;
+            }
+
             try
             {
                 using IServiceScope scope = _scope_factory.CreateScope();
@@ -57,7 +65,6 @@ namespace NinOS.UI.Updates
                 update_policy_dto? policy = await policy_service.get_policy_async();
                 if (policy == null) return null;
 
-                string current = _updater.current_version;
                 update_status status = UpdatePolicyEvaluator.evaluate(current, policy.minimum_version, policy.recommended_version);
                 notice_countdown countdown = UpdateNoticeCountdown.calculate(policy.notice_at_utc, policy.server_time_utc, _had_notice);
                 _had_notice = policy.notice_at_utc != null;
@@ -71,6 +78,14 @@ namespace NinOS.UI.Updates
                 AppLog.Warn($"No se pudo revisar la politica de actualizacion ({exception.GetType().Name}). Se sigue trabajando con la version actual.");
                 return null;
             }
+        }
+
+        private void log_not_installed_once()
+        {
+            if (_logged_not_installed) return;
+
+            _logged_not_installed = true;
+            AppLog.Info("Politica de actualizacion omitida: esta copia no esta instalada con el actualizador (modo desarrollo).");
         }
     }
 }

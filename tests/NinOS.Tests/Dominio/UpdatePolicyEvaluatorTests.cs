@@ -4,6 +4,17 @@ namespace NinOS.Tests.Dominio;
 
 public class UpdatePolicyEvaluatorTests
 {
+    [Theory]
+    [InlineData("1.0.11", true)]
+    [InlineData("0.0.1", true)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void has_installed_version_detecta_si_hay_version_instalada(string? version, bool esperado)
+    {
+        Assert.Equal(esperado, UpdatePolicyEvaluator.has_installed_version(version));
+    }
+
     [Fact]
     public void caso_feliz_version_igual_a_la_recomendada_esta_al_dia()
     {
