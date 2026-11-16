@@ -106,6 +106,7 @@ function copiar_al_servidor {
     param($acceso, [string[]]$origenes, [string]$destino)
     $total_bytes = [long](($origenes | ForEach-Object { (Get-Item -LiteralPath $_).Length } | Measure-Object -Sum).Sum)
     $carpeta_remota = $destino.TrimEnd('/')
+    $bytes_de_partida = bytes_en_servidor $acceso $carpeta_remota
     $argumentos = @('-i', $acceso['SSH_KEY']) + $opciones_red + $origenes + @("$($acceso['SSH_USER'])@$($acceso['VPS_HOST']):$destino")
     Write-Host ("Subiendo {0:N1} MB al servidor..." -f ($total_bytes / 1MB))
     $inicio = Get-Date
@@ -114,7 +115,7 @@ function copiar_al_servidor {
     $momento_previo = $inicio
     while ($trabajo.State -eq 'Running') {
         Start-Sleep -Seconds $segundos_entre_medidas
-        $enviados = bytes_en_servidor $acceso $carpeta_remota
+        $enviados = [math]::Max(0, (bytes_en_servidor $acceso $carpeta_remota) - $bytes_de_partida)
         $ahora = Get-Date
         $segundos = [math]::Max(($ahora - $momento_previo).TotalSeconds, 0.1)
         $velocidad_mb = (($enviados - $bytes_previos) / $segundos) / 1MB
@@ -162,14 +163,16 @@ function publicar_paquete {
     if ($nueva_version -notmatch $patron_version) { throw "La version '$nueva_version' no tiene el formato X.Y.Z." }
 
     New-Item -ItemType Directory -Force $carpeta_salida | Out-Null
-    Get-ChildItem $carpeta_salida -File | Where-Object { $_.Name -like 'NinOS*' -or $_.Name -eq 'RELEASES' -or $_.Name -like '*.json' } | Remove-Item -Force
+    Get-ChildItem $carpeta_salida -File | Remove-Item -Force
 
     Write-Host 'Mirando que versiones hay en el servidor...'
     $en_servidor = @(versiones_en_servidor $acceso | Where-Object { $_ -ne $nueva_version })
     $conservar = @(@($en_servidor + $nueva_version) | Sort-Object { [version]$_ } -Descending | Select-Object -First $versiones_a_conservar)
-    foreach ($version_remota in ($conservar | Where-Object { $_ -ne $nueva_version })) {
-        Write-Host "Bajando la version $version_remota para conservarla..."
-        descargar_del_servidor $acceso "$ruta_servidor/NinOS-$version_remota-full.nupkg" $carpeta_salida
+    $descartar = @($en_servidor | Where-Object { $conservar -notcontains $_ })
+
+    if ($en_servidor.Count -gt 0) {
+        Write-Host "Bajando solo la version $($en_servidor[0]) (la mas reciente) para armar el cambio diferencial..."
+        descargar_del_servidor $acceso "$ruta_servidor/NinOS-$($en_servidor[0])-full.nupkg" $carpeta_salida
     }
 
     Write-Host 'Empaquetando la actualizacion (completa y diferencial)...'
@@ -178,7 +181,10 @@ function publicar_paquete {
     Write-Host 'Paquete listo.'
 
     $nuevo = "$ruta_servidor.nuevo"
-    ejecutar_ssh $acceso "rm -rf $nuevo && mkdir -p $nuevo"
+    $comandos_de_limpieza = @($descartar | ForEach-Object { "rm -f $nuevo/NinOS-$_-full.nupkg $nuevo/NinOS-$_-delta.nupkg" })
+    $copia = "rm -rf $nuevo && mkdir -p $nuevo && cp -a $ruta_servidor/. $nuevo/"
+    ejecutar_ssh $acceso ((@($copia) + $comandos_de_limpieza) -join ' && ')
+
     try {
         $archivos = @(Get-ChildItem $carpeta_salida -File | ForEach-Object { $_.FullName })
         copiar_al_servidor $acceso $archivos "$nuevo/"
@@ -190,6 +196,8 @@ function publicar_paquete {
     Write-Host 'Activando la version en el servidor...'
     ejecutar_ssh $acceso "rm -rf $ruta_servidor.viejo; if [ -d $ruta_servidor ]; then mv $ruta_servidor $ruta_servidor.viejo; fi; mv $nuevo $ruta_servidor && rm -rf $ruta_servidor.viejo"
     Write-Host "Version $nueva_version publicada. Versiones en el servidor: $((versiones_en_servidor $acceso) -join ', ')"
+    Get-ChildItem $carpeta_salida -File | Remove-Item -Force
+    Write-Host 'Archivos temporales borrados de tu PC.'
 
     if ($actualizar_recomendada) { actualizar_version_recomendada $acceso $nueva_version }
 }
@@ -262,6 +270,8 @@ function volver_atras_version {
     $carpeta_codigo = codigo_de_version_guardada $acceso $origen $carpeta_trabajo
     Write-Host "Codigo de la $origen listo."
     publicar_paquete $nueva_version $carpeta_codigo $acceso
+    Remove-Item -LiteralPath $carpeta_trabajo -Recurse -Force
+    Write-Host 'Carpeta temporal de la vuelta atras borrada de tu PC.'
 }
 
 function iniciar {
