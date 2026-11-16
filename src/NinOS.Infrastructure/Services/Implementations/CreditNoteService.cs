@@ -245,6 +245,27 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        private static async Task validar_relacion_no_pagada_async(NinOSDbContext db_context, delivery_note nota)
+        {
+            if (nota.id_relacion == null || nota.note_type_id == null) return;
+
+            var ids_pro_venta = await db_context.note_types
+                .AsNoTracking()
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+            if (!ids_pro_venta.Contains(nota.note_type_id.Value)) return;
+
+            int id_relacion = nota.id_relacion.Value;
+            await db_context.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM relacion WHERE id_relacion = {id_relacion} FOR UPDATE");
+
+            resumen_relacion resumen = await ProVentaService.resumen_relacion_async(db_context, id_relacion);
+            if (!resumen.esta_pagada) return;
+
+            AppLog.Warn($"Nota de credito rechazada: la relacion {id_relacion} de la nota {nota.id_delivery_note} ya esta pagada.");
+            throw new InvalidOperationException("La relación de esta nota Pro Venta ya está pagada: no se puede hacer una nota de crédito sobre ella.");
+        }
+
         private static async Task<IEnumerable<credit_note_dto>> build_list_dtos_async(NinOSDbContext db_context, DateTime? target_date, int? id_seller = null)
         {
             var query = db_context.credit_notes.AsNoTracking();
@@ -672,6 +693,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                         if (balance_of_note <= 0)
                             throw new InvalidOperationException("La nota de entrega no tiene saldo pendiente por devolver.");
+                        await validar_relacion_no_pagada_async(db_context, original_note);
                     }
 
                     var direct_product_ids = new HashSet<int>();

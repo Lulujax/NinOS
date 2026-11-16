@@ -123,6 +123,12 @@
                         <Button Content="15%" Padding="7,3" Margin="2" FontSize="10.5" Cursor="Hand"
                                 Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1" Foreground="#424242"
                                 Click="QuickDiscount_Click" Tag="15"/>
+                        <Button x:Name="BtnPagoConDescuento" Content="Pagó con descuento" Padding="7,3" Margin="2" FontSize="10.5" Cursor="Hand"
+                                Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Foreground="#2E7D32"
+                                Click="PagoConDescuento_Click"/>
+                        <Button x:Name="BtnPagoSinDescuento" Content="Pagó sin descuento" Padding="7,3" Margin="2" FontSize="10.5" Cursor="Hand"
+                                Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Foreground="#2E7D32"
+                                Click="PagoSinDescuento_Click"/>
                     </StackPanel>
 
                     <!-- Edición de Monto -->
@@ -203,7 +209,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="MONTO BASE ($)" Binding="{Binding gross_total_usd, StringFormat=N2}" Width="1.4*"
+                        <DataGridTextColumn Header="MONTO ORIGINAL ($)" Binding="{Binding monto_original, StringFormat=N2}" Width="1.4*"
                                             ElementStyle="{StaticResource RightCellStyle}"/>
                         <DataGridTextColumn Header="DCTO %" Binding="{Binding discount_percentage_text}" Width="1*"
                                             ElementStyle="{StaticResource CenterCellStyle}"/>

@@ -15,6 +15,7 @@ using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 
 using NinOS.Infrastructure.Common;
+using NinOS.Infrastructure.Logging;
 
 using NinOS.Infrastructure.Data;
 
@@ -320,7 +321,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 .AsNoTracking()
 
-                .FirstOrDefaultAsync(r => r.week_start == week.start.Date);
+                .FirstOrDefaultAsync(r => r.week_start == week.start.Date && !r.es_hueca);
 
 
 
@@ -328,7 +329,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             {
 
-                relation = await get_or_create_week_relation_async(db_context, week.start.Date);
+                AppLog.Warn($"Semana {week.start:yyyy-MM-dd} con {in_week.Count} notas sin relacion. Se muestra sin numero.");
 
             }
 
@@ -585,276 +586,43 @@ namespace NinOS.Infrastructure.Services.Implementations
         /// </summary>
 
         private static async Task<Dictionary<int, decimal>> cargar_montos_originales_async(
-
             NinOSDbContext db_context, List<int> ids_de_nota)
-
         {
-
             if (ids_de_nota == null || ids_de_nota.Count == 0) return new Dictionary<int, decimal>();
 
-
-
-            var renglones = await db_context.note_details
-
+            var lineas = await db_context.note_details
                 .AsNoTracking()
-
                 .Where(d => ids_de_nota.Contains(d.id_delivery_note))
-
-                .Select(d => new { d.id_delivery_note, d.id_product, d.id_promotion, d.quantity, d.unit_price_usd })
-
+                .Select(d => new linea_nota(d.id_delivery_note, d.id_product, d.id_promotion, d.quantity, d.unit_price_usd))
                 .ToListAsync();
 
-
-
-            var creditos_vigentes = await db_context.credit_notes
-
+            var ids_creditos_vigentes = await db_context.credit_notes
                 .AsNoTracking()
-
                 .Where(c => c.id_delivery_note != null
-
                          && ids_de_nota.Contains(c.id_delivery_note.Value)
-
                          && c.status != "Anulada")
-
                 .Select(c => new { c.id_credit_note, id_nota = c.id_delivery_note!.Value })
-
                 .ToListAsync();
 
-
-
-            var devoluciones = creditos_vigentes.Count == 0
-
-                ? new List<DevolucionPlana>()
-
+            var devoluciones = ids_creditos_vigentes.Count == 0
+                ? new List<devolucion_nota>()
                 : (await db_context.credit_note_details
-
                     .AsNoTracking()
-
-                    .Where(d => creditos_vigentes.Select(c => c.id_credit_note).Contains(d.id_credit_note))
-
+                    .Where(d => ids_creditos_vigentes.Select(c => c.id_credit_note).Contains(d.id_credit_note))
                     .Select(d => new { d.id_credit_note, d.id_product, d.id_promotion, d.quantity })
-
                     .ToListAsync())
-
-                  .Join(creditos_vigentes, d => d.id_credit_note, c => c.id_credit_note,
-
-                        (d, c) => new DevolucionPlana(c.id_nota, d.id_product, d.id_promotion, d.quantity))
-
+                  .Join(ids_creditos_vigentes, d => d.id_credit_note, c => c.id_credit_note,
+                        (d, c) => new devolucion_nota(c.id_nota, d.id_product, d.id_promotion, d.quantity))
                   .ToList();
 
-
-
-            Dictionary<int, decimal> resultado = new Dictionary<int, decimal>();
-
-
-
-            foreach (var grupo in renglones.GroupBy(r => r.id_delivery_note))
-
-            {
-
-                decimal total = 0m;
-
-
-
-                foreach (var renglon in grupo)
-
-                {
-
-                    int devuelto = devoluciones
-
-                        .Where(d => d.id_nota == grupo.Key
-
-                                 && d.id_product == renglon.id_product
-
-                                 && d.id_promotion == renglon.id_promotion)
-
-                        .Sum(d => d.cantidad);
-
-
-
-                    int vigentes = renglon.quantity - devuelto;
-
-                    if (vigentes < 0) vigentes = 0;
-
-
-
-                    total += vigentes * renglon.unit_price_usd;
-
-                }
-
-
-
-                resultado[grupo.Key] = Money.round(total);
-
-            }
-
-
-
-            return resultado;
-
+            return original_amount_calculator.calcular(lineas, devoluciones);
         }
-
-
-
-        private readonly record struct DevolucionPlana(int id_nota, int? id_product, int? id_promotion, int cantidad);
 
 
 
         private static bool is_annulled(string? status)
 
             => string.Equals(status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase);
-
-
-
-        private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime date)
-
-        {
-
-            int offset = ((int)date.Date.DayOfWeek + 6) % 7;
-
-            DateTime week_start = date.Date.AddDays(-offset);
-
-
-
-            relacion? existing = await db_context.relaciones
-
-                .AsNoTracking()
-
-                .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
-
-            if (existing != null) return existing;
-
-
-
-            int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
-
-
-
-            relacion relation = new relacion(next_number, week_start, week_start.AddDays(6));
-
-            db_context.relaciones.Add(relation);
-
-
-
-            try
-
-            {
-
-                await db_context.SaveChangesAsync();
-
-                await renumber_relations_chronologically_async(db_context);
-
-                return await db_context.relaciones.AsNoTracking().FirstAsync(r => r.id_relacion == relation.id_relacion);
-
-            }
-
-            catch (DbUpdateException)
-
-            {
-
-                // Otra transaccion pudo crear la relacion de esta semana (o disputar el numero):
-
-                // se reintenta leyendo.
-
-                db_context.Entry(relation).State = EntityState.Detached;
-
-
-
-                relacion? created = await db_context.relaciones
-
-                    .AsNoTracking()
-
-                    .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
-
-                if (created != null) return created;
-
-                throw;
-
-            }
-
-        }
-
-
-
-        private static async Task renumber_relations_chronologically_async(NinOSDbContext db_context)
-
-        {
-
-            // Las relaciones huecas conservan el numero que se les asigno al migrarlas:
-
-            // renumerarlas por week_start las mezclaria entre si, porque varias
-
-            // comparten la misma semana.
-
-            var all = await db_context.relaciones
-
-                .Where(r => !r.es_hueca)
-
-                .OrderBy(r => r.week_start)
-
-                .ToListAsync();
-
-
-
-            // Las relaciones normales se numeran a partir de la mas alta que ya existe, para no
-
-            // chocar con IX_relacion_relation_number (unico) ni invadir el rango de las
-
-            // huecas. Con la cartera heredada en 149..179, la siguiente normal es 180.
-
-            int max_number = await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0;
-
-
-
-            bool needs_renumber = false;
-
-            for (int i = 0; i < all.Count; i++)
-
-            {
-
-                if (all[i].relation_number != max_number - all.Count + 1 + i)
-
-                {
-
-                    needs_renumber = true;
-
-                    break;
-
-                }
-
-            }
-
-            if (needs_renumber)
-
-            {
-
-                int temp_base = 1000000;
-
-                for (int i = 0; i < all.Count; i++)
-
-                {
-
-                    all[i].relation_number = temp_base + i + 1;
-
-                }
-
-                await db_context.SaveChangesAsync();
-
-
-
-                for (int i = 0; i < all.Count; i++)
-
-                {
-
-                    all[i].relation_number = max_number - all.Count + 1 + i;
-
-                }
-
-                await db_context.SaveChangesAsync();
-
-            }
-
-        }
 
 
 
@@ -957,6 +725,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     gross_total_usd = n.total_amount_usd,
 
                     discount_percentage = n.discount_percentage,
+                    emission_discount_percentage = n.original_discount_percentage,
 
                     discount_percentage_text = (n.discount_percentage.HasValue && n.discount_percentage.Value > 0)
 
@@ -1133,138 +902,234 @@ namespace NinOS.Infrastructure.Services.Implementations
             var rows = new List<pro_venta_relation_row>();
 
             foreach (var group in notes.GroupBy(n => n.id_relacion!.Value))
-
             {
-
                 if (!relations.TryGetValue(group.Key, out var relation)) continue;
-
-                if (relation.es_hueca) continue;   // se agrega mas abajo, con su saldo propio
-
-
-
-                // Una nota anulada deja de ser exigible, asi que sale del monto y del conteo de
-
-                // notas por cobrar, pero no se borra: si era la unica que habia, la relacion
-
-                // tiene que aparecer en Pagadas y no desaparecer de las dos tablas.
+                if (relation.es_hueca) continue;
 
                 var pending_notes = group.Where(n => !is_annulled(n.status)).ToList();
-
                 var annulled_notes = group.Where(n => is_annulled(n.status)).ToList();
 
+                decimal paid_total = payment_totals.TryGetValue(group.Key, out var total) ? total : 0m;
+                var resumen = relation_amounts.calcular(
+                    pending_notes.Select(n => n.adjusted_total_usd).ToList(),
+                    new[] { paid_total },
+                    false,
+                    0m);
 
-
-                decimal amount = pending_notes.Sum(n => n.adjusted_total_usd);
-
-                decimal paid = payment_totals.TryGetValue(group.Key, out var total) ? total : 0;
-
-                decimal balance = RelationBalance.raw_balance(amount, paid);
-
-                bool is_fully_paid = pending_notes.Count == 0 || balance <= 0.005m;
-
-
-
-                if (only_pending == is_fully_paid) continue;
-
-
+                if (only_pending == resumen.esta_pagada) continue;
 
                 rows.Add(new pro_venta_relation_row
-
                 {
-
                     id_relacion = relation.id_relacion,
-
                     relation_number = relation.relation_number,
-
                     week_start = relation.week_start,
-
                     week_end = relation.week_end,
-
-                    // El monto es solo de las notas vigentes. Las anuladas se reportan aparte para
-
-                    // que se vean sin reentrar en el total ni en el saldo a pagar.
-
-                    amount = amount,
-
-                    paid_amount_usd = paid,
-
-                    balance_due_usd = balance < 0 ? 0 : balance,
-
-                    status = is_fully_paid ? "Pagada" : "Pendiente",
-
+                    amount = resumen.monto_por_pagar,
+                    paid_amount_usd = resumen.abonado,
+                    balance_due_usd = resumen.saldo,
+                    status = resumen.estado,
                     note_count = pending_notes.Count,
-
                     annulled_amount = Money.round(annulled_notes.Sum(n => n.adjusted_total_usd)),
-
                     annulled_count = annulled_notes.Count
-
                 });
-
             }
 
-
-
-            // Relacion hueca: el saldo viene de la propia relacion, no de la suma de notas.
-
             foreach (var relation in hollow_relations)
-
             {
+                decimal paid_total = payment_totals.TryGetValue(relation.id_relacion, out var total) ? total : 0m;
+                var resumen = relation_amounts.calcular(
+                    Array.Empty<decimal>(),
+                    new[] { paid_total },
+                    true,
+                    Math.Max(0m, relation.saldo));
 
-                decimal amount = relation.saldo;
-
-                decimal paid = payment_totals.TryGetValue(relation.id_relacion, out var total) ? total : 0;
-
-                decimal balance = RelationBalance.raw_balance(amount, paid);
-
-                bool is_fully_paid = balance <= 0.005m;
-
-
-
-                if (only_pending == is_fully_paid) continue;
-
-
+                if (only_pending == resumen.esta_pagada) continue;
 
                 int notes_in_relation = notes.Count(n => n.id_relacion == relation.id_relacion);
 
-
-
                 rows.Add(new pro_venta_relation_row
-
                 {
-
                     id_relacion = relation.id_relacion,
-
                     relation_number = relation.relation_number,
-
                     week_start = relation.week_start,
-
                     week_end = relation.week_end,
-
-                    amount = amount,
-
-                    paid_amount_usd = paid,
-
-                    balance_due_usd = balance < 0 ? 0 : balance,
-
-                    status = is_fully_paid ? "Pagada" : "Pendiente",
-
+                    amount = resumen.monto_por_pagar,
+                    paid_amount_usd = resumen.abonado,
+                    balance_due_usd = resumen.saldo,
+                    status = resumen.estado,
                     note_count = notes_in_relation,
-
                     annulled_amount = 0,
-
                     annulled_count = 0
-
                 });
-
             }
-
-
 
             return rows.OrderBy(r => r.relation_number).ToList();
 
         }
 
 
+
+        public async Task update_note_amount_async(int id_delivery_note, decimal monto_a_cobrar, decimal monto_esperado)
+        {
+            if (id_delivery_note <= 0) throw new ArgumentException("El id de la nota no es valido.", nameof(id_delivery_note));
+
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            using var transaction = await db_context.Database.BeginTransactionAsync();
+            int? id_relacion_leida = null;
+            decimal descuento_antes = 0m;
+            try
+            {
+                id_relacion_leida = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => n.id_delivery_note == id_delivery_note)
+                    .Select(n => n.id_relacion)
+                    .FirstOrDefaultAsync();
+
+                if (id_relacion_leida == null)
+                    throw new InvalidOperationException("La nota no existe o no pertenece a una relacion Pro Venta.");
+
+                int id_relacion = id_relacion_leida.Value;
+                await lock_relation_for_update_async(db_context, id_relacion);
+                await lock_note_for_update_async(db_context, id_delivery_note);
+
+                delivery_note? nota = await db_context.delivery_notes
+                    .FirstOrDefaultAsync(n => n.id_delivery_note == id_delivery_note);
+                if (nota == null)
+                    throw new InvalidOperationException("La nota no existe.");
+
+                descuento_antes = nota.discount_percentage ?? 0m;
+                resumen_relacion resumen = await resumen_relacion_async(db_context, id_relacion);
+                decimal monto_original = (await cargar_montos_originales_async(db_context, new List<int> { id_delivery_note }))
+                    .TryGetValue(id_delivery_note, out decimal mo) ? mo : 0m;
+
+                resultado_edicion resultado = pro_venta_note_edit.evaluar_edicion(
+                    nota.status, resumen.esta_pagada, monto_original, nota.adjusted_total_usd, monto_esperado, monto_a_cobrar);
+                if (!resultado.aceptada)
+                    throw new InvalidOperationException(resultado.motivo);
+
+                decimal descuento_nuevo = pro_venta_note_edit.descuento_desde_monto(monto_original, monto_a_cobrar);
+                nota.adjusted_total_usd = Money.round(monto_a_cobrar);
+                nota.discount_percentage = descuento_nuevo;
+
+                await db_context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                AppLog.Info($"Edicion Pro Venta guardada: nota {id_delivery_note}, relacion {id_relacion}, descuento {descuento_antes:0.##} -> {descuento_nuevo:0.##}.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                AppLog.Warn($"Edicion Pro Venta rechazada: nota {id_delivery_note}, relacion {id_relacion_leida?.ToString() ?? "desconocida"}, descuento antes {descuento_antes:0.##}. Motivo: {ex.Message}");
+                throw;
+            }
+        }
+
+        private static Task lock_relation_for_update_async(NinOSDbContext db_context, int id_relacion)
+            => db_context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM relacion WHERE id_relacion = {id_relacion} FOR UPDATE");
+
+        private static Task lock_note_for_update_async(NinOSDbContext db_context, int id_delivery_note)
+            => db_context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM delivery_note WHERE id_delivery_note = {id_delivery_note} FOR UPDATE");
+
+        public static async Task<resumen_relacion> resumen_relacion_async(NinOSDbContext db_context, int id_relacion)
+        {
+            var notas = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.id_relacion == id_relacion)
+                .Select(n => new { n.id_delivery_note, n.status, n.adjusted_total_usd })
+                .ToListAsync();
+
+            var anuladas_ids = notas.Where(n => is_annulled(n.status)).Select(n => n.id_delivery_note).ToHashSet();
+
+            var abonos = await db_context.payments
+                .AsNoTracking()
+                .Where(p => p.id_relacion == id_relacion && p.amount_usd > 0)
+                .Select(p => new { p.id_delivery_note, p.amount_usd })
+                .ToListAsync();
+
+            var abonos_vigentes = abonos
+                .Where(p => p.id_delivery_note == null || !anuladas_ids.Contains(p.id_delivery_note.Value))
+                .Select(p => p.amount_usd)
+                .ToList();
+
+            var montos_vigentes = notas
+                .Where(n => !is_annulled(n.status))
+                .Select(n => n.adjusted_total_usd)
+                .ToList();
+
+            return relation_amounts.calcular(montos_vigentes, abonos_vigentes, false, 0m);
+        }
+
+        public async Task<List<pro_venta_relation_row>> get_relations_at_cutoff_async(DateTime fecha_corte)
+        {
+            if (fecha_corte == default)
+                throw new ArgumentException("La fecha de corte no puede estar vacia.", nameof(fecha_corte));
+
+            using var scope = _scope_factory.CreateScope();
+            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+
+            var mar_ids = await db_context.note_types
+                .AsNoTracking()
+                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
+                .Select(t => t.id_note_type)
+                .ToListAsync();
+
+            var relaciones = await db_context.relaciones
+                .AsNoTracking()
+                .OrderBy(r => r.relation_number)
+                .ToListAsync();
+
+            var notas = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value) && n.id_relacion != null)
+                .Select(n => new { n.id_delivery_note, n.id_relacion, n.status, n.creation_date, n.adjusted_total_usd })
+                .ToListAsync();
+
+            var abonos = await db_context.payments
+                .AsNoTracking()
+                .Where(p => p.id_relacion != null && p.amount_usd > 0)
+                .Select(p => new { p.id_relacion, p.id_delivery_note, p.payment_date, p.amount_usd })
+                .ToListAsync();
+
+            var notas_anuladas = notas.Where(n => is_annulled(n.status)).Select(n => n.id_delivery_note).ToHashSet();
+
+            var filas = new List<pro_venta_relation_row>();
+            foreach (var relacion_actual in relaciones.Where(r => r.week_start.Date <= fecha_corte.Date))
+            {
+                var montos_notas = notas
+                    .Where(n => n.id_relacion == relacion_actual.id_relacion && !is_annulled(n.status))
+                    .Select(n => new movimiento_con_fecha(n.creation_date, n.adjusted_total_usd))
+                    .ToList();
+
+                var movimientos_abonos = abonos
+                    .Where(p => p.id_relacion == relacion_actual.id_relacion
+                             && (p.id_delivery_note == null || !notas_anuladas.Contains(p.id_delivery_note.Value)))
+                    .Select(p => new movimiento_con_fecha(p.payment_date, p.amount_usd))
+                    .ToList();
+
+                resumen_relacion resumen = relation_balance_at.calcular(
+                    fecha_corte, montos_notas, movimientos_abonos, relacion_actual.es_hueca, Math.Max(0m, relacion_actual.saldo));
+
+                filas.Add(new pro_venta_relation_row
+                {
+                    id_relacion = relacion_actual.id_relacion,
+                    relation_number = relacion_actual.relation_number,
+                    week_start = relacion_actual.week_start,
+                    week_end = relacion_actual.week_end,
+                    amount = resumen.monto_por_pagar,
+                    paid_amount_usd = resumen.abonado,
+                    balance_due_usd = resumen.saldo,
+                    status = resumen.estado,
+                    note_count = resumen.notas_vigentes
+                });
+            }
+
+            AppLog.Info($"Reporte con corte {fecha_corte:yyyy-MM-dd}: {filas.Count} relaciones calculadas (solo lectura).");
+            return filas;
+        }
 
         public async Task<List<pro_venta_relation_option>> get_all_relations_async()
 

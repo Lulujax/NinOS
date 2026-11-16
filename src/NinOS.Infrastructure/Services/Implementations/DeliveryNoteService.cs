@@ -19,6 +19,7 @@ namespace NinOS.Infrastructure.Services.Implementations
     public class DeliveryNoteService : IDeliveryNoteService
     {
         public const long CorrelativeLockKey = 9070002L;
+        public const long RelationLockKey = 9070004L;
 
         private readonly IServiceScopeFactory _scope_factory;
 
@@ -44,7 +45,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             return await repo.get_next_correlative_async();
         }
 
-        public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details, NinOS.Domain.ViewModels.note_print_dto? print_dto = null)
+        public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details, NinOS.Domain.ViewModels.note_print_dto? print_dto = null, bool confirmar_relacion_pagada = false)
         {
             if (new_note == null) throw new ArgumentNullException(nameof(new_note));
             if (details == null) throw new InvalidOperationException("Los detalles no pueden ser nulos.");
@@ -166,6 +167,16 @@ namespace NinOS.Infrastructure.Services.Implementations
                         {
                             relacion relation = await get_or_create_week_relation_async(_db_context, new_note.creation_date);
                             new_note.id_relacion = relation.id_relacion;
+                            new_note.adjusted_total_usd = original_amount_calculator.monto_al_emitir(
+                                details_list.Select(d => (d.quantity, d.unit_price_usd)).ToList());
+                            resumen_relacion resumen_previo = await ProVentaService.resumen_relacion_async(_db_context, relation.id_relacion);
+                            if (relacion_pagada_aviso.debe_pedir_confirmacion(resumen_previo, confirmar_relacion_pagada))
+                            {
+                                AppLog.Warn($"Nota Pro Venta para la relacion pagada {relation.id_relacion}: se pide confirmacion.");
+                                throw new relacion_pagada_exception(relation.id_relacion);
+                            }
+                            if (resumen_previo.esta_pagada && resumen_previo.notas_vigentes > 0)
+                                AppLog.Warn($"Relacion {relation.id_relacion} estaba pagada y se reabre con la nota confirmada.");
                         }
                     }
 
@@ -217,35 +228,28 @@ namespace NinOS.Infrastructure.Services.Implementations
                 || message.Contains("duplicate key");
         }
 
-        private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime date)
+        private static async Task<relacion> get_or_create_week_relation_async(NinOSDbContext db_context, DateTime creation_date_utc)
         {
-            int offset = ((int)date.Date.DayOfWeek + 6) % 7;
-            DateTime week_start = date.Date.AddDays(-offset);
+            DateTime week_start = pro_venta_week.lunes_de(creation_date_utc);
+
+            await db_context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({RelationLockKey})");
 
             relacion? existing = await db_context.relaciones
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                AppLog.Info($"Nota asignada a la relacion {existing.id_relacion} de la semana {week_start:yyyy-MM-dd}.");
+                return existing;
+            }
 
             int next_number = (await db_context.relaciones.MaxAsync(r => (int?)r.relation_number) ?? 0) + 1;
-
             relacion relation = new relacion(next_number, week_start, week_start.AddDays(6));
             db_context.relaciones.Add(relation);
+            await db_context.SaveChangesAsync();
 
-            try
-            {
-                await db_context.SaveChangesAsync();
-                return relation;
-            }
-            catch (DbUpdateException)
-            {
-                // Otra transaccion pudo crear la relacion de esta semana: se reintenta leyendo.
-                db_context.Entry(relation).State = EntityState.Detached;
-
-                relacion? created = await db_context.relaciones
-                    .FirstOrDefaultAsync(r => r.week_start == week_start && !r.es_hueca);
-                if (created != null) return created;
-                throw;
-            }
+            AppLog.Info($"Relacion {relation.id_relacion} creada para la semana {week_start:yyyy-MM-dd}.");
+            return relation;
         }
     }
 }

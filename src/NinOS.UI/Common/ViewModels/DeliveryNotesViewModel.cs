@@ -12,6 +12,7 @@ using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Repositories.Interfaces;
+using NinOS.Infrastructure.Services.Implementations;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
 
@@ -2160,13 +2161,24 @@ namespace NinOS.UI.Common.ViewModels
                 string previewed_note_number = _note_number;
 
                 int save_attempts = 0;
+                bool confirmar_relacion_pagada = false;
                 while (true)
                 {
                     save_attempts++;
                     try
                     {
-                        await _delivery_note_service.create_delivery_note_async(new_note, domain_details, build_preview_dto());
+                        await _delivery_note_service.create_delivery_note_async(new_note, domain_details, build_preview_dto(), confirmar_relacion_pagada);
                         break;
+                    }
+                    catch (relacion_pagada_exception) when (!confirmar_relacion_pagada)
+                    {
+                        MessageBoxResult respuesta = AppDialog.Show(
+                            $"La relación de esa semana ya está pagada.\n\nSi guarda esta nota, la relación vuelve a quedar pendiente con el monto de la nota.\n\n¿Desea guardarla de todas formas?",
+                            "Relación pagada",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+                        if (respuesta != MessageBoxResult.Yes) return;
+                        confirmar_relacion_pagada = true;
                     }
                     catch (InvalidOperationException ex) when (ex.Message.IndexOf("correlativo", StringComparison.OrdinalIgnoreCase) >= 0 && save_attempts <= 3)
                     {

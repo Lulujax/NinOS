@@ -1,3 +1,4 @@
+using NinOS.Domain;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -120,7 +121,7 @@ namespace NinOS.UI.Common
             ws.Cell(rowIdx, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
             rowIdx++;
 
-            decimal total_cobrado = dto.total_amount - dto.total_commission_luis;
+            decimal total_cobrado = liquidacion_pro_venta.total_cobrado(dto.total_monto_original, dto.total_commission_luis);
             decimal diferencial = total_cobrado - nota_por_pagar;
 
             ws.Cell(rowIdx, 1).SetValue("TOTAL COBRADO (NOTAS MENOS COMISION LUIS G)");
@@ -169,38 +170,41 @@ namespace NinOS.UI.Common
             wsDetail.Cell(3, 1).Style.Font.FontSize = 10;
             wsDetail.Cell(3, 1).Style.Font.FontColor = XLColor.FromHtml("#1565C0");
 
-            string[] hNotes = new[] { "NRO NOTA", "CLIENTE", "MONTO ($)" };
+            string[] hNotes = new[] { "NRO NOTA", "CLIENTE", "MONTO ORIGINAL ($)", "MONTO A COBRAR ($)" };
             for (int i = 0; i < hNotes.Length; i++)
             {
                 wsDetail.Cell(4, i + 1).Value = hNotes[i];
                 ExcelFlatExporter.StyleHeaderCell(wsDetail.Cell(4, i + 1), ExcelFlatExporter.DarkBlueHeader);
             }
-
             int rn = 5;
             foreach (var n in dto.rows)
             {
                 string noteLabel = n.esta_anulada ? $"{n.note_number} [ANULADA]" : n.note_number;
                 wsDetail.Cell(rn, 1).SetValue(noteLabel);
                 wsDetail.Cell(rn, 2).SetValue(n.customer_name);
-                var cM = wsDetail.Cell(rn, 3);
-                cM.SetValue(n.amount);
-                cM.Style.NumberFormat.Format = "#,##0.00";
-
+                var cOriginal = wsDetail.Cell(rn, 3);
+                cOriginal.SetValue(n.monto_original);
+                cOriginal.Style.NumberFormat.Format = "#,##0.00";
+                var cCobrar = wsDetail.Cell(rn, 4);
+                cCobrar.SetValue(n.amount);
+                cCobrar.Style.NumberFormat.Format = "#,##0.00";
                 if (n.esta_anulada)
                 {
-                    wsDetail.Range(rn, 1, rn, 3).Style.Font.FontColor = XLColor.FromHtml("#C62828");
-                    wsDetail.Range(rn, 1, rn, 3).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFEBEE");
+                    wsDetail.Range(rn, 1, rn, 4).Style.Font.FontColor = XLColor.FromHtml("#C62828");
+                    wsDetail.Range(rn, 1, rn, 4).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFEBEE");
                 }
                 rn++;
             }
-
             decimal total_notes = dto.rows.Where(r => !r.esta_anulada).Sum(r => r.amount);
             wsDetail.Cell(rn, 1).SetValue("TOTAL");
             wsDetail.Cell(rn, 1).Style.Font.Bold = true;
-            wsDetail.Cell(rn, 3).SetValue(total_notes);
+            wsDetail.Cell(rn, 3).SetValue(dto.total_monto_original);
             wsDetail.Cell(rn, 3).Style.NumberFormat.Format = "#,##0.00";
             wsDetail.Cell(rn, 3).Style.Font.Bold = true;
-            ExcelFlatExporter.StyleTotalRow(wsDetail.Range(rn, 1, rn, 3), ExcelFlatExporter.BlueSoftBg);
+            wsDetail.Cell(rn, 4).SetValue(total_notes);
+            wsDetail.Cell(rn, 4).Style.NumberFormat.Format = "#,##0.00";
+            wsDetail.Cell(rn, 4).Style.Font.Bold = true;
+            ExcelFlatExporter.StyleTotalRow(wsDetail.Range(rn, 1, rn, 4), ExcelFlatExporter.BlueSoftBg);
             rn += 2;
 
             // Tabla 2: Registro de Pagos

@@ -100,9 +100,10 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                if (amount_usd > _row.balance_due_usd + 2.00m)
+                decimal maximo_a_pagar = _row.balance_due_usd + NinOS.Infrastructure.Services.Implementations.PaymentService.EXCESO_MAXIMO_PERMITIDO;
+                if (amount_usd > maximo_a_pagar)
                 {
-                    ShowError("Se excedió del monto máximo.");
+                    ShowError($"El monto excede el máximo permitido ({maximo_a_pagar:N2}): saldo más {NinOS.Infrastructure.Services.Implementations.PaymentService.EXCESO_MAXIMO_PERMITIDO:N2}.");
                     return;
                 }
 
