@@ -29,8 +29,9 @@ namespace NinOS.UI.Views
             string? no_text)
         {
             InitializeComponent();
-            Owner = owner;
-            WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
+            bool owner_visible = owner != null && owner.IsVisible;
+            if (owner_visible) Owner = owner;
+            WindowStartupLocation = owner_visible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
 
             _buttons = buttons;
             _default_result = default_result;
