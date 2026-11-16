@@ -83,3 +83,9 @@ Cubre: RF-15
 - Hecho cuando: el Excel abre con cliente, productos devueltos, cantidades, precio, subtotal y total, igual que el de una nota de entrega.
 - Cómo probarla: vista previa de una nota de crédito con dos productos → Excel; comparar con una nota de entrega en Excel.
 - [x] Hecha y probada
+
+## Tarea 13 - Combobox del año en las cinco pantallas
+Cubre: RF-14, RF-15
+- Cambiar el año en Ventas, Cuentas por Cobrar, Pagos, Comisiones y Notas de Crédito no deja el combobox vacío.
+- Hecho cuando: en las cinco pantallas el año se elige y se muestra bien.
+- [x] Hecha y probada — 2026-11-16, confirmada por Luis en las cinco pantallas.
