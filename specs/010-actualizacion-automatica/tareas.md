@@ -83,7 +83,7 @@ Cubre: RF-14
 - Antes de cerrar por actualización, revisar `has_pending_data` y avisar; no cerrar sin que el usuario decida.
 - Hecho cuando: con una nota a medio llenar, el aviso lo dice y no se pierde nada sin confirmación.
 - Cómo probarla: empezar una nota con dos renglones, programar el aviso a 3 minutos y dejar que llegue a cero.
-- [~] Código hecho: "Actualizar ahora" revisa `has_pending_data` y pregunta antes de reiniciar. Límite encontrado: `has_pending_data` solo cubre la nota de entrega. La ventana de nota de crédito y la de pagos a medias NO están cubiertas; si quieres, lo agrego en una tarea aparte. Falta tu prueba: nota de entrega con dos renglones y clic en "Actualizar ahora" → debe preguntar.
+- [~] Código hecho: "Actualizar ahora" revisa `has_pending_data` y pregunta antes de reiniciar. Límite encontrado: `has_pending_data` solo cubre la nota de entrega. La ventana de nota de crédito y la de pagos a medias NO están cubiertas; si quieres, lo agrego en una tarea aparte. Prueba descartada por decisión de Luis (2026-11-16).
 
 ## Tarea 12 (manual) - Script de publicación con contraseña
 Cubre: RF-1, RF-2, RF-4, RF-5, RF-23
@@ -106,9 +106,9 @@ Cubre: todos, y el riesgo 2 del plan
 - Cómo probarla: lo descrito. **Si Windows o el antivirus la bloquean, parar aquí** y decidir entre añadir la exclusión en cada PC durante la visita manual o comprar el certificado de firma. Anotar el resultado en este archivo.
 - [ ] Hecha y probada
 
-## Tarea 15 (manual, con el cliente) - La última instalación manual
+## Tarea 15 (manual, con la clienta) - Instalación en la PC de la clienta
 Cubre: despliegue
-- En cada PC del cliente, en la misma visita que la spec 002: desinstalar la versión vieja, instalar la nueva con actualizador, colocar el `appsettings.json` de producción, mover logs y configuración, y verificar que el sistema abre y trabaja.
+- En cada PC de la clienta, en la misma visita que la spec 002: desinstalar la versión vieja, instalar la nueva con actualizador, colocar el `appsettings.json` de producción, mover logs y configuración, y verificar que el sistema abre y trabaja.
 - Hecho cuando: las 3 PCs trabajan con la versión nueva y una actualización de prueba les llega sola.
 - Cómo probarla: publicar una actualización mínima al día siguiente y confirmar con la clienta que las 3 PCs la tomaron sin que nadie fuera.
 - [ ] Hecha y probada
