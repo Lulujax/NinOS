@@ -23,7 +23,7 @@ namespace NinOS.UI.Views
             _note = note;
 
             TitleText.Text = note.note_number;
-            SourceText.Text = note.source_note_number;
+            SourceText.Text = $"{note.source_note_number}   |   Empresa: {note.company_name}";
             CustomerText.Text = note.customer_name;
             SellerText.Text = note.seller_name;
             DateText.Text = AppTimeZone.to_local(note.creation_date).ToString("dd/MM/yyyy");

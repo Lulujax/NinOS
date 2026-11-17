@@ -181,6 +181,11 @@
                        Foreground="#C62828" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <ComboBox x:Name="cmb_empresa" Margin="0,0,8,0" MinWidth="120"
+                          ItemsSource="{Binding unit_options}"
+                          SelectedValue="{Binding selected_unit}" SelectedValuePath="unit" DisplayMemberPath="label"
+                          FontSize="12.5" Height="26"
+                          HorizontalContentAlignment="Center" ToolTip="Empresa de la nota original"/>
                 <ComboBox x:Name="cmb_category_filter" Margin="0,0,8,0" MinWidth="125"
                           ItemsSource="{Binding category_filters}"
                           SelectedItem="{Binding selected_category_filter}"
@@ -313,6 +318,7 @@
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="TIPO NOTA" Binding="{Binding note_type_name}" Width="95"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
+                        <DataGridTextColumn Header="EMPRESA" Binding="{Binding company_name}" Width="95"/>
                         <DataGridTextColumn Header="NRO NC" Binding="{Binding note_number}" Width="105"
                                             ElementStyle="{StaticResource CellTextCenter}"/>
                         <DataGridTextColumn Header="NOTA DE ENTREGA" Binding="{Binding source_note_number}" Width="105"

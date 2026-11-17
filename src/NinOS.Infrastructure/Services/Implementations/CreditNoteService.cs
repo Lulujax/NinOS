@@ -348,6 +348,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .ToDictionaryAsync(t => t.id_note_type, t => t.name);
 
+            var note_type_codes = await db_context.note_types
+                .AsNoTracking()
+                .ToDictionaryAsync(t => t.id_note_type, t => (string?)t.code);
+
             return notes
                 .OrderByCorrelative(c => c.note_number)
                 .Select(c =>
@@ -395,7 +399,10 @@ namespace NinOS.Infrastructure.Services.Implementations
                         total_amount_usd = c.total_amount_usd,
                         status = c.status,
                         category = c.category,
-                        note_type_name = type_name
+                        note_type_name = type_name,
+                        unit = originals.TryGetValue(c.id_delivery_note ?? 0, out var origin_for_unit)
+                            ? NoteScopeFilter.unit_of_credit_source(origin_for_unit.note_type_id, note_type_codes)
+                            : business_unit.General
                     };
                 })
                 .ToList();
@@ -414,6 +421,21 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .FirstOrDefaultAsync(n => n.note_number == note_number);
 
                 if (note == null) return null;
+
+                var note_type_code = note.note_type_id == null
+                    ? null
+                    : await db_context.note_types
+                        .AsNoTracking()
+                        .Where(t => t.id_note_type == note.note_type_id.Value)
+                        .Select(t => t.code)
+                        .FirstOrDefaultAsync();
+                business_unit note_unit = BusinessUnitRules.unit_of_note_type(note_type_code);
+                if (note_unit != _unit)
+                {
+                    string owner_label = BusinessUnitRules.label_of(note_unit);
+                    AppLog.Warn($"Busqueda de nota de credito: la nota de entrega {note.id_delivery_note} es de {owner_label}, la pantalla esta en {BusinessUnitRules.label_of(_unit)}.");
+                    throw new InvalidOperationException($"La nota de entrega {note_number} es de la empresa {owner_label}. Cambie el selector de empresa a {owner_label} para hacer ahi su nota de credito.");
+                }
 
                 var customer = await db_context.customers.AsNoTracking().FirstOrDefaultAsync(c => c.id_customer == note.id_customer);
                 var seller = await db_context.sellers.AsNoTracking().FirstOrDefaultAsync(s => s.id_seller == note.id_seller);
@@ -466,7 +488,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     adjusted_total_usd = note.adjusted_total_usd,
                     discount_percentage = note_discount,
                     note_type = source_note_type,
-                    status = note.status
+                    status = note.status,
+                    unit = note_unit
                 };
 
                 var existing_credit_ids = await db_context.credit_notes
@@ -1463,7 +1486,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var previous_start = period_start.AddDays(-period_days);
                 var previous_end_exclusive = period_start;
 
-                var rows = await load_report_rows_async(db_context, period_start, period_end_exclusive, category, id_seller);
+                var rows = await load_report_rows_async(db_context, period_start, period_end_exclusive, category, id_seller, _unit);
 
                 var previous_notes = await apply_report_filters(
                         db_context.credit_notes.AsNoTracking(),
@@ -1472,6 +1495,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                         category,
                         id_seller)
                     .ToListAsync();
+                previous_notes = await keep_notes_of_unit_async(db_context, previous_notes, _unit);
 
                 // El comparativo del periodo anterior tambien va sin las anuladas: si el periodo viejo las
                 // suma y el nuevo no, la variacion que muestra el PDF seria falsa.
@@ -1535,12 +1559,28 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        private static async Task<List<credit_note>> keep_notes_of_unit_async(NinOSDbContext db_context, List<credit_note> notes, business_unit unit)
+        {
+            var original_ids = notes
+                .Where(c => c.id_delivery_note.HasValue)
+                .Select(c => c.id_delivery_note!.Value)
+                .Distinct()
+                .ToList();
+            var originals = await db_context.delivery_notes
+                .AsNoTracking()
+                .Where(n => original_ids.Contains(n.id_delivery_note))
+                .ToDictionaryAsync(n => n.id_delivery_note);
+            note_scope credit_scope = await NoteScopeFilter.load_credit_scope_async(db_context, unit);
+            return notes.Where(c => credit_note_belongs_to_scope(credit_scope, c, originals)).ToList();
+        }
+
         private static async Task<List<credit_note_report_row_dto>> load_report_rows_async(
             NinOSDbContext db_context,
             DateTime from_exclusive_or_inclusive_start,
             DateTime to_exclusive,
             string? category,
-            int? id_seller)
+            int? id_seller,
+            business_unit unit)
         {
             var notes = await apply_report_filters(
                     db_context.credit_notes.AsNoTracking(),
@@ -1549,6 +1589,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     category,
                     id_seller)
                 .ToListAsync();
+            notes = await keep_notes_of_unit_async(db_context, notes, unit);
 
             var customer_ids = notes.Select(c => c.id_customer).Distinct().ToList();
             var seller_ids = notes.Select(c => c.id_seller).Distinct().ToList();

@@ -15,15 +15,18 @@ namespace NinOS.UI.Views
         private CreditNotesViewModel? vm => DataContext as CreditNotesViewModel;
 
         private CreditNotesReportViewModel? _reporte_vm;
+        private ICreditNoteService? _reporte_service;
 
         private CreditNotesReportViewModel? get_reporte_vm()
         {
-            if (_reporte_vm != null) return _reporte_vm;
+            var service_actual = vm?.credit_note_service;
+            if (_reporte_vm != null && ReferenceEquals(_reporte_service, service_actual)) return _reporte_vm;
 
             var service = vm?.credit_note_service;
 
             if (service == null) return null;
 
+            _reporte_service = service;
             _reporte_vm = new CreditNotesReportViewModel(service);
             panel_reporte.DataContext = _reporte_vm;
             return _reporte_vm;

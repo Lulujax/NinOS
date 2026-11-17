@@ -35,7 +35,10 @@ using NinOS.Infrastructure.Common;
 
 
 
+using NinOS.Infrastructure.Services.Implementations;
 using NinOS.Infrastructure.Services.Interfaces;
+using NinOS.Infrastructure.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 
 
@@ -63,11 +66,13 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private readonly ICreditNoteService _credit_note_service;
+        private ICreditNoteService _credit_note_service;
 
 
 
-        private readonly IAccountsReceivableService _receivable_service;
+        private IAccountsReceivableService _receivable_service;
+        private readonly IServiceScopeFactory _scope_factory;
+        private business_unit _selected_unit = business_unit.General;
 
 
 
@@ -522,6 +527,23 @@ namespace NinOS.UI.Common.ViewModels
 
         public ICreditNoteService credit_note_service => _credit_note_service;
 
+        public ObservableCollection<BusinessUnitOption> unit_options { get; }
+
+        public business_unit selected_unit
+        {
+            get => _selected_unit;
+            set
+            {
+                if (_selected_unit == value) return;
+                _selected_unit = value;
+                _credit_note_service = new CreditNoteService(_scope_factory, value);
+                _receivable_service = new AccountsReceivableService(_scope_factory, value);
+                AppLog.Info($"Notas de credito: cambiando a la empresa {BusinessUnitRules.label_of(value)}.");
+                on_property_changed();
+                refresh_data();
+            }
+        }
+
         public Action? OnCreditNoteSaved { get; set; }
 
 
@@ -534,11 +556,10 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            ICreditNoteService credit_note_service,
+            IServiceScopeFactory scope_factory,
 
 
 
-            IAccountsReceivableService receivable_service,
 
 
 
@@ -562,11 +583,14 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            _credit_note_service = credit_note_service ?? throw new ArgumentNullException(nameof(credit_note_service));
+            _scope_factory = scope_factory ?? throw new ArgumentNullException(nameof(scope_factory));
+            _credit_note_service = new CreditNoteService(scope_factory, business_unit.General);
 
 
 
-            _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
+            _receivable_service = new AccountsReceivableService(scope_factory, business_unit.General);
+            unit_options = new ObservableCollection<BusinessUnitOption>(
+                new[] { business_unit.General, business_unit.ProVenta, business_unit.Vesupronta }.Select(unit => new BusinessUnitOption(unit)));
 
 
 

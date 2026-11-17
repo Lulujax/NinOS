@@ -69,7 +69,7 @@ namespace NinOS.Infrastructure.Services
             var excluded_type_ids = new List<int>();
             foreach (var (id_note_type, code) in note_types)
             {
-                if (!credit_type_belongs_to_unit(unit, code)) excluded_type_ids.Add(id_note_type);
+                if (BusinessUnitRules.unit_of_note_type(code) != unit) excluded_type_ids.Add(id_note_type);
             }
 
             return new note_scope(unit, excluded_type_ids);
@@ -87,10 +87,13 @@ namespace NinOS.Infrastructure.Services
             return build_credit_scope(unit, note_types.Select(t => (t.id_note_type, (string?)t.code)));
         }
 
-        private static bool credit_type_belongs_to_unit(business_unit unit, string? code)
+        public static business_unit unit_of_credit_source(int? note_type_id, IReadOnlyDictionary<int, string?> type_codes)
         {
-            bool is_vesupronta_type = BusinessUnitRules.unit_of_note_type(code) == business_unit.Vesupronta;
-            return unit == business_unit.Vesupronta ? is_vesupronta_type : !is_vesupronta_type;
+            ArgumentNullException.ThrowIfNull(type_codes);
+
+            if (note_type_id == null) return business_unit.General;
+            if (!type_codes.TryGetValue(note_type_id.Value, out string? code)) return business_unit.General;
+            return BusinessUnitRules.unit_of_note_type(code);
         }
 
         public static bool belongs_to_scope(note_scope scope, int? note_type_id)

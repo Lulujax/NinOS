@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using NinOS.Domain;
 
 namespace NinOS.Domain.ViewModels
 {
@@ -21,6 +22,10 @@ namespace NinOS.Domain.ViewModels
         public string status { get; set; } = string.Empty;
         public string category { get; set; } = string.Empty;
         public string note_type_name { get; set; } = string.Empty;
+
+        public business_unit unit { get; set; } = business_unit.General;
+
+        public string company_name => BusinessUnitRules.label_of(unit);
 
         /// <summary>
         /// La categoria que se ve en la grilla. Una nota anulada muestra "Anulada" en vez de
@@ -60,6 +65,10 @@ namespace NinOS.Domain.ViewModels
         public decimal paid_amount_usd { get; set; }
         public string status { get; set; } = string.Empty;
         public string note_type { get; set; } = string.Empty;
+
+        public business_unit unit { get; set; } = business_unit.General;
+
+        public string company_name => BusinessUnitRules.label_of(unit);
 
         /// <summary>
         /// Descuento de la nota de entrega, en porcentaje. La devolucion se calcula sobre el precio
