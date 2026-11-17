@@ -53,6 +53,7 @@ namespace NinOS.Domain.ViewModels
         /// Porcentaje de descuento comercial aplicado a la nota.
         /// </summary>
         public decimal? discount_percentage { get; set; }
+        public decimal? emission_discount_percentage { get; set; }
 
         public string discount_percentage_text { get; set; } = "0%";
 

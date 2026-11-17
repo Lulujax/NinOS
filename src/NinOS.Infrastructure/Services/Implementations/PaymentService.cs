@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Data;
+using NinOS.Infrastructure.Logging;
 using NinOS.Infrastructure.Services.Interfaces;
 
 namespace NinOS.Infrastructure.Services.Implementations
@@ -21,7 +22,7 @@ namespace NinOS.Infrastructure.Services.Implementations
         /// aceptara sin limite, un monto mal tecleado dejaria la nota con saldo negativo
         /// (dinero que la empresa no debe) y eso nadie lo revisa despues.
         /// </summary>
-        private const decimal EXCESO_MAXIMO_PERMITIDO = 3.00m;
+        public const decimal EXCESO_MAXIMO_PERMITIDO = 3.00m;
 
         private readonly IServiceScopeFactory _scope_factory;
 
@@ -73,32 +74,35 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         private static async Task<(decimal amount, decimal paid)> get_relation_amount_and_paid_async(NinOSDbContext db_context, relacion relation)
         {
-            decimal amount;
+            var notas_vigentes_montos = new List<decimal>();
 
-            if (relation.es_hueca)
+            if (!relation.es_hueca)
             {
-                amount = relation.saldo;
-            }
-            else
-            {
-                var relation_notes = await db_context.delivery_notes
+                var notas_relacion = await db_context.delivery_notes
                     .AsNoTracking()
                     .Where(n => n.id_relacion == relation.id_relacion)
+                    .Select(n => new { n.status, n.adjusted_total_usd })
                     .ToListAsync();
 
-                amount = relation_notes
+                notas_vigentes_montos = notas_relacion
                     .Where(n => !string.Equals(n.status?.Trim(), "Anulada", StringComparison.OrdinalIgnoreCase))
-                    .Sum(n => n.adjusted_total_usd);
+                    .Select(n => n.adjusted_total_usd)
+                    .ToList();
             }
 
-            var relation_payments = await db_context.payments
+            var abonos_relacion = await db_context.payments
                 .AsNoTracking()
                 .Where(p => p.id_relacion == relation.id_relacion && p.amount_usd > 0)
+                .Select(p => p.amount_usd)
                 .ToListAsync();
 
-            decimal paid = relation_payments.Sum(p => p.amount_usd);
+            var resumen = relation_amounts.calcular(
+                notas_vigentes_montos,
+                abonos_relacion,
+                relation.es_hueca,
+                Math.Max(0m, relation.saldo));
 
-            return (amount, paid);
+            return (resumen.monto_por_pagar, resumen.abonado);
         }
 
         private static void verificar_exceso_permitido_relacion(int id_relacion, decimal relation_amount, decimal paid_sin_este_abono, decimal amount_usd)
@@ -202,6 +206,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 var (relation_amount, relation_paid) = await get_relation_amount_and_paid_async(_db_context, relation);
                 verificar_exceso_permitido_relacion(id_relacion, relation_amount, relation_paid, amount_usd);
 
+                AppLog.Info($"Abono de relacion {id_relacion} validado contra el saldo: se registra.");
                 payment new_payment = new payment(
                     null, payment_date, amount_usd, 0, null,
                     "Efectivo", $"REL-{id_relacion}", "", observations ?? "", id_relacion);

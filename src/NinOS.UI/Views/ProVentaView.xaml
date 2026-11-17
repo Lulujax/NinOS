@@ -467,11 +467,6 @@
                                                     BorderBrush="#A5D6A7" Foreground="#2E7D32" FontWeight="SemiBold"
                                                     Command="{Binding DataContext.relation_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Editar Notas" ToolTip="Editar montos y descuentos de las notas de esta relación" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#FFF3E0" BorderThickness="1"
-                                                    BorderBrush="#FFE0B2" Foreground="#E65100" FontWeight="SemiBold"
-                                                    Command="{Binding DataContext.edit_relation_notes_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

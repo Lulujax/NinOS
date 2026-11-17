@@ -1,3 +1,4 @@
+using NinOS.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +46,7 @@ namespace NinOS.UI.Common
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            decimal total_cobrado = dto.total_amount - dto.total_commission_luis;
+            decimal total_cobrado = liquidacion_pro_venta.total_cobrado(dto.total_monto_original, dto.total_commission_luis);
             decimal diferencial = total_cobrado - nota_por_pagar;
 
             // Igual que en la ventana del historial: las notas anuladas no cuentan para el monto y
@@ -277,6 +278,7 @@ namespace NinOS.UI.Common
                         columns.RelativeColumn(1.2f);
                         columns.RelativeColumn(3f);
                         columns.RelativeColumn(1.2f);
+                        columns.RelativeColumn(1.2f);
                     });
 
                     table.Header(header =>
@@ -284,6 +286,7 @@ namespace NinOS.UI.Common
                         header.Cell().Background(Accent).Padding(3).AlignCenter().Text("NRO NOTA").Bold().FontColor(Colors.White);
                         header.Cell().Background(Accent).Padding(3).Text("CLIENTE").Bold().FontColor(Colors.White);
                         header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO ORIG.").Bold().FontColor(Colors.White);
+                        header.Cell().Background(Accent).Padding(3).AlignCenter().Text("MONTO A COBRAR").Bold().FontColor(Colors.White);
                     });
 
                     bool alternate = false;
@@ -298,6 +301,7 @@ namespace NinOS.UI.Common
                         table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.note_number).FontColor(fg);
                         table.Cell().Background(bg).Padding(2).Text(n.customer_name).FontColor(fg);
                         table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.monto_original.ToString("N2")).FontColor(fg);
+                        table.Cell().Background(bg).Padding(2).AlignCenter().Text(n.amount.ToString("N2")).FontColor(fg);
                     }
 
                     if (dto.rows.Count > 0)
@@ -305,6 +309,7 @@ namespace NinOS.UI.Common
                         table.Cell().Background(SoftAccent).Padding(2).Text("TOTAL").Bold();
                         table.Cell().Background(SoftAccent);
                         table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(dto.total_monto_original.ToString("N2")).Bold();
+                        table.Cell().Background(SoftAccent).Padding(2).AlignCenter().Text(vigente.Sum(n => n.amount).ToString("N2")).Bold();
                     }
                 });
 
