@@ -59,8 +59,22 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="RelationActionButton" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#B0BEC5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#37474F"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
     </UserControl.Resources>
 
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="#1565C0" BorderThickness="0,0,0,2" Padding="12,8">
+            <TextBlock Text="EMPRESA: PRO VENTA" Foreground="#0D47A1" FontSize="14" FontWeight="SemiBold"/>
+        </Border>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -387,26 +401,18 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Padding="6,2" Margin="2" FontSize="10"
+                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Style="{StaticResource RelationActionButton}"
                                                     Click="RelationHistory_Click"/>
-                                            <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#E3F2FD" BorderThickness="1"
-                                                    BorderBrush="#90CAF9" Foreground="#1565C0" FontWeight="SemiBold"
+                                            <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_preview_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="PDF" ToolTip="Descargar relación en PDF" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
-                                                    BorderBrush="#E0E0E0" Foreground="#424242"
+                                            <Button Content="PDF" ToolTip="Descargar relación en PDF" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Excel" ToolTip="Descargar relación en Excel" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#E8F5E9" BorderThickness="1"
-                                                    BorderBrush="#A5D6A7" Foreground="#2E7D32" FontWeight="SemiBold"
+                                            <Button Content="Excel" ToolTip="Descargar relación en Excel" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Editar Notas" ToolTip="Editar montos y descuentos de las notas de esta relación" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#FFF3E0" BorderThickness="1"
-                                                    BorderBrush="#FFE0B2" Foreground="#E65100" FontWeight="SemiBold"
+                                            <Button Content="Editar Notas" ToolTip="Editar montos y descuentos de las notas de esta relación" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.edit_relation_notes_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                             <Button Content="Abonar / Pagar" Padding="6,2" Margin="2" FontSize="10"
@@ -524,21 +530,15 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Padding="6,2" Margin="2" FontSize="10"
+                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Style="{StaticResource RelationActionButton}"
                                                     Click="RelationHistory_Click"/>
-                                            <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#E3F2FD" BorderThickness="1"
-                                                    BorderBrush="#90CAF9" Foreground="#1565C0" FontWeight="SemiBold"
+                                            <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_preview_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="PDF" ToolTip="Descargar relación en PDF" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#F5F5F5" BorderThickness="1"
-                                                    BorderBrush="#E0E0E0" Foreground="#424242"
+                                            <Button Content="PDF" ToolTip="Descargar relación en PDF" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_detail_pdf_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Excel" ToolTip="Descargar relación en Excel" Padding="6,2" Margin="2" FontSize="10"
-                                                    Cursor="Hand" Background="#E8F5E9" BorderThickness="1"
-                                                    BorderBrush="#A5D6A7" Foreground="#2E7D32" FontWeight="SemiBold"
+                                            <Button Content="Excel" ToolTip="Descargar relación en Excel" Style="{StaticResource RelationActionButton}"
                                                     Command="{Binding DataContext.relation_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
@@ -570,4 +570,5 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
+    </DockPanel>
 </UserControl>
