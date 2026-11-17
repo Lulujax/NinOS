@@ -144,6 +144,10 @@ namespace NinOS.UI.Common
                 FilaLiquidacion(tabla, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, destacada: false);
                 FilaLiquidacion(tabla, "DIFERENCIAL", liquidacion.diferencial, destacada: true);
             });
+
+            col.Item().PaddingTop(10f).AlignCenter()
+                .Text("Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho")
+                .FontSize(9.5f).FontColor("#000000");
         }
 
         private static void FilaLiquidacion(ColumnDescriptor tabla, string etiqueta, decimal valor, bool destacada)

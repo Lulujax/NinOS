@@ -118,6 +118,8 @@ namespace NinOS.UI.Common
             escribir_fila_liquidacion(ws, fila++, "15% DE LA LISTA DE VESUVIANA", liquidacion.quince_por_ciento_lista, false);
             escribir_fila_liquidacion(ws, fila++, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, false);
             escribir_fila_liquidacion(ws, fila, "DIFERENCIAL", liquidacion.diferencial, true);
+            ws.Cell(fila + 2, 1).SetValue("Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho");
+            ws.Range(fila + 2, 1, fila + 2, 12).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         }
 
         private static void escribir_fila_liquidacion(IXLWorksheet ws, int fila, string etiqueta, decimal valor, bool destacada)
