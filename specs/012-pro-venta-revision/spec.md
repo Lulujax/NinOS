@@ -64,6 +64,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 ### Comisión y gastos de la relación
 
 - **RF-34** EL SISTEMA calculará la comisión de Luis y los gastos operativos siempre sobre el monto original de cada nota, y el gasto administrativo como 15% de (monto original − gastos operativos). Estos valores no cambian al editar el monto a cobrar ni el descuento. Como una relación pagada no admite notas de crédito (RF-22), tampoco cambian después de pagarse, así que no se guardan aparte ni hace falta migración.
+- **RF-36** Las notas anuladas no suman en ningún total de la relación (monto por pagar, abonado, saldo, comisión ni gastos). Sí aparecen en la lista de la relación y en los reportes y descargas (PDF y Excel), marcadas como ANULADA y con valor cero, y los filtros de descarga las incluyen.
 - **RF-35** CUANDO una relación tiene saldo 0, EL SISTEMA mostrará «0,00» en la columna de saldo, en pantalla, PDF y Excel. No usará guion.
 
 ### Pruebas y registro
