@@ -188,17 +188,6 @@ namespace NinOS.UI.Views
             await aplicar_monto_async(monto);
         }
 
-        private async void PagoConDescuento_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedNote == null) return;
-            await aplicar_descuento_async(_selectedNote.emission_discount_percentage ?? 0m);
-        }
-
-        private async void PagoSinDescuento_Click(object sender, RoutedEventArgs e)
-        {
-            await aplicar_descuento_async(0m);
-        }
-
         private async Task aplicar_descuento_async(decimal descuento)
         {
             if (_selectedNote == null)
@@ -259,8 +248,6 @@ namespace NinOS.UI.Views
         {
             BtnApplyDiscount.IsEnabled = habilitado;
             BtnApplyAmount.IsEnabled = habilitado;
-            BtnPagoConDescuento.IsEnabled = habilitado;
-            BtnPagoSinDescuento.IsEnabled = habilitado;
         }
 
         private void MostrarVistaPrevia()

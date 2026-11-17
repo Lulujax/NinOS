@@ -387,6 +387,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Padding="6,2" Margin="2" FontSize="10"
+                                                    Click="RelationHistory_Click"/>
                                             <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Padding="6,2" Margin="2" FontSize="10"
                                                     Cursor="Hand" Background="#E3F2FD" BorderThickness="1"
                                                     BorderBrush="#90CAF9" Foreground="#1565C0" FontWeight="SemiBold"
@@ -522,6 +524,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="Historial" ToolTip="Ver el historial de pagos y notas de la relación" Padding="6,2" Margin="2" FontSize="10"
+                                                    Click="RelationHistory_Click"/>
                                             <Button Content="Vista Previa" ToolTip="Vista previa de la relación" Padding="6,2" Margin="2" FontSize="10"
                                                     Cursor="Hand" Background="#E3F2FD" BorderThickness="1"
                                                     BorderBrush="#90CAF9" Foreground="#1565C0" FontWeight="SemiBold"

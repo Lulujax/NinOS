@@ -102,12 +102,6 @@
                             <Button x:Name="BtnApplyDiscount" Content="Aplicar descuento" Padding="12,4" Margin="0,0,10,0"
                                     Background="#1565C0" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"
                                     Click="BtnApplyDiscount_Click"/>
-                            <Button x:Name="BtnPagoConDescuento" Content="Pagó con descuento" Padding="8,4" Margin="0,0,6,0"
-                                    Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Foreground="#2E7D32" Cursor="Hand"
-                                    Click="PagoConDescuento_Click"/>
-                            <Button x:Name="BtnPagoSinDescuento" Content="Pagó sin descuento" Padding="8,4"
-                                    Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Foreground="#2E7D32" Cursor="Hand"
-                                    Click="PagoSinDescuento_Click"/>
                         </StackPanel>
                     </StackPanel>
 

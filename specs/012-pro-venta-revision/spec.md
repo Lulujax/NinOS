@@ -20,7 +20,7 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 
 - **RF-1** CUANDO se edita el descuento de una nota Pro Venta, EL SISTEMA calculará el monto a cobrar como monto original × (1 − descuento), donde el monto original es el de la spec 008 (renglones a precio de lista menos devoluciones vigentes).
 - **RF-2** CUANDO se aplica un monto a cobrar, EL SISTEMA lo guardará tal cual y no cambiará el descuento. El monto y el descuento son independientes: cambiar uno no cambia el otro.
-- **RF-3** EL SISTEMA ofrecerá dos accesos rápidos en la edición: «Pagó con descuento» (el descuento con el que se emitió la nota) y «Pagó sin descuento» (0%, el monto a cobrar es igual al monto original).
+- **RF-3** (quitado, Luis 2026-11-17) La edición no tiene accesos rápidos de «Pagó con descuento» ni «Pagó sin descuento» ni botones de porcentaje: el descuento se escribe y se guarda con «Aplicar descuento», y el monto con «Aplicar monto».
 - **RF-4** SI el monto es negativo, o el descuento no está entre 0 y 100, ENTONCES EL SISTEMA rechazará el cambio con un mensaje que diga el valor permitido y no guardará nada. El monto a cobrar no tiene tope: puede ser mayor que el monto original.
 - **RF-5** EL SISTEMA aceptará montos escritos con separador de miles en cualquiera de las dos formas (1.234,56 y 1,234.56) y montos de 1.000 o más.
 - **RF-6** CUANDO se guarda la edición, EL SISTEMA cambiará solo el monto a cobrar de la nota y, con él, el monto por pagar y el saldo de su relación. No cambiará la comisión ni los gastos (siguen sobre el monto original, spec 008) ni la nota impresa (spec 004).

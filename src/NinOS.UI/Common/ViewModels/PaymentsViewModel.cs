@@ -94,6 +94,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IAccountsReceivableService _receivable_service;
 
         private readonly ISellerService? _seller_service;
+        private readonly business_unit _business_unit;
 
         private readonly IZonaService? _zona_service;
 
@@ -474,10 +475,13 @@ namespace NinOS.UI.Common.ViewModels
 
             ISellerService? seller_service = null,
 
-            IZonaService? zona_service = null)
+            IZonaService? zona_service = null,
+
+            business_unit unit = business_unit.General)
 
         {
 
+            _business_unit = unit;
             _payment_service = payment_service ?? throw new ArgumentNullException(nameof(payment_service));
 
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
@@ -558,7 +562,7 @@ namespace NinOS.UI.Common.ViewModels
 
         {
 
-            var activeSellers = sellers.Where(s => s.is_active && !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
+            var activeSellers = sellers.Where(s => s.is_active && SellerUnitScope.belongs_to_unit(s, _business_unit)).OrderBy(s => s.seller_code).ToList();
 
 
 
@@ -688,7 +692,7 @@ namespace NinOS.UI.Common.ViewModels
 
             var generalSellers = sellers
 
-                .Where(s => !s.is_pro_venta_only)
+                .Where(s => SellerUnitScope.belongs_to_unit(s, _business_unit))
 
                 .ToList();
 

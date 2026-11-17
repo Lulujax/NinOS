@@ -28,8 +28,8 @@ namespace NinOS.UI.Common.ViewModels
             var payment_service = new PaymentService(scope_factory, business_unit.Vesupronta);
 
             sales_vm = new SalesViewModel(receivable_service, seller_service, zona_service, business_unit.Vesupronta);
-            accounts_receivable_vm = new AccountsReceivableViewModel(receivable_service, seller_service, zona_service);
-            payments_vm = new PaymentsViewModel(payment_service, receivable_service, seller_service, zona_service);
+            accounts_receivable_vm = new AccountsReceivableViewModel(receivable_service, seller_service, zona_service, business_unit.Vesupronta);
+            payments_vm = new PaymentsViewModel(payment_service, receivable_service, seller_service, zona_service, business_unit.Vesupronta);
         }
 
         public void refresh_data()

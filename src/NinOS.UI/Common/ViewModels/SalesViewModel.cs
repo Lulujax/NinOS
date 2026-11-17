@@ -399,7 +399,7 @@ public bool report_manual_scope
 
         private void sync_seller_tabs(IEnumerable<seller> sellers)
         {
-            var activeSellers = sellers.Where(s => s.is_active && !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
+            var activeSellers = sellers.Where(s => s.is_active && SellerUnitScope.belongs_to_unit(s, _business_unit)).OrderBy(s => s.seller_code).ToList();
 
             if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
             {
@@ -597,7 +597,7 @@ public bool report_manual_scope
                 // cualquiera que tenga notas en el mes aunque esté desactivado. Si no, sus notas
                 // quedarían fuera del reporte sin avisar.
                 var generalSellers = dbSellers
-                    .Where(s => !s.is_pro_venta_only)
+                    .Where(s => SellerUnitScope.belongs_to_unit(s, _business_unit))
                     .ToList();
 
                 var active_seller_names = generalSellers

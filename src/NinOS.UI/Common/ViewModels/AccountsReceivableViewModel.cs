@@ -181,6 +181,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IAccountsReceivableService _receivable_service;
         private readonly ISellerService? _seller_service;
         private readonly IZonaService? _zona_service;
+        private readonly business_unit _business_unit;
 
         private SellerTabItem<accounts_receivable_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
@@ -435,11 +436,13 @@ namespace NinOS.UI.Common.ViewModels
         public AccountsReceivableViewModel(
             IAccountsReceivableService receivable_service,
             ISellerService? seller_service = null,
-            IZonaService? zona_service = null)
+            IZonaService? zona_service = null,
+            business_unit unit = business_unit.General)
         {
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _seller_service = seller_service;
             _zona_service = zona_service;
+            _business_unit = unit;
 
             // available_months already initialized
             pending_years = new ObservableCollection<int>();
@@ -485,7 +488,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private void sync_seller_tabs(IEnumerable<seller> sellers)
         {
-            var activeSellers = sellers.Where(s => s.is_active && !s.is_pro_venta_only).OrderBy(s => s.seller_code).ToList();
+            var activeSellers = sellers.Where(s => s.is_active && SellerUnitScope.belongs_to_unit(s, _business_unit)).OrderBy(s => s.seller_code).ToList();
 
             if (seller_tabs.Count == 0 || seller_tabs[0].IdSeller != null)
             {
@@ -550,7 +553,7 @@ namespace NinOS.UI.Common.ViewModels
             }
 
             var generalSellers = sellers
-                .Where(s => !s.is_pro_venta_only)
+                .Where(s => SellerUnitScope.belongs_to_unit(s, _business_unit))
                 .ToList();
 
             var active_seller_names = generalSellers

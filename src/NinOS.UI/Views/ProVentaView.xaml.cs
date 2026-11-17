@@ -32,13 +32,26 @@ namespace NinOS.UI.Views
         {
             if (IsInsideButton(e.OriginalSource as DependencyObject)) return;
 
-            if (sender is DataGrid dg
-                && dg.SelectedItem is pro_venta_relation_row row
-                && DataContext is ProVentaViewModel vm)
+            if (sender is DataGrid dg && dg.SelectedItem is pro_venta_relation_row row)
             {
-                ProVentaHistoryWindow window = new ProVentaHistoryWindow(vm, row) { Owner = Window.GetWindow(this) };
-                window.ShowDialog();
+                abrir_historial(row);
             }
+        }
+
+        private void RelationHistory_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.DataContext is pro_venta_relation_row row)
+            {
+                abrir_historial(row);
+            }
+        }
+
+        private void abrir_historial(pro_venta_relation_row row)
+        {
+            if (DataContext is not ProVentaViewModel vm) return;
+
+            ProVentaHistoryWindow window = new ProVentaHistoryWindow(vm, row) { Owner = Window.GetWindow(this) };
+            window.ShowDialog();
         }
 
         private static bool IsInsideButton(DependencyObject? source)
