@@ -63,7 +63,7 @@
             <TabItem Header="Pro Venta">
                 <views:ProVentaView DataContext="{Binding pro_venta_vm}" />
             </TabItem>
-            <TabItem Header="Vesupronta">
+            <TabItem Header="Vesupronta" Foreground="#6A1B9A" FontWeight="Bold">
                 <views:VesuprontaView DataContext="{Binding vesupronta_vm}" />
             </TabItem>
         </TabControl>
