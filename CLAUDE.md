@@ -42,7 +42,8 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 - **No existe "eliminar pago".** Un pago registrado no se borra desde el sistema. No agregar esa función.
 - **Una nota emitida queda congelada.** Al exportar o imprimir (PDF, Excel o impresión directa) una nota, sale siempre igual a como se creó: montos, descuentos, días de crédito, condiciones, datos del cliente, códigos y nombres de productos y composición de promociones. Las ediciones posteriores (CxC, Pro Venta, notas de crédito) cambian los saldos del sistema, nunca la nota impresa.
 - **Todo documento impreso o exportado a PDF es tamaño carta.**
-- **Cada hoja de una nota de entrega o de crédito es 1 sola hoja tamaño carta, sin importar la empresa (General, Pro Venta o Vesupronta) ni la cantidad de productos.** Si una hoja se pasa a una segunda página, es un error gravísimo: no se entrega ni se imprime, se corrige antes. El máximo de productos de cada tipo lo fija su spec (Vesupronta: 20).
+- **Cada hoja de una nota de entrega o de crédito es 1 sola hoja tamaño carta, sin importar la empresa (General, Pro Venta o Vesupronta).** Si una hoja se pasa a una segunda página, es un error gravísimo: no se entrega ni se imprime, se corrige antes.
+- **Una nota tiene como máximo 20 productos (renglones), en todas las empresas.** Es la regla que mantiene cada hoja en 1 página.
 - **Descuentos de volumen:** se suman al descuento de condición (10% + 5% = 15%), no se aplican en cascada.
 - **Numeración:** el sistema se reinició; las notas son generales (correlativo global `000_001`), ya no se identifican por vendedor. Los números viejos tipo `3200-715` son del sistema anterior.
 - **Stock negativo permitido** en notas de entrega.
