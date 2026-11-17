@@ -542,9 +542,11 @@ public bool report_manual_scope
                     : await _receivable_service.get_sellers_async();
                 sync_seller_tabs(dbSellers);
 
-                var dbZones = _zona_service != null
-                    ? await _zona_service.GetActiveAsync()
-                    : new List<zona>();
+                var dbZones = (_zona_service != null
+                        ? await _zona_service.GetActiveAsync()
+                        : new List<zona>())
+                    .Where(z => BusinessUnitRules.unit_of_zone(z) == _business_unit)
+                    .ToList();
 
                 var raw = await _receivable_service.get_all_sales_notes_async();
                 var all_rows = raw.Where(n => SalesNoteScope.is_visible_in_sales(n.note_type_code, _business_unit)).ToList();

@@ -960,11 +960,11 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-                var dbZones = _zona_service != null
-
-                    ? await _zona_service.GetActiveAsync()
-
-                    : new List<zona>();
+                var dbZones = (_zona_service != null
+                        ? await _zona_service.GetActiveAsync()
+                        : new List<zona>())
+                    .Where(z => BusinessUnitRules.unit_of_zone(z) == _business_unit)
+                    .ToList();
 
 
 

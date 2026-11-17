@@ -728,14 +728,19 @@ namespace NinOS.UI.Common.ViewModels
                     : await _receivable_service.get_sellers_async();
                 sync_seller_tabs(dbSellers);
 
-                var dbZones = _zona_service != null
-                    ? await _zona_service.GetActiveAsync()
-                    : new List<zona>();
+                var dbZones = (_zona_service != null
+                        ? await _zona_service.GetActiveAsync()
+                        : new List<zona>())
+                    .Where(z => BusinessUnitRules.unit_of_zone(z) == _business_unit)
+                    .ToList();
 
                 var raw = await _receivable_service.get_all_notes_async();
                 var all_rows = raw.Select(map_to_row).ToList();
 
-                sync_report_options(dbSellers, dbZones, all_rows);
+                var sellers_de_empresa = dbSellers
+                    .Where(s => SellerUnitScope.belongs_to_unit(s, _business_unit))
+                    .ToList();
+                sync_report_options(sellers_de_empresa, dbZones, all_rows);
 
                 _all_notes_source = all_rows;
 
