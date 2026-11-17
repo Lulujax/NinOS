@@ -100,15 +100,39 @@
                                   KeyUp="CmbRelation_KeyUp"
                                   LostFocus="CmbRelation_LostFocus"
                                   Width="150" Margin="0,0,20,0"/>
-                        <Button Content="Vista Previa" Command="{Binding preview_command}" Background="#1565C0"
-                                Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,8,0" Cursor="Hand"
+                        <Button x:Name="btn_reporte_semanal" Content="Reporte" Click="on_reporte_semanal_click"
+                                Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
                                 IsEnabled="{Binding has_rows}"/>
-                        <Button Content="Imprimir PDF" Command="{Binding print_command}" Background="#1976D2"
-                                Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,8,0" Cursor="Hand"
-                                IsEnabled="{Binding has_rows}"/>
-                        <Button Content="Descargar Excel" Command="{Binding excel_command}" Background="#2E7D32"
-                                Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
-                                IsEnabled="{Binding has_rows}"/>
+                        <Popup x:Name="popup_reporte_semanal"
+                               PlacementTarget="{Binding ElementName=btn_reporte_semanal}"
+                               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
+                                    Padding="12,10" Width="270">
+                                <StackPanel>
+                                    <TextBlock Text="REPORTE DE LA RELACIÓN" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
+                                    <TextBlock Text="Elija si incluye las anuladas y luego la acción."
+                                               FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
+                                    <CheckBox Content="Incluir notas anuladas"
+                                              IsChecked="{Binding report_include_annulled, Mode=TwoWay}"
+                                              FontSize="12" Foreground="#333333" Cursor="Hand"
+                                              ToolTip="Se muestran marcadas en rojo y aparte. Nunca suman al total."/>
+                                    <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0">
+                                        <Button Content="👁️ Vista Previa" Command="{Binding preview_command}" Click="close_reportes"
+                                                Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"/>
+                                        <Button Content="🖨️ Imprimir" Command="{Binding direct_print_command}" Click="close_reportes"
+                                                Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"/>
+                                        <Button Content="📄 Descargar PDF" Command="{Binding print_command}" Click="close_reportes"
+                                                Background="#374151" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"/>
+                                        <Button Content="📊 Excel" Command="{Binding excel_command}" Click="close_reportes"
+                                                Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </StackPanel>
                 </Border>
 
@@ -165,7 +189,7 @@
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
                             <DataGridTextColumn Header="FORMA DE PAGO" Binding="{Binding payment_method_display}" Width="1.70*"
                                                 ElementStyle="{StaticResource CenterCellStyle}"/>
-                            <DataGridTemplateColumn Header="ACCIONES" Width="260">
+                            <DataGridTemplateColumn Header="ACCIONES" Width="330">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -183,6 +207,12 @@
                                                     Background="#E8F5E9" BorderThickness="1" BorderBrush="#A5D6A7"
                                                     Foreground="#2E7D32" FontWeight="SemiBold"
                                                     Command="{Binding DataContext.note_excel_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="Editar" ToolTip="Editar monto y descuento de esta nota" Padding="5,2" Margin="1" FontSize="9.5" Cursor="Hand"
+                                                    Background="#E3F2FD" BorderThickness="1" BorderBrush="#90CAF9"
+                                                    Foreground="#1565C0"
+                                                    Visibility="{Binding esta_anulada, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                                    Command="{Binding DataContext.edit_weekly_note_command, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                             <Button Content="Anular" Padding="5,2" Margin="1" FontSize="9.5" Cursor="Hand"
                                                     Background="#FDECEA" BorderThickness="1" BorderBrush="#E6A6A0"
@@ -299,15 +329,35 @@
                         <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
                                   DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
-                        <Button Content="Vista Previa" Command="{Binding preview_pending_command}"
+                        <Button x:Name="btn_reporte_pendientes" Content="Reporte" Click="on_reporte_pendientes_click"
                                 Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_pending}"/>
-                        <Button Content="Descargar PDF" Command="{Binding pdf_pending_command}"
-                                Background="#1976D2" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
-                                IsEnabled="{Binding has_pending}"/>
-                        <Button Content="Descargar Excel" Command="{Binding excel_pending_command}"
-                                Background="#2E7D32" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
-                                IsEnabled="{Binding has_pending}"/>
+                        <Popup x:Name="popup_reporte_pendientes"
+                               PlacementTarget="{Binding ElementName=btn_reporte_pendientes}"
+                               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
+                                    Padding="12,10" Width="270">
+                                <StackPanel>
+                                    <TextBlock Text="REPORTE DE RELACIONES PENDIENTES" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
+                                    <TextBlock Text="Usa el mes elegido arriba. «Todas» incluye todo el historial."
+                                               FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
+                                    <UniformGrid Columns="2" Rows="2">
+                                        <Button Content="👁️ Vista Previa" Command="{Binding preview_pending_command}" Click="close_reportes"
+                                                Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"/>
+                                        <Button Content="🖨️ Imprimir" Command="{Binding direct_print_pending_command}" Click="close_reportes"
+                                                Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"/>
+                                        <Button Content="📄 Descargar PDF" Command="{Binding pdf_pending_command}" Click="close_reportes"
+                                                Background="#374151" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"/>
+                                        <Button Content="📊 Excel" Command="{Binding excel_pending_command}" Click="close_reportes"
+                                                Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </StackPanel>
                 </Border>
 
@@ -414,15 +464,35 @@
                         <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
                                   DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
-                        <Button Content="Vista Previa" Command="{Binding preview_paid_command}"
+                        <Button x:Name="btn_reporte_pagadas" Content="Reporte" Click="on_reporte_pagadas_click"
                                 Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_paid}"/>
-                        <Button Content="Descargar PDF" Command="{Binding pdf_paid_command}"
-                                Background="#1976D2" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
-                                IsEnabled="{Binding has_paid}"/>
-                        <Button Content="Descargar Excel" Command="{Binding excel_paid_command}"
-                                Background="#2E7D32" Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
-                                IsEnabled="{Binding has_paid}"/>
+                        <Popup x:Name="popup_reporte_pagadas"
+                               PlacementTarget="{Binding ElementName=btn_reporte_pagadas}"
+                               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
+                                    Padding="12,10" Width="270">
+                                <StackPanel>
+                                    <TextBlock Text="REPORTE DE RELACIONES PAGADAS" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
+                                    <TextBlock Text="Usa el mes elegido arriba. «Todas» incluye todo el historial."
+                                               FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
+                                    <UniformGrid Columns="2" Rows="2">
+                                        <Button Content="👁️ Vista Previa" Command="{Binding preview_paid_command}" Click="close_reportes"
+                                                Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,0,3,3"/>
+                                        <Button Content="🖨️ Imprimir" Command="{Binding direct_print_paid_command}" Click="close_reportes"
+                                                Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,0,0,3"/>
+                                        <Button Content="📄 Descargar PDF" Command="{Binding pdf_paid_command}" Click="close_reportes"
+                                                Background="#374151" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="0,3,3,0"/>
+                                        <Button Content="📊 Excel" Command="{Binding excel_paid_command}" Click="close_reportes"
+                                                Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                Height="28" BorderThickness="0" Cursor="Hand" Margin="3,3,0,0"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </StackPanel>
                 </Border>
 

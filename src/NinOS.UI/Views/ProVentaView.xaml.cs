@@ -95,11 +95,11 @@ namespace NinOS.UI.Views
                 window.ShowDialog();
             };
 
-            view_model.on_request_edit_notes = (row) =>
+            view_model.on_request_edit_notes = (row, id_nota) =>
             {
                 try
                 {
-                    var window = new ProVentaEditNotesWindow(view_model, row);
+                    var window = new ProVentaEditNotesWindow(view_model, row, id_nota);
                     window.Owner = Window.GetWindow(this) ?? Application.Current?.MainWindow;
                     window.ShowDialog();
                 }
@@ -134,6 +134,28 @@ namespace NinOS.UI.Views
                     await view_model.confirm_annul_note_async(row);
                 }
             };
+        }
+
+        private void on_reporte_semanal_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte_semanal.IsOpen = !popup_reporte_semanal.IsOpen;
+        }
+
+        private void on_reporte_pendientes_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte_pendientes.IsOpen = !popup_reporte_pendientes.IsOpen;
+        }
+
+        private void on_reporte_pagadas_click(object sender, RoutedEventArgs e)
+        {
+            popup_reporte_pagadas.IsOpen = !popup_reporte_pagadas.IsOpen;
+        }
+
+        private void close_reportes(object sender, RoutedEventArgs e)
+        {
+            popup_reporte_semanal.IsOpen = false;
+            popup_reporte_pendientes.IsOpen = false;
+            popup_reporte_pagadas.IsOpen = false;
         }
 
         private System.Windows.Threading.DispatcherTimer? _relationSearchTimer;

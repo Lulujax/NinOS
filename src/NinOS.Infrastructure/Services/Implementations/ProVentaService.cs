@@ -974,6 +974,32 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         public async Task update_note_amount_async(int id_delivery_note, decimal monto_a_cobrar, decimal monto_esperado)
         {
+            await editar_nota_async(
+                id_delivery_note,
+                "monto",
+                (nota, pagada, monto_original) => pro_venta_note_edit.evaluar_monto(nota.status, pagada, nota.adjusted_total_usd, monto_esperado, monto_a_cobrar),
+                (nota, monto_original) => nota.adjusted_total_usd = Money.round(monto_a_cobrar));
+        }
+
+        public async Task update_note_discount_async(int id_delivery_note, decimal descuento, decimal monto_esperado)
+        {
+            await editar_nota_async(
+                id_delivery_note,
+                "descuento",
+                (nota, pagada, monto_original) => pro_venta_note_edit.evaluar_descuento(nota.status, pagada, nota.adjusted_total_usd, monto_esperado, descuento),
+                (nota, monto_original) =>
+                {
+                    nota.adjusted_total_usd = pro_venta_note_edit.monto_desde_descuento(monto_original, descuento);
+                    nota.discount_percentage = descuento;
+                });
+        }
+
+        private async Task editar_nota_async(
+            int id_delivery_note,
+            string operacion,
+            Func<delivery_note, bool, decimal, resultado_edicion> evaluar,
+            Action<delivery_note, decimal> aplicar)
+        {
             if (id_delivery_note <= 0) throw new ArgumentException("El id de la nota no es valido.", nameof(id_delivery_note));
 
             using var scope = _scope_factory.CreateScope();
@@ -1007,24 +1033,22 @@ namespace NinOS.Infrastructure.Services.Implementations
                 decimal monto_original = (await cargar_montos_originales_async(db_context, new List<int> { id_delivery_note }))
                     .TryGetValue(id_delivery_note, out decimal mo) ? mo : 0m;
 
-                resultado_edicion resultado = pro_venta_note_edit.evaluar_edicion(
-                    nota.status, resumen.esta_pagada, monto_original, nota.adjusted_total_usd, monto_esperado, monto_a_cobrar);
+                resultado_edicion resultado = evaluar(nota, resumen.esta_pagada, monto_original);
                 if (!resultado.aceptada)
                     throw new InvalidOperationException(resultado.motivo);
 
-                decimal descuento_nuevo = pro_venta_note_edit.descuento_desde_monto(monto_original, monto_a_cobrar);
-                nota.adjusted_total_usd = Money.round(monto_a_cobrar);
-                nota.discount_percentage = descuento_nuevo;
+                aplicar(nota, monto_original);
+                decimal descuento_despues = nota.discount_percentage ?? 0m;
 
                 await db_context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                AppLog.Info($"Edicion Pro Venta guardada: nota {id_delivery_note}, relacion {id_relacion}, descuento {descuento_antes:0.##} -> {descuento_nuevo:0.##}.");
+                AppLog.Info($"Edicion Pro Venta guardada ({operacion}): nota {id_delivery_note}, relacion {id_relacion}, descuento {descuento_antes:0.##} -> {descuento_despues:0.##}.");
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                AppLog.Warn($"Edicion Pro Venta rechazada: nota {id_delivery_note}, relacion {id_relacion_leida?.ToString() ?? "desconocida"}, descuento antes {descuento_antes:0.##}. Motivo: {ex.Message}");
+                AppLog.Warn($"Edicion Pro Venta rechazada ({operacion}): nota {id_delivery_note}, relacion {id_relacion_leida?.ToString() ?? "desconocida"}, descuento antes {descuento_antes:0.##}. Motivo: {ex.Message}");
                 throw;
             }
         }

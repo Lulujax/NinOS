@@ -34,11 +34,14 @@ namespace NinOS.UI.Views
             }
         }
 
-        public ProVentaEditNotesWindow(ProVentaViewModel vm, pro_venta_relation_row relation)
+        private readonly int? _id_nota_inicial;
+
+        public ProVentaEditNotesWindow(ProVentaViewModel vm, pro_venta_relation_row relation, int? id_nota_inicial = null)
         {
             InitializeComponent();
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             _relation = relation ?? throw new ArgumentNullException(nameof(relation));
+            _id_nota_inicial = id_nota_inicial;
             _abonado_actual = relation.paid_amount_usd;
             _monto_por_pagar_actual = relation.amount;
 
@@ -46,7 +49,7 @@ namespace NinOS.UI.Views
             {
                 InputRestrictions.attach_decimal(TxtDiscount);
                 InputRestrictions.attach_decimal(TxtAmount);
-                await LoadNotesAsync();
+                await LoadNotesAsync(_id_nota_inicial);
             };
         }
 
@@ -142,82 +145,136 @@ namespace NinOS.UI.Views
             TxtCurrentAdjusted.Text = $"${_selectedNote.amount:N2}";
 
             _isUpdatingInputs = true;
-            decimal descuento_actual = descuento_de(_selectedNote.monto_original, _selectedNote.amount);
-            TxtDiscount.Text = descuento_actual.ToString("0.##", CultureInfo.InvariantCulture);
+            TxtDiscount.Text = (_selectedNote.discount_percentage ?? 0m).ToString("0.##", CultureInfo.InvariantCulture);
             TxtAmount.Text = _selectedNote.amount.ToString("N2", CultureInfo.InvariantCulture);
             _isUpdatingInputs = false;
 
             MostrarVistaPrevia();
         }
 
-        private static decimal descuento_de(decimal monto_original, decimal monto_a_cobrar)
-        {
-            if (monto_original <= 0m) return 0m;
-            return pro_venta_note_edit.descuento_desde_monto(monto_original, Math.Min(monto_a_cobrar, monto_original));
-        }
-
         private void TxtDiscount_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_isUpdatingInputs || _selectedNote == null) return;
-            if (_selectedNote.monto_original <= 0m) return;
-
-            if (!decimal.TryParse(TxtDiscount.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal dcto)) return;
-            dcto = Math.Clamp(dcto, pro_venta_note_edit.DESCUENTO_MINIMO, pro_venta_note_edit.DESCUENTO_MAXIMO);
-
-            decimal monto = pro_venta_note_edit.monto_desde_descuento(_selectedNote.monto_original, dcto);
-            _isUpdatingInputs = true;
-            TxtAmount.Text = monto.ToString("N2", CultureInfo.InvariantCulture);
-            _isUpdatingInputs = false;
-            MostrarVistaPrevia();
+            MostrarVistaPreviaDescuento();
         }
 
         private void TxtAmount_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_isUpdatingInputs || _selectedNote == null) return;
-            if (_selectedNote.monto_original <= 0m) return;
-
-            decimal monto = pro_venta_weekly_row.parse_numeric(TxtAmount.Text);
-            if (monto >= 0m && monto <= _selectedNote.monto_original)
-            {
-                _isUpdatingInputs = true;
-                TxtDiscount.Text = descuento_de(_selectedNote.monto_original, monto).ToString("0.##", CultureInfo.InvariantCulture);
-                _isUpdatingInputs = false;
-            }
             MostrarVistaPrevia();
         }
 
-        private void QuickDiscount_Click(object sender, RoutedEventArgs e)
+        private async void BtnApplyDiscount_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string tagStr && _selectedNote != null)
+            decimal descuento = pro_venta_weekly_row.parse_numeric(TxtDiscount.Text);
+            if (descuento < pro_venta_note_edit.DESCUENTO_MINIMO || descuento > pro_venta_note_edit.DESCUENTO_MAXIMO)
             {
-                TxtDiscount.Text = tagStr;
+                ShowStatus("El descuento debe estar entre 0 y 100.", isError: true);
+                return;
+            }
+
+            await aplicar_descuento_async(descuento);
+        }
+
+        private async void BtnApplyAmount_Click(object sender, RoutedEventArgs e)
+        {
+            decimal monto = pro_venta_weekly_row.parse_numeric(TxtAmount.Text);
+            if (monto < 0m)
+            {
+                ShowStatus("Escriba un monto a cobrar de 0,00 o más.", isError: true);
+                return;
+            }
+
+            await aplicar_monto_async(monto);
+        }
+
+        private async void PagoConDescuento_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedNote == null) return;
+            await aplicar_descuento_async(_selectedNote.emission_discount_percentage ?? 0m);
+        }
+
+        private async void PagoSinDescuento_Click(object sender, RoutedEventArgs e)
+        {
+            await aplicar_descuento_async(0m);
+        }
+
+        private async Task aplicar_descuento_async(decimal descuento)
+        {
+            if (_selectedNote == null)
+            {
+                ShowStatus("Debe seleccionar una nota primero.", isError: true);
+                return;
+            }
+
+            int id_nota = _selectedNote.id_delivery_note;
+            string numero_nota = _selectedNote.note_number;
+            decimal monto_esperado = _selectedNote.amount;
+
+            await ejecutar_guardado_async(
+                id_nota,
+                () => _vm.update_note_discount_async(id_nota, descuento, monto_esperado),
+                $"Nota {numero_nota} con descuento {descuento:0.##}% aplicado.");
+        }
+
+        private async Task aplicar_monto_async(decimal monto)
+        {
+            if (_selectedNote == null)
+            {
+                ShowStatus("Debe seleccionar una nota primero.", isError: true);
+                return;
+            }
+
+            int id_nota = _selectedNote.id_delivery_note;
+            string numero_nota = _selectedNote.note_number;
+            decimal monto_esperado = _selectedNote.amount;
+
+            await ejecutar_guardado_async(
+                id_nota,
+                () => _vm.update_note_amount_async(id_nota, monto, monto_esperado),
+                $"Nota {numero_nota} con monto a cobrar ${monto:N2} guardado.");
+        }
+
+        private async Task ejecutar_guardado_async(int id_nota, Func<Task> guardar, string mensaje_exito)
+        {
+            HabilitarBotonesDeGuardado(false);
+            try
+            {
+                await guardar();
+                await LoadNotesAsync(id_nota);
+                ShowStatus(mensaje_exito, isError: false);
+            }
+            catch (Exception ex)
+            {
+                ShowStatus($"No se guardó: {ErrorText.Get(ex)}", isError: true);
+                await LoadNotesAsync(id_nota);
+            }
+            finally
+            {
+                HabilitarBotonesDeGuardado(true);
             }
         }
 
-        private void PagoConDescuento_Click(object sender, RoutedEventArgs e)
+        private void HabilitarBotonesDeGuardado(bool habilitado)
         {
-            if (_selectedNote == null) return;
-            TxtDiscount.Text = (_selectedNote.emission_discount_percentage ?? 0m).ToString("0.##", CultureInfo.InvariantCulture);
-        }
-
-        private void PagoSinDescuento_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedNote == null) return;
-            TxtDiscount.Text = "0";
+            BtnApplyDiscount.IsEnabled = habilitado;
+            BtnApplyAmount.IsEnabled = habilitado;
+            BtnPagoConDescuento.IsEnabled = habilitado;
+            BtnPagoSinDescuento.IsEnabled = habilitado;
         }
 
         private void MostrarVistaPrevia()
         {
             if (_selectedNote == null) return;
 
-            decimal original = _selectedNote.monto_original;
             decimal monto_nuevo = pro_venta_weekly_row.parse_numeric(TxtAmount.Text);
-            if (monto_nuevo < 0m || monto_nuevo > original)
+            if (monto_nuevo < 0m)
             {
-                ShowStatus($"El monto debe estar entre 0,00 y {original:N2}.", isError: true);
+                ShowStatus("Escriba un monto a cobrar de 0,00 o más.", isError: true);
                 return;
             }
 
+            decimal original = _selectedNote.monto_original;
             decimal diferencia = monto_nuevo - _selectedNote.amount;
             decimal monto_por_pagar_despues = _monto_por_pagar_actual + diferencia;
             decimal saldo_antes = Math.Max(0m, Money.round(_monto_por_pagar_actual - _abonado_actual));
@@ -231,47 +288,22 @@ namespace NinOS.UI.Views
                 isPreview: true);
         }
 
-        private async void BtnSave_Click(object sender, RoutedEventArgs e)
+        private void MostrarVistaPreviaDescuento()
         {
-            if (_selectedNote == null)
+            if (_selectedNote == null || _selectedNote.monto_original <= 0m) return;
+
+            decimal descuento = pro_venta_weekly_row.parse_numeric(TxtDiscount.Text);
+            if (descuento < pro_venta_note_edit.DESCUENTO_MINIMO || descuento > pro_venta_note_edit.DESCUENTO_MAXIMO)
             {
-                ShowStatus("Debe seleccionar una nota primero.", isError: true);
+                ShowStatus("El descuento debe estar entre 0 y 100.", isError: true);
                 return;
             }
 
-            if (_selectedNote.esta_anulada)
-            {
-                ShowStatus("No se puede editar una nota anulada.", isError: true);
-                return;
-            }
-
-            decimal nuevo_monto = pro_venta_weekly_row.parse_numeric(TxtAmount.Text);
-            if (nuevo_monto < 0m || nuevo_monto > _selectedNote.monto_original)
-            {
-                ShowStatus($"El monto debe estar entre 0,00 y {_selectedNote.monto_original:N2}.", isError: true);
-                return;
-            }
-
-            int id_nota = _selectedNote.id_delivery_note;
-            string numero_nota = _selectedNote.note_number;
-            decimal monto_esperado = _selectedNote.amount;
-
-            BtnSave.IsEnabled = false;
-            try
-            {
-                await _vm.update_note_amount_async(id_nota, nuevo_monto, monto_esperado);
-                await LoadNotesAsync(id_nota);
-                ShowStatus($"¡Nota {numero_nota} actualizada: monto a cobrar ${nuevo_monto:N2}!", isError: false);
-            }
-            catch (Exception ex)
-            {
-                ShowStatus($"Error al guardar: {ErrorText.Get(ex)}", isError: true);
-                await LoadNotesAsync(id_nota);
-            }
-            finally
-            {
-                BtnSave.IsEnabled = true;
-            }
+            decimal monto = pro_venta_note_edit.monto_desde_descuento(_selectedNote.monto_original, descuento);
+            ShowStatus(
+                $"Con {descuento:0.##}% el monto a cobrar sería ${monto:N2}. Pulse «Aplicar descuento» para guardarlo.",
+                isError: false,
+                isPreview: true);
         }
 
         private void ShowStatus(string msg, bool isError, bool isPreview = false)

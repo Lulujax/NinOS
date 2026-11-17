@@ -25,6 +25,7 @@ namespace NinOS.UI.Common.ViewModels
         private bool _is_syncing_week_relation;
         private List<pro_venta_relation_option> _all_relations_cache = new();
         private pro_venta_weekly_dto? _report;
+        private bool _report_include_annulled = true;
         private bool _is_loading;
 
         public ObservableCollection<pro_venta_month_option> available_months { get; } = new();
@@ -67,10 +68,11 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand relation_excel_command { get; }
         public ICommand note_excel_command { get; }
         public ICommand edit_relation_notes_command { get; }
+        public ICommand edit_weekly_note_command { get; }
 
         public Action<pro_venta_relation_row>? on_request_relation_pdf;
         public Action<pro_venta_relation_row>? on_request_payment_window;
-        public Action<pro_venta_relation_row>? on_request_edit_notes;
+        public Action<pro_venta_relation_row, int?>? on_request_edit_notes;
         public Action<pro_venta_weekly_row>? on_request_note_preview;
         public Action<pro_venta_weekly_row>? on_request_annul_note;
 
@@ -97,6 +99,7 @@ namespace NinOS.UI.Common.ViewModels
             relation_preview_command = new RelayCommand(execute_relation_preview);
             relation_excel_command = new RelayCommand(execute_relation_excel);
             edit_relation_notes_command = new RelayCommand(execute_edit_relation_notes);
+            edit_weekly_note_command = new RelayCommand(execute_edit_weekly_note);
             note_excel_command = new RelayCommand(execute_note_excel);
             preview_command = new RelayCommand(_ => preview_report());
             direct_print_command = new RelayCommand(_ => direct_print_report());
@@ -250,6 +253,17 @@ namespace NinOS.UI.Common.ViewModels
         public string relation_subtitle => (_report == null || !has_rows)
             ? string.Empty
             : $"{_report.week_start:dd/MM} AL {_report.week_end:dd/MM} _ FACTURAS POR COBRAR {pro_venta_calculator.Ciudad}";
+
+        public bool report_include_annulled
+        {
+            get => _report_include_annulled;
+            set
+            {
+                if (_report_include_annulled == value) return;
+                _report_include_annulled = value;
+                on_property_changed();
+            }
+        }
 
         public bool has_rows => _report != null && _report.rows.Count > 0;
         public bool is_empty => !has_rows;
@@ -623,21 +637,43 @@ namespace NinOS.UI.Common.ViewModels
             return (payments, relation_row);
         }
 
+        private pro_venta_weekly_dto build_report_for_output()
+        {
+            if (_report == null) throw new InvalidOperationException("No hay relación cargada para el reporte.");
+            if (_report_include_annulled) return _report;
+
+            return new pro_venta_weekly_dto
+            {
+                id_relacion = _report.id_relacion,
+                relation_number = _report.relation_number,
+                week_start = _report.week_start,
+                week_end = _report.week_end,
+                city = _report.city,
+                rows = _report.rows.Where(r => !r.esta_anulada).ToList(),
+                total_monto_original = _report.total_monto_original,
+                total_amount = _report.total_amount,
+                total_commission_luis = _report.total_commission_luis,
+                total_gastos_25 = _report.total_gastos_25,
+                total_gastos_15 = _report.total_gastos_15
+            };
+        }
+
         private async void preview_report()
         {
             if (_report == null || !has_rows) return;
             try
             {
+                var output = build_report_for_output();
                 var (payments, relation_row) = await get_weekly_context_async();
-                var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
+                var doc = ProVentaPdfGenerator.build_document(output, nota_por_pagar, payments, relation_row);
                 string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
-                string defName = ProVentaPdfGenerator.get_default_file_name(_report);
+                string defName = ProVentaPdfGenerator.get_default_file_name(output);
 
                 var preview = new NinOS.UI.Views.PdfPreviewWindow(
                     doc,
                     title,
                     defName,
-                    onExportExcel: () => ProVentaWeeklyExcelExporter.export(_report, nota_por_pagar, payments, relation_row));
+                    onExportExcel: () => ProVentaWeeklyExcelExporter.export(output, nota_por_pagar, payments, relation_row));
                 preview.ShowDialog();
             }
             catch (Exception ex)
@@ -651,10 +687,11 @@ namespace NinOS.UI.Common.ViewModels
             if (_report == null || !has_rows) return;
             try
             {
+                var output = build_report_for_output();
                 var (payments, relation_row) = await get_weekly_context_async();
-                var doc = ProVentaPdfGenerator.build_document(_report, nota_por_pagar, payments, relation_row);
+                var doc = ProVentaPdfGenerator.build_document(output, nota_por_pagar, payments, relation_row);
                 string title = string.IsNullOrWhiteSpace(relation_title) ? "Relación Pro Venta" : relation_title;
-                ReportPrintService.DirectPrint(doc, null, title, ProVentaPdfGenerator.get_default_file_name(_report));
+                ReportPrintService.DirectPrint(doc, null, title, ProVentaPdfGenerator.get_default_file_name(output));
             }
             catch (Exception ex)
             {
@@ -667,8 +704,9 @@ namespace NinOS.UI.Common.ViewModels
             if (_report == null || !has_rows) return;
             try
             {
+                var output = build_report_for_output();
                 var (payments, relation_row) = await get_weekly_context_async();
-                ProVentaWeeklyExcelExporter.export(_report, nota_por_pagar, payments, relation_row);
+                ProVentaWeeklyExcelExporter.export(output, nota_por_pagar, payments, relation_row);
             }
             catch (Exception ex)
             {
@@ -929,7 +967,7 @@ namespace NinOS.UI.Common.ViewModels
                                 ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion);
                 }
 
-                ProVentaPdfGenerator.generate(_report, nota_por_pagar, payments, relation_row);
+                ProVentaPdfGenerator.generate(build_report_for_output(), nota_por_pagar, payments, relation_row);
             }
             catch (Exception ex)
             {
@@ -999,7 +1037,29 @@ namespace NinOS.UI.Common.ViewModels
         private void execute_edit_relation_notes(object? parameter)
         {
             if (parameter is pro_venta_relation_row row)
-                on_request_edit_notes?.Invoke(row);
+                on_request_edit_notes?.Invoke(row, null);
+        }
+
+        private void execute_edit_weekly_note(object? parameter)
+        {
+            if (parameter is not pro_venta_weekly_row note || _report == null) return;
+
+            var relation_row = pending_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                            ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion);
+            if (relation_row == null)
+            {
+                AppDialog.Show(
+                    "No se encontró la relación en la lista. Elija el mes de nuevo y vuelva a intentarlo.",
+                    "Editar Nota", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            on_request_edit_notes?.Invoke(relation_row, note.id_delivery_note);
+        }
+
+        public async Task update_note_discount_async(int id_delivery_note, decimal descuento, decimal monto_esperado)
+        {
+            await _pro_venta_service.update_note_discount_async(id_delivery_note, descuento, monto_esperado);
         }
 
         public async Task update_note_amount_async(int id_delivery_note, decimal monto_a_cobrar, decimal monto_esperado)
