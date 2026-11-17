@@ -944,7 +944,7 @@ namespace NinOS.UI.Views
                     ? $"   |   Descuento nota: {source.discount_percentage:N2}%"
                     : string.Empty;
 
-                NoteInfoText.Text = $"Nota: {source.note_number}{typeLabel}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD{discount_note}   |   Ya devuelto: {source.already_returned_usd:N2} USD   |   Disponible: {source.available_usd:N2} USD";
+                NoteInfoText.Text = $"Nota: {source.note_number}   |   Empresa: {source.company_name}{typeLabel}   |   Fecha: {source.creation_date:dd/MM/yyyy}   |   Total: {source.adjusted_total_usd:N2} USD{discount_note}   |   Ya devuelto: {source.already_returned_usd:N2} USD   |   Disponible: {source.available_usd:N2} USD";
                 NoteInfoBorder.Visibility = Visibility.Visible;
 
                 var rows = source.lines

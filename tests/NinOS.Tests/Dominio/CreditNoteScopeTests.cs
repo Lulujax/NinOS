@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NinOS.Domain;
 using NinOS.Infrastructure.Services;
 using Xunit;
@@ -40,12 +41,40 @@ namespace NinOS.Tests.Dominio
         }
 
         [Fact]
-        public void caso_feliz_general_conserva_las_nc_de_pro_venta_porque_se_emiten_desde_su_pestaña()
+        public void caso_feliz_nc_de_nota_pro_venta_solo_aparece_en_pro_venta()
         {
             var general = NoteScopeFilter.build_credit_scope(business_unit.General, tipos_de_prueba);
+            var pro_venta = NoteScopeFilter.build_credit_scope(business_unit.ProVenta, tipos_de_prueba);
 
-            Assert.True(NoteScopeFilter.belongs_to_scope_with_fallback(general, true, 3));
-            Assert.True(NoteScopeFilter.belongs_to_scope_with_fallback(general, true, 4));
+            Assert.True(NoteScopeFilter.belongs_to_scope_with_fallback(pro_venta, true, 3));
+            Assert.True(NoteScopeFilter.belongs_to_scope_with_fallback(pro_venta, true, 4));
+            Assert.False(NoteScopeFilter.belongs_to_scope_with_fallback(general, true, 3));
+            Assert.False(NoteScopeFilter.belongs_to_scope_with_fallback(general, true, 4));
+        }
+
+        [Fact]
+        public void caso_feliz_unit_of_credit_source_devuelve_la_empresa_de_la_nota_original()
+        {
+            var codigos = new Dictionary<int, string?> { { 1, "GEN" }, { 3, "MAR" }, { 5, "VES" } };
+
+            Assert.Equal(business_unit.Vesupronta, NoteScopeFilter.unit_of_credit_source(5, codigos));
+            Assert.Equal(business_unit.ProVenta, NoteScopeFilter.unit_of_credit_source(3, codigos));
+            Assert.Equal(business_unit.General, NoteScopeFilter.unit_of_credit_source(1, codigos));
+        }
+
+        [Fact]
+        public void caso_limite_unit_of_credit_source_sin_tipo_o_tipo_no_encontrado_es_general()
+        {
+            var codigos = new Dictionary<int, string?> { { 5, "VES" } };
+
+            Assert.Equal(business_unit.General, NoteScopeFilter.unit_of_credit_source(null, codigos));
+            Assert.Equal(business_unit.General, NoteScopeFilter.unit_of_credit_source(99, codigos));
+        }
+
+        [Fact]
+        public void caso_error_unit_of_credit_source_diccionario_nulo_lanza_excepcion()
+        {
+            Assert.Throws<ArgumentNullException>(() => NoteScopeFilter.unit_of_credit_source(1, null!));
         }
 
         [Fact]

@@ -119,6 +119,21 @@ namespace NinOS.Tests.Dominio
             Assert.Throws<ArgumentOutOfRangeException>(() => BusinessUnitRules.unit_from_modalidad_index(indice));
         }
 
+        [Theory]
+        [InlineData(business_unit.General, "General")]
+        [InlineData(business_unit.ProVenta, "Pro Venta")]
+        [InlineData(business_unit.Vesupronta, "Vesupronta")]
+        public void caso_feliz_cada_empresa_tiene_su_etiqueta(business_unit unit, string etiqueta_esperada)
+        {
+            Assert.Equal(etiqueta_esperada, BusinessUnitRules.label_of(unit));
+        }
+
+        [Fact]
+        public void caso_error_empresa_fuera_de_rango_no_tiene_etiqueta()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => BusinessUnitRules.label_of((business_unit)99));
+        }
+
         [Fact]
         public void caso_limite_empresa_fuera_de_rango_no_tiene_indice_de_modalidad()
         {

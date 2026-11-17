@@ -82,6 +82,17 @@ namespace NinOS.Domain
             };
         }
 
+        public static string label_of(business_unit unit)
+        {
+            return unit switch
+            {
+                business_unit.General => "General",
+                business_unit.ProVenta => "Pro Venta",
+                business_unit.Vesupronta => "Vesupronta",
+                _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Empresa desconocida."),
+            };
+        }
+
         public static string[] codes_of_unit(business_unit unit)
         {
             return unit switch
