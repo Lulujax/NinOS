@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,16 +17,16 @@ namespace NinOS.Infrastructure.Services.Implementations
 {
     public class AccountsReceivableService : IAccountsReceivableService
     {
-        /// <summary>
-        /// <summary>Observacion que deja el asiento de anulacion de una nota Pro Venta.</summary>
         private const string AnulacionObservation = "Nota anulada";
 
         private readonly IServiceScopeFactory _scope_factory;
+        private readonly business_unit _unit;
 
-        public AccountsReceivableService(IServiceScopeFactory scope_factory)
+        public AccountsReceivableService(IServiceScopeFactory scope_factory, business_unit unit = business_unit.General)
         {
             if (scope_factory == null) throw new ArgumentNullException(nameof(scope_factory));
             _scope_factory = scope_factory;
+            _unit = unit;
         }
 
         public async Task<IEnumerable<string>> get_pending_months_async()
@@ -34,14 +35,14 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                var scope_filter = await get_scope_filter_async(db_context);
 
                 double tz_offset = AppTimeZone.offset_hours;
 
                 var pending_notes = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(n => n.status == "Pendiente"
-                             && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)))
+                    .Where(n => n.status == "Pendiente")
+                    .Where(scope_filter)
                     .Select(n => new {
                         Year = n.creation_date.AddHours(tz_offset).Year,
                         Month = n.creation_date.AddHours(tz_offset).Month })
@@ -62,13 +63,13 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                var scope_filter = await get_scope_filter_async(db_context);
 
                 double tz_offset2 = AppTimeZone.offset_hours;
 
                 var all_notes = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(n => n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value))
+                    .Where(scope_filter)
                     .Select(n => new {
                         Year = n.creation_date.AddHours(tz_offset2).Year,
                         Month = n.creation_date.AddHours(tz_offset2).Month })
@@ -99,14 +100,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     return Enumerable.Empty<accounts_receivable_dto>();
                 }
                 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                var scope_filter = await get_scope_filter_async(db_context);
 
                 double tz_offset = AppTimeZone.offset_hours;
 
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
+                    .Where(scope_filter)
                     .Where(dn => dn.status == "Pendiente"
-                              && (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
                               && dn.creation_date.AddHours(tz_offset).Year == target_date.Year
                               && dn.creation_date.AddHours(tz_offset).Month == target_date.Month)
                     .OrderBy(dn => dn.note_number)
@@ -210,14 +211,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     return Enumerable.Empty<accounts_receivable_dto>();
                 }
                 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                var scope_filter = await get_scope_filter_async(db_context);
 
                 double tz_offset = AppTimeZone.offset_hours;
 
                 var notes = await db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(dn => (dn.note_type_id == null || !mar_ids.Contains(dn.note_type_id.Value))
-                              && dn.creation_date.AddHours(tz_offset).Year == target_date.Year
+                    .Where(scope_filter)
+                    .Where(dn => dn.creation_date.AddHours(tz_offset).Year == target_date.Year
                               && dn.creation_date.AddHours(tz_offset).Month == target_date.Month)
                     .OrderBy(dn => dn.note_number)
                     .ToListAsync();
@@ -344,8 +345,8 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                var excluded_ids = await get_pro_venta_type_ids_async(db_context);
-                return await get_notes_internal_async(db_context, excluded_ids);
+                var scope_filter = await get_scope_filter_async(db_context);
+                return await get_notes_internal_async(db_context, scope_filter);
             }
         }
 
@@ -355,20 +356,19 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await get_notes_internal_async(db_context, new List<int>());
+                return await get_notes_internal_async(db_context, null);
             }
         }
 
         private async Task<IEnumerable<accounts_receivable_dto>> get_notes_internal_async(
-            NinOSDbContext db_context, List<int> excluded_type_ids)
+            NinOSDbContext db_context, Expression<Func<delivery_note, bool>>? scope_filter)
         {
             {
                 var notes_query = db_context.delivery_notes.AsNoTracking();
 
-                if (excluded_type_ids.Count > 0)
+                if (scope_filter != null)
                 {
-                    notes_query = notes_query
-                        .Where(n => n.note_type_id == null || !excluded_type_ids.Contains(n.note_type_id.Value));
+                    notes_query = notes_query.Where(scope_filter);
                 }
 
                 var notes = await notes_query
@@ -507,12 +507,12 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
-                var mar_ids = await get_pro_venta_type_ids_async(db_context);
+                var scope_filter = await get_scope_filter_async(db_context);
 
                 var dn = await db_context.delivery_notes
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(n => n.note_number == note_number
-                                           && (n.note_type_id == null || !mar_ids.Contains(n.note_type_id.Value)));
+                    .Where(scope_filter)
+                    .FirstOrDefaultAsync(n => n.note_number == note_number);
 
                 if (dn == null) return null;
 
@@ -629,8 +629,8 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (delivery_note.status == "Anulada") throw new InvalidOperationException("No se puede editar una nota anulada.");
                     if (delivery_note.status == "Devuelta") throw new InvalidOperationException("No se puede editar una nota devuelta.");
 
-                    var mar_ids = await get_pro_venta_type_ids_async(db_context);
-                    bool is_pro_venta = delivery_note.note_type_id != null && mar_ids.Contains(delivery_note.note_type_id.Value);
+                    var pro_venta_ids = await get_pro_venta_only_type_ids_async(db_context);
+                    bool is_pro_venta = delivery_note.note_type_id != null && pro_venta_ids.Contains(delivery_note.note_type_id.Value);
                     bool is_promo_note = delivery_note.promo_discount_percentage != null && delivery_note.promo_discount_percentage > 0;
 
                     decimal gross = is_promo_note
@@ -711,7 +711,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     // podria anular una nota MAR que ya tiene dinero cobrado y quedaria sin respaldo.
                     // La comprobacion es por relacion: el abono es de la relacion semanal completa,
                     // no de una nota suelta, asi que basta con que exista uno para bloquear.
-                    var mar_ids_for_note = await get_pro_venta_type_ids_async(db_context);
+                    var mar_ids_for_note = await get_pro_venta_only_type_ids_async(db_context);
 
                     if (delivery_note.note_type_id != null && mar_ids_for_note.Contains(delivery_note.note_type_id.Value))
                     {
@@ -1032,7 +1032,13 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)
+        private async Task<Expression<Func<delivery_note, bool>>> get_scope_filter_async(NinOSDbContext db_context)
+        {
+            note_scope scope = await NoteScopeFilter.load_scope_async(db_context, _unit);
+            return NoteScopeFilter.delivery_notes_in_scope(scope);
+        }
+
+        private static Task<List<int>> get_pro_venta_only_type_ids_async(NinOSDbContext db_context)
         {
             return db_context.note_types
                 .AsNoTracking()

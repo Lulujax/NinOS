@@ -1,13 +1,10 @@
-using System;
-
 namespace NinOS.Domain
 {
     public static class SalesNoteScope
     {
-        public static bool is_visible_in_sales(string? note_type_code)
+        public static bool is_visible_in_sales(string? note_type_code, business_unit scope)
         {
-            if (string.IsNullOrWhiteSpace(note_type_code)) return true;
-            return !NoteTypeCodes.is_pro_venta(note_type_code.Trim());
+            return BusinessUnitRules.unit_of_note_type(note_type_code) == scope;
         }
     }
 }

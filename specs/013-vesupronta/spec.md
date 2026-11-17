@@ -23,11 +23,16 @@ Vesupronta se administra desde su propia pestaña, con sub-pestañas propias, y 
 - **RF-13** SI una pantalla, reporte o consulta no puede saber a qué empresa pertenece una nota, ENTONCES EL SISTEMA no la contará en Vesupronta y lo dejará registrado en el log.
 - **RF-14** CUANDO se cree o edite una zona, EL SISTEMA permitirá elegir su empresa entre General, Pro Venta y Vesupronta.
 - **RF-15** CUANDO se cambie la empresa de una zona que ya tiene notas emitidas, EL SISTEMA lo permitirá y cada nota ya emitida conservará la empresa con la que se emitió. Solo las notas nuevas saldrán con la empresa nueva de la zona.
+- **RF-16** La pestaña Cuentas por Cobrar de Vesupronta funciona igual que la de General: la misma lista, filtros, búsqueda, edición de montos y descuentos (spec 012) y abonos, pero solo con notas de Vesupronta.
+- **RF-17** CUANDO se hace una nota de crédito, EL SISTEMA la asignará a la empresa de la nota original que devuelve o anula. Una nota de crédito de Vesupronta solo aparece en la pestaña Notas de Crédito de Vesupronta, y una de General o Pro Venta solo en la suya.
+- **RF-18** SI la nota original de una nota de crédito no se puede encontrar, ENTONCES EL SISTEMA la mostrará en General y lo dejará en el log, sin datos del cliente.
 
 ## Cómo sé que está listo
 
 - La pestaña Vesupronta abre con sus cuatro sub-pestañas y, en una base sin notas de Vesupronta, todas salen vacías y sin errores.
 - Desde la pestaña Notas de Entrega, un cliente de zona Vesupronta solo ofrece tipos de nota de Vesupronta.
+- La Cuentas por Cobrar de Vesupronta lista solo sus notas, y un abono sobre una de ellas no cambia ninguna nota de General.
+- Una nota de crédito de una nota de Vesupronta aparece solo en Notas de Crédito de Vesupronta; con las dos empresas en testing, General no la muestra.
 - Al pasar una zona de General a Vesupronta, sus notas viejas siguen en General y las nuevas salen en Vesupronta.
 - Una nota emitida a un cliente de una zona Vesupronta aparece en Ventas, Cuentas por Cobrar y Pagos de Vesupronta, y **no** aparece en las pestañas de General ni de Pro Venta.
 - Una nota General y una de Pro Venta no aparecen en Vesupronta.

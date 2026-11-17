@@ -122,6 +122,7 @@ namespace NinOS.UI.Common.ViewModels
                         SortOrder = z.sort_order,
                         IsActive = z.is_active,
                         IsProVenta = z.is_pro_venta,
+                        IsVesupronta = z.is_vesupronta,
                         Description = z.description
                     });
                 }
@@ -137,6 +138,7 @@ namespace NinOS.UI.Common.ViewModels
                         SortOrder = z.sort_order,
                         IsActive = z.is_active,
                         IsProVenta = z.is_pro_venta,
+                        IsVesupronta = z.is_vesupronta,
                         Description = z.description,
                         DeletedAt = z.deleted_at,
                         DeletedReason = z.deleted_reason
@@ -190,7 +192,7 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 string codeToUse = string.IsNullOrWhiteSpace(NewCode) ? await _zonaService.GetNextCodeAsync() : NewCode.Trim();
-                bool isProVenta = SelectedModalidadIndex == 1;
+                business_unit unit = BusinessUnitRules.unit_from_modalidad_index(SelectedModalidadIndex);
 
                 if (_editingZona == null)
                 {
@@ -200,7 +202,8 @@ namespace NinOS.UI.Common.ViewModels
                         code = codeToUse,
                         sort_order = int.TryParse(codeToUse, out int n) ? n : 0,
                         is_active = true,
-                        is_pro_venta = isProVenta,
+                        is_pro_venta = unit == business_unit.ProVenta,
+                        is_vesupronta = unit == business_unit.Vesupronta,
                         description = string.IsNullOrWhiteSpace(NewDescription) ? null : NewDescription.Trim()
                     };
                     await _zonaService.CreateAsync(nueva);
@@ -208,7 +211,8 @@ namespace NinOS.UI.Common.ViewModels
                 else
                 {
                     _editingZona.name = NewName.Trim();
-                    _editingZona.is_pro_venta = isProVenta;
+                    _editingZona.is_pro_venta = unit == business_unit.ProVenta;
+                    _editingZona.is_vesupronta = unit == business_unit.Vesupronta;
                     _editingZona.description = string.IsNullOrWhiteSpace(NewDescription) ? null : NewDescription.Trim();
                     await _zonaService.UpdateAsync(_editingZona);
                 }
@@ -239,12 +243,13 @@ namespace NinOS.UI.Common.ViewModels
                     sort_order = vm.SortOrder,
                     is_active = vm.IsActive,
                     is_pro_venta = vm.IsProVenta,
+                    is_vesupronta = vm.IsVesupronta,
                     description = vm.Description
                 };
                 NewName = vm.Name;
                 NewCode = vm.Code;
                 NewDescription = vm.Description ?? string.Empty;
-                SelectedModalidadIndex = vm.IsProVenta ? 1 : 0;
+                SelectedModalidadIndex = BusinessUnitRules.modalidad_index_of(vm.Unit);
                 ErrorMessage = string.Empty;
                 IsEditing = true;
                 ((RelayCommand)SaveZonaCommand).RaiseCanExecuteChanged();

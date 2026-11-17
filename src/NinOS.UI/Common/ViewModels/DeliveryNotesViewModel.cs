@@ -959,10 +959,22 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private static bool IsProVentaZona(zona? z)
+        private static business_unit UnitOfZona(zona? z)
         {
-            if (z == null) return false;
-            return z.is_pro_venta;
+            return z == null ? business_unit.General : BusinessUnitRules.unit_of_zone(z);
+        }
+
+        private HashSet<business_unit> allowed_note_units()
+        {
+            if (_selected_customer != null && _selected_customer.id_zona.HasValue)
+            {
+                var zona_del_cliente = _seller_assigned_zones.FirstOrDefault(z => z.id_zona == _selected_customer.id_zona.Value);
+                return zona_del_cliente == null
+                    ? new HashSet<business_unit>()
+                    : new HashSet<business_unit> { UnitOfZona(zona_del_cliente) };
+            }
+
+            return _seller_assigned_zones.Select(UnitOfZona).ToHashSet();
         }
 
         private void RefreshNoteTypeOptions(bool keepSelection = false)
@@ -974,21 +986,13 @@ namespace NinOS.UI.Common.ViewModels
                 note_type_options.Clear();
                 if (_selected_seller != null)
                 {
-                    bool hasProVenta = _seller_assigned_zones.Any(IsProVentaZona);
-                    bool hasOther = _seller_assigned_zones.Any(z => !IsProVentaZona(z));
+                    var allowed_units = allowed_note_units();
 
                     foreach (note_type nt in _all_note_types_cache
                         .Where(t => t.is_active)
                         .OrderBy(t => t.sort_order))
                     {
-                        bool isPv = NoteTypeCodes.is_pro_venta(nt.code);
-                        bool isGen = !isPv;
-
-                        if (isPv && hasProVenta)
-                        {
-                            note_type_options.Add(nt);
-                        }
-                        else if (isGen && hasOther)
+                        if (allowed_units.Contains(BusinessUnitRules.unit_of_note_type(nt.code)))
                         {
                             note_type_options.Add(nt);
                         }
@@ -1092,7 +1096,7 @@ namespace NinOS.UI.Common.ViewModels
                     {
                         int idZona = c.id_zona!.Value;
                         var custZona = c.zona ?? _seller_assigned_zones.FirstOrDefault(z => z.id_zona == idZona);
-                        return isPv ? IsProVentaZona(custZona) : !IsProVentaZona(custZona);
+                        return UnitOfZona(custZona) == BusinessUnitRules.unit_of_note_type(_selected_note_type?.code);
                     })
                     .OrderBy(c => c.business_name);
 
@@ -1125,6 +1129,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 if (_selected_customer == value) return;
                 _selected_customer = value;
+                RefreshNoteTypeOptions(keepSelection: true);
                 if (_selected_customer != null)
                 {
                     customer_code_text = _selected_customer.customer_code;
@@ -2032,16 +2037,21 @@ namespace NinOS.UI.Common.ViewModels
                 }
 
                 var custZona = _selected_customer.zona ?? assignedZones.FirstOrDefault(z => z.id_zona == _selected_customer.id_zona);
-                bool isCustPv = IsProVentaZona(custZona);
-                bool isPv = NoteTypeCodes.is_pro_venta(_selected_note_type.code);
+                business_unit unidad_de_zona = UnitOfZona(custZona);
+                business_unit unidad_de_nota = BusinessUnitRules.unit_of_note_type(_selected_note_type.code);
 
-                if (isPv && !isCustPv)
+                if (unidad_de_nota == business_unit.ProVenta && unidad_de_zona != business_unit.ProVenta)
                 {
                     throw new InvalidOperationException($"Las notas Pro Venta solo se pueden emitir para zonas configuradas en modalidad Pro Venta.");
                 }
-                if (!isPv && isCustPv)
+                if (unidad_de_nota != business_unit.ProVenta && unidad_de_zona == business_unit.ProVenta)
                 {
                     throw new InvalidOperationException($"La zona de este cliente ({custZona?.name ?? ""}) trabaja en modalidad Pro Venta y solo admite notas Pro Venta.");
+                }
+                if (unidad_de_nota != unidad_de_zona)
+                {
+                    AppLog.Warn($"Nota rechazada: empresa de la nota {unidad_de_nota} distinta de la zona del cliente {unidad_de_zona}.");
+                    throw new InvalidOperationException("El tipo de nota no corresponde a la empresa de la zona de este cliente.");
                 }
 
                 if (note_details.Count == 0) throw new InvalidOperationException("Tienes que llenar los campos obligatorios.");
