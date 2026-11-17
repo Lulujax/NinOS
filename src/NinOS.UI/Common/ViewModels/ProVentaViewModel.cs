@@ -63,6 +63,7 @@ namespace NinOS.UI.Common.ViewModels
         public ICommand start_edit_note_command { get; }
         public ICommand apply_edit_note_command { get; }
         public ICommand cancel_edit_note_command { get; }
+        public ICommand cutoff_report_command { get; }
         public ICommand relation_preview_command { get; }
         public ICommand relation_excel_command { get; }
         public ICommand note_excel_command { get; }
@@ -94,6 +95,7 @@ namespace NinOS.UI.Common.ViewModels
             start_edit_note_command = new RelayCommand(execute_start_edit_note);
             apply_edit_note_command = new RelayCommand(execute_apply_edit_note);
             cancel_edit_note_command = new RelayCommand(execute_cancel_edit_note);
+            cutoff_report_command = new RelayCommand(_ => preview_cutoff_report());
             relation_preview_command = new RelayCommand(execute_relation_preview);
             relation_excel_command = new RelayCommand(execute_relation_excel);
             edit_relation_notes_command = new RelayCommand(execute_edit_relation_notes);
@@ -673,6 +675,44 @@ namespace NinOS.UI.Common.ViewModels
             catch (Exception ex)
             {
                 AppDialog.Show($"Error al exportar a Excel: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void preview_cutoff_report()
+        {
+            try
+            {
+                var prompt = new NinOS.UI.Views.PromptWindow(
+                    "Relación semanal por cobrar",
+                    "Fecha de corte (dd/mm/aaaa):");
+                prompt.ShowDialog();
+
+                if (!prompt.Accepted
+                    || !DateTime.TryParseExact(prompt.Value.Trim(), "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime cutoff))
+                {
+                    AppDialog.Show("Fecha de corte no válida. Escríbala como dd/mm/aaaa.", "Relación al corte", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                List<pro_venta_relation_row> rows = await _pro_venta_service.get_relations_at_cutoff_async(cutoff);
+                string cutoff_label = $"al {cutoff:dd/MM/yyyy}";
+
+                var doc = ProVentaRelationsSummaryPdfGenerator.build_document(
+                    "Relación semanal por cobrar",
+                    cutoff_label,
+                    rows,
+                    null);
+
+                var preview = new NinOS.UI.Views.PdfPreviewWindow(
+                    doc,
+                    "Relación semanal por cobrar",
+                    ProVentaRelationsSummaryPdfGenerator.get_default_file_name("Corte", cutoff_label),
+                    onExportExcel: () => ProVentaRelationsSummaryExcelExporter.export("Relación semanal por cobrar", cutoff_label, rows, null));
+                preview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al generar el reporte al corte: {ErrorText.Get(ex)}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

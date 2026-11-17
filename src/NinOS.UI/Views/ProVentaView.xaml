@@ -306,8 +306,10 @@
                                 Background="#1976D2" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_pending}"/>
                         <Button Content="Descargar Excel" Command="{Binding excel_pending_command}"
-                                Background="#2E7D32" Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
+                                Background="#2E7D32" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_pending}"/>
+                        <Button Content="Relación al corte" Command="{Binding cutoff_report_command}"
+                                Background="#6A1B9A" Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"/>
                     </StackPanel>
                 </Border>
 

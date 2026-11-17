@@ -703,10 +703,13 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 sellers.TryGetValue(n.id_seller, out var seller);
 
-                decimal amount = n.adjusted_total_usd;
-                decimal monto_original = montos_originales.TryGetValue(n.id_delivery_note, out decimal mo)
-                    ? mo
-                    : n.total_amount_usd;
+                bool annulled = is_annulled(n.status);
+                decimal amount = annulled ? 0m : n.adjusted_total_usd;
+                decimal monto_original = annulled
+                    ? 0m
+                    : montos_originales.TryGetValue(n.id_delivery_note, out decimal mo)
+                        ? mo
+                        : n.total_amount_usd;
 
                 return new pro_venta_weekly_row
 
@@ -737,11 +740,11 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     monto_original = monto_original,
 
-                    commission_luis = pro_venta_calculator.comision(monto_original),
+                    commission_luis = annulled ? 0m : pro_venta_calculator.comision(monto_original),
 
-                    gastos_25 = pro_venta_calculator.gastos_operativos(monto_original),
+                    gastos_25 = annulled ? 0m : pro_venta_calculator.gastos_operativos(monto_original),
 
-                    gastos_15 = pro_venta_calculator.gastos_administrativos(monto_original),
+                    gastos_15 = annulled ? 0m : pro_venta_calculator.gastos_administrativos(monto_original),
 
                     status = n.status ?? string.Empty
 
