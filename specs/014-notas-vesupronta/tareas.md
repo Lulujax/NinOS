@@ -16,19 +16,23 @@ Cada tarea está pendiente de la aclaración que indique. Una tarea marcada como
   - Para notas de Vesupronta, quitar el bloque de datos de pago de ORIGINAL y COPIA.
   - Hecha y probada: [ ]
 
-- [ ] **T4. Tres tipos de nota de Vesupronta.** Cubre: RF-2, RF-10.
+- [ ] **T4. Tres tipos de nota de Vesupronta.** Cubre: RF-2, RF-12.
   - Confirmar que General, Volumen y Promoción de Vesupronta usan el mismo formato y no cambian el correlativo.
-  - [NECESITA ACLARACIÓN: RF-11, título de la nota. Bloquea T5.]
   - Hecha y probada: [ ]
 
 - [ ] **T5. Título de la nota.** Cubre: RF-11.
-  - [NECESITA ACLARACIÓN: qué va en la parte variable del título. Bloqueada.]
+  - Poner «V.P» al inicio y al final del título. Falta confirmar qué es «<título de la nota>» (ver RF-11).
   - Hecha y probada: [ ]
 
-- [ ] **T6. Reimpresión de notas ya emitidas.** Cubre: RF-12, RF-13.
-  - [NECESITA ACLARACIÓN: RF-12, si hay notas de Vesupronta ya emitidas y cómo deben salir. Bloqueada.]
+- [ ] **T6. Límite de 20 productos.** Cubre: RF-15, RF-16.
+  - Validar el máximo de 20 renglones al guardar una nota de Vesupronta. Pruebas: 20 aceptado, 21 rechazado, 0 rechazado.
+  - Comprobar que las tres hojas con 20 productos caben en una página carta.
   - Hecha y probada: [ ]
 
-- [ ] **T7. Excel de Vesupronta.** Cubre: RF-14.
-  - [NECESITA ACLARACIÓN: RF-14, si el Excel también necesita tres hojas. Bloqueada.]
+- [ ] **T7. Excel de Vesupronta con tres hojas.** Cubre: RF-14.
+  - Agregar la hoja ADMINISTRACIÓN al Excel de notas de Vesupronta con la misma tabla del PDF.
+  - Hecha y probada: [ ]
+
+- [ ] **T8. Tres notas de prueba en octubre.** Cubre: RF-17.
+  - Crear en la base de testing tres notas de Vesupronta con fecha de octubre de 2026. Una con 20 productos.
   - Hecha y probada: [ ]

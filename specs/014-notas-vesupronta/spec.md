@@ -33,16 +33,25 @@ Esta spec solo cubre la nota impresa. La relación por cobrar de Vesupronta se a
 
 ### Título de la nota
 
-- **RF-11** [NECESITA ACLARACIÓN: el título de la nota Vesupronta es «V.P DEFILE_REMBRANT_OLEOS_TRICOMPLEX V.P». ¿Qué es esa parte variable? ¿Es fijo para todas las notas de Vesupronta o cambia según el tipo, la promoción o el cliente? ¿Qué lleva en lugar de DEFILE_REMBRANT_OLEOS_TRICOMPLEX?]
+- **RF-11** EL SISTEMA pondrá «V.P» al inicio y al final del título de cada nota de Vesupronta, en el formato «V.P <título de la nota> V.P». Ejemplo de Luis: «V.P DEFILE_REMBRANT_OLEOS_TRICOMPLEX V.P» es el formato, no un texto fijo. [NECESITA CONFIRMACIÓN: ¿«<título de la nota>» es el título de encabezado que ya tiene el tipo de nota (por ejemplo NOTA DE ENTREGA), o es otro texto?]
 
 ### Congelado de notas emitidas
 
-- **RF-12** Las notas de Vesupronta ya emitidas se reimprimen con el formato nuevo solo si EL SISTEMA puede calcular la tabla con datos guardados. [NECESITA ACLARACIÓN: ¿Hay notas de Vesupronta ya emitidas? Si las hay, ¿deben salir con la hoja ADMINISTRACIÓN aunque se hayan emitido antes de esta spec?]
+- **RF-12** En el sistema no hay notas de Vesupronta emitidas. Por eso no hay reimpresión de notas viejas: toda nota de Vesupronta sale con el formato de esta spec.
 - **RF-13** Una nota impresa sale igual cada vez que se reimprime (spec 004). La tabla se calcula con los datos guardados de la nota, no con datos de hoy.
 
 ### Excel
 
-- **RF-14** [NECESITA ACLARACIÓN: ¿La exportación a Excel de una nota de Vesupronta también debe tener tres hojas (ORIGINAL, COPIA y ADMINISTRACIÓN), o solo se pide el PDF por ahora?]
+- **RF-14** La exportación a Excel de una nota de Vesupronta tiene tres hojas: ORIGINAL, COPIA y ADMINISTRACIÓN. La hoja ADMINISTRACIÓN lleva la misma tabla de liquidación que el PDF.
+
+### Límite de productos
+
+- **RF-15** SI una nota de Vesupronta tiene más de 20 productos, ENTONCES EL SISTEMA no la guardará y dirá que el máximo es 20 productos.
+- **RF-16** CUANDO una nota de Vesupronta tiene hasta 20 productos, EL SISTEMA imprimirá cada una de sus tres hojas en una sola página tamaño carta: no se corre a una segunda página y la tabla de liquidación no se corta.
+
+### Notas de prueba
+
+- **RF-17** EL SISTEMA tendrá tres notas de prueba de Vesupronta con fecha de octubre de 2026, en la base de testing, para revisar el formato. Una de ellas tendrá 20 productos, para comprobar RF-16. Estas notas se crean solo en testing, nunca en producción.
 
 ## Cómo sé que está listo
 
@@ -52,6 +61,10 @@ Esta spec solo cubre la nota impresa. La relación por cobrar de Vesupronta se a
 - Las hojas ORIGINAL y COPIA no muestran ningún dato de pago. La hoja ADMINISTRACIÓN tampoco los muestra, pero sí tiene la tabla.
 - Una nota de General sigue saliendo con dos hojas y datos de pago, sin cambios.
 - Los tres tipos de nota de Vesupronta (General, Volumen y Promoción) salen con las tres hojas.
+- Una nota de Vesupronta con 21 productos no se guarda y muestra el aviso del RF-15.
+- Una nota de Vesupronta con 20 productos imprime cada hoja en una sola página, sin cortar la tabla (RF-16).
+- El Excel de una nota de Vesupronta tiene las hojas ORIGINAL, COPIA y ADMINISTRACIÓN (RF-14).
+- Las tres notas de prueba de octubre existen en la base de testing y salen con el formato nuevo (RF-17).
 - Una nota sin renglones no genera la hoja ADMINISTRACIÓN y muestra el aviso del RF-8.
 - `dotnet build NinOS.slnx` queda en 0 errores y 0 advertencias y `dotnet test NinOS.slnx` pasa.
 
