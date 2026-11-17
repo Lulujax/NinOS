@@ -682,6 +682,7 @@ namespace NinOS.Infrastructure.Services.Implementations
 
             var detail_list = details.ToList();
             if (detail_list.Count == 0) throw new InvalidOperationException("Debe devolver al menos un producto.");
+            NinOS.Domain.nota_limite_productos.validar(detail_list.Count);
 
             bool is_gift = string.Equals(new_note.category, "Obsequio", StringComparison.OrdinalIgnoreCase);
 

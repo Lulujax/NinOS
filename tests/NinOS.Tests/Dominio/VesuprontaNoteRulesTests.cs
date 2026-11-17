@@ -45,35 +45,6 @@ public class VesuprontaNoteRulesTests
     }
 
     [Theory]
-    [InlineData("VES")]
-    [InlineData("VESVOL")]
-    [InlineData("VESPRM")]
-    public void feliz_nota_vesupronta_con_20_productos_se_acepta(string codigo)
-    {
-        vesupronta_note_rules.validar_cantidad_productos(codigo, 20);
-    }
-
-    [Fact]
-    public void error_nota_vesupronta_con_21_productos_se_rechaza()
-    {
-        var excepcion = Assert.Throws<InvalidOperationException>(() => vesupronta_note_rules.validar_cantidad_productos("VES", 21));
-
-        Assert.Contains("20", excepcion.Message);
-    }
-
-    [Fact]
-    public void error_nota_vesupronta_sin_productos_se_rechaza()
-    {
-        Assert.Throws<InvalidOperationException>(() => vesupronta_note_rules.validar_cantidad_productos("VES", 0));
-    }
-
-    [Fact]
-    public void limite_nota_general_no_tiene_tope_de_productos()
-    {
-        vesupronta_note_rules.validar_cantidad_productos("GEN", 35);
-    }
-
-    [Theory]
     [InlineData("VES", true)]
     [InlineData("VESVOL", true)]
     [InlineData("VESPRM", true)]

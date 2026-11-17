@@ -12,17 +12,6 @@ namespace NinOS.Domain
 
     public static class vesupronta_note_rules
     {
-        public const int MAXIMO_PRODUCTOS = 20;
-
-        public static void validar_cantidad_productos(string? note_type_code, int cantidad_renglones)
-        {
-            if (!NoteTypeCodes.is_vesupronta(note_type_code)) return;
-            if (cantidad_renglones < 1)
-                throw new InvalidOperationException("La nota no tiene productos.");
-            if (cantidad_renglones > MAXIMO_PRODUCTOS)
-                throw new InvalidOperationException($"Una nota de Vesupronta admite como máximo {MAXIMO_PRODUCTOS} productos.");
-        }
-
         public static liquidacion_vesupronta calcular_liquidacion(decimal total_general)
         {
             if (total_general < 0m)
