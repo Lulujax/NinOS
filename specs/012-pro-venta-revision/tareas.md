@@ -100,7 +100,7 @@ Cubre: RF-12, RF-13
 
 ## Tarea 14 - Liquidación con una sola base
 Cubre: RF-14, RF-34
-- Mover el cálculo de `total_cobrado`, `nota_por_pagar` y `diferencial` a una función de `NinOS.Domain` con base en el monto original sin descuento. La comisión y los gastos de una relación liquidada se guardan congelados (RF-34). La usan `ProVentaViewModel`, `ProVentaPdfGenerator` y `ProVentaWeeklyExcelExporter`. Pruebas feliz, límite (relación sin notas vigentes) y error.
+- Mover el cálculo de `total_cobrado`, `nota_por_pagar` y `diferencial` a una función de `NinOS.Domain` con base en el monto original sin descuento. La comisión y los gastos se calculan sobre el monto original (RF-34), sin guardarlos aparte. La usan `ProVentaViewModel`, `ProVentaPdfGenerator` y `ProVentaWeeklyExcelExporter`. Pruebas feliz, límite (relación sin notas vigentes) y error.
 - Hecho cuando: la liquidación es la misma en pantalla, PDF y Excel, y coincide con 2 o 3 relaciones reales que dé Luis.
 - Cómo probarla: `dotnet test` y comparación manual con las relaciones de Luis.
 - [ ] Hecha y probada

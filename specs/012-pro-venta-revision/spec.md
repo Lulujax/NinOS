@@ -61,9 +61,9 @@ Esta spec no repite la 008: usa su fórmula y su "monto original" tal como está
 - **RF-25** CUANDO se pide la «Relación semanal por cobrar» con una fecha de corte, EL SISTEMA mostrará por relación el número, el monto por pagar y el saldo a esa fecha (solo notas y abonos hasta la fecha de corte), y el total. Saldrá en pantalla, PDF tamaño carta y Excel.
 - **RF-26** EL SISTEMA mantendrá las relaciones por semana para toda la empresa, como hoy. El reporte sale para toda la empresa, sin filtro por vendedor: Juan Navas es la única vendedora de la zona y la empresa confirmó que no planea sumar más.
 
-### Liquidación congelada
+### Comisión y gastos de la relación
 
-- **RF-34** CUANDO se liquida una relación, EL SISTEMA guardará congelada su comisión y sus gastos. Las ediciones y las notas de crédito posteriores no los cambian.
+- **RF-34** EL SISTEMA calculará la comisión de Luis y los gastos operativos siempre sobre el monto original de cada nota, y el gasto administrativo como 15% de (monto original − gastos operativos). Estos valores no cambian al editar el monto a cobrar ni el descuento. Como una relación pagada no admite notas de crédito (RF-22), tampoco cambian después de pagarse, así que no se guardan aparte ni hace falta migración.
 - **RF-35** CUANDO una relación tiene saldo 0, EL SISTEMA mostrará «0,00» en la columna de saldo, en pantalla, PDF y Excel. No usará guion.
 
 ### Pruebas y registro
