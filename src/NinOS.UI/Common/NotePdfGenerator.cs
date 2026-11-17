@@ -522,11 +522,16 @@ namespace NinOS.UI.Common
                             row.ConstantItem(5);
                         }
 
-                        row.RelativeItem().Column(mid =>
+                        Action<ColumnDescriptor> componer_firma = mid =>
                         {
                             mid.Item().PaddingTop(isExtremeDense ? 6f : 10f).AlignCenter().Text("FECHA _ FIRMA Y SELLO DEL CLIENTE").FontSize(10f).FontColor("#000000");
                             mid.Item().PaddingTop(firmaPaddingTop).LineHorizontal(1).LineColor(LightBorder);
-                        });
+                        };
+
+                        if (note.is_vesupronta)
+                            row.ConstantItem(195).Border(0.5f).BorderColor(LightBorder).Padding(1.5f).Column(componer_firma);
+                        else
+                            row.RelativeItem().Column(componer_firma);
                     });
                 });
 
