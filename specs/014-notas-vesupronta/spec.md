@@ -16,7 +16,7 @@ Esta spec solo cubre la nota impresa. La relación por cobrar de Vesupronta se a
 
 - **RF-1** CUANDO se imprime o exporta a PDF una nota de Vesupronta, EL SISTEMA generará tres hojas tamaño carta: ORIGINAL, COPIA y ADMINISTRACIÓN, en ese orden.
 - **RF-2** EL SISTEMA aplicará el RF-1 a los tres tipos de nota de Vesupronta: General, Volumen y Promoción. Los tres funcionan igual que sus equivalentes de General, salvo por lo que dice esta spec.
-- **RF-3** Las hojas ORIGINAL y COPIA de Vesupronta NO llevan el bloque de datos de pago (transferencia, cuenta y pago móvil).
+- **RF-3** Las hojas ORIGINAL y COPIA de Vesupronta llevan los datos de pago igual que las notas de General (transferencia, cuenta y pago móvil). La hoja ADMINISTRACIÓN NO lleva datos de pago.
 - **RF-4** La hoja ADMINISTRACIÓN lleva el mismo contenido que la hoja ORIGINAL, más la tabla de liquidación del RF-5 al RF-9 al final de la hoja.
 - **RF-5** La tabla de liquidación tiene estas filas, en este orden:
   1. TOTAL GENERAL: el total de la nota **sin descuento** (suma de renglones a precio de lista).

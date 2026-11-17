@@ -160,6 +160,7 @@ namespace NinOS.UI.Common
             string primary = string.IsNullOrWhiteSpace(note.accent_color) ? "#1B3A2D" : note.accent_color;
             string accent = string.IsNullOrWhiteSpace(note.accent_soft_color) ? "#F0F4EC" : note.accent_soft_color;
             bool is_credit = string.Equals(note.document_label, "NOTA DE CREDITO", StringComparison.OrdinalIgnoreCase);
+            bool sin_datos_de_pago = note.is_vesupronta && string.Equals(copy_type, "ADMINISTRACION", StringComparison.OrdinalIgnoreCase);
 
             int count = note.details.Count;
             bool isExtremeDense = count >= 17;
@@ -375,7 +376,7 @@ namespace NinOS.UI.Common
                 bool use_promo_layout = note.is_promo || is_credit;
                 col.Item().PaddingTop(1.5f).Border(0.5f).BorderColor(LightBorder).Column(pay =>
                 {
-                    if (!is_credit && !note.is_vesupronta)
+                    if (!is_credit && !sin_datos_de_pago)
                     {
                         pay.Item().Column(bank_header =>
                         {
@@ -487,7 +488,7 @@ namespace NinOS.UI.Common
 
                         // NOTA DE CREDITO (devolucion): no se imprime DATOS PARA PAGO. La devolucion no
                         // trae movimiento de dinero, asi que solo queda la firma del cliente.
-                        if (!is_credit && !note.is_vesupronta)
+                        if (!is_credit && !sin_datos_de_pago)
                         {
                             row.ConstantItem(195).Border(0.5f).BorderColor(LightBorder).Padding(1.5f).Column(manual =>
                             {
@@ -528,8 +529,8 @@ namespace NinOS.UI.Common
                             mid.Item().PaddingTop(firmaPaddingTop).LineHorizontal(1).LineColor(LightBorder);
                         };
 
-                        if (note.is_vesupronta)
-                            row.ConstantItem(195).Border(0.5f).BorderColor(LightBorder).Padding(1.5f).Column(componer_firma);
+                        if (sin_datos_de_pago)
+                            row.RelativeItem().Border(0.5f).BorderColor(LightBorder).Padding(1.5f).Column(componer_firma);
                         else
                             row.RelativeItem().Column(componer_firma);
                     });
