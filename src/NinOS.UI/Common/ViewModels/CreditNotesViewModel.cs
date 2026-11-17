@@ -520,6 +520,8 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
+        public ICreditNoteService credit_note_service => _credit_note_service;
+
         public Action? OnCreditNoteSaved { get; set; }
 
 

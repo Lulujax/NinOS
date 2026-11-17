@@ -20,8 +20,7 @@ namespace NinOS.UI.Views
         {
             if (_reporte_vm != null) return _reporte_vm;
 
-            var service = (Application.Current as App)?.GetServiceProvider()
-                ?.GetService(typeof(ICreditNoteService)) as ICreditNoteService;
+            var service = vm?.credit_note_service;
 
             if (service == null) return null;
 

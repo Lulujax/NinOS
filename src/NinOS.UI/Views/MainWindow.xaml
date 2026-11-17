@@ -64,7 +64,7 @@
                 <views:ProVentaView DataContext="{Binding pro_venta_vm}" />
             </TabItem>
             <TabItem Header="Vesupronta">
-                <TextBlock Text="Modulo en preparacion." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
+                <views:VesuprontaView DataContext="{Binding vesupronta_vm}" />
             </TabItem>
         </TabControl>
     </Grid>
