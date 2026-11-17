@@ -135,7 +135,10 @@ namespace NinOS.UI.Common
         private static void ComponeLiquidacion(ColumnDescriptor col, note_print_dto note)
         {
             var liquidacion = NinOS.Domain.vesupronta_note_rules.calcular_liquidacion(note.gross_total_usd);
-            col.Item().PaddingTop(8f).Border(0.5f).BorderColor(LightBorder).Column(tabla =>
+            col.Item().PaddingTop(8f).AlignCenter()
+                .Text(NinOS.Domain.vesupronta_note_rules.LEYENDA_RECEPCION)
+                .FontSize(9.5f).FontColor("#000000");
+            col.Item().PaddingTop(6f).Border(0.5f).BorderColor(LightBorder).Column(tabla =>
             {
                 FilaLiquidacion(tabla, "TOTAL GENERAL", liquidacion.total_general, destacada: false);
                 FilaLiquidacion(tabla, "25% DE LA LISTA DE PRECIOS VENTA", liquidacion.veinticinco_por_ciento_lista, destacada: false);
@@ -144,10 +147,6 @@ namespace NinOS.UI.Common
                 FilaLiquidacion(tabla, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, destacada: false);
                 FilaLiquidacion(tabla, "DIFERENCIAL", liquidacion.diferencial, destacada: true);
             });
-
-            col.Item().PaddingTop(10f).AlignCenter()
-                .Text("Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho")
-                .FontSize(9.5f).FontColor("#000000");
         }
 
         private static void FilaLiquidacion(ColumnDescriptor tabla, string etiqueta, decimal valor, bool destacada)
@@ -580,7 +579,12 @@ namespace NinOS.UI.Common
                     });
                 }
 
-                if (note.is_vesupronta && string.Equals(copy_type, "ADMINISTRACION", StringComparison.OrdinalIgnoreCase))
+                if (note.is_vesupronta && !sin_datos_de_pago)
+                    col.Item().PaddingTop(10f).AlignCenter()
+                        .Text(NinOS.Domain.vesupronta_note_rules.LEYENDA_RECEPCION)
+                        .FontSize(9.5f).FontColor("#000000");
+
+                if (sin_datos_de_pago)
                     ComponeLiquidacion(col, note);
             });
 

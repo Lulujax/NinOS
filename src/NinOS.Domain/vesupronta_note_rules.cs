@@ -12,6 +12,8 @@ namespace NinOS.Domain
 
     public static class vesupronta_note_rules
     {
+        public const string LEYENDA_RECEPCION = "Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho";
+
         public static liquidacion_vesupronta calcular_liquidacion(decimal total_general)
         {
             if (total_general < 0m)

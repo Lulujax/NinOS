@@ -96,9 +96,11 @@ namespace NinOS.UI.Common
             var original = wb.Worksheets.Add("Original");
             populate_note_sheet(original, note);
             ExcelFlatExporter.FormatTable(original, headerRow: 1);
+            escribir_leyenda(original, (original.LastRowUsed()?.RowNumber() ?? 1) + 2);
             var copia = wb.Worksheets.Add("Copia");
             populate_note_sheet(copia, note);
             ExcelFlatExporter.FormatTable(copia, headerRow: 1);
+            escribir_leyenda(copia, (copia.LastRowUsed()?.RowNumber() ?? 1) + 2);
             var administracion = wb.Worksheets.Add("Administracion");
             populate_note_sheet(administracion, note);
             ExcelFlatExporter.FormatTable(administracion, headerRow: 1);
@@ -111,6 +113,8 @@ namespace NinOS.UI.Common
         {
             var liquidacion = NinOS.Domain.vesupronta_note_rules.calcular_liquidacion(note.gross_total_usd);
             int fila = (ws.LastRowUsed()?.RowNumber() ?? 1) + 2;
+            escribir_leyenda(ws, fila);
+            fila += 2;
 
             escribir_fila_liquidacion(ws, fila++, "TOTAL GENERAL", liquidacion.total_general, false);
             escribir_fila_liquidacion(ws, fila++, "25% DE LA LISTA DE PRECIOS VENTA", liquidacion.veinticinco_por_ciento_lista, false);
@@ -118,8 +122,12 @@ namespace NinOS.UI.Common
             escribir_fila_liquidacion(ws, fila++, "15% DE LA LISTA DE VESUVIANA", liquidacion.quince_por_ciento_lista, false);
             escribir_fila_liquidacion(ws, fila++, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, false);
             escribir_fila_liquidacion(ws, fila, "DIFERENCIAL", liquidacion.diferencial, true);
-            ws.Cell(fila + 2, 1).SetValue("Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho");
-            ws.Range(fila + 2, 1, fila + 2, 12).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        private static void escribir_leyenda(IXLWorksheet ws, int fila)
+        {
+            ws.Cell(fila, 1).SetValue(NinOS.Domain.vesupronta_note_rules.LEYENDA_RECEPCION);
+            ws.Range(fila, 1, fila, 12).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         }
 
         private static void escribir_fila_liquidacion(IXLWorksheet ws, int fila, string etiqueta, decimal valor, bool destacada)

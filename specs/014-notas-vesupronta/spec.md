@@ -53,6 +53,10 @@ Esta spec solo cubre la nota impresa. La relación por cobrar de Vesupronta se a
 
 - **RF-17** EL SISTEMA tendrá tres notas de prueba de Vesupronta con fecha de octubre de 2026, en la base de testing, para revisar el formato. Una de ellas tendrá 20 productos, para comprobar RF-16. Estas notas se crean solo en testing, nunca en producción.
 
+### Leyenda de recepción
+
+- **RF-18** Toda nota de Vesupronta lleva la leyenda «Certifico haber recibido total y materialmente la mercancia indicada en esta nota de despacho». En las hojas ORIGINAL y COPIA va debajo de la tabla de productos. En la hoja ADMINISTRACIÓN va encima de la tabla de liquidación, centrada. El Excel lleva la misma leyenda en las tres hojas.
+
 ## Cómo sé que está listo
 
 - Nota con TOTAL GENERAL 344,48 y descuento de 10%: la tabla muestra 344,48; 86,12; 258,36; 38,75; 219,61; 124,87. El descuento no cambia la tabla.
