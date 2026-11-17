@@ -10,6 +10,11 @@ namespace NinOS.UI.Common
         public static void export(note_print_dto note)
         {
             if (note == null) return;
+            if (note.is_vesupronta)
+            {
+                export_vesupronta(note);
+                return;
+            }
 
             using var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("Nota");
@@ -83,6 +88,46 @@ namespace NinOS.UI.Common
 
             string defaultName = $"Notas_{original.note_number}_{copy.note_number}.xlsx";
             ExcelFlatExporter.SaveWithDialog(wb, defaultName, "Guardar notas en Excel");
+        }
+
+        private static void export_vesupronta(note_print_dto note)
+        {
+            using var wb = new XLWorkbook();
+            var original = wb.Worksheets.Add("Original");
+            populate_note_sheet(original, note);
+            ExcelFlatExporter.FormatTable(original, headerRow: 1);
+            var copia = wb.Worksheets.Add("Copia");
+            populate_note_sheet(copia, note);
+            ExcelFlatExporter.FormatTable(copia, headerRow: 1);
+            var administracion = wb.Worksheets.Add("Administracion");
+            populate_note_sheet(administracion, note);
+            ExcelFlatExporter.FormatTable(administracion, headerRow: 1);
+            agregar_liquidacion(administracion, note);
+
+            ExcelFlatExporter.SaveWithDialog(wb, $"NotaEntrega_{note.note_number}.xlsx", "Guardar nota en Excel");
+        }
+
+        private static void agregar_liquidacion(IXLWorksheet ws, note_print_dto note)
+        {
+            var liquidacion = NinOS.Domain.vesupronta_note_rules.calcular_liquidacion(note.gross_total_usd);
+            int fila = (ws.LastRowUsed()?.RowNumber() ?? 1) + 2;
+
+            escribir_fila_liquidacion(ws, fila++, "TOTAL GENERAL", liquidacion.total_general, false);
+            escribir_fila_liquidacion(ws, fila++, "25% DE LA LISTA DE PRECIOS VENTA", liquidacion.veinticinco_por_ciento_lista, false);
+            escribir_fila_liquidacion(ws, fila++, "TOTAL GENERAL MENOS 25%", liquidacion.total_general_menos_veinticinco, false);
+            escribir_fila_liquidacion(ws, fila++, "15% DE LA LISTA DE VESUVIANA", liquidacion.quince_por_ciento_lista, false);
+            escribir_fila_liquidacion(ws, fila++, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, false);
+            escribir_fila_liquidacion(ws, fila, "DIFERENCIAL", liquidacion.diferencial, true);
+        }
+
+        private static void escribir_fila_liquidacion(IXLWorksheet ws, int fila, string etiqueta, decimal valor, bool destacada)
+        {
+            ws.Cell(fila, 1).SetValue(etiqueta);
+            ws.Cell(fila, 12).SetValue(valor);
+            ws.Cell(fila, 12).Style.NumberFormat.Format = "#,##0.00";
+            ws.Range(fila, 1, fila, 12).Style.Font.Bold = true;
+            if (destacada)
+                ws.Range(fila, 1, fila, 12).Style.Fill.BackgroundColor = XLColor.Yellow;
         }
 
         private static void populate_note_sheet(IXLWorksheet ws, note_print_dto note)

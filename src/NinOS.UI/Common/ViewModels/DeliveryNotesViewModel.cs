@@ -1995,6 +1995,7 @@ namespace NinOS.UI.Common.ViewModels
                 discounted_total_usd = discounted_total_usd,
                 document_label = document_label,
                 is_pro_venta = NoteTypeCodes.is_pro_venta(_selected_note_type?.code),
+                is_vesupronta = NoteTypeCodes.is_vesupronta(_selected_note_type?.code),
                 is_promo = has_promo_discount,
                 accent_color = NoteTypeCodes.is_pro_venta(_selected_note_type?.code) ? "#1565C0" : "#1B3A2D",
                 accent_soft_color = NoteTypeCodes.is_pro_venta(_selected_note_type?.code) ? "#E3F2FD" : "#F0F4EC"

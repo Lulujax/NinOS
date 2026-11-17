@@ -74,6 +74,13 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                     var details_list = details.ToList();
 
+                    string? codigo_tipo_nota = await _db_context.note_types
+                        .AsNoTracking()
+                        .Where(t => t.id_note_type == new_note.note_type_id)
+                        .Select(t => t.code)
+                        .FirstOrDefaultAsync();
+                    NinOS.Domain.vesupronta_note_rules.validar_cantidad_productos(codigo_tipo_nota, details_list.Count);
+
                     var direct_product_ids = new HashSet<int>();
                     var promotion_ids = new HashSet<int>();
 

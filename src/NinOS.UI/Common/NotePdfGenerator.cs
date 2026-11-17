@@ -106,6 +106,8 @@ namespace NinOS.UI.Common
             {
                 container.Page(page => BuildNotePage(page, note, "ORIGINAL"));
                 container.Page(page => BuildNotePage(page, note, "COPIA"));
+                if (note.is_vesupronta)
+                    container.Page(page => BuildNotePage(page, note, "ADMINISTRACION"));
             });
         }
 
@@ -130,6 +132,29 @@ namespace NinOS.UI.Common
         {
             build_document(delivery_note, credit_note).GeneratePdf(output_path);
         }
+        private static void ComponeLiquidacion(ColumnDescriptor col, note_print_dto note)
+        {
+            var liquidacion = NinOS.Domain.vesupronta_note_rules.calcular_liquidacion(note.gross_total_usd);
+            col.Item().PaddingTop(8f).Border(0.5f).BorderColor(LightBorder).Column(tabla =>
+            {
+                FilaLiquidacion(tabla, "TOTAL GENERAL", liquidacion.total_general, destacada: false);
+                FilaLiquidacion(tabla, "25% DE LA LISTA DE PRECIOS VENTA", liquidacion.veinticinco_por_ciento_lista, destacada: false);
+                FilaLiquidacion(tabla, "TOTAL GENERAL MENOS 25%", liquidacion.total_general_menos_veinticinco, destacada: false);
+                FilaLiquidacion(tabla, "15% DE LA LISTA DE VESUVIANA", liquidacion.quince_por_ciento_lista, destacada: false);
+                FilaLiquidacion(tabla, "TOTAL A PAGAR A PRONTA", liquidacion.total_a_pagar_pronta, destacada: false);
+                FilaLiquidacion(tabla, "DIFERENCIAL", liquidacion.diferencial, destacada: true);
+            });
+        }
+
+        private static void FilaLiquidacion(ColumnDescriptor tabla, string etiqueta, decimal valor, bool destacada)
+        {
+            tabla.Item().Background(destacada ? "#FFFF00" : Colors.White).Padding(3f).Row(r =>
+            {
+                r.RelativeItem().AlignCenter().Text(etiqueta).FontSize(10f).Bold();
+                r.ConstantItem(90).AlignRight().Text($"{valor:N2}").FontSize(10f).Bold();
+            });
+        }
+
         private static void BuildNotePage(PageDescriptor page, note_print_dto note, string? copy_type = null)
         {
             string primary = string.IsNullOrWhiteSpace(note.accent_color) ? "#1B3A2D" : note.accent_color;
@@ -166,7 +191,7 @@ namespace NinOS.UI.Common
                 {
                     row.RelativeItem(3).Column(left =>
                     {
-                        left.Item().Text(ascii(string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title)).FontSize(13.5f).Bold().FontColor(primary);
+                        left.Item().Text(ascii(note.is_vesupronta ? $"V.P {NinOS.Domain.BrandHeader.Title} V.P" : (string.IsNullOrWhiteSpace(note.header_title) ? note.company_name : note.header_title))).FontSize(13.5f).Bold().FontColor(primary);
                         left.Item().Text("Caracas - Venezuela").FontSize(10f).FontColor("#000000");
                     });
 
@@ -350,7 +375,7 @@ namespace NinOS.UI.Common
                 bool use_promo_layout = note.is_promo || is_credit;
                 col.Item().PaddingTop(1.5f).Border(0.5f).BorderColor(LightBorder).Column(pay =>
                 {
-                    if (!is_credit)
+                    if (!is_credit && !note.is_vesupronta)
                     {
                         pay.Item().Column(bank_header =>
                         {
@@ -462,7 +487,7 @@ namespace NinOS.UI.Common
 
                         // NOTA DE CREDITO (devolucion): no se imprime DATOS PARA PAGO. La devolucion no
                         // trae movimiento de dinero, asi que solo queda la firma del cliente.
-                        if (!is_credit)
+                        if (!is_credit && !note.is_vesupronta)
                         {
                             row.ConstantItem(195).Border(0.5f).BorderColor(LightBorder).Padding(1.5f).Column(manual =>
                             {
@@ -544,6 +569,9 @@ namespace NinOS.UI.Common
                         tmp.RelativeItem();
                     });
                 }
+
+                if (note.is_vesupronta && string.Equals(copy_type, "ADMINISTRACION", StringComparison.OrdinalIgnoreCase))
+                    ComponeLiquidacion(col, note);
             });
 
             page.Footer().Column(col =>

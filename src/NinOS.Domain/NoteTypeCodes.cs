@@ -23,6 +23,13 @@ namespace NinOS.Domain
                 || string.Equals(code, VolumenProVenta, StringComparison.OrdinalIgnoreCase);
         }
 
+        public static readonly string[] vesupronta_codes = { Vesupronta, PromocionVesupronta, VolumenVesupronta };
+
+        public static bool is_vesupronta(string? code)
+        {
+            return Array.Exists(vesupronta_codes, c => string.Equals(c, code?.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
         public static bool es_volumen(string? code)
         {
             return string.Equals(code, Volumen, StringComparison.OrdinalIgnoreCase)

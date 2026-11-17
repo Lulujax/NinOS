@@ -848,6 +848,12 @@ namespace NinOS.Infrastructure.Services.Implementations
                     if (frozen != null)
                     {
                         AppLog.Info($"Reimprimiendo nota {note.note_number}: usando foto guardada al emitir.");
+                        string? codigo_tipo_foto = await db_context.note_types
+                            .AsNoTracking()
+                            .Where(t => t.id_note_type == note.note_type_id)
+                            .Select(t => t.code)
+                            .FirstOrDefaultAsync();
+                        frozen.is_vesupronta = NoteTypeCodes.is_vesupronta(codigo_tipo_foto);
                         return frozen;
                     }
                 }
@@ -992,6 +998,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                     header_title = string.IsNullOrWhiteSpace(note_type?.header_title) ? BrandHeader.Title : note_type.header_title,
                     document_label = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "NOTA DE DESPACHO" : "NOTA DE ENTREGA",
                     is_pro_venta = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code),
+                    is_vesupronta = note_type != null && NoteTypeCodes.is_vesupronta(note_type.code),
                     is_promo = is_promo,
                     accent_color = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "#1565C0" : "#1B3A2D",
                     accent_soft_color = note_type != null && NoteTypeCodes.is_pro_venta(note_type.code) ? "#E3F2FD" : "#F0F4EC",
