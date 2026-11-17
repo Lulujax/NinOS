@@ -33,7 +33,7 @@ Esta spec solo cubre la nota impresa. La relación por cobrar de Vesupronta se a
 
 ### Título de la nota
 
-- **RF-11** EL SISTEMA pondrá «V.P» al inicio y al final del título de cada nota de Vesupronta, en el formato «V.P <título de la nota> V.P». Ejemplo de Luis: «V.P DEFILE_REMBRANT_OLEOS_TRICOMPLEX V.P» es el formato, no un texto fijo. [NECESITA CONFIRMACIÓN: ¿«<título de la nota>» es el título de encabezado que ya tiene el tipo de nota (por ejemplo NOTA DE ENTREGA), o es otro texto?]
+- **RF-11** EL SISTEMA pondrá el título de cada nota de Vesupronta como «V.P <título de la empresa> V.P». El título de la empresa es el que ya usa la app (BrandHeader.Title, hoy DEFILE_REMBRANT_OLEOS_TRICOMPLEX). Así queda «V.P DEFILE_REMBRANT_OLEOS_TRICOMPLEX V.P», como en el ejemplo de Luis.
 
 ### Congelado de notas emitidas
 
