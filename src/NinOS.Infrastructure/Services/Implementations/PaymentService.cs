@@ -25,11 +25,13 @@ namespace NinOS.Infrastructure.Services.Implementations
         public const decimal EXCESO_MAXIMO_PERMITIDO = 3.00m;
 
         private readonly IServiceScopeFactory _scope_factory;
+        private readonly business_unit _unit;
 
-        public PaymentService(IServiceScopeFactory scope_factory)
+        public PaymentService(IServiceScopeFactory scope_factory, business_unit unit = business_unit.General)
         {
             if (scope_factory == null) throw new ArgumentNullException(nameof(scope_factory));
             _scope_factory = scope_factory;
+            _unit = unit;
         }
 
         /// <summary>
@@ -142,11 +144,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 if (target_note.status == "Devuelta") throw new InvalidOperationException("No se puede abonar una nota devuelta en su totalidad.");
                 if (target_note.status == "Pagada") throw new InvalidOperationException("No se puede abonar una nota ya pagada.");
 
-                var mar_ids = await get_pro_venta_type_ids_async(_db_context);
-                if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
-                    throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
-                if (await is_vesupronta_note_async(_db_context, target_note))
-                    throw new InvalidOperationException("Los pagos de notas Vesupronta se gestionan en el modulo Vesupronta.");
+                await verify_note_module_async(_db_context, target_note, is_pro_venta);
 
                 await verificar_exceso_permitido_async(_db_context, target_note, new_payment.amount_usd);
 
@@ -285,11 +283,7 @@ namespace NinOS.Infrastructure.Services.Implementations
                 await lock_note_for_update_async(_db_context, target_note.id_delivery_note);
                 await _db_context.Entry(target_note).ReloadAsync();
 
-                var mar_ids = await get_pro_venta_type_ids_async(_db_context);
-                if (!is_pro_venta && target_note.note_type_id != null && mar_ids.Contains(target_note.note_type_id.Value))
-                    throw new InvalidOperationException("Los pagos de notas Pro Venta se gestionan en el modulo Pro Venta.");
-                if (await is_vesupronta_note_async(_db_context, target_note))
-                    throw new InvalidOperationException("Los pagos de notas Vesupronta se gestionan en el modulo Vesupronta.");
+                await verify_note_module_async(_db_context, target_note, is_pro_venta);
 
                 await verificar_exceso_permitido_async(_db_context, target_note, updated_payment.amount_usd, existing.id_payment);
 
@@ -470,23 +464,15 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .Where(n => note_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
 
-            var mar_ids = await get_pro_venta_type_ids_async(db);
-            var mar_note_ids = notes.Values
-                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
-                .Select(n => n.id_delivery_note)
-                .ToHashSet();
+            var unit_scope = await NoteScopeFilter.load_scope_async(db, _unit);
+            payments = payments.Where(p => payment_belongs_to_scope(unit_scope, p, notes)).ToList();
+            if (payments.Count == 0) return Enumerable.Empty<payment_dto>();
 
-            if (mar_note_ids.Count > 0)
-            {
-                payments = payments.Where(p => p.id_delivery_note == null || !mar_note_ids.Contains(p.id_delivery_note.Value)).ToList();
-                if (payments.Count == 0) return Enumerable.Empty<payment_dto>();
-
-                note_ids = payments.Select(p => p.id_delivery_note).Distinct().ToList();
-                notes = await db.delivery_notes
-                    .AsNoTracking()
-                    .Where(n => note_ids.Contains(n.id_delivery_note))
-                    .ToDictionaryAsync(n => n.id_delivery_note);
-            }
+            note_ids = payments.Select(p => p.id_delivery_note).Distinct().ToList();
+            notes = await db.delivery_notes
+                .AsNoTracking()
+                .Where(n => note_ids.Contains(n.id_delivery_note))
+                .ToDictionaryAsync(n => n.id_delivery_note);
 
             var seller_ids = notes.Values.Select(n => n.id_seller).Distinct().ToList();
             var customer_ids = notes.Values.Select(n => n.id_customer).Distinct().ToList();
@@ -614,25 +600,55 @@ namespace NinOS.Infrastructure.Services.Implementations
 
         private static async Task<bool> is_vesupronta_note_async(NinOSDbContext db_context, delivery_note target_note)
         {
-            if (target_note.note_type_id == null) return false;
-
-            var vesupronta_codes = BusinessUnitRules.codes_of_unit(business_unit.Vesupronta);
-            var vesupronta_type_ids = await db_context.note_types
-                .AsNoTracking()
-                .Where(t => vesupronta_codes.Contains(t.code))
-                .Select(t => t.id_note_type)
-                .ToListAsync();
-
-            return vesupronta_type_ids.Contains(target_note.note_type_id.Value);
+            return await unit_of_note_async(db_context, target_note) == business_unit.Vesupronta;
         }
 
-        private static Task<List<int>> get_pro_venta_type_ids_async(NinOSDbContext db_context)
+        internal static async Task<business_unit> unit_of_note_async(NinOSDbContext db_context, delivery_note target_note)
         {
-            return db_context.note_types
+            if (target_note.note_type_id == null) return business_unit.General;
+
+            string? note_type_code = await db_context.note_types
                 .AsNoTracking()
-                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
-                .Select(t => t.id_note_type)
-                .ToListAsync();
+                .Where(t => t.id_note_type == target_note.note_type_id.Value)
+                .Select(t => t.code)
+                .FirstOrDefaultAsync();
+
+            return BusinessUnitRules.unit_of_note_type(note_type_code);
+        }
+
+        private async Task verify_note_module_async(NinOSDbContext db_context, delivery_note target_note, bool is_pro_venta_request)
+        {
+            business_unit note_unit = await unit_of_note_async(db_context, target_note);
+            if (note_unit == _unit) return;
+            if (is_pro_venta_request && note_unit == business_unit.ProVenta) return;
+
+            string module_name = name_of_unit(note_unit);
+            AppLog.Warn($"Pago rechazado: la nota {target_note.id_delivery_note} es de {module_name} y se intento pagar desde otro modulo.");
+            throw new InvalidOperationException($"Los pagos de notas {module_name} se gestionan en el modulo {module_name}.");
+        }
+
+        private static string name_of_unit(business_unit unit)
+        {
+            return unit switch
+            {
+                business_unit.General => "General",
+                business_unit.ProVenta => "Pro Venta",
+                business_unit.Vesupronta => "Vesupronta",
+                _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Empresa desconocida."),
+            };
+        }
+
+        private static bool payment_belongs_to_scope(note_scope unit_scope, payment candidate_payment, IReadOnlyDictionary<int, delivery_note> notes)
+        {
+            int? note_id = candidate_payment.id_delivery_note;
+            delivery_note? found_note = note_id != null && notes.TryGetValue(note_id.Value, out var note) ? note : null;
+
+            if (found_note == null)
+            {
+                AppLog.Warn($"Pago {candidate_payment.id_payment} sin nota de entrega encontrada: cuenta como General.");
+            }
+
+            return NoteScopeFilter.belongs_to_scope_with_fallback(unit_scope, found_note != null, found_note?.note_type_id);
         }
     }
 }

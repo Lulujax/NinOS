@@ -20,6 +20,13 @@ namespace NinOS.UI.Common.ViewModels
         private InventoryViewModel? _inventory_vm;
         private ProVentaViewModel? _pro_venta_vm;
         private CreditNotesViewModel? _credit_notes_vm;
+        private VesuprontaViewModel? _vesupronta_vm;
+
+        public VesuprontaViewModel? vesupronta_vm
+        {
+            get => _vesupronta_vm;
+            set { _vesupronta_vm = value; on_property_changed(); }
+        }
 
         public DeliveryNotesViewModel? delivery_notes_vm
         {
@@ -213,6 +220,7 @@ namespace NinOS.UI.Common.ViewModels
             ProVentaViewModel proVentaVm,
             CreditNotesViewModel creditNotesVm,
             SellersViewModel sellersVm,
+            VesuprontaViewModel vesuprontaVm,
             IAppUpdater updater,
             UpdatePolicyMonitor update_policy_monitor)
         {
@@ -227,6 +235,7 @@ namespace NinOS.UI.Common.ViewModels
             pro_venta_vm = proVentaVm;
             credit_notes_vm = creditNotesVm;
             sellers_vm = sellersVm;
+            vesupronta_vm = vesuprontaVm;
 
             update_policy_monitor.snapshot_changed += apply_policy_snapshot;
             update_policy_monitor.start();
@@ -239,6 +248,7 @@ namespace NinOS.UI.Common.ViewModels
                     delivery_notes_vm?.refresh_data();
                     inventory_vm?.refresh_data();
                     pro_venta_vm?.refresh_data();
+                    vesupronta_vm?.refresh_data();
                 };
             }
 
@@ -260,6 +270,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 delivery_notes_vm?.refresh_data();
                 accounts_receivable_vm?.refresh_data();
+                vesupronta_vm?.refresh_data();
                 sales_vm?.refresh_data();
                 payments_vm?.refresh_data();
                 commissions_vm?.refresh_data();

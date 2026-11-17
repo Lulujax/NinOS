@@ -20,11 +20,13 @@ namespace NinOS.Infrastructure.Services.Implementations
         public const long CreditNoteCorrelativeLockKey = 9070003L;
 
         private readonly IServiceScopeFactory _scope_factory;
+        private readonly business_unit _unit;
 
-        public CreditNoteService(IServiceScopeFactory scope_factory)
+        public CreditNoteService(IServiceScopeFactory scope_factory, business_unit unit = business_unit.General)
         {
             if (scope_factory == null) throw new ArgumentNullException(nameof(scope_factory));
             _scope_factory = scope_factory;
+            _unit = unit;
         }
 
         public async Task<string> generate_credit_correlative_async(int id_seller)
@@ -82,9 +84,11 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
 
+                note_scope credit_scope = await NoteScopeFilter.load_credit_scope_async(db_context, _unit);
                 var query = db_context.delivery_notes
                     .AsNoTracking()
-                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta");
+                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta")
+                    .Where(NoteScopeFilter.delivery_notes_in_scope(credit_scope));
 
                 if (!string.IsNullOrWhiteSpace(month_year))
                 {
@@ -221,7 +225,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             using (var scope = _scope_factory.CreateScope())
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-                return await build_list_dtos_async(db_context, null);
+                return await build_list_dtos_async(db_context, _unit, null);
             }
         }
 
@@ -231,7 +235,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"));
-                return await build_list_dtos_async(db_context, target_date);
+                return await build_list_dtos_async(db_context, _unit, target_date);
             }
         }
 
@@ -241,7 +245,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             {
                 var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
                 var target_date = DateTime.ParseExact(month_year, "MMMM yyyy", new CultureInfo("es-VE"));
-                return await build_list_dtos_async(db_context, target_date, id_seller);
+                return await build_list_dtos_async(db_context, _unit, target_date, id_seller);
             }
         }
 
@@ -266,7 +270,27 @@ namespace NinOS.Infrastructure.Services.Implementations
             throw new InvalidOperationException("La relación de esta nota Pro Venta ya está pagada: no se puede hacer una nota de crédito sobre ella.");
         }
 
-        private static async Task<IEnumerable<credit_note_dto>> build_list_dtos_async(NinOSDbContext db_context, DateTime? target_date, int? id_seller = null)
+        private static bool credit_note_belongs_to_scope(note_scope credit_scope, credit_note candidate, IReadOnlyDictionary<int, delivery_note> originals)
+        {
+            int? original_id = candidate.id_delivery_note;
+            delivery_note? original = original_id != null && originals.TryGetValue(original_id.Value, out var found_original) ? found_original : null;
+
+            if (original == null)
+            {
+                if (string.Equals(candidate.category, "Obsequio", StringComparison.OrdinalIgnoreCase))
+                {
+                    AppLog.Info($"Nota de credito {candidate.id_credit_note} de obsequio sin nota original: cuenta como General.");
+                }
+                else
+                {
+                    AppLog.Warn($"Nota de credito {candidate.id_credit_note} sin nota original encontrada: cuenta como General.");
+                }
+            }
+
+            return NoteScopeFilter.belongs_to_scope_with_fallback(credit_scope, original != null, original?.note_type_id);
+        }
+
+        private static async Task<IEnumerable<credit_note_dto>> build_list_dtos_async(NinOSDbContext db_context, business_unit unit, DateTime? target_date, int? id_seller = null)
         {
             var query = db_context.credit_notes.AsNoTracking();
 
@@ -309,6 +333,9 @@ namespace NinOS.Infrastructure.Services.Implementations
                 .AsNoTracking()
                 .Where(n => delivery_ids.Contains(n.id_delivery_note))
                 .ToDictionaryAsync(n => n.id_delivery_note);
+            note_scope credit_scope = await NoteScopeFilter.load_credit_scope_async(db_context, unit);
+            notes = notes.Where(c => credit_note_belongs_to_scope(credit_scope, c, originals)).ToList();
+
             var zonas = await db_context.zonas
                 .AsNoTracking()
                 .ToDictionaryAsync(z => z.id_zona, z => z.name);

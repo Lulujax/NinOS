@@ -62,12 +62,51 @@ namespace NinOS.Infrastructure.Services
             return build_scope(unit, note_types.Select(t => (t.id_note_type, (string?)t.code)));
         }
 
+        public static note_scope build_credit_scope(business_unit unit, IEnumerable<(int id_note_type, string? code)> note_types)
+        {
+            ArgumentNullException.ThrowIfNull(note_types);
+
+            var excluded_type_ids = new List<int>();
+            foreach (var (id_note_type, code) in note_types)
+            {
+                if (!credit_type_belongs_to_unit(unit, code)) excluded_type_ids.Add(id_note_type);
+            }
+
+            return new note_scope(unit, excluded_type_ids);
+        }
+
+        public static async Task<note_scope> load_credit_scope_async(NinOSDbContext db_context, business_unit unit)
+        {
+            ArgumentNullException.ThrowIfNull(db_context);
+
+            var note_types = await db_context.note_types
+                .AsNoTracking()
+                .Select(t => new { t.id_note_type, t.code })
+                .ToListAsync();
+
+            return build_credit_scope(unit, note_types.Select(t => (t.id_note_type, (string?)t.code)));
+        }
+
+        private static bool credit_type_belongs_to_unit(business_unit unit, string? code)
+        {
+            bool is_vesupronta_type = BusinessUnitRules.unit_of_note_type(code) == business_unit.Vesupronta;
+            return unit == business_unit.Vesupronta ? is_vesupronta_type : !is_vesupronta_type;
+        }
+
         public static bool belongs_to_scope(note_scope scope, int? note_type_id)
         {
             ArgumentNullException.ThrowIfNull(scope);
 
             if (note_type_id == null) return scope.includes_untyped_notes;
             return !scope.excluded_type_ids.Contains(note_type_id.Value);
+        }
+
+        public static bool belongs_to_scope_with_fallback(note_scope scope, bool is_known, int? note_type_id)
+        {
+            ArgumentNullException.ThrowIfNull(scope);
+
+            if (!is_known) return scope.unit == business_unit.General;
+            return belongs_to_scope(scope, note_type_id);
         }
 
         public static Expression<Func<delivery_note, bool>> delivery_notes_in_scope(note_scope scope)

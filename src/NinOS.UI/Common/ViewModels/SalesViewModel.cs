@@ -19,6 +19,7 @@ namespace NinOS.UI.Common.ViewModels
         private readonly IAccountsReceivableService _receivable_service;
         private readonly ISellerService? _seller_service;
         private readonly IZonaService? _zona_service;
+        private readonly business_unit _business_unit;
 
         private string _search_query = string.Empty;
         private string _selected_month = string.Empty;
@@ -336,11 +337,13 @@ public bool report_manual_scope
         public SalesViewModel(
             IAccountsReceivableService receivable_service,
             ISellerService? seller_service = null,
-            IZonaService? zona_service = null)
+            IZonaService? zona_service = null,
+            business_unit unit = business_unit.General)
         {
             _receivable_service = receivable_service ?? throw new ArgumentNullException(nameof(receivable_service));
             _seller_service = seller_service;
             _zona_service = zona_service;
+            _business_unit = unit;
 
             // available_months already initialized
             filter_options = new ObservableCollection<string>();
@@ -544,7 +547,7 @@ public bool report_manual_scope
                     : new List<zona>();
 
                 var raw = await _receivable_service.get_all_sales_notes_async();
-                var all_rows = raw.Where(n => SalesNoteScope.is_visible_in_sales(n.note_type_code, business_unit.General)).ToList();
+                var all_rows = raw.Where(n => SalesNoteScope.is_visible_in_sales(n.note_type_code, _business_unit)).ToList();
 
                 // Mapa nombre -> id del vendedor. Además de los activos se completa con los que
                 // aparezcan en las notas: un vendedor desactivado sigue teniendo documentos y hay
