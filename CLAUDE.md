@@ -42,7 +42,7 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 - **No existe "eliminar pago".** Un pago registrado no se borra desde el sistema. No agregar esa función.
 - **Una nota emitida queda congelada.** Al exportar o imprimir (PDF, Excel o impresión directa) una nota, sale siempre igual a como se creó: montos, descuentos, días de crédito, condiciones, datos del cliente, códigos y nombres de productos y composición de promociones. Las ediciones posteriores (CxC, Pro Venta, notas de crédito) cambian los saldos del sistema, nunca la nota impresa.
 - **Todo documento impreso o exportado a PDF es tamaño carta.**
-- **Cada hoja de una nota de entrega o de crédito es 1 sola hoja tamaño carta, sin importar la empresa (General, Pro Venta o Vesupronta).** Si una hoja se pasa a una segunda página, es un error gravísimo: no se entrega ni se imprime, se corrige antes.
+- **Cada hoja de una nota de entrega o de crédito es 1 sola página tamaño carta, sin importar la empresa (General, Pro Venta o Vesupronta).** Una nota impresa se compone de una hoja ORIGINAL (1 página) y una hoja COPIA (1 página); en Vesupronta además una hoja ADMINISTRACION (1 página). Lo que nunca debe pasar es que una misma hoja (por ejemplo la ORIGINAL) ocupe 2 páginas, ni que haya 2 ORIGINAL o 2 COPIA. Si una hoja se pasa a una segunda página, es un error gravísimo: no se entrega ni se imprime, se corrige antes.
 - **Una nota tiene como máximo 20 productos (renglones), en todas las empresas.** Es la regla que mantiene cada hoja en 1 página.
 - **Descuentos de volumen:** se suman al descuento de condición (10% + 5% = 15%), no se aplican en cascada.
 - **Numeración:** el sistema se reinició; las notas son generales (correlativo global `000_001`), ya no se identifican por vendedor. Los números viejos tipo `3200-715` son del sistema anterior.
@@ -70,6 +70,15 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 - **Última instalación manual:** la ronda PC por PC de la spec 002 (rotar la clave de producción y colocar el `appsettings.json`) es también la que instala el actualizador. Después de esa ronda, las correcciones llegan solas.
 - **La versión que se ve en pantalla sale del ejecutable, nunca de un texto escrito a mano.** El título y la barra superior se llenan con el número de `<Version>` de `NinOS.UI.csproj`. Al subir de versión no hay que tocar ningún texto de la interfaz.
 - **Los paquetes publicados nunca llevan `appsettings.json`.** La publicación lo quita, así que el archivo con la conexión solo vive en cada PC.
+
+## Manual de usuario (estándar)
+
+- El manual se arma desde la app real contra la base de testing, nunca desde el código.
+- Cada botón, campo y mensaje de error importante tiene su propia captura de la ventana de NinOS, con flechas y círculos rojos sobre lo que se explica, y una leyenda numerada corta debajo.
+- Las capturas son recortes de la zona relevante. Nunca pantallazos completos del escritorio ni de la barra de tareas.
+- Cada flujo muestra el estado antes y después (formulario vacío, lleno, aviso y resultado).
+- Ningún texto del manual se da por bueno sin comprobarlo en pantalla. Lo que no se pudo probar se marca como pendiente, no se describe de memoria.
+- Los datos de prueba se crean solo en la base de testing y usan nombres claramente de prueba.
 
 ## Reglas de negocio
 

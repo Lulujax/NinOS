@@ -32,7 +32,7 @@ namespace NinOS.UI
                 try
                 {
                     AppDialog.Show(
-                        $"Ocurrió un error inesperado. Se guardó el detalle en:\n{_error_log_path}\n\nDetalle: {ErrorText.Get(e.Exception)}",
+                        ErrorText.Get(e.Exception),
                         "Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
@@ -129,8 +129,7 @@ namespace NinOS.UI
             {
                 log_startup_message("OnStartup critical exception", ex);
                 AppDialog.Show(
-                    "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex) +
-                    "\n\nEl detalle técnico quedó guardado en:\n" + _error_log_path,
+                    "NinOS no pudo iniciar.\n\n" + ErrorText.Get(ex),
                     "No se pudo iniciar NinOS");
                 Current.Shutdown();
             }

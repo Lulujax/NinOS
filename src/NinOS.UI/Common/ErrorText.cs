@@ -36,7 +36,7 @@ namespace NinOS.UI.Common
                 "could not resolve host",
                 "name resolution",
                 "dns"))
-                return "No hay conexión a internet o el servidor no está disponible.\nRevisa tu conexión (cable o wifi) e inténtalo de nuevo.";
+                return "No hay conexión a internet.\nRevisa tu wifi o tu cable de red e inténtalo de nuevo.";
 
             if (matches(chain,
                 "connection refused",
@@ -51,14 +51,14 @@ namespace NinOS.UI.Common
                 "broken pipe",
                 "no connection could be made",
                 "servidor no está disponible"))
-                return "No se pudo conectar con el servidor de la base de datos.\nRevisa tu conexión a internet e inténtalo de nuevo.";
+                return "La conexión es inestable o se cortó.\nEspera unos segundos, revisa tu internet e inténtalo de nuevo.";
 
             if (matches(chain,
                 "timeout",
                 "timed out",
                 "tiempo de espera",
                 "execution timeout"))
-                return "El servidor tardó demasiado en responder.\nRevisa tu conexión a internet e inténtalo de nuevo.";
+                return "La conexión está lenta en este momento.\nEspera unos segundos e inténtalo de nuevo.";
 
             if (matches(chain,
                 "password authentication failed",
@@ -67,20 +67,20 @@ namespace NinOS.UI.Common
                 "role \"",
                 "no password supplied",
                 "sslpassword"))
-                return "No se pudo iniciar sesión en la base de datos.\nVerifica que el internet esté bien conectado e inténtalo de nuevo.";
+                return "No se pudo acceder al sistema.\nAvisa al administrador.";
 
             if (chain.Contains("database") && (chain.Contains("does not exist") || chain.Contains("no existe")))
-                return "No se encontró la base de datos del sistema.\nAvisa al administrador.";
+                return "No se encontró la información del sistema.\nAvisa al administrador.";
 
             if (matches(chain, "too many clients", "too many connections"))
-                return "El servidor está ocupado en este momento.\nEspera un momento e inténtalo de nuevo.";
+                return "El sistema está ocupado en este momento.\nEspera un momento e inténtalo de nuevo.";
 
             if (matches(chain,
                 "certificate",
                 "ssl connection",
                 "could not load ssl",
                 "truststore"))
-                return "No se pudo establecer una conexión segura con el servidor.\nAvisa al administrador.";
+                return "No se pudo establecer una conexión segura.\nAvisa al administrador.";
 
             if (matches(chain,
                 "read-only file system",
@@ -88,7 +88,7 @@ namespace NinOS.UI.Common
                 "terminating connection",
                 "database system is",
                 "out of memory"))
-                return "El servidor se desconectó y no pudo completar la operación.\nEspera un momento e inténtalo de nuevo.";
+                return "La conexión se cortó y no se pudo completar la operación.\nEspera unos segundos e inténtalo de nuevo.";
 
             // ---------- 2. Datos repetidos o relacionados ----------
             if (chain.Contains("correlativo_duplicado") || chain.Contains("correlativo duplicado"))
@@ -238,7 +238,7 @@ namespace NinOS.UI.Common
                 "entityframework",
                 "sqlite",
                 "base de datos"))
-                return "No se pudo completar la operación por un problema con la base de datos.\nInténtalo de nuevo y, si sigue igual, avisa al administrador.";
+                return "No se pudo completar la operación.\nInténtalo de nuevo y, si sigue igual, avisa al administrador.";
 
             if (matches(chain, "operationcanceled", "operation was canceled", "tarea cancelada"))
                 return "La operación fue cancelada.";

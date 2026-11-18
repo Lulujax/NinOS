@@ -22,7 +22,7 @@ namespace NinOS.Infrastructure.Data
         // a la base de PRODUCCION: cualquier PC sin configurar entraba a los datos reales del
         // cliente sin avisar, y la contraseña quedaba publicada en el repositorio.
         public static string MissingConfigurationMessage =>
-            "NinOS no tiene configurada la conexion a la base de datos, asi que no puede abrir.\n\n" +
+            "NinOS no tiene configurada la conexion con el sistema, asi que no puede abrir.\n\n" +
             "Se busco en estos dos lugares:\n" +
             $"   1. La variable de entorno {EnvironmentVariableName}\n" +
             $"   2. El archivo {SettingsFileName} junto al programa:\n" +

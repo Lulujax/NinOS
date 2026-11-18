@@ -26,11 +26,7 @@
         <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#E3F2FD" CornerRadius="3" Padding="8"
                 Margin="0,0,0,10">
             <StackPanel>
-                <TextBlock x:Name="RelationInfoText" FontSize="11" Foreground="#1565C0" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                <Button Content="Editar notas de esta relación" Click="OnEditNotesClick"
-                        Background="#FFF3E0" BorderBrush="#FFE0B2" BorderThickness="1"
-                        Foreground="#E65100" FontWeight="SemiBold" FontSize="10.5" Padding="8,3"
-                        Cursor="Hand" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="RelationInfoText" FontSize="11" Foreground="#1565C0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 

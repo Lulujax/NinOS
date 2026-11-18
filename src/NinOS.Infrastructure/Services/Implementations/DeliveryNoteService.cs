@@ -40,9 +40,12 @@ namespace NinOS.Infrastructure.Services.Implementations
         public async Task<string> generate_correlative_async(int id_seller)
         {
             if (id_seller <= 0) throw new ArgumentException(nameof(id_seller));
-            using var scope = _scope_factory.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
-            return await repo.get_next_correlative_async();
+            return await TransientRetry.run_async(async () =>
+            {
+                using var scope = _scope_factory.CreateScope();
+                var repo = scope.ServiceProvider.GetRequiredService<IDeliveryNoteRepository>();
+                return await repo.get_next_correlative_async();
+            }, "Calculo del correlativo de nota", max_attempts: 3);
         }
 
         public async Task create_delivery_note_async(delivery_note new_note, IEnumerable<note_detail> details, NinOS.Domain.ViewModels.note_print_dto? print_dto = null, bool confirmar_relacion_pagada = false)

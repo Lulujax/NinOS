@@ -135,22 +135,22 @@ namespace NinOS.UI.Common
             string mensaje = cause switch
             {
                 startup_failure_cause.sin_configuracion =>
-                    "NinOS no tiene configurada la conexion a la base de datos. Avise al administrador del sistema.",
+                    "NinOS no tiene configurada la conexion con el sistema. Avise al administrador.",
 
                 startup_failure_cause.sin_conexion =>
-                    "No se pudo llegar al servidor de la base de datos. Revise su conexion a internet y vuelva a intentar.",
+                    "No se pudo conectar con el sistema. Puede que no haya internet o que la conexion este lenta o inestable. Revise su internet, espere unos segundos y vuelva a intentar.",
 
                 startup_failure_cause.credenciales =>
-                    "El usuario o la contrasena de la base de datos no son correctos. Avise al administrador del sistema.",
+                    "No se pudo acceder al sistema con los datos configurados. Avise al administrador.",
 
                 startup_failure_cause.base_inexistente =>
-                    "La base de datos configurada no existe en el servidor. Avise al administrador del sistema.",
+                    "No se encontro la informacion del sistema en el servidor. Avise al administrador.",
 
                 startup_failure_cause.permisos =>
-                    "El usuario de la base de datos no tiene permisos suficientes. Avise al administrador del sistema.",
+                    "Este equipo no tiene permisos suficientes para usar el sistema. Avise al administrador.",
 
                 startup_failure_cause.migracion =>
-                    "No se pudo actualizar la estructura de la base de datos. Avise al administrador antes de seguir usando el sistema.",
+                    "No se pudo terminar de actualizar el sistema. Avise al administrador antes de seguir usandolo.",
 
                 _ => "Ocurrio un error al iniciar el sistema. Avise al administrador del sistema."
             };

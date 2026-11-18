@@ -531,6 +531,7 @@ namespace NinOS.UI.Common.ViewModels
         private List<note_type> _all_note_types_cache;
         private List<zona> _seller_assigned_zones = new();
         private seller? _selected_seller;
+        private int _correlative_request_id;
         private note_type? _selected_note_type;
         private note_price_list_option? _selected_note_price_list;
         public ObservableCollection<note_price_list_option> note_price_lists { get; } = new ObservableCollection<note_price_list_option>();
@@ -1818,19 +1819,31 @@ namespace NinOS.UI.Common.ViewModels
 
         private async void update_correlative_async()
         {
+            int request_id = ++_correlative_request_id;
+
             if (_selected_seller == null || _selected_note_type == null)
             {
                 note_number = string.Empty;
                 return;
             }
 
+            int seller_id = _selected_seller.id_seller;
+
             try
             {
-                note_number = await _delivery_note_service.generate_correlative_async(_selected_seller.id_seller);
+                string next_number = await _delivery_note_service.generate_correlative_async(seller_id);
+                if (request_id == _correlative_request_id)
+                {
+                    note_number = next_number;
+                }
             }
             catch (Exception ex)
             {
-                AppDialog.Show($"Error al generar correlativo: {ErrorText.Get(ex)}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                if (request_id == _correlative_request_id)
+                {
+                    note_number = string.Empty;
+                    AppDialog.Show(ErrorText.Get(ex, "Calculo del correlativo"), "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
             }
         }
 

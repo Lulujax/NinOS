@@ -47,7 +47,7 @@ public class StartupDiagnosisTests
         startup_diagnosis diagnostico = StartupDiagnosis.describe(new ErrorDePostgresFalso(sql_state));
 
         Assert.Equal(startup_failure_cause.credenciales, diagnostico.cause);
-        Assert.Contains("contrasena", diagnostico.mensaje);
+        Assert.Contains("no se pudo acceder", diagnostico.mensaje, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class StartupDiagnosisTests
         startup_diagnosis diagnostico = StartupDiagnosis.describe(new ErrorDePostgresFalso("3D000"));
 
         Assert.Equal(startup_failure_cause.base_inexistente, diagnostico.cause);
-        Assert.Contains("no existe", diagnostico.mensaje);
+        Assert.Contains("no se encontro la informacion", diagnostico.mensaje, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class StartupDiagnosisTests
         startup_diagnosis diagnostico = StartupDiagnosis.describe(error);
 
         Assert.Equal(startup_failure_cause.migracion, diagnostico.cause);
-        Assert.Contains("estructura", diagnostico.mensaje);
+        Assert.Contains("actualizar el sistema", diagnostico.mensaje, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------- Casos limite ----------

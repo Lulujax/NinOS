@@ -1040,12 +1040,27 @@ namespace NinOS.UI.Common.ViewModels
                 on_request_edit_notes?.Invoke(row, null);
         }
 
-        private void execute_edit_weekly_note(object? parameter)
+        private async void execute_edit_weekly_note(object? parameter)
         {
             if (parameter is not pro_venta_weekly_row note || _report == null) return;
 
-            var relation_row = pending_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
-                            ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion);
+            pro_venta_relation_row? relation_row;
+            try
+            {
+                relation_row = pending_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                            ?? paid_rows.FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                            ?? (await _pro_venta_service.get_pending_relations_async())
+                                .FirstOrDefault(r => r.id_relacion == _report.id_relacion)
+                            ?? (await _pro_venta_service.get_paid_relations_async())
+                                .FirstOrDefault(r => r.id_relacion == _report.id_relacion);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show($"Error al buscar la relación: {ErrorText.Get(ex)}", "Editar Nota",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             if (relation_row == null)
             {
                 AppDialog.Show(
