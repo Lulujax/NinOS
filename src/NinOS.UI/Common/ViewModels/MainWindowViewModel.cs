@@ -252,6 +252,16 @@ namespace NinOS.UI.Common.ViewModels
                 };
             }
 
+            AppDataEvents.PaymentsChanged += () =>
+            {
+                payments_vm?.refresh_data();
+                accounts_receivable_vm?.refresh_data();
+                commissions_vm?.refresh_data();
+                sales_vm?.refresh_data();
+                pro_venta_vm?.refresh_data();
+                vesupronta_vm?.refresh_data();
+            };
+
             if (credit_notes_vm != null)
             {
                 credit_notes_vm.OnCreditNoteSaved += () =>

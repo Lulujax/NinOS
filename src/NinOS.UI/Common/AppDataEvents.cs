@@ -23,5 +23,20 @@ namespace NinOS.UI.Common
                 // un refresco fallido nunca debe cerrar la aplicacion
             }
         }
+
+        /// <summary>Se registro, edito o anulo un pago de una nota: las comisiones pueden cambiar.</summary>
+        public static event Action? PaymentsChanged;
+
+        public static void raise_payments_changed()
+        {
+            try
+            {
+                PaymentsChanged?.Invoke();
+            }
+            catch (Exception)
+            {
+                // un refresco fallido nunca debe cerrar la aplicacion
+            }
+        }
     }
 }

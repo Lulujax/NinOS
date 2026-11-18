@@ -503,6 +503,7 @@ namespace NinOS.UI.Views
 
                     await _vm.update_payment_async(_edit_payment, amount_usd, exchange_rate, payType, reference, payDate, amount_bs, bank, obs);
 
+                    AppDataEvents.raise_payments_changed();
                     PaymentRegistered?.Invoke(this, EventArgs.Empty);
                     Close();
                     return;
@@ -528,7 +529,8 @@ namespace NinOS.UI.Views
 
                 await _vm.confirm_payment_async(_selected_note.id_delivery_note, amount_usd, exchange_rate, payType, reference, payDate, amount_bs, bank, obs);
 
-                PaymentRegistered?.Invoke(this, EventArgs.Empty);
+                AppDataEvents.raise_payments_changed();
+                    PaymentRegistered?.Invoke(this, EventArgs.Empty);
                 Close();
 
                 if (_selected_note != null)

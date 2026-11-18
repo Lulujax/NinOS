@@ -1260,6 +1260,7 @@ namespace NinOS.UI.Common.ViewModels
         public async Task register_relation_payment_async(int id_relacion, decimal amount_usd, DateTime payment_date, string observations)
         {
             await _payment_service.register_relation_payment_async(id_relacion, amount_usd, payment_date, observations);
+            AppDataEvents.raise_payments_changed();
             AppDialog.Show("Pago registrado exitosamente.", "Exito");
 
             await load_pending_async();
@@ -1280,6 +1281,7 @@ namespace NinOS.UI.Common.ViewModels
         public async Task update_relation_payment_async(int id_payment, decimal amount_usd, DateTime payment_date, string observations)
         {
             await _payment_service.update_relation_payment_async(id_payment, amount_usd, payment_date, observations);
+            AppDataEvents.raise_payments_changed();
 
             await load_pending_async();
             await load_paid_async();
