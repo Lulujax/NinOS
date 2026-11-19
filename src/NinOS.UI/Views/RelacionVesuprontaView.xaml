@@ -58,7 +58,7 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="NRO" Binding="{Binding nro}" Width="Auto" MinWidth="110" FontWeight="SemiBold">
+                    <DataGridTextColumn Header="NRO" Binding="{Binding nro}" Width="Auto" MinWidth="120" FontWeight="SemiBold">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="TextWrapping" Value="Wrap"/>

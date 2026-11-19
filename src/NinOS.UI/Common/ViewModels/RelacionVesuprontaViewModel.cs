@@ -141,8 +141,8 @@ namespace NinOS.UI.Common.ViewModels
             if (!anios.Contains(_anio_seleccionado))
             {
                 _anio_seleccionado = anios[0];
-                on_property_changed(nameof(anio_seleccionado));
             }
+            on_property_changed(nameof(anio_seleccionado));
         }
 
         private void recalcular()
