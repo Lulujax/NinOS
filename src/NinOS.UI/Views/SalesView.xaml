@@ -196,7 +196,7 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,0,4,0">
                             <!-- SECCION 1: TIPO DE NOTA (primero los desplegables) -->
                             <Border Background="#F7FAF8" BorderBrush="#E0E8E3" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">

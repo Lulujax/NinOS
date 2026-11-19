@@ -25,7 +25,8 @@
         <Grid Grid.Row="1">
             <DataGrid ItemsSource="{Binding filas}" AutoGenerateColumns="False" IsReadOnly="True"
                       CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
-                      GridLinesVisibility="Horizontal" AlternatingRowBackground="#F3E5F5"
+                      GridLinesVisibility="All" HorizontalGridLinesBrush="Black" VerticalGridLinesBrush="Black"
+                      BorderBrush="Black" BorderThickness="1" AlternatingRowBackground="#F3E5F5"
                       ColumnHeaderHeight="36">
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">

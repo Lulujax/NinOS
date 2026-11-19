@@ -1929,6 +1929,14 @@ namespace NinOS.UI.Common.ViewModels
         {
             bool es_oferta_individual = _promo_type_index == 0;
 
+            if (es_oferta_individual)
+            {
+                while (builder_items.Count > 1)
+                {
+                    builder_items.RemoveAt(builder_items.Count - 1);
+                }
+            }
+
             foreach (promo_builder_item item in builder_items)
             {
                 item.quantity_editable = !es_oferta_individual;

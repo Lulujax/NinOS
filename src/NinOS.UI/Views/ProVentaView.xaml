@@ -115,6 +115,7 @@
                             <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
                                     Padding="12,10" Width="270">
                                 <StackPanel>
+                                        <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto"><StackPanel>
                                     <TextBlock Text="REPORTE DE LA RELACIÓN" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
                                     <TextBlock Text="Elija si incluye las anuladas y luego la acción."
                                                FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
@@ -122,6 +123,8 @@
                                               IsChecked="{Binding report_include_annulled, Mode=TwoWay}"
                                               FontSize="12" Foreground="#333333" Cursor="Hand"
                                               ToolTip="Se muestran marcadas en rojo y aparte. Nunca suman al total."/>
+                                    </StackPanel>
+                                    </ScrollViewer>
                                     <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0">
                                         <Button Content="👁️ Vista Previa" Command="{Binding preview_command}" Click="close_reportes"
                                                 Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"
@@ -335,9 +338,12 @@
                             <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
                                     Padding="12,10" Width="270">
                                 <StackPanel>
+                                        <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto"><StackPanel>
                                     <TextBlock Text="REPORTE DE RELACIONES PENDIENTES" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
                                     <TextBlock Text="Usa las fechas elegidas arriba."
                                                FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
+                                    </StackPanel>
+                                    </ScrollViewer>
                                     <UniformGrid Columns="2" Rows="2">
                                         <Button Content="👁️ Vista Previa" Command="{Binding preview_pending_command}" Click="close_reportes"
                                                 Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"
@@ -458,9 +464,12 @@
                             <Border Background="White" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="4"
                                     Padding="12,10" Width="270">
                                 <StackPanel>
+                                        <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto"><StackPanel>
                                     <TextBlock Text="REPORTE DE RELACIONES PAGADAS" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
                                     <TextBlock Text="Usa las fechas elegidas arriba."
                                                FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
+                                    </StackPanel>
+                                    </ScrollViewer>
                                     <UniformGrid Columns="2" Rows="2">
                                         <Button Content="👁️ Vista Previa" Command="{Binding preview_paid_command}" Click="close_reportes"
                                                 Background="#1B3A2D" Foreground="White" FontWeight="Bold" FontSize="11"

@@ -934,6 +934,14 @@ namespace NinOS.Infrastructure.Services.Implementations
                     new_note.print_snapshot = NinOS.Domain.note_snapshot_store.serialize(snapshot_dto);
                     new_note.print_snapshot_version = NinOS.Domain.note_snapshot_store.CurrentVersion;
 
+                    if (!is_gift && original_note != null && !string.IsNullOrWhiteSpace(new_note.observations))
+                    {
+                        string linea_cxc = $"NC {new_note.note_number}: {new_note.observations.Trim()}";
+                        original_note.cxc_observations = string.IsNullOrWhiteSpace(original_note.cxc_observations)
+                            ? linea_cxc
+                            : original_note.cxc_observations.Trim() + " | " + linea_cxc;
+                    }
+
                     await db_context.credit_notes.AddAsync(new_note);
 
                     try
