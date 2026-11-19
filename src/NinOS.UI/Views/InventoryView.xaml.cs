@@ -3,7 +3,9 @@ using System.Windows;
 using System.Windows.Input;
 using NinOS.UI.Common.ViewModels;
 using NinOS.UI.Common;
+using NinOS.UI.Common.CargaMasiva;
 using NinOS.Infrastructure.Logging;
+using NinOS.Infrastructure.Services.Interfaces;
 
 namespace NinOS.UI.Views
 {
@@ -105,6 +107,38 @@ namespace NinOS.UI.Views
                     };
                 }
             };
+        }
+
+        private async void on_descargar_plantilla_click(object sender, RoutedEventArgs e)
+        {
+            CargaMasivaFlujo? flujo = crear_flujo_carga_masiva();
+            if (flujo == null) return;
+
+            await flujo.descargar_plantilla_async(Window.GetWindow(this) ?? Application.Current.MainWindow);
+        }
+
+        private async void on_cargar_plantilla_click(object sender, RoutedEventArgs e)
+        {
+            CargaMasivaFlujo? flujo = crear_flujo_carga_masiva();
+            if (flujo == null) return;
+
+            await flujo.cargar_plantilla_async(Window.GetWindow(this) ?? Application.Current.MainWindow);
+        }
+
+        private static CargaMasivaFlujo? crear_flujo_carga_masiva()
+        {
+            var serviceProvider = (Application.Current as App)?.GetServiceProvider();
+            var carga = serviceProvider?.GetService(typeof(ICargaMasivaService)) as ICargaMasivaService;
+            var listas = serviceProvider?.GetService(typeof(IPriceListService)) as IPriceListService;
+
+            if (carga == null || listas == null)
+            {
+                AppLog.Error("Servicios de carga masiva no disponibles.");
+                AppDialog.Show("No se pudo abrir la carga masiva. Reinicie el sistema.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+
+            return new CargaMasivaFlujo(carga, listas);
         }
 
         private void on_reports_click(object sender, RoutedEventArgs e)

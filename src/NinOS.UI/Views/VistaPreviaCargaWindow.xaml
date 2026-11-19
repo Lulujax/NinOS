@@ -1,0 +1,60 @@
+<Window x:Class="NinOS.UI.Views.VistaPreviaCargaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vista previa de la carga"
+        Width="980" Height="620"
+        WindowStartupLocation="CenterOwner"
+        FontSize="13">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock x:Name="txt_titulo" FontSize="16" FontWeight="Bold"/>
+            <TextBlock x:Name="txt_resumen" Margin="0,8,0,0" FontWeight="SemiBold"/>
+            <TextBlock x:Name="txt_otras_listas" Margin="0,8,0,0" Foreground="#9A6700" TextWrapping="Wrap" Visibility="Collapsed"/>
+            <TextBlock x:Name="txt_errores" Margin="0,8,0,0" Foreground="#C62828" TextWrapping="Wrap" Visibility="Collapsed"
+                       Text="Hay filas en rojo. Corríjalas en el Excel y vuelva a cargarlo: mientras haya errores no se aplica nada."/>
+            <TextBlock x:Name="txt_sin_cambios" Margin="0,8,0,0" Foreground="#6B7280" Visibility="Collapsed"
+                       Text="El archivo no tiene cambios para aplicar."/>
+
+            <StackPanel x:Name="panel_avisos" Margin="0,10,0,0" Visibility="Collapsed">
+                <TextBlock x:Name="txt_avisos" TextWrapping="Wrap" Foreground="#9A6700"/>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <RadioButton x:Name="rb_aplicar_igual" GroupName="avisos" Content="Aplicar igual" Margin="0,0,24,0"/>
+                    <RadioButton x:Name="rb_saltar" GroupName="avisos" Content="Saltar estas filas" IsChecked="True"/>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Cancelar" IsCancel="True" Width="110" Height="32" Margin="0,0,8,0"/>
+            <Button x:Name="btn_aplicar" Content="Aplicar" Width="130" Height="32" IsDefault="True" Click="on_aplicar_click"/>
+        </StackPanel>
+
+        <DataGrid x:Name="grilla" Margin="0,12,0,12" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column" RowHeight="26">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding estado}" Value="Error">
+                            <Setter Property="Background" Value="#FDECEA"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding estado}" Value="Revisar">
+                            <Setter Property="Background" Value="#FFF8DC"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Fila" Binding="{Binding numero_fila}" Width="50"/>
+                <DataGridTextColumn Header="Código" Binding="{Binding codigo}" Width="110"/>
+                <DataGridTextColumn Header="Descripción" Binding="{Binding descripcion}" Width="*"/>
+                <DataGridTextColumn Header="En archivo" Binding="{Binding archivo}" Width="90"/>
+                <DataGridTextColumn Header="Actual" Binding="{Binding actual}" Width="90"/>
+                <DataGridTextColumn Header="Nuevo" Binding="{Binding nuevo}" Width="90"/>
+                <DataGridTextColumn Header="Cambio" Binding="{Binding cambio}" Width="80"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding estado}" Width="80"/>
+                <DataGridTextColumn Header="Motivo" Binding="{Binding motivo}" Width="260"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

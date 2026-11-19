@@ -435,6 +435,7 @@ namespace NinOS.UI
             services.AddScoped<ISellerService, SellerService>();
             services.AddScoped<IProVentaService, ProVentaService>();
             services.AddScoped<IPriceListService, PriceListService>();
+            services.AddScoped<ICargaMasivaService, CargaMasivaService>();
             services.AddSingleton<IAppUpdater>(_ => create_app_updater());
 
             services.AddTransient<DeliveryNotesViewModel>();
