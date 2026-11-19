@@ -247,7 +247,7 @@
                                FontSize="9" Foreground="#7A8A80" TextWrapping="Wrap" Margin="0,2,0,9"/>
 
                     <TextBlock Text="PERIODO" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
-                    <controls:RangoFechasPicker Rango="{Binding rango_reporte, Mode=TwoWay}" Margin="0,0,0,4"/>
+                    <controls:RangoFechasPicker Apilado="True" Rango="{Binding rango_reporte, Mode=TwoWay}" Margin="0,0,0,4"/>
 
                     <TextBlock Text="CATEGORIA" FontSize="9" FontWeight="Bold" Foreground="#55665C" Margin="0,10,0,3"/>
                     <ComboBox ItemsSource="{Binding category_options}"

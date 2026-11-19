@@ -278,7 +278,7 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
 
-                <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <controls:RangoFechasPicker Apilado="True" Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,8,0" VerticalAlignment="Center"/>
 
 
 

@@ -22,6 +22,12 @@ namespace NinOS.UI.Controls
 
         public event EventHandler? RangoCambiado;
 
+        public static readonly DependencyProperty ApiladoProperty = DependencyProperty.Register(
+            nameof(Apilado),
+            typeof(bool),
+            typeof(RangoFechasPicker),
+            new PropertyMetadata(false, OnApiladoCambiado));
+
         private bool _sincronizando;
         private DateTime? _desde_valido;
         private DateTime? _hasta_valido;
@@ -32,10 +38,30 @@ namespace NinOS.UI.Controls
             ActualizarVisualesDesdeEstado();
         }
 
+        public bool Apilado
+        {
+            get => (bool)GetValue(ApiladoProperty);
+            set => SetValue(ApiladoProperty, value);
+        }
+
         public rango_fechas? Rango
         {
             get => (rango_fechas?)GetValue(RangoProperty);
             set => SetValue(RangoProperty, value);
+        }
+
+        private static void OnApiladoCambiado(DependencyObject sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is RangoFechasPicker picker)
+            {
+                picker.AplicarOrientacion((bool)e.NewValue);
+            }
+        }
+
+        private void AplicarOrientacion(bool apilado)
+        {
+            Contenedor.Orientation = apilado ? Orientation.Vertical : Orientation.Horizontal;
+            FilaDesde.Margin = apilado ? new Thickness(0, 0, 0, 4) : new Thickness(0, 0, 12, 0);
         }
 
         private static void OnRangoCambiadoDesdeFuera(DependencyObject sender, DependencyPropertyChangedEventArgs e)
@@ -100,6 +126,17 @@ namespace NinOS.UI.Controls
             {
                 _sincronizando = false;
             }
+        }
+
+        private void OnCampoEnFoco(object sender, RoutedEventArgs e)
+        {
+            if (sender == DesdePicker) DesdeMarcador.Visibility = Visibility.Collapsed;
+            else if (sender == HastaPicker) HastaMarcador.Visibility = Visibility.Collapsed;
+        }
+
+        private void OnCampoSinFoco(object sender, RoutedEventArgs e)
+        {
+            ActualizarVisualesDesdeEstado();
         }
 
         private void OnLimpiarDesde(object sender, RoutedEventArgs e)
