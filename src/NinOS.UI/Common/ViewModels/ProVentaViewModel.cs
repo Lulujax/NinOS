@@ -1075,11 +1075,13 @@ namespace NinOS.UI.Common.ViewModels
         public async Task update_note_discount_async(int id_delivery_note, decimal descuento, decimal monto_esperado)
         {
             await _pro_venta_service.update_note_discount_async(id_delivery_note, descuento, monto_esperado);
+            AppDataEvents.raise_receivables_changed();
         }
 
         public async Task update_note_amount_async(int id_delivery_note, decimal monto_a_cobrar, decimal monto_esperado)
         {
             await _pro_venta_service.update_note_amount_async(id_delivery_note, monto_a_cobrar, monto_esperado);
+            AppDataEvents.raise_receivables_changed();
             await load_report_async();
             await load_pending_async();
             await load_paid_async();
@@ -1088,6 +1090,7 @@ namespace NinOS.UI.Common.ViewModels
         public async Task update_note_total_async(int id_delivery_note, decimal adjusted_total_usd, decimal? discount_percentage)
         {
             await _accounts_receivable_service.update_note_total_async(id_delivery_note, adjusted_total_usd, discount_percentage, null);
+            AppDataEvents.raise_receivables_changed();
             await load_report_async();
             await load_pending_async();
             await load_paid_async();
@@ -1145,6 +1148,7 @@ namespace NinOS.UI.Common.ViewModels
                 decimal dcto = row.edit_result_condition_pct;
 
                 await _accounts_receivable_service.update_note_total_async(row.id_delivery_note, adjusted, dcto, null);
+                AppDataEvents.raise_receivables_changed();
 
                 row.is_editing = false;
 
@@ -1226,6 +1230,7 @@ namespace NinOS.UI.Common.ViewModels
             try
             {
                 await _accounts_receivable_service.annul_delivery_note_async(row.id_delivery_note, registrar_asiento_pro_venta: true);
+                AppDataEvents.raise_receivables_changed();
                 refresh_data();
             }
             catch (Exception ex)

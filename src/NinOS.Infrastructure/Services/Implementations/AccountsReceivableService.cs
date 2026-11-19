@@ -350,6 +350,54 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
+        public async Task<IReadOnlyList<relacion_vesupronta_fuente>> get_relacion_fuentes_async()
+        {
+            using (var scope = _scope_factory.CreateScope())
+            {
+                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
+                var scope_filter = await get_scope_filter_async(db_context);
+                var notas = (await get_notes_internal_async(db_context, scope_filter)).ToList();
+
+                var note_ids = notas.Select(n => n.id_delivery_note).ToList();
+                var snapshots = await db_context.delivery_notes
+                    .AsNoTracking()
+                    .Where(n => note_ids.Contains(n.id_delivery_note))
+                    .ToDictionaryAsync(n => n.id_delivery_note, n => n.print_snapshot);
+
+                var fuentes = new List<relacion_vesupronta_fuente>(notas.Count);
+                foreach (var nota in notas)
+                {
+                    note_print_dto? foto = snapshots.TryGetValue(nota.id_delivery_note, out var json)
+                        ? note_snapshot_store.deserialize(json)
+                        : null;
+
+                    decimal monto_facturado = foto?.total_amount_usd ?? nota.gross_total_usd;
+                    bool descuento_aplicado = foto != null
+                        ? foto.discount_percentage > 0m || foto.volume_discount_percentage > 0m
+                        : (nota.discount_percentage ?? 0m) > 0m || (nota.volume_discount_percentage ?? 0m) > 0m;
+
+                    if (foto == null)
+                        AppLog.Warn($"Relacion Vesupronta: nota {nota.id_delivery_note} sin foto al emitir; se usan datos vivos.");
+
+                    fuentes.Add(new relacion_vesupronta_fuente(
+                        nota.id_delivery_note,
+                        nota.note_number,
+                        nota.customer_name,
+                        nota.creation_date,
+                        nota.dispatch_date,
+                        nota.status,
+                        monto_facturado,
+                        descuento_aplicado,
+                        nota.total_amount_usd,
+                        nota.paid_amount_usd,
+                        nota.last_payment_date));
+                }
+
+                AppLog.Info($"Relacion Vesupronta: {fuentes.Count} notas leidas.");
+                return fuentes;
+            }
+        }
+
         // Ventas: todas las notas, incluidas las pro venta (MAR) y las de promocion (PVP).
         public async Task<IEnumerable<accounts_receivable_dto>> get_all_sales_notes_async()
         {

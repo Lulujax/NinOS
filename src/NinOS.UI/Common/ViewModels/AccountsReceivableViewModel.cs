@@ -1003,6 +1003,7 @@ namespace NinOS.UI.Common.ViewModels
                 await _receivable_service.annul_delivery_note_async(selected_note.id_delivery_note);
                 selected_note = null;
                 await load_all_async();
+                AppDataEvents.raise_receivables_changed();
             }
             catch (Exception ex)
             {
@@ -1084,6 +1085,7 @@ namespace NinOS.UI.Common.ViewModels
 
                 note.is_editing = false;
                 await load_all_async();
+                AppDataEvents.raise_receivables_changed();
             }
             catch (Exception ex)
             {
@@ -1125,6 +1127,7 @@ namespace NinOS.UI.Common.ViewModels
             {
                 await _receivable_service.update_note_dispatch_date_async(note.id_delivery_note, date);
                 note.dispatch_date = date;
+                AppDataEvents.raise_receivables_changed();
             }
             catch (Exception ex)
             {

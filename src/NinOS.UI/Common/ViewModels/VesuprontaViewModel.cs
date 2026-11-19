@@ -12,6 +12,7 @@ namespace NinOS.UI.Common.ViewModels
         public SalesViewModel sales_vm { get; }
         public AccountsReceivableViewModel accounts_receivable_vm { get; }
         public PaymentsViewModel payments_vm { get; }
+        public RelacionVesuprontaViewModel relacion_vm { get; }
 
         public VesuprontaViewModel(
             IServiceScopeFactory scope_factory,
@@ -30,6 +31,7 @@ namespace NinOS.UI.Common.ViewModels
             sales_vm = new SalesViewModel(receivable_service, seller_service, zona_service, business_unit.Vesupronta);
             accounts_receivable_vm = new AccountsReceivableViewModel(receivable_service, seller_service, zona_service, business_unit.Vesupronta);
             payments_vm = new PaymentsViewModel(payment_service, receivable_service, seller_service, zona_service, business_unit.Vesupronta);
+            relacion_vm = new RelacionVesuprontaViewModel(receivable_service);
         }
 
         public void refresh_data()
@@ -37,6 +39,7 @@ namespace NinOS.UI.Common.ViewModels
             sales_vm.refresh_data();
             accounts_receivable_vm.refresh_data();
             payments_vm.refresh_data();
+            relacion_vm.refresh_data();
         }
     }
 }

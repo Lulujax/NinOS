@@ -1386,6 +1386,7 @@ namespace NinOS.UI.Common.ViewModels
                     amount_usd, amount_bs, exchange_rate, payment_type, reference_number, bank_name, observations);
 
                 await _payment_service.register_payment_async(new_payment);
+                AppDataEvents.raise_payments_changed();
 
                 AppDialog.Show("Pago registrado exitosamente.", "Exito");
 
@@ -1440,6 +1441,7 @@ namespace NinOS.UI.Common.ViewModels
                 };
 
                 await _payment_service.update_payment_async(updated);
+                AppDataEvents.raise_payments_changed();
 
                 _ = System.Windows.Application.Current?.Dispatcher?.InvokeAsync(load_all_async);
 

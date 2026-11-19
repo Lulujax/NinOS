@@ -242,52 +242,26 @@ namespace NinOS.UI.Common.ViewModels
 
             if (delivery_notes_vm != null)
             {
-                delivery_notes_vm.OnNoteSaved += () =>
-                {
-                    accounts_receivable_vm?.refresh_data();
-                    delivery_notes_vm?.refresh_data();
-                    inventory_vm?.refresh_data();
-                    pro_venta_vm?.refresh_data();
-                    vesupronta_vm?.refresh_data();
-                };
+                delivery_notes_vm.OnNoteSaved += AppDataEvents.raise_data_changed;
             }
-
-            AppDataEvents.PaymentsChanged += () =>
-            {
-                payments_vm?.refresh_data();
-                accounts_receivable_vm?.refresh_data();
-                commissions_vm?.refresh_data();
-                sales_vm?.refresh_data();
-                pro_venta_vm?.refresh_data();
-                vesupronta_vm?.refresh_data();
-            };
 
             if (credit_notes_vm != null)
             {
-                credit_notes_vm.OnCreditNoteSaved += () =>
-                {
-                    accounts_receivable_vm?.refresh_data();
-                    payments_vm?.refresh_data();
-                    inventory_vm?.refresh_data();
-                    pro_venta_vm?.refresh_data();
-                    credit_notes_vm?.refresh_data();
-                };
+                credit_notes_vm.OnCreditNoteSaved += AppDataEvents.raise_data_changed;
             }
 
-            // Cuando el Panel Administrador restaura o elimina clientes/productos/vendedores,
-            // todos los listados se recargan para que el cambio se vea de inmediato.
-            AppDataEvents.CatalogsChanged += () =>
+            AppDataEvents.DataChanged += () =>
             {
                 delivery_notes_vm?.refresh_data();
                 accounts_receivable_vm?.refresh_data();
-                vesupronta_vm?.refresh_data();
                 sales_vm?.refresh_data();
                 payments_vm?.refresh_data();
                 commissions_vm?.refresh_data();
-                customer_vm?.refresh_data();
                 inventory_vm?.refresh_data();
                 pro_venta_vm?.refresh_data();
+                vesupronta_vm?.refresh_data();
                 credit_notes_vm?.refresh_data();
+                customer_vm?.refresh_data();
                 sellers_vm?.refresh_data();
             };
         }

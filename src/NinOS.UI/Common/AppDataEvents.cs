@@ -1,16 +1,26 @@
 using System;
+using NinOS.Infrastructure.Logging;
 
 namespace NinOS.UI.Common
 {
-    /// <summary>
-    /// Permite que ventanas auxiliares (por ejemplo el Panel Administrador) avisen
-    /// a los ViewModels ya cargados que los catalogos cambiaron, para que recarguen
-    /// sin necesidad de reiniciar la aplicacion.
-    /// </summary>
     public static class AppDataEvents
     {
-        /// <summary>Clientes o productos fueron eliminados o restaurados.</summary>
+        public static event Action? DataChanged;
+
         public static event Action? CatalogsChanged;
+
+        public static void raise_data_changed()
+        {
+            AppLog.Info("Datos cambiados: recargando pantallas.");
+            try
+            {
+                DataChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Fallo el refresco de pantallas tras un cambio de datos.", ex);
+            }
+        }
 
         public static void raise_catalogs_changed()
         {
@@ -18,25 +28,16 @@ namespace NinOS.UI.Common
             {
                 CatalogsChanged?.Invoke();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // un refresco fallido nunca debe cerrar la aplicacion
+                AppLog.Error("Fallo el refresco de catalogos.", ex);
             }
+
+            raise_data_changed();
         }
 
-        /// <summary>Se registro, edito o anulo un pago de una nota: las comisiones pueden cambiar.</summary>
-        public static event Action? PaymentsChanged;
+        public static void raise_payments_changed() => raise_data_changed();
 
-        public static void raise_payments_changed()
-        {
-            try
-            {
-                PaymentsChanged?.Invoke();
-            }
-            catch (Exception)
-            {
-                // un refresco fallido nunca debe cerrar la aplicacion
-            }
-        }
+        public static void raise_receivables_changed() => raise_data_changed();
     }
 }
