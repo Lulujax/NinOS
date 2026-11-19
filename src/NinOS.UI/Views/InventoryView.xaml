@@ -160,6 +160,10 @@
 
         <Border Background="#F4F4F4" CornerRadius="4" Grid.Row="0" Margin="0,0,0,10" Padding="15">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -196,16 +200,20 @@
                 <ProgressBar Grid.Column="2" Width="100" Height="20" IsIndeterminate="{Binding IsLoading}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
+                            Command="{Binding edit_lines_command}" Content="Editar Marcas" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource HeaderAddButton}"
+                            Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock Text="Cambio masivo en Excel:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <Button Style="{StaticResource HeaderActionButton}" Background="#0D62B5"
                             Click="on_descargar_plantilla_click" Content="Descargar plantilla" Margin="0,0,8,0"
                             ToolTip="Descargar un Excel con productos para cambiar cantidades o precios"/>
                     <Button Style="{StaticResource HeaderActionButton}" Background="#16A34A"
                             Click="on_cargar_plantilla_click" Content="Cargar plantilla" Margin="0,0,8,0"
                             ToolTip="Cargar el Excel con los cambios y revisar la vista previa antes de aplicar"/>
-                    <Button Style="{StaticResource HeaderActionButton}" Background="#6C757D"
-                            Command="{Binding edit_lines_command}" Content="Editar Marcas" Margin="0,0,8,0"/>
-                    <Button Style="{StaticResource HeaderAddButton}"
-                            Command="{Binding open_add_window_command}" Content="{Binding add_button_text}"/>
                 </StackPanel>
             </Grid>
         </Border>
