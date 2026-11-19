@@ -46,7 +46,7 @@ Antes de empezar: revisar y aprobar `plan.md` (pendiente, modo plan).
 
 ## 9. Botón Cargar plantilla y ventana de vista previa
 - Cubre: RF-11, RF-12, RF-20, RF-21, RF-22, RF-25, RF-26, RF-27, RF-28, RF-37
-- Hecho cuando: el botón pide el archivo, reconoce el tipo, pide Conteo o Ajuste solo en Cantidad, y la vista previa muestra el resumen, las filas en rojo y amarillo con su motivo, el aviso de otras listas, la elección Aplicar igual / Saltar y el botón Aplicar deshabilitado mientras haya errores.
+- Hecho cuando: el botón pide el archivo, reconoce el tipo, aplica Conteo en Cantidad, y la vista previa muestra el resumen, las filas en rojo y amarillo con su motivo, el aviso de otras listas, la elección Aplicar igual / Saltar y el botón Aplicar deshabilitado mientras haya errores.
 - [ ] Hecha y probada
 
 ## 10. Aplicar desde la vista previa

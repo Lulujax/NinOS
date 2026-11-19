@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using NinOS.Domain;
 using NinOS.Domain.CargaMasiva;
 using NinOS.Infrastructure.Logging;
+using NinOS.Infrastructure.Services.Implementations;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Views;
 
@@ -81,10 +82,9 @@ namespace NinOS.UI.Common.CargaMasiva
                 if (abrir.ShowDialog(owner) != true) return false;
 
                 LecturaPlantilla lectura = PlantillaInventarioExcelReader.leer(abrir.FileName);
-                TipoCargaCantidad? tipo_carga = elegir_tipo_carga(lectura, owner);
-                if (lectura.cabecera.tipo == TipoPlantilla.Cantidad && tipo_carga == null) return false;
+                VistaPreviaCarga? vista = await preparar_vista_previa_async(lectura);
+                if (vista == null) return false;
 
-                VistaPreviaCarga vista = await _carga.generar_vista_previa_async(lectura, tipo_carga);
                 var ventana = new VistaPreviaCargaWindow(vista) { Owner = owner };
                 if (ventana.ShowDialog() != true) return false;
 
@@ -130,12 +130,24 @@ namespace NinOS.UI.Common.CargaMasiva
             }
         }
 
-        private static TipoCargaCantidad? elegir_tipo_carga(LecturaPlantilla lectura, Window owner)
+        private async Task<VistaPreviaCarga?> preparar_vista_previa_async(LecturaPlantilla lectura)
         {
-            if (lectura.cabecera.tipo != TipoPlantilla.Cantidad) return null;
+            TipoCargaCantidad? tipo_carga = lectura.cabecera.tipo == TipoPlantilla.Cantidad
+                ? TipoCargaCantidad.Conteo
+                : (TipoCargaCantidad?)null;
 
-            var elegir = new ElegirTipoCargaWindow { Owner = owner };
-            return elegir.ShowDialog() == true ? elegir.tipo_elegido : null;
+            try
+            {
+                return await _carga.generar_vista_previa_async(lectura, tipo_carga);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Error al preparar la vista previa de la carga", ex);
+                bool lista_inactiva = ex is InvalidOperationException && ex.Message == CargaMasivaService.MensajeListaNoActiva;
+                string texto = lista_inactiva ? ex.Message : ErrorText.Get(ex);
+                AppDialog.Show("No se pudo preparar la vista previa: " + texto, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
         }
 
         private static bool confirmar_precios(VistaPreviaCarga vista, bool incluir_avisos)

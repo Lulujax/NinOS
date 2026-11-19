@@ -28,9 +28,8 @@ Lo que ya funciona no cambia: el stock es uno solo por producto (no depende de l
 ### Cargar plantilla
 
 - **RF-11** EL SISTEMA tendrá en la pestaña Inventario un botón **Cargar plantilla** que pide el archivo Excel y reconoce por la marca de RF-8 si es de Cantidad o de Precio y de qué lista. No se vuelve a preguntar la lista.
-- **RF-12** CUANDO la plantilla sea de **Cantidad**, EL SISTEMA pedirá el **tipo de carga**:
+- **RF-12** CUANDO la plantilla sea de **Cantidad**, EL SISTEMA aplicará siempre **Conteo**: lo escrito en CANTIDAD es el stock que debe quedar (ejemplo: sistema 10, escribe 25 → queda 25). No se ofrece Ajuste: la función es un editar masivo del stock.
   - **Conteo**: lo escrito en CANTIDAD es el stock que debe quedar. Ejemplo: sistema 10, escribe 25 → queda 25 (+15 en el kardex).
-  - **Ajuste**: lo escrito en CANTIDAD se suma (positivo) o se resta (negativo) al stock actual. Ejemplo: sistema 10, escribe 15 → queda 25; escribe -3 → queda 7.
 - **RF-13** CUANDO la plantilla sea de **Precio**, lo escrito en PRECIO NUEVO es el precio que debe quedar en esa lista. Para subir un porcentaje el usuario usa fórmulas de Excel (ejemplo: `=E2*1.10`).
 - **RF-14** CUANDO se carga un archivo, EL SISTEMA no modificará nada todavía: leerá el archivo, lo validará y mostrará la vista previa (RF-20).
 - **RF-15** SI el archivo no es una plantilla de NinOS (no tiene la marca de RF-8 o su versión no es compatible), ENTONCES EL SISTEMA lo rechazará con el aviso «Este archivo no es una plantilla de NinOS. Descargue una plantilla nueva.» y no mostrará vista previa.
@@ -43,7 +42,6 @@ Lo que ya funciona no cambia: el stock es uno solo por producto (no depende de l
   - El mismo producto aparece más de una vez con valor.
   - **Cantidad**: no es un número entero (letras, decimales).
   - **Cantidad, Conteo**: es negativa.
-  - **Cantidad, Ajuste**: el resultado dejaría el stock en negativo (la spec 003, RF-7, solo permite stock negativo en notas de entrega). Un 0 no hace nada y se cuenta como «sin cambio».
   - **Precio**: no es un número, o es negativo.
 
 ### Vista previa
@@ -51,7 +49,6 @@ Lo que ya funciona no cambia: el stock es uno solo por producto (no depende de l
 - **RF-20** EL SISTEMA mostrará una ventana de vista previa con una fila por producto a modificar: código, descripción, valor en el archivo, valor actual en la base, valor escrito, valor final y diferencia (en Precio, también en %). Arriba, el tipo y la lista, y un resumen: cuántos productos cambian, cuántos tienen error, cuántos tienen aviso y cuántos quedan igual.
 - **RF-21** EL SISTEMA marcará en rojo las filas con error, con el motivo y el número de fila de Excel («Fila 18: la cantidad tiene letras»). Mientras exista al menos un error, EL SISTEMA no permitirá aplicar: se corrige el Excel y se vuelve a cargar.
 - **RF-22** SI el valor actual en la base ya no es el del archivo (STOCK EN SISTEMA en Conteo, PRECIO ACTUAL o PRECIO EN ESTA LISTA en Precio) porque hubo cambios después de descargar, ENTONCES EL SISTEMA marcará la fila en amarillo con el aviso «Cambió desde que descargó: archivo 10, ahora 7», y el usuario elegirá, para todas las filas en amarillo a la vez, **Aplicar igual** o **Saltar estas filas**.
-- **RF-23** En **Cantidad, Ajuste**, EL SISTEMA no marcará aviso por cambios desde la descarga, porque la suma o resta se aplica sobre el stock actual.
 - **RF-24** En **Precio**, EL SISTEMA redondeará el precio escrito a 2 decimales (las fórmulas de Excel pueden dar 5.5000001) y mostrará en la vista previa el precio ya redondeado, que es el que se guardará.
 - **RF-25** En **Precio**, SI el precio nuevo sube o baja más de 50% respecto al actual, ENTONCES EL SISTEMA marcará la fila en amarillo con el aviso «Cambio grande: +80%», por si fue un error de dedo. Estas filas siguen la misma elección de RF-22.
 - **RF-26** En **Precio de la lista Principal**, EL SISTEMA avisará arriba de la vista previa cuántos de los productos modificados están tomando ese precio en otras listas: «Este cambio también cambia el precio de N productos en otras listas». Es el comportamiento que ya tiene el sistema al cambiar un precio de la Principal.
@@ -76,7 +73,6 @@ Lo que ya funciona no cambia: el stock es uno solo por producto (no depende de l
 ## Cómo sé que está listo
 
 - **Cantidad, Conteo**: descargo, escribo cantidades en 30 productos, cargo: la vista previa muestra los 30 con su diferencia, aplico y los 30 quedan con la cantidad escrita y su línea en el kardex.
-- **Cantidad, Ajuste**: la misma prueba con positivos y negativos: cada stock sube o baja lo escrito.
 - **Precio, Principal**: subo 10% una marca con fórmula, cargo: la vista previa muestra los precios redondeados y el aviso de cuántos productos cambian también en otras listas. Aplico y el precio cambia en la Principal y en las listas donde ese producto no tiene precio propio.
 - **Precio, lista secundaria**: cambio 5 precios de la lista, aplico: cambian solo en esa lista y la Principal sigue igual.
 - Un precio que sube más de 50% sale en amarillo; un precio negativo o con letras sale en rojo y no deja aplicar; un precio 0 no cambia nada y el producto conserva su precio.
@@ -106,7 +102,7 @@ Lo que ya funciona no cambia: el stock es uno solo por producto (no depende de l
 - Se eligió el camino **Excel de ida y vuelta con vista previa** sobre la tabla editable y la nota de entrada, porque cubre conteos grandes, pedidos medianos y aumentos de precio, y reutiliza la lógica que ya existe.
 - Antes de descargar se elige **qué cambiar** (Cantidad o Precio) y, en Precio, **qué lista**. Una plantilla por tipo y por lista, para que no se toquen datos por accidente.
 - En la plantilla de una lista secundaria solo se muestra el precio con el que vende esa lista, sin indicar si es propio o tomado de la Principal (decisión de Luis).
-- En Cantidad, una misma plantilla sirve para **Conteo** y **Ajuste**; el tipo se elige al cargar.
+- La carga de Cantidad es siempre **Conteo** (decisión de Luis: es un editar masivo, no un ajuste).
 - Con valores que cambiaron desde la descarga se avisa y el usuario decide (igual que el conteo manual de la spec 003, RF-6).
 - Cada fila se reconoce por su ID y se confirma con el CÓDIGO, para que reordenar o filtrar el Excel no cambie a qué producto se aplica.
 - Precios: se redondean a 2 decimales, no se aceptan negativos, y un cambio de más de 50% se avisa en amarillo.
