@@ -131,7 +131,6 @@ namespace NinOS.UI.Views
             if (popup_reporte.IsOpen && DataContext is AccountsReceivableViewModel vm)
             {
                 if (vm.is_report_zone_mode) rbtn_periodo_zona.IsChecked = true;
-                else if (vm.is_report_year_mode) rbtn_periodo_anio.IsChecked = true;
                 else rbtn_periodo_mes.IsChecked = true;
 
                 vm.sync_report_scope_from_screen();
@@ -143,17 +142,7 @@ namespace NinOS.UI.Views
         {
             if (DataContext is AccountsReceivableViewModel vm)
             {
-                vm.report_primary_mode = "Mes";
-                vm.sync_report_scope_from_screen();
-            }
-            ApplyReportPeriodVisibility();
-        }
-
-        private void on_periodo_anio_checked(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is AccountsReceivableViewModel vm)
-            {
-                vm.report_primary_mode = "Año";
+                vm.report_primary_mode = "Normal";
                 vm.sync_report_scope_from_screen();
             }
             ApplyReportPeriodVisibility();
@@ -169,39 +158,15 @@ namespace NinOS.UI.Views
             ApplyReportPeriodVisibility();
         }
 
-        private void on_zona_subperiodo_changed(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is AccountsReceivableViewModel vm)
-            {
-                if (rbtn_zona_sub_todas.IsChecked == true) vm.report_zone_subperiod = "Todas";
-                else if (rbtn_zona_sub_mes.IsChecked == true) vm.report_zone_subperiod = "Mes";
-                else if (rbtn_zona_sub_anio.IsChecked == true) vm.report_zone_subperiod = "Año";
-            }
-            ApplyReportPeriodVisibility();
-        }
-
-        // El combo de mes, año o cascada de zona se muestra segun el radiobutton marcado en el popup.
         private void ApplyReportPeriodVisibility()
         {
             if (DataContext is not AccountsReceivableViewModel vm) return;
 
             bool isZona = vm.is_report_zone_mode;
-            bool isAnio = vm.is_report_year_mode;
-            bool isMes = vm.is_report_month_mode;
 
-            panel_periodo_mes.Visibility = (!isZona && isMes) ? Visibility.Visible : Visibility.Collapsed;
-            panel_periodo_anio.Visibility = (!isZona && isAnio) ? Visibility.Visible : Visibility.Collapsed;
-            panel_periodo_zona.Visibility = isZona ? Visibility.Visible : Visibility.Collapsed;
-
+            nota_por_zona.Visibility = isZona ? Visibility.Visible : Visibility.Collapsed;
             panel_agrupar_en.Visibility = isZona ? Visibility.Collapsed : Visibility.Visible;
             panel_filtro_vendedores.Visibility = isZona ? Visibility.Collapsed : Visibility.Visible;
-
-            if (isZona)
-            {
-                string sub = vm.report_zone_subperiod;
-                panel_zona_selectores_mes.Visibility = sub == "Mes" ? Visibility.Visible : Visibility.Collapsed;
-                panel_zona_selectores_anio.Visibility = sub == "Año" ? Visibility.Visible : Visibility.Collapsed;
-            }
         }
 
         private void on_preview_reporte_click(object sender, RoutedEventArgs e)

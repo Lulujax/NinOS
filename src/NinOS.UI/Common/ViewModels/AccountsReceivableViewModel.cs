@@ -185,7 +185,7 @@ namespace NinOS.UI.Common.ViewModels
 
         private SellerTabItem<accounts_receivable_row_dto>? _selected_tab;
         private string _search_query = string.Empty;
-        private string _selected_month = string.Empty;
+        private rango_fechas _rango_filtro = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
         private string _selected_filter = "Por Cobrar";
         private decimal _total_invoiced_usd;
         private decimal _total_paid_usd;
@@ -197,9 +197,8 @@ namespace NinOS.UI.Common.ViewModels
         // Arranca en "Por Vendedor". No hay modo de "cambiar alcance": las checklists de
         // vendedores y zonas son directamente el filtro.
         private string _selected_report_group = "Por Vendedor";
-        private string _report_primary_mode = "Mes"; // "Mes", "Año", "Por Zona"
-        private string _report_zone_subperiod = "Todas"; // "Todas", "Mes", "Año"
-        private int _selected_report_year;
+        private rango_fechas _rango_reporte = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
+        private string _report_primary_mode = "Normal";
         private bool _all_report_sellers_selected = true;
         private bool _all_report_zones_selected = true;
         private bool _suppress_seller_sync;
@@ -210,24 +209,28 @@ namespace NinOS.UI.Common.ViewModels
 
         public ObservableCollection<SellerTabItem<accounts_receivable_row_dto>> seller_tabs { get; } = new();
 
-        private int _selected_year = DateTime.Now.Year;
-        public ObservableCollection<int> available_years { get; } = new ObservableCollection<int>();
-        public ObservableCollection<string> available_months { get; } = new ObservableCollection<string>();
-        public ObservableCollection<string> pending_months => available_months;
-
-        public int selected_year
+        public rango_fechas rango_filtro
         {
-            get => _selected_year;
+            get => _rango_filtro;
             set
             {
-                if (_selected_year == value) return;
-                _selected_year = value;
+                if (value == null || _rango_filtro == value) return;
+                _rango_filtro = value;
                 on_property_changed();
-                update_available_months();
                 if (!_is_loading) apply_filters();
             }
         }
-        public ObservableCollection<int> pending_years { get; }
+
+        public rango_fechas rango_reporte
+        {
+            get => _rango_reporte;
+            set
+            {
+                if (value == null || _rango_reporte == value) return;
+                _rango_reporte = value;
+                on_property_changed();
+            }
+        }
         public ObservableCollection<string> filter_options { get; }
         public ObservableCollection<accounts_receivable_row_dto> all_notes { get; }
 
@@ -270,12 +273,6 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        public string selected_month
-        {
-            get => _selected_month;
-            set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
-        }
-
         public string report_primary_mode
         {
             get => _report_primary_mode;
@@ -285,54 +282,10 @@ namespace NinOS.UI.Common.ViewModels
                 _report_primary_mode = value;
                 on_property_changed();
                 on_property_changed(nameof(is_report_zone_mode));
-                on_property_changed(nameof(is_report_year_mode));
-                on_property_changed(nameof(is_report_month_mode));
             }
         }
 
         public bool is_report_zone_mode => _report_primary_mode == "Por Zona";
-
-        public string report_zone_subperiod
-        {
-            get => _report_zone_subperiod;
-            set
-            {
-                if (_report_zone_subperiod == value) return;
-                _report_zone_subperiod = value;
-                on_property_changed();
-            }
-        }
-
-        /// <summary>
-        /// Cuando es true el reporte de CxC se arma por año completo en vez de por mes.
-        /// Solo afecta al PDF del popup de reporte; el combo de la barra de tools
-        /// sigue siendo mensual para el grid.
-        /// </summary>
-        public bool is_report_year_mode
-        {
-            get => _report_primary_mode == "Año";
-            set
-            {
-                if (value) report_primary_mode = "Año";
-                else if (_report_primary_mode == "Año") report_primary_mode = "Mes";
-            }
-        }
-
-        public bool is_report_month_mode
-        {
-            get => _report_primary_mode == "Mes";
-            set
-            {
-                if (value) report_primary_mode = "Mes";
-                else if (_report_primary_mode == "Mes") report_primary_mode = "Año";
-            }
-        }
-
-        public int selected_report_year
-        {
-            get => _selected_report_year;
-            set { if (_selected_report_year == value) return; _selected_report_year = value; on_property_changed(); }
-        }
 
         public SellerTabItem<accounts_receivable_row_dto>? selected_tab
         {
@@ -444,8 +397,6 @@ namespace NinOS.UI.Common.ViewModels
             _zona_service = zona_service;
             _business_unit = unit;
 
-            // available_months already initialized
-            pending_years = new ObservableCollection<int>();
             filter_options = new ObservableCollection<string>();
             all_notes = new ObservableCollection<accounts_receivable_row_dto>();
 
@@ -720,7 +671,6 @@ namespace NinOS.UI.Common.ViewModels
         {
             try
             {
-                var current_selection = _selected_month;
                 _is_loading = true;
 
                 var dbSellers = _seller_service != null
@@ -744,29 +694,6 @@ namespace NinOS.UI.Common.ViewModels
 
                 _all_notes_source = all_rows;
 
-                var detected_years = all_rows
-                    .Where(n => n.creation_date.Year >= 2000)
-                    .Select(n => AppTimeZone.to_local(n.creation_date).Year)
-                    .Distinct()
-                    .OrderByDescending(y => y)
-                    .ToList();
-
-                if (detected_years.Count == 0)
-                    detected_years.Add(DateTime.Now.Year);
-
-                available_years.Clear();
-                foreach (var y in detected_years) available_years.Add(y);
-                on_property_changed(nameof(selected_year));
-
-                if (!available_years.Contains(_selected_year))
-                {
-                    _selected_year = available_years[0];
-                    on_property_changed(nameof(selected_year));
-                }
-
-                update_available_months();
-                sync_report_years(all_rows);
-
                 _is_loading = false;
                 apply_filters();
             }
@@ -777,36 +704,10 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        /// <summary>
-        /// Anios con notas cargadas, mas el anio en curso para que el reporte anual
-        /// siempre tenga algo seleccionado aunque aun no haya notas de este anio.
-        /// </summary>
-        private void sync_report_years(List<accounts_receivable_row_dto> all_rows)
-        {
-            var years = all_rows
-                .Where(n => n.creation_date.Year >= 2000)
-                .Select(n => AppTimeZone.to_local(n.creation_date).Year)
-                .Distinct()
-                .OrderByDescending(y => y)
-                .ToList();
-
-            int current_year = DateTime.Now.Year;
-            if (!years.Contains(current_year)) years.Insert(0, current_year);
-
-            pending_years.Clear();
-            foreach (var y in years) pending_years.Add(y);
-
-            if (pending_years.Count > 0 && !pending_years.Contains(_selected_report_year))
-            {
-                _selected_report_year = pending_years[0];
-                on_property_changed(nameof(selected_report_year));
-            }
-        }
-
         private void apply_filters()
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
+            var filtered = filter_by_range_and_search(_all_notes_source, query);
 
             if (_selected_filter == "Por Cobrar")
                 filtered = filtered.Where(n => n.status == "Pendiente").ToList();
@@ -840,64 +741,9 @@ namespace NinOS.UI.Common.ViewModels
             recalc_totals();
         }
 
-        /// <summary>
-        /// Filtra por anio calendario usando la fecha en hora local: la columna se guarda en UTC
-        /// y una nota creada de noche caeria en el anio equivocado si se lee la columna cruda.
-        /// </summary>
-        private List<accounts_receivable_row_dto> filter_by_year(List<accounts_receivable_row_dto> source, int year)
+        private List<accounts_receivable_row_dto> filter_by_range_and_search(List<accounts_receivable_row_dto> source, string query)
         {
-            if (year <= 0) return new List<accounts_receivable_row_dto>();
-
-            return source
-                .Where(n => AppTimeZone.to_local(n.creation_date).Year == year)
-                .ToList();
-        }
-
-        private void update_available_months()
-        {
-            var months_in_year = _all_notes_source
-                .Where(n => n.creation_date.Year >= 2000 && AppTimeZone.to_local(n.creation_date).Year == _selected_year)
-                .Select(n => AppTimeZone.to_local(n.creation_date).Month)
-                .Distinct()
-                .OrderBy(m => m)
-                .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
-                .ToList();
-
-            var new_months = new List<string> { "", "Todos" };
-            new_months.AddRange(months_in_year);
-
-            string desired = _selected_month;
-            if (!new_months.Contains(desired))
-            {
-                desired = "Todos";
-            }
-
-            available_months.Clear();
-            foreach (var m in new_months) available_months.Add(m);
-
-            if (_selected_month != desired)
-            {
-                _selected_month = desired;
-                on_property_changed(nameof(selected_month));
-            }
-        }
-
-        private List<accounts_receivable_row_dto> filter_by_month_and_search(List<accounts_receivable_row_dto> source, string selected_month, string query)
-        {
-            if (string.IsNullOrEmpty(selected_month))
-                return new List<accounts_receivable_row_dto>();
-
-            var result = source.AsEnumerable();
-
-            if (selected_month == "Todos")
-            {
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year);
-            }
-            else
-            {
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year
-                                        && string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), selected_month, StringComparison.OrdinalIgnoreCase));
-            }
+            var result = source.Where(n => _rango_filtro.contiene(n.creation_date));
 
             if (!string.IsNullOrEmpty(query))
             {
@@ -1137,57 +983,11 @@ namespace NinOS.UI.Common.ViewModels
 
         private void execute_add_payment(object? parameter)
         {
-            string month_param = string.Empty;
-            if (!string.IsNullOrWhiteSpace(_selected_month) &&
-                !string.Equals(_selected_month, "Todos", StringComparison.OrdinalIgnoreCase))
-            {
-                month_param = $"{_selected_month} {_selected_year}";
-            }
-            on_request_add_payment_for_month?.Invoke(month_param);
+            on_request_add_payment_for_month?.Invoke(string.Empty);
         }
 
         public monthly_report_dto? build_cxc_report_dto()
         {
-            if (_report_primary_mode == "Por Zona")
-            {
-                if (_report_zone_subperiod == "Año" && _selected_report_year <= 0)
-                {
-                    AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return null;
-                }
-                if (_report_zone_subperiod == "Mes")
-                {
-                    if (_selected_report_year <= 0)
-                    {
-                        AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
-                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                        return null;
-                    }
-                    if (string.IsNullOrWhiteSpace(_selected_month))
-                    {
-                        AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
-                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                        return null;
-                    }
-                }
-            }
-            else if (is_report_year_mode)
-            {
-                if (_selected_report_year <= 0)
-                {
-                    AppDialog.Show("Seleccione un año para generar el reporte.", "Reporte de cuentas por cobrar",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    return null;
-                }
-            }
-            else if (string.IsNullOrWhiteSpace(_selected_month))
-            {
-                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de cuentas por cobrar",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                return null;
-            }
-
             // --- Alcance: vendedores y zonas ---
             var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -1220,51 +1020,28 @@ namespace NinOS.UI.Common.ViewModels
             if (is_zona)
             {
                 group_mode = "Por Zona";
-                if (_report_zone_subperiod == "Todas")
-                {
-                    var today = DateTime.Today;
-                    month_rows = _all_notes_source
-                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
-                                 && AppTimeZone.to_local(n.creation_date).Date <= today)
-                        .ToList();
-                    period_label = $"A LA FECHA ({today:dd/MM/yyyy})";
-                    period_title = "CUENTAS POR COBRAR - COBRANZA EN CALLE POR ZONAS";
-                }
-                else if (_report_zone_subperiod == "Año")
-                {
-                    month_rows = filter_by_year(_all_notes_source, _selected_report_year)
-                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
-                        .ToList();
-                    period_label = $"AÑO {_selected_report_year}";
-                    period_title = $"CUENTAS POR COBRAR - POR ZONAS (AÑO {_selected_report_year})";
-                }
-                else // Mes
-                {
-                    month_rows = _all_notes_source
-                        .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
-                                 && AppTimeZone.to_local(n.creation_date).Year == _selected_report_year
-                                 && (string.Equals(_selected_month, "Todos", StringComparison.OrdinalIgnoreCase)
-                                     || string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), _selected_month, StringComparison.OrdinalIgnoreCase)))
-                        .ToList();
-                    period_label = $"{_selected_month} {_selected_report_year}".ToUpperInvariant();
-                    period_title = "CUENTAS POR COBRAR - POR ZONAS";
-                }
+                bool sin_fechas = _rango_reporte.desde == null && _rango_reporte.hasta == null;
+                month_rows = _all_notes_source
+                    .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                             && _rango_reporte.contiene(n.creation_date))
+                    .ToList();
+                period_label = sin_fechas
+                    ? $"A LA FECHA ({DateTime.Today:dd/MM/yyyy})"
+                    : _rango_reporte.texto_titulo_mayusculas();
+                period_title = sin_fechas
+                    ? "CUENTAS POR COBRAR - COBRANZA EN CALLE POR ZONAS"
+                    : "CUENTAS POR COBRAR - POR ZONAS";
             }
             else
             {
                 group_mode = string.IsNullOrWhiteSpace(_selected_report_group) ? "Por Vendedor" : _selected_report_group;
-                month_rows = (is_report_year_mode
-                        ? filter_by_year(_all_notes_source, _selected_report_year)
-                        : filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty))
-                    .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase))
+                month_rows = _all_notes_source
+                    .Where(n => string.Equals(n.status?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+                             && _rango_reporte.contiene(n.creation_date))
                     .ToList();
 
-                period_label = is_report_year_mode
-                    ? $"AÑO {_selected_report_year}"
-                    : _selected_month;
-                period_title = is_report_year_mode
-                    ? "CUENTAS POR COBRAR - DETALLE DEL AÑO"
-                    : "CUENTAS POR COBRAR - DETALLE DEL MES";
+                period_label = _rango_reporte.texto_titulo_mayusculas();
+                period_title = "CUENTAS POR COBRAR - DETALLE DEL PERIODO";
             }
 
             if (filter_sellers)
@@ -1288,7 +1065,7 @@ namespace NinOS.UI.Common.ViewModels
             }
             string combined = string.Join(" - ", new[] { seller_suffix, zone_suffix }.Where(s => !string.IsNullOrEmpty(s)));
 
-            bool is_full_detail = is_zona || is_report_year_mode;
+            bool is_full_detail = is_zona;
 
             return new monthly_report_dto
             {
@@ -1301,9 +1078,7 @@ namespace NinOS.UI.Common.ViewModels
                 show_paid_balance_summary = true,
                 empty_text = is_zona
                     ? "Sin cuentas por cobrar pendientes para los filtros de zona seleccionados."
-                    : (is_report_year_mode
-                        ? "Sin cuentas por cobrar para el año seleccionado."
-                        : "Sin cuentas por cobrar para el mes seleccionado."),
+                    : "Sin cuentas por cobrar para el periodo seleccionado.",
                 group_mode = group_mode,
                 ordenar_zombies_primero = is_full_detail,
                 show_dispatch_date_column = is_full_detail,

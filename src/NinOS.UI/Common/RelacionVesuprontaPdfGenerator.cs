@@ -18,7 +18,7 @@ namespace NinOS.UI.Common
         public static string get_default_file_name(relacion_vesupronta_reporte reporte)
         {
             ArgumentNullException.ThrowIfNull(reporte);
-            string periodo = reporte.periodo_texto.Replace(" ", "_").ToUpperInvariant();
+            string periodo = reporte.periodo_texto.Replace(" ", "_").Replace("/", "-").ToUpperInvariant();
             return $"RELACION_VESUPRONTA_{periodo}_{DateTime.Now:yyyyMMdd}.pdf";
         }
 

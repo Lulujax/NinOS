@@ -8,14 +8,13 @@ namespace NinOS.Tests.Dominio
 {
     public class RelacionVesuprontaCalculatorTests
     {
-        private static relacion_periodo mes(int anio, int mes_numero) =>
-            new relacion_periodo(relacion_modo_periodo.Mes, anio, mes_numero);
+        private static rango_fechas mes(int anio, int mes_numero) =>
+            new rango_fechas(new DateTime(anio, mes_numero, 1), new DateTime(anio, mes_numero, DateTime.DaysInMonth(anio, mes_numero)));
 
-        private static relacion_periodo anio(int anio_numero) =>
-            new relacion_periodo(relacion_modo_periodo.Anio, anio_numero, 1);
+        private static rango_fechas anio(int anio_numero) =>
+            new rango_fechas(new DateTime(anio_numero, 1, 1), new DateTime(anio_numero, 12, 31));
 
-        private static relacion_periodo todos() =>
-            new relacion_periodo(relacion_modo_periodo.Todos, 2026, 1);
+        private static rango_fechas todos() => rango_fechas.sin_limites();
 
         private static relacion_vesupronta_fuente nota(
             int id = 1,
@@ -174,6 +173,7 @@ namespace NinOS.Tests.Dominio
 
             Assert.Equal(2, reporte.filas.Count);
             Assert.Equal("TOTAL VENTAS TODOS LOS PERIODOS", reporte.etiqueta_total_ventas);
+            Assert.Equal("RELACION POR COBRAR/VENTAS TODOS LOS PERIODOS VESU PRONTA", reporte.titulo);
         }
 
         [Fact]
@@ -187,21 +187,20 @@ namespace NinOS.Tests.Dominio
         }
 
         [Fact]
-        public void caso_feliz_titulo_del_mes_lleva_nombre_del_mes_y_anio()
+        public void caso_feliz_titulo_muestra_el_rango_de_fechas_en_mayusculas()
         {
             var reporte = relacion_vesupronta_calculator.construir(Array.Empty<relacion_vesupronta_fuente>(), mes(2025, 8));
 
-            Assert.Equal("RELACION POR COBRAR/VENTAS AGOSTO 2025 VESU PRONTA", reporte.titulo);
-            Assert.Equal("TOTAL VENTAS AGOSTO 2025", reporte.etiqueta_total_ventas);
+            Assert.Equal("RELACION POR COBRAR/VENTAS DEL 01/08/2025 AL 31/08/2025 VESU PRONTA", reporte.titulo);
+            Assert.Equal("TOTAL VENTAS DEL 01/08/2025 AL 31/08/2025", reporte.etiqueta_total_ventas);
         }
 
         [Fact]
-        public void caso_feliz_titulo_del_anio_lleva_solo_el_anio()
+        public void caso_feliz_titulo_de_anio_completo_muestra_las_dos_fechas()
         {
             var reporte = relacion_vesupronta_calculator.construir(Array.Empty<relacion_vesupronta_fuente>(), anio(2026));
 
-            Assert.Equal("RELACION POR COBRAR/VENTAS 2026 VESU PRONTA", reporte.titulo);
-            Assert.Equal("TOTAL VENTAS 2026", reporte.etiqueta_total_ventas);
+            Assert.Equal("RELACION POR COBRAR/VENTAS DEL 01/01/2026 AL 31/12/2026 VESU PRONTA", reporte.titulo);
         }
 
         [Fact]

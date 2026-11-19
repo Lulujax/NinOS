@@ -5,15 +5,6 @@ using System.Linq;
 
 namespace NinOS.Domain
 {
-    public enum relacion_modo_periodo
-    {
-        Mes,
-        Anio,
-        Todos
-    }
-
-    public readonly record struct relacion_periodo(relacion_modo_periodo modo, int anio, int mes);
-
     public class relacion_vesupronta_fuente
     {
         private const string ESTADO_ANULADA = "Anulada";
@@ -113,17 +104,14 @@ namespace NinOS.Domain
     public static class relacion_vesupronta_calculator
     {
         public const decimal PORCENTAJE_COMISION = 0.10m;
-        private const int ANIO_MINIMO = 2000;
-        private static readonly CultureInfo CultureEs = new CultureInfo("es-VE");
-
-        public static relacion_vesupronta_reporte construir(IEnumerable<relacion_vesupronta_fuente> fuentes, relacion_periodo periodo)
+        public static relacion_vesupronta_reporte construir(IEnumerable<relacion_vesupronta_fuente> fuentes, rango_fechas rango)
         {
             ArgumentNullException.ThrowIfNull(fuentes);
-            validar_periodo(periodo);
+            ArgumentNullException.ThrowIfNull(rango);
 
             List<relacion_vesupronta_fila> filas = fuentes
                 .Where(fuente => !fuente.esta_anulada)
-                .Where(fuente => pertenece_al_periodo(fuente.creation_date, periodo))
+                .Where(fuente => rango.contiene(fuente.creation_date))
                 .OrderBy(fuente => fuente.dispatch_date ?? fuente.creation_date)
                 .ThenBy(fuente => fuente.id_delivery_note)
                 .Select(FilaDesde)
@@ -137,38 +125,18 @@ namespace NinOS.Domain
 
             return new relacion_vesupronta_reporte
             {
-                titulo = titulo(periodo),
-                periodo_texto = periodo_texto(periodo),
-                etiqueta_total_ventas = $"TOTAL VENTAS {periodo_texto(periodo)}",
+                titulo = titulo(rango),
+                periodo_texto = rango.texto_titulo_mayusculas(),
+                etiqueta_total_ventas = $"TOTAL VENTAS {rango.texto_titulo_mayusculas()}",
                 filas = filas,
                 total_ventas = total_ventas,
                 total_por_cobrar = total_por_cobrar
             };
         }
 
-        public static bool pertenece_al_periodo(DateTime creation_utc, relacion_periodo periodo)
+        public static string titulo(rango_fechas rango)
         {
-            if (periodo.modo == relacion_modo_periodo.Todos) return true;
-
-            DateTime local = AppTimeZone.to_local(creation_utc);
-            if (local.Year != periodo.anio) return false;
-
-            return periodo.modo == relacion_modo_periodo.Anio || local.Month == periodo.mes;
-        }
-
-        public static string titulo(relacion_periodo periodo)
-        {
-            return $"RELACION POR COBRAR/VENTAS {periodo_texto(periodo)} VESU PRONTA";
-        }
-
-        public static string periodo_texto(relacion_periodo periodo)
-        {
-            return periodo.modo switch
-            {
-                relacion_modo_periodo.Mes => $"{CultureEs.DateTimeFormat.GetMonthName(periodo.mes).ToUpperInvariant()} {periodo.anio}",
-                relacion_modo_periodo.Anio => periodo.anio.ToString(CultureInfo.InvariantCulture),
-                _ => "TODOS LOS PERIODOS"
-            };
+            return $"RELACION POR COBRAR/VENTAS {rango.texto_titulo_mayusculas()} VESU PRONTA";
         }
 
         private static relacion_vesupronta_fila FilaDesde(relacion_vesupronta_fuente fuente)
@@ -192,15 +160,5 @@ namespace NinOS.Domain
             };
         }
 
-        private static void validar_periodo(relacion_periodo periodo)
-        {
-            if (periodo.modo == relacion_modo_periodo.Todos) return;
-
-            if (periodo.anio < ANIO_MINIMO)
-                throw new ArgumentOutOfRangeException(nameof(periodo), "El año del reporte no es válido.");
-
-            if (periodo.modo == relacion_modo_periodo.Mes && (periodo.mes < 1 || periodo.mes > 12))
-                throw new ArgumentOutOfRangeException(nameof(periodo), "El mes del reporte debe estar entre 1 y 12.");
-        }
     }
 }

@@ -434,24 +434,34 @@ namespace NinOS.Infrastructure.Services.Implementations
             return Task.FromResult(Enumerable.Empty<payment_dto>());
         }
 
-        public async Task<IEnumerable<payment_dto>> get_payments_by_period_async(int year, int? month = null)
+        public Task<IEnumerable<payment_dto>> get_payments_by_period_async(int year, int? month = null)
         {
+            DateTime desde = month.HasValue ? new DateTime(year, month.Value, 1) : new DateTime(year, 1, 1);
+            DateTime hasta = month.HasValue ? new DateTime(year, month.Value, DateTime.DaysInMonth(year, month.Value)) : new DateTime(year, 12, 31);
+            return get_payments_by_range_async(new rango_fechas(desde, hasta));
+        }
+
+        public async Task<IEnumerable<payment_dto>> get_payments_by_range_async(rango_fechas rango)
+        {
+            ArgumentNullException.ThrowIfNull(rango);
+            AppLog.Info($"Consulta de pagos por rango: {rango.texto_titulo()}.");
             using var scope = _scope_factory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-
             double tz_offset = AppTimeZone.offset_hours;
-
             var query = db.payments
                 .AsNoTracking()
-                .Where(p => p.payment_date.AddHours(tz_offset).Year == year
-                         && p.payment_type != "NOTA DE CREDITO"
+                .Where(p => p.payment_type != "NOTA DE CREDITO"
                          && p.id_delivery_note != null);
-
-            if (month.HasValue)
+            if (rango.desde.HasValue)
             {
-                query = query.Where(p => p.payment_date.AddHours(tz_offset).Month == month.Value);
+                DateTime desde_local = rango.desde.Value;
+                query = query.Where(p => p.payment_date.AddHours(tz_offset) >= desde_local);
             }
-
+            if (rango.hasta.HasValue)
+            {
+                DateTime hasta_siguiente_dia = rango.hasta.Value.AddDays(1);
+                query = query.Where(p => p.payment_date.AddHours(tz_offset) < hasta_siguiente_dia);
+            }
             var payments = await query
                 .OrderByDescending(p => p.payment_date)
                 .ToListAsync();

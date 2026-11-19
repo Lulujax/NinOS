@@ -108,7 +108,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private string _selected_month = string.Empty;
+        private rango_fechas _rango_filtro = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
 
 
 
@@ -132,7 +132,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public ObservableCollection<string> credit_note_months { get; }
+
 
 
 
@@ -381,117 +381,17 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private int _selected_year = DateTime.Now.Year;
-
-
-
-        public ObservableCollection<int> available_years { get; } = new ObservableCollection<int>();
-
-
-
-
-
-
-
-        public int selected_year
-
-
-
+        public rango_fechas rango_filtro
         {
-
-
-
-            get => _selected_year;
-
-
-
+            get => _rango_filtro;
             set
-
-
-
             {
-
-
-
-                if (_selected_year == value) return;
-
-
-
-                _selected_year = value;
-
-
-
+                if (value == null || _rango_filtro == value) return;
+                _rango_filtro = value;
                 on_property_changed();
-
-
-
-                update_available_months();
-
-
-
                 if (!_is_loading) apply_filters();
-
-
-
             }
-
-
-
         }
-
-
-
-
-
-
-
-        public string selected_month
-
-
-
-        {
-
-
-
-            get => _selected_month;
-
-
-
-            set
-
-
-
-            {
-
-
-
-                if (_selected_month == value) return;
-
-
-
-                _selected_month = value ?? string.Empty;
-
-
-
-                on_property_changed();
-
-
-
-                if (!_is_loading) apply_filters();
-
-
-
-            }
-
-
-
-        }
-
-
-
-
-
-
 
         public decimal total_credit_usd
 
@@ -614,7 +514,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            credit_note_months = new ObservableCollection<string>();
+
 
 
 
@@ -1094,7 +994,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-                var current_selection = _selected_month;
+
 
 
 
@@ -1130,84 +1030,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-                var detected_years = _all_credit_rows
 
-
-
-                    .Where(n => n.creation_date.Year >= 2000)
-
-
-
-                    .Select(n => AppTimeZone.to_local(n.creation_date).Year)
-
-
-
-                    .Distinct()
-
-
-
-                    .OrderByDescending(y => y)
-
-
-
-                    .ToList();
-
-
-
-
-
-
-
-                if (detected_years.Count == 0)
-
-
-
-                    detected_years.Add(DateTime.Now.Year);
-
-
-
-
-
-
-
-                available_years.Clear();
-
-
-
-                foreach (var y in detected_years) available_years.Add(y);
-                on_property_changed(nameof(selected_year));
-
-
-
-
-
-
-
-                if (!available_years.Contains(_selected_year))
-
-
-
-                {
-
-
-
-                    _selected_year = available_years[0];
-
-
-
-                    on_property_changed(nameof(selected_year));
-
-
-
-                }
-
-
-
-
-
-
-
-                update_available_months();
 
 
 
@@ -1307,119 +1130,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private void update_available_months()
-
-
-
-        {
-
-
-
-            var months_in_year = _all_credit_rows
-
-
-
-                .Where(n => n.creation_date.Year >= 2000 && AppTimeZone.to_local(n.creation_date).Year == _selected_year)
-
-
-
-                .Select(n => AppTimeZone.to_local(n.creation_date).Month)
-
-
-
-                .Distinct()
-
-
-
-                .OrderBy(m => m)
-
-
-
-                .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
-
-
-
-                .ToList();
-
-
-
-
-
-
-
-            var new_months = new List<string> { "", "Todos" };
-
-
-
-            new_months.AddRange(months_in_year);
-
-
-
-
-
-
-
-            string desired = _selected_month;
-
-
-
-            if (!new_months.Contains(desired))
-
-
-
-            {
-
-
-
-                desired = "Todos";
-
-
-
-            }
-
-
-
-
-
-
-
-            credit_note_months.Clear();
-
-
-
-            foreach (var m in new_months) credit_note_months.Add(m);
-
-
-
-
-
-
-
-            if (_selected_month != desired)
-
-
-
-            {
-
-
-
-                _selected_month = desired;
-
-
-
-                on_property_changed(nameof(selected_month));
-
-
-
-            }
-
-
-
-        }
-
-
-
-        private void apply_filters()
+private void apply_filters()
 
 
 
@@ -1449,67 +1160,8 @@ namespace NinOS.UI.Common.ViewModels
 
         
 
-            IEnumerable<credit_note_dto> filtered;
-
-
-
-            if (string.IsNullOrEmpty(_selected_month))
-
-
-
-            {
-
-
-
-                filtered = Enumerable.Empty<credit_note_dto>();
-
-
-
-            }
-
-
-
-            else if (_selected_month == "Todos")
-
-
-
-            {
-
-
-
-                filtered = _all_credit_rows.Where(r => AppTimeZone.to_local(r.creation_date).Year == _selected_year);
-
-
-
-            }
-
-
-
-            else
-
-
-
-            {
-
-
-
-                filtered = _all_credit_rows.Where(r => AppTimeZone.to_local(r.creation_date).Year == _selected_year
-
-
-
-                                                    && string.Equals(AppTimeZone.to_local(r.creation_date).ToString("MMMM", new CultureInfo("es-VE")), _selected_month, StringComparison.OrdinalIgnoreCase));
-
-
-
-            }
-
-
-
-
-
-
-
-            if (!string.IsNullOrEmpty(_selected_category_filter) && !_selected_category_filter.Equals("Todas", StringComparison.OrdinalIgnoreCase))
+        IEnumerable<credit_note_dto> filtered = _all_credit_rows.Where(r => _rango_filtro.contiene(r.creation_date));
+        if (!string.IsNullOrEmpty(_selected_category_filter) && !_selected_category_filter.Equals("Todas", StringComparison.OrdinalIgnoreCase))
 
 
 
@@ -1788,11 +1440,11 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public async Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, string? month_year = null)
+        public async Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, rango_fechas? rango = null)
 
 
 
-            => await _credit_note_service.get_delivery_notes_for_credit_async(id_seller, month_year);
+            => await _credit_note_service.get_delivery_notes_for_credit_async(id_seller, rango);
 
 
 
@@ -1812,11 +1464,8 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public async Task<IEnumerable<string>> get_delivery_note_months_for_seller_async(int id_seller)
 
 
-
-            => await _credit_note_service.get_delivery_note_months_for_seller_async(id_seller);
 
 
 

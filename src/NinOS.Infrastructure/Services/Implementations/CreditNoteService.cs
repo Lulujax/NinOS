@@ -47,38 +47,7 @@ namespace NinOS.Infrastructure.Services.Implementations
             }
         }
 
-        public async Task<IEnumerable<string>> get_delivery_note_months_for_seller_async(int id_seller)
-        {
-            using (var scope = _scope_factory.CreateScope())
-            {
-                var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-
-                // Se convierte a hora de Venezuela antes de tomar el anio y el mes, igual que en el
-                // filtro por mes de esta misma vista, para que el combo y el filtro coincidan.
-                // No se usa TimeZoneInfo.Local: el sistema opera en Caracas (UTC-4), no en la
-                // zona de la maquina, y una nota creada a medianoche se reportaba en el mes anterior.
-                double local_offset_hours = AppTimeZone.offset_hours;
-
-                var dates = await db_context.delivery_notes
-                    .AsNoTracking()
-                    .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta")
-                    .Select(dn => new
-                    {
-                        dn.creation_date.AddHours(-local_offset_hours).Year,
-                        dn.creation_date.AddHours(-local_offset_hours).Month
-                    })
-                    .Distinct()
-                    .OrderBy(d => d.Year)
-                    .ThenBy(d => d.Month)
-                    .ToListAsync();
-
-                return dates
-                    .Select(d => new DateTime(d.Year, d.Month, 1).ToString("MMMM yyyy", new CultureInfo("es-VE")))
-                    .ToList();
-            }
-        }
-
-        public async Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, string? month_year = null)
+        public async Task<IEnumerable<accounts_receivable_dto>> get_delivery_notes_for_credit_async(int id_seller, rango_fechas? rango = null)
         {
             using (var scope = _scope_factory.CreateScope())
             {
@@ -90,21 +59,11 @@ namespace NinOS.Infrastructure.Services.Implementations
                     .Where(dn => dn.id_seller == id_seller && dn.status != "Anulada" && dn.status != "Devuelta")
                     .Where(NoteScopeFilter.delivery_notes_in_scope(credit_scope));
 
-                if (!string.IsNullOrWhiteSpace(month_year))
+                if (rango != null)
                 {
-                    if (DateTime.TryParseExact(month_year.Trim(), "MMMM yyyy", new CultureInfo("es-VE"), DateTimeStyles.None, out var target_date))
-                    {
-                        // Se compara contra un rango en UTC, no con Year/Month. La columna guarda
-                        // UTC, asi que extraer el mes de la columna cruda corre el riesgo de poner
-                        // en el mes equivocado un documento creado de noche (ya va en el mes
-                        // siguiente al guardarlo). El rango se arma desde la hora local del
-                        // primer dia del mes y del siguiente, y se convierte a UTC.
-                        var month_start = new DateTime(target_date.Year, target_date.Month, 1, 0, 0, 0, DateTimeKind.Local);
-                        var month_end = month_start.AddMonths(1);
-
-                        query = query.Where(dn => dn.creation_date >= month_start.ToUniversalTime()
-                                              && dn.creation_date < month_end.ToUniversalTime());
-                    }
+                    var (desde_utc, hasta_utc_exclusivo) = rango.a_limites_utc();
+                    if (desde_utc.HasValue) query = query.Where(dn => dn.creation_date >= desde_utc.Value);
+                    if (hasta_utc_exclusivo.HasValue) query = query.Where(dn => dn.creation_date < hasta_utc_exclusivo.Value);
                 }
 
                 var notes = await query

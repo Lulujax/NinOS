@@ -7,8 +7,8 @@ La clienta necesita, dentro de Vesupronta, una relación parecida a la del repor
 ## Requisitos
 
 - **RF-1** EL SISTEMA mostrará en la pestaña Vesupronta una sub-pestaña llamada **RELACION** con la relación de las notas de Vesupronta.
-- **RF-2** EL SISTEMA permitirá elegir el periodo: **Mes** (con mes y año), **Año** o **Todos**.
-- **RF-3** EL SISTEMA mostrará el título `RELACION POR COBRAR/VENTAS {PERIODO} VESU PRONTA`, donde {PERIODO} es el mes y año (ej. AGOSTO 2025), el año, o TODOS LOS PERIODOS.
+- **RF-2** EL SISTEMA permitirá elegir el periodo con el filtro Desde / Hasta de la spec 016 (antes: Mes, Año o Todos).
+- **RF-3** EL SISTEMA mostrará el título `RELACION POR COBRAR/VENTAS {PERIODO} VESU PRONTA`, donde {PERIODO} sale de la spec 016 (RF-22d): ej. `DEL 01/08/2025 AL 31/08/2025`, o TODOS LOS PERIODOS con los dos campos vacíos.
 - **RF-4** EL SISTEMA mostrará una fila por nota con las columnas: fecha de despacho, nro (solo el número de la nota), cliente (en varias líneas si el nombre es largo), monto facturado, descuento, fecha de pago, monto pagado, 10% comisión, saldo actualizado y fecha de comisión cancelada.
 - **RF-5** CUANDO se calcule el monto facturado, EL SISTEMA usará el total congelado en la foto de impresión de la nota (el total con descuento que salió impreso). SI la nota no tiene foto, ENTONCES EL SISTEMA usará los datos vivos y lo dejará en el log.
 - **RF-6** EL SISTEMA mostrará en la columna descuento **SI** cuando la nota tenga descuento de condición o de volumen mayor que cero, y **NO** en cualquier otro caso.

@@ -104,7 +104,8 @@ namespace NinOS.UI.Common.ViewModels
 
         private string _search_query = string.Empty;
 
-        private string _selected_month = string.Empty;
+        private rango_fechas _rango_filtro = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
+        private rango_fechas _rango_reporte = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
 
         private string _selected_filter = "Pagadas";
 
@@ -174,38 +175,27 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private int _selected_year = DateTime.Now.Year;
-
-        public ObservableCollection<int> available_years { get; } = new ObservableCollection<int>();
-
-        public ObservableCollection<string> available_months { get; } = new ObservableCollection<string>();
-
-        public ObservableCollection<string> pending_months => available_months;
-
-
-
-        public int selected_year
-
+        public rango_fechas rango_filtro
         {
-
-            get => _selected_year;
-
+            get => _rango_filtro;
             set
-
             {
-
-                if (_selected_year == value) return;
-
-                _selected_year = value;
-
+                if (value == null || _rango_filtro == value) return;
+                _rango_filtro = value;
                 on_property_changed();
-
-                update_available_months();
-
                 if (!_is_loading) apply_filters();
-
             }
+        }
 
+        public rango_fechas rango_reporte
+        {
+            get => _rango_reporte;
+            set
+            {
+                if (value == null || _rango_reporte == value) return;
+                _rango_reporte = value;
+                on_property_changed();
+            }
         }
 
         public ObservableCollection<string> filter_options { get; }
@@ -339,15 +329,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        public string selected_month
 
-        {
-
-            get => _selected_month;
-
-            set { if (_selected_month == value) return; _selected_month = value ?? string.Empty; on_property_changed(); if (!_is_loading) apply_filters(); }
-
-        }
 
 
 
@@ -492,7 +474,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            // available_months already initialized
+
 
             filter_options = new ObservableCollection<string>();
 
@@ -944,7 +926,7 @@ namespace NinOS.UI.Common.ViewModels
 
             {
 
-                var current_selection = _selected_month;
+
 
                 _is_loading = true;
 
@@ -982,46 +964,7 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-                var detected_years = all_rows
 
-                    .Where(n => n.creation_date.Year >= 2000)
-
-                    .Select(n => AppTimeZone.to_local(n.creation_date).Year)
-
-                    .Distinct()
-
-                    .OrderByDescending(y => y)
-
-                    .ToList();
-
-
-
-                if (detected_years.Count == 0)
-
-                    detected_years.Add(DateTime.Now.Year);
-
-
-
-                available_years.Clear();
-
-                foreach (var y in detected_years) available_years.Add(y);
-                on_property_changed(nameof(selected_year));
-
-
-
-                if (!available_years.Contains(_selected_year))
-
-                {
-
-                    _selected_year = available_years[0];
-
-                    on_property_changed(nameof(selected_year));
-
-                }
-
-
-
-                update_available_months();
 
 
 
@@ -1079,21 +1022,10 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            // Sin mes seleccionado (estado vacio) no mostrar filas.
-
-            var filtered = string.IsNullOrEmpty(_selected_month)
-
-                ? new List<payment_row_dto>()
-
-                : filter_by_month_and_search(source.ToList(), _selected_month, query)
-
-                    .OrderBy(n => n.creation_date)
-
-                    .ThenBy(n => n.id_delivery_note)
-
-                    .ToList();
-
-
+            var filtered = filter_by_range_and_search(source.ToList(), query)
+                .OrderBy(n => n.creation_date)
+                .ThenBy(n => n.id_delivery_note)
+                .ToList();
 
             update_collection(all_notes, filtered);
 
@@ -1121,97 +1053,9 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-        private void update_available_months()
-
+        private List<payment_row_dto> filter_by_range_and_search(List<payment_row_dto> source, string query)
         {
-
-            var months_in_year = _all_notes_source
-
-                .Where(n => n.creation_date.Year >= 2000 && AppTimeZone.to_local(n.creation_date).Year == _selected_year)
-
-                .Select(n => AppTimeZone.to_local(n.creation_date).Month)
-
-                .Distinct()
-
-                .OrderBy(m => m)
-
-                .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
-
-                .ToList();
-
-
-
-            var new_months = new List<string> { "", "Todos" };
-
-            new_months.AddRange(months_in_year);
-
-
-
-            string desired = _selected_month;
-
-            if (!new_months.Contains(desired))
-
-            {
-
-                desired = "Todos";
-
-            }
-
-
-
-            available_months.Clear();
-
-            foreach (var m in new_months) available_months.Add(m);
-
-
-
-            if (_selected_month != desired)
-
-            {
-
-                _selected_month = desired;
-
-                on_property_changed(nameof(selected_month));
-
-            }
-
-        }
-
-
-
-        private List<payment_row_dto> filter_by_month_and_search(List<payment_row_dto> source, string selected_month, string query)
-
-        {
-
-            if (string.IsNullOrEmpty(selected_month))
-
-                return new List<payment_row_dto>();
-
-
-
-            var result = source.AsEnumerable();
-
-
-
-            if (selected_month == "Todos")
-
-            {
-
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year);
-
-            }
-
-            else
-
-            {
-
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year
-
-                                        && string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), selected_month, StringComparison.OrdinalIgnoreCase));
-
-            }
-
-
+            var result = source.Where(n => _rango_filtro.contiene(n.last_payment_date ?? n.creation_date));
 
             if (!string.IsNullOrEmpty(query))
 
@@ -1477,17 +1321,7 @@ namespace NinOS.UI.Common.ViewModels
 
         {
 
-            if (string.IsNullOrWhiteSpace(_selected_month))
 
-            {
-
-                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de pagos",
-
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-                return null;
-
-            }
 
 
 
@@ -1535,33 +1369,8 @@ namespace NinOS.UI.Common.ViewModels
 
 
 
-            List<payment_dto> payments;
-
-            string period_label;
-
-            if (_selected_month == "Todos")
-
-            {
-
-                payments = (await _payment_service.get_payments_by_period_async(_selected_year, null)).ToList();
-
-                period_label = $"AÑO {_selected_year}";
-
-            }
-
-            else
-
-            {
-
-                int month_num = DateTime.ParseExact(_selected_month, "MMMM", new CultureInfo("es-VE")).Month;
-
-                payments = (await _payment_service.get_payments_by_period_async(_selected_year, month_num)).ToList();
-
-                period_label = $"{_selected_month} {_selected_year}".ToUpperInvariant();
-
-            }
-
-
+            var payments = (await _payment_service.get_payments_by_range_async(_rango_reporte)).ToList();
+            string period_label = _rango_reporte.texto_titulo_mayusculas();
 
             if (filter_sellers)
 

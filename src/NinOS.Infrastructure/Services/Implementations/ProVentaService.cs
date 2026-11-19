@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using System.Collections.Generic;
 
@@ -44,80 +44,6 @@ namespace NinOS.Infrastructure.Services.Implementations
         }
 
 
-
-        public async Task<List<pro_venta_month_option>> get_available_months_async()
-
-        {
-
-            using var scope = _scope_factory.CreateScope();
-
-            var db_context = scope.ServiceProvider.GetRequiredService<NinOSDbContext>();
-
-
-
-            var mar_ids = await db_context.note_types
-
-                .Where(t => NoteTypeCodes.pro_venta_codes.Contains(t.code))
-
-                .Select(t => t.id_note_type)
-
-                .ToListAsync();
-
-
-
-            var now = DateTime.Now;
-
-
-
-            double tz_offset = AppTimeZone.offset_hours;
-
-
-
-            var months = await db_context.delivery_notes
-
-                .AsNoTracking()
-
-                .Where(n => n.note_type_id != null && mar_ids.Contains(n.note_type_id.Value))
-
-                .Select(n => new {
-
-                    Year = n.creation_date.AddHours(tz_offset).Year,
-
-                    Month = n.creation_date.AddHours(tz_offset).Month })
-
-                .Distinct()
-
-                .ToListAsync();
-
-
-
-            var culture = new System.Globalization.CultureInfo("es-VE");
-
-
-
-            return months
-
-                .Select(m => new DateTime(m.Year, m.Month, 1))
-
-                .Concat(new[] { new DateTime(now.Year, now.Month, 1) })
-
-                .Distinct()
-
-                .OrderBy(d => d)
-
-                .Select(d => new pro_venta_month_option
-
-                {
-
-                    value = d,
-
-                    label = d.ToString("MMMM yyyy", culture)
-
-                })
-
-                .ToList();
-
-        }
 
 
 
@@ -1190,7 +1116,8 @@ namespace NinOS.Infrastructure.Services.Implementations
 
                 week_end = r.week_end,
 
-                label = $"Relacion nro {r.relation_number}"
+                es_hueca = r.es_hueca,
+                label = $"Relación {r.relation_number} ({r.week_start:dd/MM} - {r.week_end:dd/MM})"
 
             }).ToList();
 

@@ -32,15 +32,10 @@ namespace NinOS.UI.Views
             return _reporte_vm;
         }
 
-        private async void on_reporte_click(object sender, RoutedEventArgs e)
+        private void on_reporte_click(object sender, RoutedEventArgs e)
         {
             var reporte_vm = get_reporte_vm();
             if (reporte_vm == null) return;
-
-            if (!popup_reporte.IsOpen)
-            {
-                await reporte_vm.load_options_async();
-            }
 
             popup_reporte.IsOpen = !popup_reporte.IsOpen;
         }
@@ -101,7 +96,7 @@ namespace NinOS.UI.Views
             string? initial_zona = vm.selected_tab?.IdZona != null ? vm.selected_tab.Header : null;
             string? initial_category = vm.selected_category_filter;
 
-            var window = new AddCreditNoteWindow(vm, vm.selected_month, initial_seller, initial_category, initial_zona)
+            var window = new AddCreditNoteWindow(vm, initial_seller, initial_category, initial_zona)
             {
                 Owner = Window.GetWindow(this)
             };

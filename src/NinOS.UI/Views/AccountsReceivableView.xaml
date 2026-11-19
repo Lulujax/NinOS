@@ -3,6 +3,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:NinOS.UI.Controls"
 
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 
@@ -508,31 +509,7 @@
 
             <!-- Año + Mes + Filtro -->
 
-                <TextBlock VerticalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" Margin="0,0,6,6"><Run Text="Año:"/><Run Text="*" Foreground="#F44336"/></TextBlock>
-
-                <ComboBox x:Name="cmb_year" Margin="0,0,8,6" MinWidth="75" VerticalAlignment="Center"
-
-                          ItemsSource="{Binding available_years}"
-
-                          SelectedItem="{Binding selected_year}"
-
-                          FontSize="12.5" Height="26"
-
-                          HorizontalContentAlignment="Center"/>
-
-
-
-                <TextBlock VerticalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" Margin="0,0,6,6"><Run Text="Mes:"/><Run Text="*" Foreground="#F44336"/></TextBlock>
-
-                <ComboBox x:Name="cmb_month" Margin="0,0,8,6" MinWidth="105"
-
-                          ItemsSource="{Binding available_months}"
-
-                          SelectedItem="{Binding selected_month}"
-
-                          FontSize="12.5" Height="26" VerticalAlignment="Center"
-
-                          HorizontalContentAlignment="Center"/>
+                <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,8,6" VerticalAlignment="Center"/>
 
 
 
@@ -629,58 +606,20 @@
 
 
 
-                    <!-- PERIODO / CRITERIO DEL REPORTE -->
+                    <!-- CRITERIO DEL REPORTE -->
                     <TextBlock Text="CRITERIO DEL REPORTE" FontSize="9.5" FontWeight="Bold" Foreground="#55665C" Margin="0,0,0,3"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <RadioButton Content="Mes" GroupName="cxc_periodo" x:Name="rbtn_periodo_mes"
+                        <RadioButton Content="Normal" GroupName="cxc_periodo" x:Name="rbtn_periodo_mes"
                                      Checked="on_periodo_mes_checked"
                                      FontSize="11.5" Foreground="#333333" Margin="0,0,12,0" Cursor="Hand" IsChecked="True"/>
-                        <RadioButton Content="Año" GroupName="cxc_periodo" x:Name="rbtn_periodo_anio"
-                                     Checked="on_periodo_anio_checked"
-                                     FontSize="11.5" Foreground="#333333" Margin="0,0,12,0" Cursor="Hand"/>
                         <RadioButton Content="Por Zona" GroupName="cxc_periodo" x:Name="rbtn_periodo_zona"
                                      Checked="on_periodo_zona_checked"
                                      FontSize="11.5" FontWeight="Bold" Foreground="#1B3A2D" Cursor="Hand"/>
                     </StackPanel>
-
-                    <StackPanel x:Name="panel_periodo_mes">
-                        <ComboBox ItemsSource="{Binding pending_months}"
-                                  SelectedItem="{Binding selected_month}"
-                                  FontSize="11.5" Height="25" Cursor="Hand"/>
-                    </StackPanel>
-
-                    <StackPanel x:Name="panel_periodo_anio" Visibility="Collapsed">
-                        <ComboBox ItemsSource="{Binding pending_years}"
-                                  SelectedItem="{Binding selected_report_year}"
-                                  FontSize="11.5" Height="25" Cursor="Hand"/>
-                    </StackPanel>
-
-                    <!-- PANEL EN CASCADA CUANDO SE ELIGE POR ZONA -->
-                    <Border x:Name="panel_periodo_zona" Visibility="Collapsed" Background="#F1F8F4"
-                            BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,4">
-                        <StackPanel>
-                            <TextBlock Text="PERÍODO POR ZONA" FontSize="9" FontWeight="Bold" Foreground="#1B3A2D" Margin="0,0,0,4"/>
-                            <RadioButton Content="Todas a la fecha (Todo en calle)" GroupName="cxc_zona_subperiodo" x:Name="rbtn_zona_sub_todas"
-                                         Checked="on_zona_subperiodo_changed" FontSize="11" Margin="0,0,0,3" Cursor="Hand" IsChecked="True"/>
-                            <RadioButton Content="Mes en específico" GroupName="cxc_zona_subperiodo" x:Name="rbtn_zona_sub_mes"
-                                         Checked="on_zona_subperiodo_changed" FontSize="11" Margin="0,0,0,3" Cursor="Hand"/>
-                            <Grid x:Name="panel_zona_selectores_mes" Visibility="Collapsed" Margin="16,2,0,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <ComboBox Grid.Column="0" ItemsSource="{Binding pending_years}" SelectedItem="{Binding selected_report_year}" Margin="0,0,4,0" Height="24" FontSize="11"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding pending_months}" SelectedItem="{Binding selected_month}" Height="24" FontSize="11"/>
-                            </Grid>
-                            <RadioButton Content="Año completo" GroupName="cxc_zona_subperiodo" x:Name="rbtn_zona_sub_anio"
-                                         Checked="on_zona_subperiodo_changed" FontSize="11" Margin="0,0,0,3" Cursor="Hand"/>
-                            <Grid x:Name="panel_zona_selectores_anio" Visibility="Collapsed" Margin="16,2,0,4">
-                                <ComboBox ItemsSource="{Binding pending_years}" SelectedItem="{Binding selected_report_year}" Height="24" FontSize="11"/>
-                            </Grid>
-                            <TextBlock Text="* Agrupa por zona, muestra la columna Vendedor y al final incluye el Resumen General."
-                                       FontSize="8.5" FontStyle="Italic" Foreground="#4E6B5A" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                        </StackPanel>
-                    </Border>
+                    <controls:RangoFechasPicker Rango="{Binding rango_reporte, Mode=TwoWay}" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="nota_por_zona" Visibility="Collapsed"
+                               Text="* Agrupa por zona, muestra la columna Vendedor y al final incluye el Resumen General. Sin fechas = cobranza a la fecha."
+                               FontSize="8.5" FontStyle="Italic" Foreground="#4E6B5A" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
                     <!-- AGRUPAR EN -->
                     <StackPanel x:Name="panel_agrupar_en">

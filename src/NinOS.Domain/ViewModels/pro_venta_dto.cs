@@ -6,17 +6,6 @@ using System.Runtime.CompilerServices;
 
 namespace NinOS.Domain.ViewModels
 {
-    public class pro_venta_month_option
-    {
-        public DateTime value { get; set; }
-        public string label { get; set; } = string.Empty;
-
-        public override string ToString()
-        {
-            return label;
-        }
-    }
-
     public class pro_venta_week_info
     {
         public int week_index { get; set; }
@@ -217,6 +206,7 @@ namespace NinOS.Domain.ViewModels
         public int relation_number { get; set; }
         public DateTime week_start { get; set; }
         public DateTime week_end { get; set; }
+        public bool es_hueca { get; set; }
         public string label { get; set; } = string.Empty;
 
         public override string ToString()

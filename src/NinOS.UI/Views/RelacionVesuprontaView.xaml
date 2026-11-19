@@ -1,6 +1,7 @@
 <UserControl x:Class="NinOS.UI.Views.RelacionVesuprontaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:NinOS.UI.Controls"
              Background="White">
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -10,14 +11,7 @@
         </Grid.RowDefinitions>
 
         <WrapPanel Grid.Row="0" Margin="0,0,0,10" VerticalAlignment="Center">
-            <TextBlock Text="Periodo:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="90" ItemsSource="{Binding modos}" SelectedItem="{Binding modo_seleccionado}" Margin="0,0,14,0"/>
-            <TextBlock Text="Año:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="90" ItemsSource="{Binding anios}" SelectedItem="{Binding anio_seleccionado}"
-                      IsEnabled="{Binding usa_anio}" Margin="0,0,14,0"/>
-            <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="130" ItemsSource="{Binding meses}" DisplayMemberPath="nombre" SelectedValuePath="numero"
-                      SelectedValue="{Binding mes_seleccionado}" IsEnabled="{Binding es_modo_mes}" Margin="0,0,14,0"/>
+            <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,14,0"/>
             <Button Content="👁️ Vista Previa" Style="{StaticResource ToolbarReportPreviewButton}" Height="30" MinWidth="120" Margin="0,0,6,0"
                     Command="{Binding preview_command}"/>
             <Button Content="🖨️ Imprimir" Style="{StaticResource ToolbarPrintButton}" Height="30" MinWidth="110" Margin="0,0,6,0"

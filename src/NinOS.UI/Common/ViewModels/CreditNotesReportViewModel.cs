@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using NinOS.Domain;
 using NinOS.Domain.ViewModels;
 using NinOS.Infrastructure.Services.Interfaces;
 using NinOS.UI.Common;
@@ -14,7 +15,7 @@ namespace NinOS.UI.Common.ViewModels
     // el usuario elige el periodo (general o mensual) y la categoria, y descarga el PDF.
     public class CreditNotesReportViewModel : ViewModelBase
     {
-        public const string PeriodGeneral = "GENERAL";
+
 
         private const string CategoryBoth = "Ambos";
         private const string CategoryGift = "Obsequio";
@@ -28,14 +29,12 @@ namespace NinOS.UI.Common.ViewModels
 
         private readonly ICreditNoteService _credit_note_service;
 
-        private bool _is_general = true;
-        private bool _is_mensual;
-        private string _selected_month = string.Empty;
+        private rango_fechas _rango_reporte = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
         private string _selected_category = CategoryBoth;
         private bool _include_annulled;
         private bool _is_loading;
 
-        public ObservableCollection<string> month_options { get; }
+
         public ObservableCollection<string> category_options { get; }
 
         /// <summary>
@@ -53,40 +52,13 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        // Los dos checkboxes son excluyentes: al marcar uno se desmarca el otro.
-        public bool is_general
+        public rango_fechas rango_reporte
         {
-            get => _is_general;
+            get => _rango_reporte;
             set
             {
-                if (_is_general == value) return;
-                _is_general = value;
-                if (value) _is_mensual = false;
-                on_property_changed();
-                on_property_changed(nameof(is_mensual));
-            }
-        }
-
-        public bool is_mensual
-        {
-            get => _is_mensual;
-            set
-            {
-                if (_is_mensual == value) return;
-                _is_mensual = value;
-                if (value) _is_general = false;
-                on_property_changed();
-                on_property_changed(nameof(is_general));
-            }
-        }
-
-        public string selected_month
-        {
-            get => _selected_month;
-            set
-            {
-                if (_selected_month == value) return;
-                _selected_month = value;
+                if (value == null || _rango_reporte == value) return;
+                _rango_reporte = value;
                 on_property_changed();
             }
         }
@@ -118,61 +90,10 @@ namespace NinOS.UI.Common.ViewModels
             _credit_note_service = credit_note_service ?? throw new ArgumentNullException(nameof(credit_note_service));
 
             category_options = new ObservableCollection<string> { CategoryBoth, CategoryGift, CategoryReturns };
-            month_options = new ObservableCollection<string>();
+
         }
 
-        // Se recarga cada vez que se abre el menu: si se registro una nota nueva,
-        // su mes tiene que aparecer entre las opciones.
-        public async Task load_options_async()
-        {
-            try
-            {
-                is_loading = true;
-
-                var months = await _credit_note_service.get_credit_note_months_async();
-
-                var previous = _selected_month;
-
-                month_options.Clear();
-                foreach (var m in months)
-                {
-                    if (string.IsNullOrWhiteSpace(m)) continue;
-                    month_options.Add(m);
-                }
-
-                if (month_options.Count == 0)
-                {
-                    is_mensual = false;
-                    is_general = true;
-                    _selected_month = string.Empty;
-                }
-                var current_month_str = DateTime.Now.ToString("MMMM yyyy", Ve);
-                if (!string.IsNullOrWhiteSpace(previous) && month_options.Contains(previous))
-                {
-                    _selected_month = previous;
-                }
-                else if (month_options.Contains(current_month_str))
-                {
-                    _selected_month = current_month_str;
-                }
-                else
-                {
-                    _selected_month = month_options.Count > 0 ? month_options[month_options.Count - 1] : string.Empty;
-                }
-
-                on_property_changed(nameof(selected_month));
-            }
-            catch (Exception ex)
-            {
-                AppDialog.Show(ErrorText.Get(ex), "Error");
-            }
-            finally
-            {
-                is_loading = false;
-            }
-        }
-
-        public async Task<credit_note_report_dto?> build_report_dto_async()
+public async Task<credit_note_report_dto?> build_report_dto_async()
         {
             if (!resolve_period(out var from, out var to, out var period_label)) return null;
 
@@ -187,7 +108,7 @@ namespace NinOS.UI.Common.ViewModels
                 report.rows = report.rows.Where(r => !r.esta_anulada).ToList();
             }
 
-            if (period_label == PeriodGeneral)
+            if (_rango_reporte.desde == null && _rango_reporte.hasta == null)
             {
                 report.previous_period_label = string.Empty;
                 report.previous_total_usd = 0;
@@ -314,31 +235,9 @@ namespace NinOS.UI.Common.ViewModels
 
         private bool resolve_period(out DateTime from, out DateTime to, out string label)
         {
-            if (_is_general)
-            {
-                // GENERAL: todo el historial, hasta hoy.
-                from = new DateTime(2000, 1, 1);
-                to = DateTime.Today;
-                label = PeriodGeneral;
-                return true;
-            }
-
-            if (!DateTime.TryParseExact(_selected_month, "MMMM yyyy", Ve, DateTimeStyles.None, out var month))
-            {
-                AppDialog.Show(
-                    "Seleccione un mes para el reporte mensual.",
-                    "Reporte de Notas de Credito",
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
-                from = default;
-                to = default;
-                label = string.Empty;
-                return false;
-            }
-
-            from = new DateTime(month.Year, month.Month, 1);
-            to = from.AddMonths(1).AddDays(-1);
-            label = month.ToString("MMMM yyyy", Ve);
+            from = _rango_reporte.desde ?? new DateTime(2000, 1, 1);
+            to = _rango_reporte.hasta ?? DateTime.Today;
+            label = _rango_reporte.texto_titulo_mayusculas();
             return true;
         }
 

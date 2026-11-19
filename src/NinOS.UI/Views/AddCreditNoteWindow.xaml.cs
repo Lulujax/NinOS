@@ -148,11 +148,12 @@ namespace NinOS.UI.Views
             MaxWidth = max_width > 0 ? max_width : Width;
         }
 
-        public AddCreditNoteWindow(CreditNotesViewModel vm, string? current_month = null, string? initial_seller_name = null, string? initial_category = null, string? initial_zona_name = null)
+        public AddCreditNoteWindow(CreditNotesViewModel vm, string? initial_seller_name = null, string? initial_category = null, string? initial_zona_name = null)
         {
             InitializeComponent();
             WindowSizingHelper.FitToScreen(this);
             _vm = vm;
+            RangoNotas.Rango = rango_fechas.mes_actual(NinOS.Domain.AppTimeZone.to_local(DateTime.UtcNow).Date);
             _initial_seller_name = initial_seller_name;
             _initial_category = initial_category;
             _initial_zona_name = initial_zona_name;
@@ -207,13 +208,7 @@ namespace NinOS.UI.Views
                     {
                         ResetDevolucionState();
                         if (CmbSeller != null) CmbSeller.SelectedItem = null;
-                        if (CmbMonth != null)
-                        {
-                            CmbMonth.Items.Clear();
-                            CmbMonth.SelectedIndex = -1;
-                            CmbMonth.IsEnabled = false;
-                            CmbMonth.ToolTip = "Seleccione primero un vendedor...";
-                        }
+                        if (RangoNotas != null) RangoNotas.IsEnabled = false;
                         if (NoteTextBox != null)
                         {
                             NoteTextBox.IsEnabled = false;
@@ -246,14 +241,18 @@ namespace NinOS.UI.Views
             }
         }
 
-        private async void OnMonthSelected(object sender, SelectionChangedEventArgs e)
+        private async void OnRangoNotasCambiado(object? sender, EventArgs e)
         {
             if (!IsLoaded || _is_updating_cascade) return;
+            await CargarNotasDelRangoAsync();
+        }
+
+        private async Task CargarNotasDelRangoAsync()
+        {
             try
             {
                 ResetDevolucionState();
-                string? selected_month = CmbMonth.SelectedItem as string;
-                if (!string.IsNullOrWhiteSpace(selected_month) && _selected_seller != null)
+                if (_selected_seller != null)
                 {
                     if (NoteTextBox != null)
                     {
@@ -268,7 +267,7 @@ namespace NinOS.UI.Views
                     if (NoteTextBox != null)
                     {
                         NoteTextBox.IsEnabled = false;
-                        NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                        NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar notas...";
                     }
                     if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
                     _all_combo_items.Clear();
@@ -519,53 +518,19 @@ namespace NinOS.UI.Views
         private async Task ApplySellerForDevolucionAsync(seller? s)
         {
             ResetDevolucionState();
+            _selected_seller = s;
 
             if (NoteTextBox != null)
             {
                 NoteTextBox.IsEnabled = false;
-                NoteTextBox.ToolTip = "Seleccione primero un mes para buscar notas...";
+                NoteTextBox.ToolTip = "Seleccione primero un vendedor para buscar notas...";
             }
             if (BtnToggleDropdown != null) BtnToggleDropdown.IsEnabled = false;
-
-            _is_updating_cascade = true;
-            if (CmbMonth != null)
-            {
-                CmbMonth.Items.Clear();
-                CmbMonth.SelectedIndex = -1;
-            }
-            _is_updating_cascade = false;
+            if (RangoNotas != null) RangoNotas.IsEnabled = s != null;
 
             if (s != null)
             {
-                if (CmbMonth != null)
-                {
-                    CmbMonth.IsEnabled = true;
-                    CmbMonth.ToolTip = "Seleccione el mes de la nota de entrega";
-                }
-                try
-                {
-                    var months = (await _vm.get_delivery_note_months_for_seller_async(s.id_seller)).ToList();
-                    _is_updating_cascade = true;
-                    if (CmbMonth != null)
-                    {
-                        CmbMonth.Items.Clear();
-                        foreach (var m in months) CmbMonth.Items.Add(m);
-                        CmbMonth.SelectedIndex = -1;
-                    }
-                    _is_updating_cascade = false;
-                }
-                catch (Exception ex)
-                {
-                    AppDialog.Show(ErrorText.Get(ex), "Error");
-                }
-            }
-            else
-            {
-                if (CmbMonth != null)
-                {
-                    CmbMonth.IsEnabled = false;
-                    CmbMonth.ToolTip = "Seleccione primero un vendedor...";
-                }
+                await CargarNotasDelRangoAsync();
             }
         }
 
@@ -802,9 +767,8 @@ namespace NinOS.UI.Views
                     return;
                 }
 
-                string month_label = CmbMonth.SelectedItem as string ?? string.Empty;
 
-                var notes = await _vm.get_delivery_notes_for_credit_async(_selected_seller.id_seller, month_label);
+                var notes = await _vm.get_delivery_notes_for_credit_async(_selected_seller.id_seller, RangoNotas.Rango);
 
                 // Solo notas con saldo pendiente: una nota de entrega ya pagada no admite nota de
                 // credito porque no hay nada por devolver. El servicio ya aplica este mismo filtro;
@@ -861,11 +825,6 @@ namespace NinOS.UI.Views
                 if (_selected_seller == null)
                 {
                     AppDialog.Show("Seleccione primero un vendedor para buscar sus notas de entrega.", "Aviso");
-                    return;
-                }
-                if (string.IsNullOrWhiteSpace(CmbMonth.SelectedItem as string))
-                {
-                    AppDialog.Show("Seleccione primero un mes para buscar notas de entrega.", "Aviso");
                     return;
                 }
                 FilterNotes(string.Empty);

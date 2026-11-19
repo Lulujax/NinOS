@@ -22,7 +22,6 @@ namespace NinOS.UI.Common.ViewModels
         private readonly business_unit _business_unit;
 
         private string _search_query = string.Empty;
-        private string _selected_month = string.Empty;
         private string _selected_zone = "Todas";
         private string _selected_filter = "Todas";
         private string _selected_report_type = "Todas"; // = TipoNotaTodas
@@ -87,22 +86,21 @@ namespace NinOS.UI.Common.ViewModels
             }
         }
 
-        private int _selected_year = DateTime.Now.Year;
-        public ObservableCollection<int> available_years { get; } = new ObservableCollection<int>();
-        public ObservableCollection<string> available_months { get; } = new ObservableCollection<string>();
-        public ObservableCollection<string> pending_months => available_months;
+        private rango_fechas _rango_filtro = rango_fechas.mes_actual(AppTimeZone.to_local(DateTime.UtcNow).Date);
 
-        public int selected_year
+        public rango_fechas rango_filtro
         {
-            get => _selected_year;
+            get => _rango_filtro;
             set
             {
-                if (_selected_year == value) return;
-                _selected_year = value;
+                if (value == null || _rango_filtro == value) return;
+                _rango_filtro = value;
                 on_property_changed();
-                update_available_months();
+                on_property_changed(nameof(report_scope_text));
+                if (_is_loading) return;
+                update_goal_month_display();
+                apply_filters();
                 _ = load_goal_for_selected_month_async();
-                if (!_is_loading) apply_filters();
             }
         }
         public ObservableCollection<string> zone_options { get; } = new();
@@ -112,22 +110,6 @@ namespace NinOS.UI.Common.ViewModels
         public ObservableCollection<filter_selection_option> report_seller_options { get; } = new();
         public ObservableCollection<filter_selection_option> report_zone_options { get; } = new();
         public ObservableCollection<accounts_receivable_dto> all_notes { get; }
-
-        public string selected_month
-        {
-            get => _selected_month;
-            set
-            {
-                if (_selected_month == value) return;
-                _selected_month = value ?? string.Empty;
-                on_property_changed();
-                on_property_changed(nameof(report_scope_text));
-                if (_is_loading) return;
-                update_goal_month_display();
-                apply_filters();
-                _ = load_goal_for_selected_month_async();
-            }
-        }
 
         public string selected_zone
         {
@@ -200,14 +182,14 @@ public bool report_manual_scope
         {
             get
             {
-                string mes = string.IsNullOrEmpty(_selected_month) ? "sin mes seleccionado" : _selected_month;
+                string periodo = _rango_filtro.texto_titulo();
                 string zona = string.IsNullOrWhiteSpace(_selected_zone) || _selected_zone.Trim() == "Todas"
                     ? "todas las zonas"
                     : _selected_zone.Trim();
                 string vendedor = selected_tab?.IdSeller == null
                     ? "todos los vendedores"
                     : (selected_tab.Header ?? "todos los vendedores");
-                return $"Se usará: Mes {mes} · Zona {zona} · Vendedor {vendedor}";
+                return $"Se usará: {periodo} · Zona {zona} · Vendedor {vendedor}";
             }
         }
 
@@ -534,7 +516,6 @@ public bool report_manual_scope
             if (_is_loading) return;
             try
             {
-                var previous_selection = _selected_month;
                 _is_loading = true;
 
                 var dbSellers = _seller_service != null
@@ -672,28 +653,6 @@ public bool report_manual_scope
 
                 _all_notes_source = all_rows;
 
-                var detected_years = all_rows
-                    .Where(n => n.creation_date.Year >= 2000)
-                    .Select(n => AppTimeZone.to_local(n.creation_date).Year)
-                    .Distinct()
-                    .OrderByDescending(y => y)
-                    .ToList();
-
-                if (detected_years.Count == 0)
-                    detected_years.Add(DateTime.Now.Year);
-
-                available_years.Clear();
-                foreach (var y in detected_years) available_years.Add(y);
-                on_property_changed(nameof(selected_year));
-
-                if (!available_years.Contains(_selected_year))
-                {
-                    _selected_year = available_years[0];
-                    on_property_changed(nameof(selected_year));
-                }
-
-                update_available_months();
-
                 _is_loading = false;
                 update_goal_month_display();
                 apply_filters();
@@ -709,7 +668,7 @@ public bool report_manual_scope
         private void apply_filters()
         {
             var query = _search_query?.Trim().ToLower() ?? string.Empty;
-            var filtered = filter_by_month_and_search(_all_notes_source, _selected_month, query);
+            var filtered = filter_by_range_and_search(_all_notes_source, query);
 
             if (!string.IsNullOrEmpty(_selected_zone) && _selected_zone != "Todas")
             {
@@ -740,51 +699,9 @@ public bool report_manual_scope
             recalc_totals();
         }
 
-        private void update_available_months()
+        private List<accounts_receivable_dto> filter_by_range_and_search(List<accounts_receivable_dto> source, string query)
         {
-            var months_in_year = _all_notes_source
-                .Where(n => n.creation_date.Year >= 2000 && AppTimeZone.to_local(n.creation_date).Year == _selected_year)
-                .Select(n => AppTimeZone.to_local(n.creation_date).Month)
-                .Distinct()
-                .OrderBy(m => m)
-                .Select(m => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(new DateTime(_selected_year, m, 1).ToString("MMMM", new CultureInfo("es-VE"))))
-                .ToList();
-
-            var new_months = new List<string> { "", "Todos" };
-            new_months.AddRange(months_in_year);
-
-            string desired = _selected_month;
-            if (!new_months.Contains(desired))
-            {
-                desired = "Todos";
-            }
-
-            available_months.Clear();
-            foreach (var m in new_months) available_months.Add(m);
-
-            if (_selected_month != desired)
-            {
-                _selected_month = desired;
-                on_property_changed(nameof(selected_month));
-            }
-        }
-
-        private List<accounts_receivable_dto> filter_by_month_and_search(List<accounts_receivable_dto> source, string selected_month, string query)
-        {
-            if (string.IsNullOrEmpty(selected_month))
-                return new List<accounts_receivable_dto>();
-
-            var result = source.AsEnumerable();
-
-            if (selected_month == "Todos")
-            {
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year);
-            }
-            else
-            {
-                result = result.Where(n => AppTimeZone.to_local(n.creation_date).Year == _selected_year
-                                        && string.Equals(AppTimeZone.to_local(n.creation_date).ToString("MMMM", new CultureInfo("es-VE")), selected_month, StringComparison.OrdinalIgnoreCase));
-            }
+            var result = source.Where(n => _rango_filtro.contiene(n.creation_date));
 
             if (!string.IsNullOrEmpty(query))
             {
@@ -869,7 +786,7 @@ public bool report_manual_scope
                           || string.Equals(n.status?.Trim(), "Pagada", StringComparison.OrdinalIgnoreCase)))
                 .Sum(n => n.total_amount_usd);
 
-            var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty);
+            var month_rows = filter_by_range_and_search(_all_notes_source, string.Empty);
             if (!string.IsNullOrEmpty(_selected_zone) && _selected_zone != "Todas")
             {
                 month_rows = month_rows.Where(n =>
@@ -960,12 +877,6 @@ public bool report_manual_scope
 
         public async Task<monthly_report_dto?> build_sales_report_dto_async()
         {
-            if (string.IsNullOrEmpty(_selected_month))
-            {
-                AppDialog.Show("Seleccione un mes para generar el reporte.", "Reporte de ventas", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                return null;
-            }
-
             // --- Alcance del reporte -------------------------------------------------
             var seller_scope = report_seller_options.Where(o => o.is_checked).Select(o => o.name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -987,7 +898,7 @@ public bool report_manual_scope
                 return null;
             }
 
-            var month_rows = filter_by_month_and_search(_all_notes_source, _selected_month, string.Empty).ToList();
+            var month_rows = filter_by_range_and_search(_all_notes_source, string.Empty).ToList();
 
             // Filtro de vendedores
             if (filter_sellers)
@@ -1065,7 +976,7 @@ public bool report_manual_scope
                 }
             }
 
-            string period_label = _selected_month == "Todos" ? $"AÑO {_selected_year}" : $"{_selected_month} {_selected_year}".ToUpperInvariant();
+            string period_label = _rango_filtro.texto_titulo_mayusculas();
             return new monthly_report_dto
             {
                 title = string.IsNullOrEmpty(combined)
@@ -1229,17 +1140,15 @@ public bool report_manual_scope
 
         private DateTime? parse_selected_month()
         {
-            if (string.IsNullOrEmpty(_selected_month) || _selected_month == "Todos") return null;
-            if (DateTime.TryParseExact($"{_selected_month} {_selected_year}", "MMMM yyyy", new CultureInfo("es-VE"), DateTimeStyles.None, out var parsed))
-                return parsed;
-            return null;
+            var mes = _rango_filtro.mes_unico();
+            return mes.HasValue ? new DateTime(mes.Value.anio, mes.Value.mes, 1) : null;
         }
 
         private void update_goal_month_display()
         {
             DateTime? month = parse_selected_month();
             string month_label = month?.ToString("MMMM yyyy", new CultureInfo("es-VE")) ?? string.Empty;
-            goal_month_display = month_label;
+            goal_month_display = string.IsNullOrEmpty(month_label) ? "Elija un solo mes para ver la meta" : month_label;
             string tab_name = get_selected_tab_name().ToUpperInvariant();
             if (string.IsNullOrEmpty(month_label))
             {

@@ -1,6 +1,7 @@
 <UserControl x:Class="NinOS.UI.Views.ProVentaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:NinOS.UI.Controls"
              Background="White">
     <UserControl.Resources>
         <Style x:Key="CenterCellStyle" TargetType="TextBlock">
@@ -97,23 +98,14 @@
             <StackPanel>
                 <Border BorderBrush="#B0B0B0" BorderThickness="1" Padding="8" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
-                                  DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
-                        <TextBlock Text="Semana:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox ItemsSource="{Binding weeks}" SelectedItem="{Binding selected_week, Mode=TwoWay}"
-                                  DisplayMemberPath="label" Width="190" Margin="0,0,20,0"/>
+                        <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,20,0"/>
                         <TextBlock Text="Relación:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox x:Name="CmbRelation"
                                   ItemsSource="{Binding available_relations}"
                                   SelectedItem="{Binding selected_relation, Mode=TwoWay}"
                                   DisplayMemberPath="label"
-                                  IsEditable="True"
-                                  IsTextSearchEnabled="False"
-                                  PreviewKeyDown="CmbRelation_PreviewKeyDown"
-                                  KeyUp="CmbRelation_KeyUp"
-                                  LostFocus="CmbRelation_LostFocus"
-                                  Width="150" Margin="0,0,20,0"/>
+                                  IsEditable="False"
+                                  Width="260" Margin="0,0,20,0"/>
                         <Button x:Name="btn_reporte_semanal" Content="Reporte" Click="on_reporte_semanal_click"
                                 Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Cursor="Hand"
                                 IsEnabled="{Binding has_rows}"/>
@@ -159,17 +151,10 @@
                 <!-- Estado inicial: sin mes seleccionado no se carga nada. Se distingue de
                      "no hay datos" para que quede claro que falta elegir el mes y no que el
                      reporte vino vacio. -->
-                <Border Margin="0,30,0,0" Background="#FFF8E1" BorderBrush="#F0A500" BorderThickness="1" CornerRadius="4" Padding="18,14"
-                        HorizontalAlignment="Center" MaxWidth="500"
-                        Visibility="{Binding month_not_selected, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <TextBlock Text="Seleccione un mes para ver el reporte."
-                               Foreground="#8D6E00" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
-                </Border>
-
                 <Border Margin="0,30,0,0" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="18,14"
                         HorizontalAlignment="Center" MaxWidth="500"
                         Visibility="{Binding is_empty, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <TextBlock Text="No hay notas de despacho ni relación para esta semana."
+                    <TextBlock Text="No hay notas de despacho ni relación en este rango."
                                Foreground="#757575" FontSize="13" TextAlignment="Center" FontWeight="SemiBold"/>
                 </Border>
 
@@ -340,9 +325,7 @@
             <StackPanel>
                 <Border BorderBrush="#B0B0B0" BorderThickness="1" Padding="8" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
-                                  DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
+                        <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,20,0"/>
                         <Button x:Name="btn_reporte_pendientes" Content="Reporte" Click="on_reporte_pendientes_click"
                                 Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_pending}"/>
@@ -353,7 +336,7 @@
                                     Padding="12,10" Width="270">
                                 <StackPanel>
                                     <TextBlock Text="REPORTE DE RELACIONES PENDIENTES" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
-                                    <TextBlock Text="Usa el mes elegido arriba. «Todas» incluye todo el historial."
+                                    <TextBlock Text="Usa las fechas elegidas arriba."
                                                FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
                                     <UniformGrid Columns="2" Rows="2">
                                         <Button Content="👁️ Vista Previa" Command="{Binding preview_pending_command}" Click="close_reportes"
@@ -377,13 +360,9 @@
 
                 <TextBlock Text="Relaciones Pendientes" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
-                <TextBlock Text="Seleccione un mes para ver las relaciones pendientes." Foreground="#8D6E00"
-                           HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
-                           Visibility="{Binding pending_show_month_hint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
                 <TextBlock Text="No hay relaciones pendientes." Foreground="#888888" HorizontalAlignment="Center"
                            Margin="0,20,0,0"
-                           Visibility="{Binding pending_show_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                           Visibility="{Binding pending_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Width="1020" Visibility="{Binding has_pending, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding pending_rows}"
@@ -469,9 +448,7 @@
             <StackPanel>
                 <Border BorderBrush="#B0B0B0" BorderThickness="1" Padding="8" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Mes:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox ItemsSource="{Binding available_months}" SelectedItem="{Binding selected_month, Mode=TwoWay}"
-                                  DisplayMemberPath="label" Width="180" Margin="0,0,20,0"/>
+                        <controls:RangoFechasPicker Rango="{Binding rango_filtro, Mode=TwoWay}" Margin="0,0,20,0"/>
                         <Button x:Name="btn_reporte_pagadas" Content="Reporte" Click="on_reporte_pagadas_click"
                                 Background="#1565C0" Foreground="White" FontWeight="Bold" Padding="14,6" Margin="0,0,10,0" Cursor="Hand"
                                 IsEnabled="{Binding has_paid}"/>
@@ -482,7 +459,7 @@
                                     Padding="12,10" Width="270">
                                 <StackPanel>
                                     <TextBlock Text="REPORTE DE RELACIONES PAGADAS" FontSize="11" FontWeight="Bold" Foreground="#1565C0"/>
-                                    <TextBlock Text="Usa el mes elegido arriba. «Todas» incluye todo el historial."
+                                    <TextBlock Text="Usa las fechas elegidas arriba."
                                                FontSize="9" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,2,0,9"/>
                                     <UniformGrid Columns="2" Rows="2">
                                         <Button Content="👁️ Vista Previa" Command="{Binding preview_paid_command}" Click="close_reportes"
@@ -506,13 +483,9 @@
 
                 <TextBlock Text="Relaciones Pagadas" FontSize="16" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,0,8"/>
 
-                <TextBlock Text="Seleccione un mes para ver las relaciones pagadas." Foreground="#8D6E00"
-                           HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="SemiBold"
-                           Visibility="{Binding paid_show_month_hint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
                 <TextBlock Text="No hay relaciones pagadas." Foreground="#888888" HorizontalAlignment="Center"
                            Margin="0,20,0,0"
-                           Visibility="{Binding paid_show_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                           Visibility="{Binding paid_empty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <StackPanel Width="1020" Visibility="{Binding has_paid, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <DataGrid Style="{StaticResource ProVentaGrid}" ItemsSource="{Binding paid_rows}"
