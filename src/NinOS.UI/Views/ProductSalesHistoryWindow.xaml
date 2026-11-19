@@ -54,10 +54,13 @@
                   AlternatingRowBackground="#F5F9FD" RowBackground="White"
                   CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#E0E7EE"
-                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="14" RowHeight="35"
+                  BorderBrush="#C5D3E0" BorderThickness="1" FontSize="14" MinRowHeight="35"
                   EnableRowVirtualization="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto">
             <DataGrid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                </Style>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#0D62B5"/>
                     <Setter Property="Foreground" Value="White"/>
@@ -77,6 +80,7 @@
                 <DataGridTextColumn Header="MOTIVO" Binding="{Binding motivo_display}" Width="200">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <!-- La nota libre del ajuste se anexa al motivo: el tooltip deja leerla completa. -->
                             <Setter Property="ToolTip" Value="{Binding motivo_display}"/>
                         </Style>
@@ -87,6 +91,7 @@
                 <DataGridTextColumn Header="MOVIMIENTO" Binding="{Binding movement_type}" Width="120">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Setter Property="FontWeight" Value="Bold"/>
                             <Style.Triggers>
@@ -103,6 +108,7 @@
                 <DataGridTextColumn Header="UNIDADES" Binding="{Binding unidades_con_signo_display}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontWeight" Value="Bold"/>
                             <Style.Triggers>
@@ -126,6 +132,7 @@
                     </DataGridTextColumn.HeaderTemplate>
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontWeight" Value="Bold"/>
                             <Setter Property="Foreground" Value="#0D62B5"/>
@@ -135,6 +142,7 @@
                 <DataGridTextColumn Header="PRECIO" Binding="{Binding precio_display}" Width="95">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="TextAlignment" Value="Right"/>
                         </Style>
@@ -143,6 +151,7 @@
                 <DataGridTextColumn Header="ESTADO" Binding="{Binding status}" Width="100">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Style.Triggers>
