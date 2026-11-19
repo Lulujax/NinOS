@@ -282,7 +282,7 @@ namespace NinOS.UI.Common.ViewModels
 
             available_relations.Clear();
             foreach (var relacion in _all_relations_cache
-                .Where(r => !r.es_hueca && _rango_filtro.se_cruza_con(r.week_start, r.week_end))
+                .Where(r => _rango_filtro.se_cruza_con(r.week_start, r.week_end))
                 .OrderBy(r => r.relation_number))
             {
                 available_relations.Add(relacion);
