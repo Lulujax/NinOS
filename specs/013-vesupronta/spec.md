@@ -10,7 +10,7 @@ Vesupronta se administra desde su propia pestaña, con sub-pestañas propias, y 
 
 - **RF-1** EL SISTEMA manejará tres tipos de empresa: General, Pro Venta y Vesupronta. Cada zona pertenecerá a uno solo de los tres.
 - **RF-2** EL SISTEMA decidirá la empresa de una nota por la zona del cliente, igual que hoy con Pro Venta: la vendedora no elige la empresa.
-- **RF-3** EL SISTEMA mostrará la pestaña **Vesupronta** con estas sub-pestañas propias: Ventas, Cuentas por Cobrar, Pagos y Notas de Crédito. Las notas de entrega de Vesupronta **no** se crean dentro de esta pestaña.
+- **RF-3** EL SISTEMA mostrará la pestaña **Vesupronta** con estas sub-pestañas propias: Ventas, Cuentas por Cobrar y Pagos. Las notas de entrega y las notas de crédito de Vesupronta **no** se crean dentro de esta pestaña: se crean desde el mismo módulo que usan todas las empresas.
 - **RF-4** EL SISTEMA aplicará a Vesupronta las mismas reglas que a General: descuento de condición, descuento de volumen sumado al de condición (10% + 5% = 15%), promociones, días de crédito, stock negativo permitido y edición de montos y descuentos en Cuentas por Cobrar.
 - **RF-5** EL SISTEMA no mostrará notas, pagos, saldos, ventas ni notas de crédito de Vesupronta en las pestañas de General ni de Pro Venta, y tampoco mostrará los de General o Pro Venta dentro de Vesupronta.
 - **RF-6** EL SISTEMA creará las notas de entrega de las tres empresas desde la pestaña **Notas de Entrega** que ya existe. CUANDO se elija un cliente de una zona Vesupronta, EL SISTEMA ofrecerá solo los tipos de nota de Vesupronta, igual que hoy ofrece solo los de Pro Venta para un cliente de Maracay.
@@ -24,15 +24,15 @@ Vesupronta se administra desde su propia pestaña, con sub-pestañas propias, y 
 - **RF-14** CUANDO se cree o edite una zona, EL SISTEMA permitirá elegir su empresa entre General, Pro Venta y Vesupronta.
 - **RF-15** CUANDO se cambie la empresa de una zona que ya tiene notas emitidas, EL SISTEMA lo permitirá y cada nota ya emitida conservará la empresa con la que se emitió. Solo las notas nuevas saldrán con la empresa nueva de la zona.
 - **RF-16** La pestaña Cuentas por Cobrar de Vesupronta funciona igual que la de General: la misma lista, filtros, búsqueda, edición de montos y descuentos (spec 012) y abonos, pero solo con notas de Vesupronta.
-- **RF-17** CUANDO se hace una nota de crédito, EL SISTEMA la asignará a la empresa de la nota original que devuelve o anula. Una nota de crédito de Vesupronta solo aparece en la pestaña Notas de Crédito de Vesupronta, y una de General o Pro Venta solo en la suya.
+- **RF-17** CUANDO se hace una nota de crédito, EL SISTEMA la creará desde el mismo módulo de notas de crédito que usan todas las empresas y la asignará a la empresa de la nota original que devuelve o anula. [NECESITA ACLARACIÓN: las notas de crédito de Vesupronta se ven en la pestaña Notas de Crédito de General, en una lista común a las tres empresas, o en otro lugar?]
 - **RF-18** SI la nota original de una nota de crédito no se puede encontrar, ENTONCES EL SISTEMA la mostrará en General y lo dejará en el log, sin datos del cliente.
 
 ## Cómo sé que está listo
 
-- La pestaña Vesupronta abre con sus cuatro sub-pestañas y, en una base sin notas de Vesupronta, todas salen vacías y sin errores.
+- La pestaña Vesupronta abre con sus tres sub-pestañas (Ventas, Cuentas por Cobrar y Pagos) y, en una base sin notas de Vesupronta, todas salen vacías y sin errores.
 - Desde la pestaña Notas de Entrega, un cliente de zona Vesupronta solo ofrece tipos de nota de Vesupronta.
 - La Cuentas por Cobrar de Vesupronta lista solo sus notas, y un abono sobre una de ellas no cambia ninguna nota de General.
-- Una nota de crédito de una nota de Vesupronta aparece solo en Notas de Crédito de Vesupronta; con las dos empresas en testing, General no la muestra.
+- Una nota de crédito de una nota de Vesupronta se crea desde el módulo común de notas de crédito y queda asignada a Vesupronta (RF-17).
 - Al pasar una zona de General a Vesupronta, sus notas viejas siguen en General y las nuevas salen en Vesupronta.
 - Una nota emitida a un cliente de una zona Vesupronta aparece en Ventas, Cuentas por Cobrar y Pagos de Vesupronta, y **no** aparece en las pestañas de General ni de Pro Venta.
 - Una nota General y una de Pro Venta no aparecen en Vesupronta.
@@ -63,3 +63,4 @@ Vesupronta se administra desde su propia pestaña, con sub-pestañas propias, y 
 - La impresión es igual a la de General por ahora.
 - Las notas de entrega de las tres empresas se crean desde la pestaña Notas de Entrega actual; Vesupronta no tiene sub-pestaña de notas de entrega.
 - Una zona puede cambiar de empresa; cada nota emitida conserva la empresa con la que se emitió.
+- Decisión (Luis, 2026-11-19): Vesupronta no tiene sub-pestaña de Notas de Crédito. Las notas de crédito de todas las empresas se generan desde el mismo módulo.

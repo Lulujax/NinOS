@@ -74,9 +74,9 @@ Cubre: RF-5, RF-7
 
 ## Tarea 11 - Pestaña Vesupronta con sub-pestañas
 Cubre: RF-3, RF-12
-- Reemplazar "Modulo en preparacion." por un control con cuatro sub-pestañas (Ventas, Cuentas por Cobrar, Pagos, Notas de Crédito) que usan las mismas vistas con view models de alcance Vesupronta. Sin sub-pestaña de Notas de Entrega ni de Comisiones.
-- Hecho cuando: la pestaña abre sin errores y vacía en una base sin notas de Vesupronta.
-- Cómo probarla: abrir la app en testing y recorrer las cuatro sub-pestañas.
+- Reemplazar "Modulo en preparacion." por un control con tres sub-pestañas (Ventas, Cuentas por Cobrar, Pagos) que usan las mismas vistas con view models de alcance Vesupronta. Sin sub-pestaña de Notas de Entrega ni de Comisiones.
+- Hecho cuando: la pestaña abre sin errores y vacía en una base sin notas de Vesupronta. Sin sub-pestaña de Notas de Crédito (decisión 2026-11-19).
+- Cómo probarla: abrir la app en testing y recorrer las tres sub-pestañas.
 - [ ] Hecha y probada
 
 ## Tarea 12 - Impresión igual a General
