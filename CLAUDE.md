@@ -8,7 +8,7 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 - PDF con QuestPDF, Excel con ClosedXML, instalador con Inno Setup (`installer/`).
 - Capas: `src/NinOS.Domain` (entidades y DTOs) → `src/NinOS.Infrastructure` (datos, servicios, migraciones) → `src/NinOS.UI` (ventanas, vistas, reportes).
 - Convención existente: nombres en snake_case para entidades, variables y campos (`delivery_note`, `settings_path`). Se respeta en código nuevo.
-- Logs: usar `AppLog.Info / Warn / Error` (`src/NinOS.Infrastructure/Logging/AppLog.cs`), que escribe en `ninos-ui.log` junto al ejecutable.
+- Logs: usar `AppLog.Info / Warn / Error` (`src/NinOS.Infrastructure/Logging/AppLog.cs`), que escribe en `ninos-ui.log` en la carpeta de datos (`LocalDataFolder`): `%LocalAppData%\NinOS\` en una instalación de Velopack, junto al ejecutable en desarrollo. Ahí también viven `appsettings.json`, `backup_config.json` y `Backups` (spec 010, RF-24).
 
 ## Cómo se compila y se prueba
 

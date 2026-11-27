@@ -28,7 +28,7 @@ namespace NinOS.Infrastructure.Logging
             {
                 if (_file_path == null)
                 {
-                    _file_path = Path.Combine(AppContext.BaseDirectory, "ninos-ui.log");
+                    _file_path = NinOS.Infrastructure.Data.LocalDataFolder.file_path("ninos-ui.log");
                 }
                 return _file_path;
             }

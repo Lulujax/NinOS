@@ -19,7 +19,7 @@ namespace NinOS.UI
     public partial class App : Application
     {
         private ServiceProvider? _service_provider;
-        private static readonly string _error_log_path = Path.Combine(AppContext.BaseDirectory, "ninos-ui-error.log");
+        private static readonly string _error_log_path = LocalDataFolder.file_path("ninos-ui-error.log");
 
         public App()
         {
@@ -63,6 +63,8 @@ namespace NinOS.UI
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            LocalDataFolder.migrate_legacy_data();
 
             // Argumento oculto para crear o cambiar la clave del Panel Admin sin entrar al
             // sistema. Es la unica forma de ponerla la primera vez, porque ya no existe una
@@ -417,7 +419,8 @@ namespace NinOS.UI
                 // Sin silenciar PendingModelChangesWarning: si alguien cambia una entidad y
                 // olvida crear la migracion, la app lo dice en vez de trabajar con la base
                 // desalineada del modelo.
-                options.UseNpgsql(DbConnectionFactory.GetConnectionString());
+                options.UseNpgsql(DbConnectionFactory.GetConnectionString())
+                       .AddInterceptors(new StaleConnectionGuard());
             });
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 

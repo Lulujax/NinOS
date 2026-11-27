@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Sockets;
 using NinOS.UI.Common;
 
@@ -43,6 +44,27 @@ public class ErrorTextConexionTests
         string texto = ErrorText.Get(new InvalidOperationException(error_tecnico));
 
         Assert.DoesNotContain("base de datos", texto, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Conexion_cortada_por_el_servidor_en_espanol_no_manda_al_administrador()
+    {
+        Exception error = new InvalidOperationException(
+            "An exception has been raised that is likely due to a transient failure.",
+            new IOException("Unable to read data from the transport connection: Se ha forzado la interrupción de una conexión existente por el host remoto."));
+
+        string texto = ErrorText.Get(error);
+
+        Assert.Contains("inestable o se cortó", texto);
+        Assert.DoesNotContain("administrador", texto, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Fallo_transitorio_de_lectura_no_manda_al_administrador()
+    {
+        string texto = ErrorText.Get(new InvalidOperationException("Exception while reading from stream"));
+
+        Assert.DoesNotContain("administrador", texto, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

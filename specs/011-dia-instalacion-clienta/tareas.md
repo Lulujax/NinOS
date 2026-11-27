@@ -24,7 +24,7 @@ Cubre: RF-3
 
 ## Tarea 4 - Configuración de producción en cada PC
 Cubre: RF-4
-- En cada PC: instalar la versión actual con el actualizador y colocar `installer\private\appsettings.client.json` como `appsettings.json`. Viene de la tarea 10 de la spec 002 y de la tarea 15 de la spec 010.
+- En cada PC: instalar la versión actual con el actualizador y colocar `installer\private\appsettings.client.json` como `appsettings.json` en `%LocalAppData%\NinOS\` (no dentro de `current\`, que la actualización borra; spec 010, RF-24). Antes de copiarlo, confirmar que tenga el puerto nuevo de la tarea 2. Si la PC tiene respaldos locales en la carpeta de la versión vieja, moverlos a `%LocalAppData%\NinOS\Backups\`. Viene de la tarea 10 de la spec 002 y de la tarea 15 de la spec 010.
 - Hecho cuando: las 3 PCs abren y trabajan con la versión actual.
 - [ ] Hecha y probada — pendiente: solo en la visita.
 

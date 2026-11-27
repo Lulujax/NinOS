@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using Npgsql;
 using NinOS.Infrastructure.Logging;
 
 namespace NinOS.Infrastructure.Data
@@ -25,18 +26,18 @@ namespace NinOS.Infrastructure.Data
             "NinOS no tiene configurada la conexion con el sistema, asi que no puede abrir.\n\n" +
             "Se busco en estos dos lugares:\n" +
             $"   1. La variable de entorno {EnvironmentVariableName}\n" +
-            $"   2. El archivo {SettingsFileName} junto al programa:\n" +
+            $"   2. El archivo {SettingsFileName} en la carpeta de datos de NinOS:\n" +
             $"      {SettingsFilePath}\n\n" +
             "Avise al administrador del sistema para que la configure.";
 
-        public static string SettingsFilePath => Path.Combine(AppContext.BaseDirectory, SettingsFileName);
+        public static string SettingsFilePath => LocalDataFolder.file_path(SettingsFileName);
 
         public static string GetConnectionString()
         {
             if (TryGetConnectionString(out string? connection_string, out string source))
             {
                 AppLog.Info($"Conexion a la base tomada de {source}");
-                return connection_string!;
+                return apply_resilience_settings(connection_string!);
             }
 
             AppLog.Error("No hay configuracion de conexion a la base de datos");
@@ -71,6 +72,55 @@ namespace NinOS.Infrastructure.Data
             connection_string = null;
             source = string.Empty;
             return false;
+        }
+
+        public const int KEEPALIVE_SECONDS = 30;
+
+        public const int IDLE_LIFETIME_SECONDS = 30;
+
+        private const int NPGSQL_DEFAULT_IDLE_LIFETIME_SECONDS = 300;
+
+        public static string apply_resilience_settings(string connection_string)
+        {
+            if (string.IsNullOrWhiteSpace(connection_string))
+            {
+                throw new ArgumentException("La cadena de conexion no puede estar vacia.", nameof(connection_string));
+            }
+
+            NpgsqlConnectionStringBuilder builder;
+            try
+            {
+                builder = new NpgsqlConnectionStringBuilder(connection_string);
+            }
+            catch (ArgumentException exception)
+            {
+                AppLog.Warn($"La cadena de conexion no se pudo interpretar para ajustarla ({exception.GetType().Name}); se usa tal cual.");
+                return connection_string;
+            }
+
+            if (builder.KeepAlive == 0)
+            {
+                builder.KeepAlive = KEEPALIVE_SECONDS;
+            }
+
+            if (!builder.TcpKeepAlive)
+            {
+                builder.TcpKeepAlive = true;
+            }
+
+            if (builder.ConnectionIdleLifetime == NPGSQL_DEFAULT_IDLE_LIFETIME_SECONDS)
+            {
+                builder.ConnectionIdleLifetime = IDLE_LIFETIME_SECONDS;
+            }
+
+            string adjusted = builder.ConnectionString;
+
+            if (new NpgsqlConnectionStringBuilder(adjusted).KeepAlive <= 0)
+            {
+                throw new InvalidOperationException("La cadena de conexion ajustada quedo sin keepalive.");
+            }
+
+            return adjusted;
         }
 
         private static string? read_from_settings_file(string settings_path)

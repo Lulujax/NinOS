@@ -57,6 +57,14 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - **RF-22** EL SISTEMA no llevará dentro de la app ninguna contraseña ni llave que permita publicar una actualización; la app solo verifica identidad y firmas, no las crea.
 - **RF-23** EL SISTEMA no expondrá en el servidor ninguna forma de subir paquetes sin contraseña: nginx solo entrega archivos, no los recibe.
 
+### Datos locales que sobreviven a la actualización
+
+Agregado por decisión de Luis el 2026-11-26: Velopack reemplaza completa la carpeta del programa (`current\`) en cada actualización, y los paquetes no llevan `appsettings.json`. Sin esto, la primera actualización dejaría la PC sin conexión y borraría los respaldos locales y los logs.
+
+- **RF-24** EL SISTEMA guardará y leerá sus datos locales (`appsettings.json`, `backup_config.json`, la carpeta `Backups` y los logs) en la carpeta de datos de la app, que la actualización no toca. En una instalación de Velopack es `%LocalAppData%\NinOS\`, la carpeta de arriba de `current\`; en cualquier otra instalación o al ejecutar en desarrollo, es la misma carpeta del programa, como hasta hoy.
+- **RF-25** CUANDO la app arranca y encuentra uno de esos archivos en la carpeta del programa pero no en la carpeta de datos, EL SISTEMA lo copiará una sola vez a la carpeta de datos y lo dejará anotado en el log, sin datos sensibles. SI en la carpeta de datos ya existe el archivo, ENTONCES no lo pisará.
+- **RF-26** SI la copia falla (permisos, disco lleno), ENTONCES EL SISTEMA lo registrará en el log y seguirá arrancando: si falta la conexión, muestra el aviso de configuración faltante con la ruta donde debe ir el archivo.
+
 ## Cómo sé que está listo
 
 - Luis publica una corrección de código y el paquete que se sube pesa unos pocos MB, no 179 MB.
@@ -70,6 +78,7 @@ El modelo es el de los juegos en línea (WoW, Albion): se anuncia con antelació
 - Un servidor de prueba con otro certificado, aunque sea válido de una autoridad pública, es rechazado por la PC y queda en el log.
 - Con el certificado del servidor cambiado a uno cuya huella la app ya trae de respaldo, la PC sigue actualizando.
 - Luis vuelve al código anterior y las PCs quedan en esa versión.
+- Una PC configurada con `appsettings.json` (sin variable de entorno) recibe una actualización y sigue abriendo, con sus respaldos locales y su log intactos.
 - `dotnet build NinOS.slnx` con 0 errores y 0 advertencias.
 
 ## Fuera de alcance

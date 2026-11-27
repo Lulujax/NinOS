@@ -24,9 +24,9 @@ namespace NinOS.UI.Common
     public static class DatabaseBackup
     {
         public static string BackupsFolder =>
-            Path.Combine(AppContext.BaseDirectory, "Backups");
+            Path.Combine(LocalDataFolder.DataDirectory, LocalDataFolder.BACKUPS_FOLDER_NAME);
 
-        private static string config_path => Path.Combine(AppContext.BaseDirectory, "backup_config.json");
+        private static string config_path => LocalDataFolder.file_path("backup_config.json");
 
         public static backup_config load_config()
         {

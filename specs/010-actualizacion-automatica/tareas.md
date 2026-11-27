@@ -120,3 +120,10 @@ Cubre: RF-4
 - Hecho cuando: el espacio de los registros queda por debajo de un límite fijado por Luis y el panel del proveedor coincide con el servidor.
 - Cómo probarla: `df -h /` y `journalctl --disk-usage` antes y después.
 - [ ] Hecha y probada — pendiente: se hace después de resolver la actualización, y solo con el visto bueno de Luis.
+
+## Tarea 17 - Datos locales fuera de la carpeta que borra la actualización
+Cubre: RF-24, RF-25, RF-26
+- `appsettings.json`, `backup_config.json`, `Backups` y los logs pasan a la carpeta de datos (`%LocalAppData%\NinOS\` en Velopack; la del programa en otro caso). Al arrancar, lo que quede en la carpeta del programa se copia una vez sin pisar nada.
+- Hecho cuando: las pruebas unitarias de la carpeta de datos y de la copia pasan, y una PC con `appsettings.json` sigue abriendo después de una actualización.
+- Cómo probarla: en una PC o usuario de Windows sin `NINOS_DB_CONNECTION`, instalar con Velopack, poner `appsettings.json` (apuntando a testing) en `%LocalAppData%\NinOS\`, publicar una versión de prueba y dejar que se actualice: debe abrir, y el log debe seguir en `%LocalAppData%\NinOS\ninos-ui.log`.
+- [ ] Hecha y probada

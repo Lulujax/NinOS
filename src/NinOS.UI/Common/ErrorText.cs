@@ -49,6 +49,13 @@ namespace NinOS.UI.Common
                 "connection terminated",
                 "connection was closed",
                 "broken pipe",
+                "interrupción de una conexión",
+                "exception while reading from stream",
+                "exception while writing to stream",
+                "unable to read data from the transport",
+                "unable to write data to the transport",
+                "likely due to a transient failure",
+                "10054",
                 "no connection could be made",
                 "servidor no está disponible"))
                 return "La conexión es inestable o se cortó.\nEspera unos segundos, revisa tu internet e inténtalo de nuevo.";
