@@ -65,6 +65,14 @@ Agregado por decisión de Luis el 2026-11-26: Velopack reemplaza completa la car
 - **RF-25** CUANDO la app arranca y encuentra uno de esos archivos en la carpeta del programa pero no en la carpeta de datos, EL SISTEMA lo copiará una sola vez a la carpeta de datos y lo dejará anotado en el log, sin datos sensibles. SI en la carpeta de datos ya existe el archivo, ENTONCES no lo pisará.
 - **RF-26** SI la copia falla (permisos, disco lleno), ENTONCES EL SISTEMA lo registrará en el log y seguirá arrancando: si falta la conexión, muestra el aviso de configuración faltante con la ruta donde debe ir el archivo.
 
+### Abrir con permisos de administrador
+
+Agregado por decisión de la clienta y Luis el 2026-11-26: el programa instalado debe pedir permisos de administrador para iniciar.
+
+- **RF-27** CUANDO se abre la app instalada sin permisos de administrador, EL SISTEMA se volverá a abrir pidiendo esos permisos con el aviso de Windows y cerrará la copia sin permisos. Aplica también al reinicio después de una actualización.
+- **RF-28** SI el usuario rechaza el aviso de permisos, ENTONCES EL SISTEMA mostrará que necesita permisos de administrador para abrir y se cerrará sin conectarse a la base.
+- **RF-29** EL SISTEMA no pedirá permisos al ejecutarse en desarrollo (fuera de una instalación de Velopack).
+
 ## Cómo sé que está listo
 
 - Luis publica una corrección de código y el paquete que se sube pesa unos pocos MB, no 179 MB.

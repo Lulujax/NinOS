@@ -64,6 +64,18 @@ namespace NinOS.UI
         {
             base.OnStartup(e);
 
+            bool is_admin = AdminElevation.is_running_as_admin();
+            AppLog.Info($"Permisos: instalada={LocalDataFolder.IsInstalledApp}, administrador={is_admin}");
+            if (AdminElevation.must_relaunch_elevated(is_admin, LocalDataFolder.IsInstalledApp))
+            {
+                if (!AdminElevation.try_relaunch_elevated(e.Args))
+                {
+                    AppDialog.Show(AdminElevation.MissingPermissionsMessage, "Permisos de administrador");
+                }
+                Shutdown();
+                return;
+            }
+
             LocalDataFolder.migrate_legacy_data();
 
             // Argumento oculto para crear o cambiar la clave del Panel Admin sin entrar al

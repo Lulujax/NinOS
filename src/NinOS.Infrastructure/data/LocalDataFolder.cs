@@ -46,6 +46,9 @@ namespace NinOS.Infrastructure.Data
             }
         }
 
+        public static bool IsInstalledApp =>
+            !string.Equals(Path.TrimEndingDirectorySeparator(ProgramDirectory), DataDirectory, StringComparison.OrdinalIgnoreCase);
+
         public static string file_path(string file_name)
         {
             if (string.IsNullOrWhiteSpace(file_name))

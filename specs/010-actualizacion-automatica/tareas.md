@@ -127,3 +127,10 @@ Cubre: RF-24, RF-25, RF-26
 - Hecho cuando: las pruebas unitarias de la carpeta de datos y de la copia pasan, y una PC con `appsettings.json` sigue abriendo después de una actualización.
 - Cómo probarla: en una PC o usuario de Windows sin `NINOS_DB_CONNECTION`, instalar con Velopack, poner `appsettings.json` (apuntando a testing) en `%LocalAppData%\NinOS\`, publicar una versión de prueba y dejar que se actualice: debe abrir, y el log debe seguir en `%LocalAppData%\NinOS\ninos-ui.log`.
 - [ ] Hecha y probada
+
+## Tarea 18 - Pedir permisos de administrador al abrir
+Cubre: RF-27, RF-28, RF-29
+- Al arrancar, si la app está instalada con Velopack y no tiene permisos de administrador, se vuelve a abrir con el aviso de Windows y la copia sin permisos se cierra. Si el usuario dice que no, avisa y se cierra.
+- Hecho cuando: las pruebas unitarias de la decisión y de los argumentos pasan; la app instalada muestra el aviso de Windows al abrir desde el acceso directo y al reiniciarse tras una actualización.
+- Cómo probarla: instalar con el `Setup.exe`, abrir desde el acceso directo → aviso de Windows; aceptar → abre; rechazar → mensaje y se cierra.
+- [ ] Hecha y probada
