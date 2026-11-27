@@ -226,7 +226,9 @@ function actualizar_version_recomendada {
     param($acceso, [string]$nueva_version)
     $sql = "update app_update_policy set recommended_version='$nueva_version' where id_policy=1;"
     $sql_codificado = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($sql))
-    ejecutar_ssh $acceso "echo $sql_codificado | base64 -d | sudo -u postgres psql -v ON_ERROR_STOP=1 -d $base_politica"
+    $puerto_base = if ($acceso['DB_PORT']) { $acceso['DB_PORT'] } else { '5432' }
+    if ($puerto_base -notmatch '^\d{2,5}$') { throw 'DB_PORT en acceso-vps.env no es un puerto valido.' }
+    ejecutar_ssh $acceso "echo $sql_codificado | base64 -d | sudo -u postgres psql -p $puerto_base -v ON_ERROR_STOP=1 -d $base_politica"
     Write-Host "Version recomendada cambiada a $nueva_version en $base_politica."
 }
 
