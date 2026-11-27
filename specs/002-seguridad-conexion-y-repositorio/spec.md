@@ -8,6 +8,7 @@ Hoy la contraseña de la base de datos es de 4 caracteres, está escrita en el c
 
 - **RF-1** EL SISTEMA no tendrá ninguna contraseña, usuario ni dirección de servidor escritos en el código fuente ni en archivos versionados en Git.
 - **RF-2** EL SISTEMA leerá la cadena de conexión solo de la variable de entorno `NINOS_DB_CONNECTION` o de un `appsettings.json` local que Git ignora.
+  - Decisión de Luis (2026-11-26): en la PC de Luis ya no se usa la variable, para separar producción de testing por archivo. La NinOS instalada lee `%LocalAppData%\NinOS\appsettings.json` (producción); el desarrollo, las pruebas y `dotnet ef` leen `src\NinOS.UI\appsettings.json` (testing), que se copia a la salida al compilar. La variable sigue funcionando como opción, pero si existe le gana a los dos archivos.
 - **RF-3** SI no hay ninguna cadena de conexión configurada, ENTONCES EL SISTEMA se negará a arrancar con un mensaje claro y NO se conectará a producción por defecto.
 - **RF-4** EL SISTEMA usará contraseñas distintas y fuertes para producción y testing, y usuarios de base distintos.
 - **RF-5** EL SISTEMA tendrá el acceso a la base reforzado, no cerrado: las PCs se conectan desde cualquier internet, así que el puerto queda accesible pero con contraseña larga y aleatoria, cifrado TLS obligatorio, usuario sin superusuario y puerto distinto del 5432.

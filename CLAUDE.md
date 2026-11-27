@@ -22,13 +22,13 @@ ERP de escritorio para una distribuidora: notas de entrega, cuentas por cobrar, 
 
 - `main` = producción, base `ninos_db`. `TESTING` = pruebas, base `ninos_db_testing`.
 - Se trabaja en `TESTING` (o en una rama que sale de ella). A `main` solo pasa lo que el cliente aprobó.
-- `src/NinOS.UI/appsettings.json` **no va en Git** (spec 002). La base a la que apunta cada PC sale de la variable de entorno `NINOS_DB_CONNECTION` (tu PC → testing) o del archivo local que coloca el instalador (PCs del cliente → producción). Ya no depende de la rama, así que al unir ramas no hay riesgo de cruzar bases.
+- `src/NinOS.UI/appsettings.json` **no va en Git** (spec 002). La base sale de un archivo local, nunca de la rama. En la PC de Luis (sin variable `NINOS_DB_CONNECTION` desde 2026-11-26): la NinOS **instalada** lee `%LocalAppData%\NinOS\appsettings.json` → **producción**; `dotnet run`, las pruebas y `dotnet ef` leen `src\NinOS.UI\appsettings.json` → **testing**. En las PCs de la clienta: `%LocalAppData%\NinOS\appsettings.json` → producción. Si alguien vuelve a definir la variable, le gana a los dos archivos.
 
 ## Cuidado con la base de datos
 
 - **Al arrancar, la app aplica sola las migraciones pendientes** (`Database.Migrate()`) a la base a la que se conecte. Es decisión de Luis. A cambio, el usuario de base de la app necesita permisos para crear y modificar tablas, y ese riesgo se acepta.
 - Las migraciones deben ser **aditivas** siempre que se pueda: agregar columna o tabla nueva, con valor nulo o valor por defecto. Nunca borrar, renombrar ni cambiar el tipo de una columna que la versión anterior use. Una migración destructiva obliga a una ventana de mantenimiento con todas las PCs cerradas (ver spec 010).
-- Los comandos `dotnet ef` no usan el appsettings de la rama: si no hay variable `NINOS_DB_CONNECTION`, se conectan a la base de **producción**. Nunca correr `dotnet ef database update` ni similares sin antes definir esa variable apuntando a testing, y preguntarme primero.
+- Los comandos `dotnet ef` usan `src\NinOS.UI\appsettings.json` (testing). Nunca correr `dotnet ef database update` ni similares sin revisar antes que ese archivo apunte a testing, y preguntarme primero.
 - Los cambios de estructura van como migración de EF Core en `src/NinOS.Infrastructure/Migrations`, nunca a mano.
 - Nunca borrar ni modificar notas cobradas, pagos o comisiones ya pagadas sin que una spec lo diga.
 

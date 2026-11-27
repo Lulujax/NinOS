@@ -82,7 +82,7 @@ namespace NinOS.UI.Common
         private static bool es_falta_de_configuracion(Exception exception)
         {
             return exception is InvalidOperationException
-                && exception.Message.Contains(DbConnectionFactory.EnvironmentVariableName, StringComparison.Ordinal);
+                && string.Equals(exception.Message, DbConnectionFactory.MissingConfigurationMessage, StringComparison.Ordinal);
         }
 
         private static bool es_de_migracion(Exception exception)

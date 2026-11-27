@@ -164,7 +164,10 @@ namespace NinOS.UI.Common
 
             string? pg_dump = find_pg_dump();
             if (pg_dump == null)
-                return "No se encontro pg_dump.exe. Indica la ruta en la variable de entorno NINOS_PG_DUMP.";
+            {
+                AppLog.Warn("Respaldo: no se encontro pg_dump.exe en las rutas conocidas");
+                return "No se encontro la herramienta de respaldo en esta PC. Avise al administrador del sistema.";
+            }
 
             try
             {

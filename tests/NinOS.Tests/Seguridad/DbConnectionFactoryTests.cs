@@ -140,13 +140,16 @@ public class DbConnectionFactoryTests : IDisposable
     }
 
     [Fact]
-    public void caso_error_sin_configuracion_lanza_excepcion_que_explica_donde_buscar()
+    public void caso_error_sin_configuracion_avisa_sin_revelar_datos_de_conexion()
     {
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(
             () => DbConnectionFactory.GetConnectionString());
 
-        Assert.Contains(DbConnectionFactory.EnvironmentVariableName, error.Message);
-        Assert.Contains(DbConnectionFactory.SettingsFileName, error.Message);
+        Assert.Equal(DbConnectionFactory.MissingConfigurationMessage, error.Message);
+        Assert.Contains("administrador", error.Message);
+        Assert.DoesNotContain(DbConnectionFactory.EnvironmentVariableName, error.Message);
+        Assert.DoesNotContain(DbConnectionFactory.SettingsFileName, error.Message);
+        Assert.DoesNotContain(DbConnectionFactory.SettingsFilePath, error.Message);
     }
 
     [Fact]

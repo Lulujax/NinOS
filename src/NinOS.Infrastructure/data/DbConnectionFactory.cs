@@ -22,12 +22,8 @@ namespace NinOS.Infrastructure.Data
         // NUNCA agregar aqui una cadena de conexion por defecto. Antes habia una que apuntaba
         // a la base de PRODUCCION: cualquier PC sin configurar entraba a los datos reales del
         // cliente sin avisar, y la contraseña quedaba publicada en el repositorio.
-        public static string MissingConfigurationMessage =>
+        public const string MissingConfigurationMessage =
             "NinOS no tiene configurada la conexion con el sistema, asi que no puede abrir.\n\n" +
-            "Se busco en estos dos lugares:\n" +
-            $"   1. La variable de entorno {EnvironmentVariableName}\n" +
-            $"   2. El archivo {SettingsFileName} en la carpeta de datos de NinOS:\n" +
-            $"      {SettingsFilePath}\n\n" +
             "Avise al administrador del sistema para que la configure.";
 
         public static string SettingsFilePath => LocalDataFolder.file_path(SettingsFileName);
@@ -40,7 +36,7 @@ namespace NinOS.Infrastructure.Data
                 return apply_resilience_settings(connection_string!);
             }
 
-            AppLog.Error("No hay configuracion de conexion a la base de datos");
+            AppLog.Error($"No hay configuracion de conexion: falta {SettingsFileName} en la carpeta de datos de NinOS");
             throw new InvalidOperationException(MissingConfigurationMessage);
         }
 

@@ -63,7 +63,7 @@ public static class BaseDeTesting
                 "PRUEBAS DETENIDAS: la cadena de conexion configurada apunta a la base '"
                 + (nombre_de_la_base(cadena) ?? "desconocida")
                 + "', que no parece de testing. Las pruebas nunca corren contra produccion. "
-                + "Defina NINOS_DB_CONNECTION apuntando a ninos_db_testing.");
+                + "Revise que src\\NinOS.UI\\appsettings.json apunte a ninos_db_testing y que no haya una variable NINOS_DB_CONNECTION distinta.");
         }
 
         DbContextOptionsBuilder<NinOSDbContext> opciones = new DbContextOptionsBuilder<NinOSDbContext>();
