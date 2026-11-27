@@ -25,6 +25,8 @@ $ruta_clave = Join-Path $carpeta_privada 'clave_publicacion.json'
 $ruta_acceso = Join-Path $carpeta_privada 'acceso-vps.env'
 $ruta_servidor = '/var/www/ninos-updates/updates'
 $vpk = Join-Path $env:USERPROFILE '.dotnet\tools\vpk.exe'
+$ruta_icono = Join-Path $raiz_repo 'src\NinOS.UI\Assets\ninOS_logo.ico'
+$ruta_imagen_instalacion = Join-Path $raiz_repo 'src\NinOS.UI\Assets\ninOS_logo.png'
 $opciones_red = @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=20', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3')
 
 function leer_acceso {
@@ -192,11 +194,14 @@ function publicar_paquete {
         descargar_del_servidor $acceso "$ruta_servidor/NinOS-$($en_servidor[0])-full.nupkg" $carpeta_salida
     }
 
+    foreach ($imagen in @($ruta_icono, $ruta_imagen_instalacion)) {
+        if (-not (Test-Path -LiteralPath $imagen)) { throw "Falta la imagen del instalador: $imagen" }
+    }
     $codigo_empaquetado = ejecutar_con_progreso 'Empaquetando la actualizacion (completa y diferencial)' 40 {
-        param($vpk_a_usar, $version_a_empaquetar, $codigo_a_empaquetar, $salida_empaquetado)
-        & $vpk_a_usar pack -u NinOS -v $version_a_empaquetar -p $codigo_a_empaquetar -e NinOS.UI.exe -o $salida_empaquetado *> $null
+        param($vpk_a_usar, $version_a_empaquetar, $codigo_a_empaquetar, $salida_empaquetado, $icono, $imagen_instalacion)
+        & $vpk_a_usar pack -u NinOS -v $version_a_empaquetar -p $codigo_a_empaquetar -e NinOS.UI.exe -o $salida_empaquetado --packTitle NinOS --packAuthors NinOS --icon $icono --splashImage $imagen_instalacion --splashProgressColor '#1B3A2D' *> $null
         $LASTEXITCODE
-    } @($vpk, $nueva_version, $carpeta_codigo, $carpeta_salida)
+    } @($vpk, $nueva_version, $carpeta_codigo, $carpeta_salida, $ruta_icono, $ruta_imagen_instalacion)
     if ($codigo_empaquetado -ne 0) { throw 'Fallo el empaquetado. No se subio nada.' }
     Write-Host 'Paquete listo.'
 
